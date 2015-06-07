@@ -1,0 +1,13 @@
+{
+  "devDependencies": {
+    "gulp": "^3.8.8",
+    "gulp-jshint": "^1.9.2",
+    "gulp-replace": "^0.5.3",
+    "gulp-uglify": "^1.1.0",
+    "gulp-less": "*",
+    "gulp-minify-css": "*",
+    "gulp-watch": "*",
+    "del": "^1.1.1",
+    "laravel-elixir": "*"
+  }
+}
