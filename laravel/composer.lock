@@ -1,10 +1,10 @@
 {
     "_readme": [
         "This file locks the dependencies of your project to a known state",
-        "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "24c3946acc997e3f3eca7fc5c99585b2",
+    "hash": "ef66a2efaf51e800ee08aa41487e50f0",
     "packages": [
         {
             "name": "classpreloader/classpreloader",
@@ -407,6 +407,52 @@
                 "tokenizer"
             ],
             "time": "2015-03-11 20:06:43"
+        },
+        {
+            "name": "kbsali/redmine-api",
+            "version": "v1.5.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/kbsali/php-redmine-api.git",
+                "reference": "ac9cff168fa7692af6ccc9212868742ddcf0ef7d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/kbsali/php-redmine-api/zipball/ac9cff168fa7692af6ccc9212868742ddcf0ef7d",
+                "reference": "ac9cff168fa7692af6ccc9212868742ddcf0ef7d",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "php": ">=5.4"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "~4.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "Redmine": "lib/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Kevin Saliou",
+                    "email": "kevin@saliou.name",
+                    "homepage": "http://kevin.saliou.name"
+                }
+            ],
+            "description": "Redmine API client",
+            "homepage": "https://github.com/kbsali/php-redmine-api",
+            "keywords": [
+                "api",
+                "redmine"
+            ],
+            "time": "2015-05-11 20:55:24"
         },
         {
             "name": "laravel/framework",
@@ -933,6 +979,64 @@
                 "shell"
             ],
             "time": "2015-02-25 20:35:54"
+        },
+        {
+            "name": "ruflin/elastica",
+            "version": "2.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ruflin/Elastica.git",
+                "reference": "66e2ad6264455895e0506b84df03e7189f5f7a71"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ruflin/Elastica/zipball/66e2ad6264455895e0506b84df03e7189f5f7a71",
+                "reference": "66e2ad6264455895e0506b84df03e7189f5f7a71",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.3",
+                "psr/log": "~1.0"
+            },
+            "require-dev": {
+                "guzzlehttp/guzzle": "5.3.*",
+                "munkie/elasticsearch-thrift-php": "1.4.*"
+            },
+            "suggest": {
+                "egeloen/http-adapter": "Allow using httpadapter transport",
+                "guzzlehttp/guzzle": "Allow using guzzle 5.3.x as the http transport (Requires php 5.4)",
+                "monolog/monolog": "Logging request",
+                "munkie/elasticsearch-thrift-php": "Allow using thrift transport"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "2.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Elastica\\": "lib/Elastica/",
+                    "Elastica\\Test\\": "test/lib/Elastica/Test/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Nicolas Ruflin",
+                    "homepage": "http://ruflin.com/"
+                }
+            ],
+            "description": "Elasticsearch Client",
+            "homepage": "http://elastica.io/",
+            "keywords": [
+                "client",
+                "search"
+            ],
+            "time": "2015-06-01 14:48:12"
         },
         {
             "name": "swiftmailer/swiftmailer",
