@@ -12,7 +12,7 @@ class ReviewController extends Controller
      *
      * @return \HttpResponse
      */
-    public function index()
+    public function getIndex()
     {
         return 'Tag';
     }

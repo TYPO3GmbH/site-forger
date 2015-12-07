@@ -16,5 +16,4 @@ class SearchController extends Controller
     {
         return $this->view->render('index');
     }
-
 }
