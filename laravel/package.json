@@ -8,6 +8,9 @@
     "gulp-minify-css": "*",
     "gulp-watch": "*",
     "del": "^1.1.1",
-    "laravel-elixir": "*"
+    "laravel-elixir": "*",
+    "bootstrap": "3.*",
+    "amcharts": "*",
+    "jquery": "*"
   }
 }
