@@ -1,0 +1,339 @@
+@import "bootstrap";
+@import "variables";
+
+body {
+  padding-top: 70px;
+}
+
+th {
+  background-color: #D0D0D0;
+}
+
+td a span.button {
+  margin-bottom: 0;
+}
+
+table tr td table {
+  width: 100%;
+}
+
+.table-review caption,
+.table-issue caption{
+  font-weight: bold;
+  background-color: #d0d0d0;
+  padding: 8px;
+}
+
+.progress {
+  border-radius: 0;
+}
+
+.statusbar {
+  background-color: @board-background-color;
+}
+.board {
+  background-color: @board-background-color;
+  margin-bottom: 20px;
+}
+.boardcolumn {
+  h3 {
+    margin: 20px 0 5px 0;
+    font-size: 13px;
+    font-weight: 400;
+	padding: 0.4em 1em;
+  }
+
+  .cards {
+    padding: 5px 0;
+
+    .card {
+      font-size: 13px;
+      background-color: @card-background-color;
+      border: 1px solid @card-border-color;
+      border-left-width: 5px;
+      margin-bottom: 10px;
+      .box-shadow(0 1px 1px rgba(0,0,0,.05));
+
+      &:hover {
+        background-color: darken(@card-background-color, 5%);
+      }
+
+      &.card-status-1 {
+        border-left-color: @status-feedback-color;
+      }
+      &.card-status-2 {
+        border-left-color: @status-new-color;
+      }
+
+      .status .label {
+        padding: 0.3em;
+      }
+
+      &-heading {
+        .media-left {
+          padding: 5px;
+          .tracker-icon {
+            margin-right: 5px;
+
+            .fa-stack {
+              & > .fa-square {
+                color: rgba(0, 0, 0, 0.6);
+              }
+              & > .fa-inverse {
+                color: #fff;
+              }
+            }
+          }
+        }
+        .media-body {
+          padding: 5px;
+          a {
+            height: 34px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 90%;
+            display: block;
+            color: #000000;
+            font-weight: 500;
+          }
+        }
+        .media-right {
+          padding: 5px;
+
+          .avatar {
+            width: 40px;
+            height: 40px;
+            overflow: hidden;
+            position: relative;
+            border-radius: @border-radius-base;
+            box-shadow: 0px 0px 1px #999;
+            img {
+              position:absolute;
+              left: -100%;
+              right: -100%;
+              top: -100%;
+              bottom: -100%;
+              margin: auto;
+              min-height: 100%;
+              min-width: 100%;
+              width: 40px;
+            }
+          }
+        }
+      }
+
+      &-status {
+        .label {
+          display: block;
+          border-radius: 0;
+          border: 0;
+        }
+      }
+
+      &-body {
+        border-top: 1px solid @card-border-color;
+        padding: 5px;
+      }
+    }
+  }
+}
+
+.progress {
+  height: 30px;
+  margin-bottom: 0;
+}
+
+.progress-bar {
+  line-height: 30px;
+}
+
+div.graph {
+  width:100%;
+  height: 500px;
+}
+
+section.middle img {
+  height: 2.8125rem;
+}
+
+pre code {
+  display: block;
+  margin-bottom: 10px;
+}
+
+span.moreBtn {
+  display: none;
+  cursor: pointer;
+}
+
+div.expandable {
+  overflow: hidden;
+  margin-bottom: 9px;
+}
+.progress-bar-open, .status_new {
+  background-color: @status-new-color;
+  color: lighten(@status-new-color, 50%);
+}
+.status_accepted {
+  background-color: @status-accepted-color;
+  color: darken(@status-accepted-color, 50%);
+}
+.progress-bar-review, .status_review {
+  background-color: @status-review-color;
+  color: lighten(@status-review-color, 50%);
+}
+.status_onhold {
+  background-color: @status-onhold-color;
+  color: lighten(@status-onhold-color, 50%);
+}
+.progress-bar-blocked, .status_feedback {
+  background-color: @status-feedback-color;
+  color: lighten(@status-feedback-color, 50%);
+}
+.progress-bar-wip, .status_wip {
+  background-color: @status-wip-color;
+  color: lighten(@status-wip-color, 50%);
+}
+.progress-bar-done, .status_done {
+  background-color: @status-done-color;
+  color: lighten(@status-done-color, 50%);
+}
+
+
+
+//
+// Callouts
+//
+.callout {
+  background-color: @callout-bg;
+  border: 1px solid @callout-border;
+  border-left-width: 5px;
+  margin: 20px 0;
+  padding: @callout-padding;
+  color: @callout-color;
+  .media {
+    margin: 0;
+    .fa-stack {
+      color: @callout-icon-color;
+      > .fa:first-child {
+        color: @callout-border;
+      }
+    }
+  }
+  .media-body {
+    vertical-align: middle;
+  }
+}
+.callout-icon {
+  margin-top: -2px;
+}
+.callout-title {
+  font-size: 1.3em;
+  margin: 0 0 0.5em;
+}
+.callout-body {
+  > *:last-child {
+    margin-bottom: 0;
+  }
+  ul {
+    padding: 0;
+  }
+}
+
+
+//
+// Callout variants
+//
+.callout-variant(@background; @border; @text-color; @icon-color) {
+  background-color: @background;
+  border-color: @border;
+  color: @text-color;
+  .media {
+    margin: 0;
+    .fa-stack {
+      color: @icon-color;
+      > .fa:first-child {
+        color: @border;
+      }
+    }
+  }
+}
+.callout-success {
+  .callout-variant(@callout-success-bg; @callout-success-border; @callout-success-color; @callout-success-icon-color);
+}
+.callout-info {
+  .callout-variant(@callout-info-bg; @callout-info-border; @callout-info-color; @callout-info-icon-color);
+}
+.callout-warning {
+  .callout-variant(@callout-warning-bg; @callout-warning-border; @callout-warning-color; @callout-warning-icon-color);
+}
+.callout-danger {
+  .callout-variant(@callout-danger-bg; @callout-danger-border; @callout-danger-color; @callout-danger-icon-color);
+}
+.callout-notice {
+  .callout-variant(@callout-notice-bg; @callout-notice-border; @callout-notice-color; @callout-notice-icon-color);
+}
+
+.norightpadding {
+  padding-right: 0;
+}
+
+.padding-5 {
+  padding: 0 5px;
+}
+
+.list-group-item {
+  padding: 4px;
+  font-size: 12px;
+}
+
+.js-changetypes button {
+  &.active {
+	font-weight: bold;
+  }
+  i.fa {
+	margin-right: 5px;
+  }
+}
+
+/**********************
+CUSTOM GRID
+*/
+
+.grid-10 {
+  @media (min-width: @screen-sm-min) {
+	.col-sm-2 {
+	  width: 100%;
+	}
+  }
+  @media (min-width: @screen-md-min) {
+	.col-md-2 {
+	  width: 20%;
+	  padding-right : 0;
+	}
+	.col-md-2:last-child {
+	  width: 20%;
+	  padding-right : 15px;
+	}
+
+  }
+}
+
+.cutText {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space:nowrap;
+  width: 100px;
+}
+
+.flashmessage-container {
+	width: 50%;
+	position: absolute;
+	top: 60px;
+	left: 25%;
+	z-index: 5000;
+}
+
+.mt20 {
+  margin-top: 20px;
+}

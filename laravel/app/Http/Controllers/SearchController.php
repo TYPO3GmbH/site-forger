@@ -1,22 +1,20 @@
-<?php namespace App\Http\Controllers;
+<?php
 
-class SearchController extends Controller {
+namespace App\Http\Controllers;
 
-	/**
-	 * Create a new controller instance.
-	 */
-	public function __construct()  {
-		parent::__construct();
-		$this->middleware('guest');
-	}
+use Illuminate\Http\Response;
 
-	/**
-	 * Show the index screen to the user.
-	 *
-	 * @return Response
-	 */
-	public function index() {
-		return view('templates.search.index');
-	}
+class SearchController extends Controller
+{
+
+    /**
+     * Show the index screen to the user.
+     *
+     * @return Response
+     */
+    public function index()
+    {
+        return $this->view->render('index');
+    }
 
 }

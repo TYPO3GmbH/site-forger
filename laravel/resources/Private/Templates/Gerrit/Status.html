@@ -1,0 +1,25 @@
+{namespace wmdb=WMDB\Forger\ViewHelpers}
+<f:layout name="Default" />
+
+<f:section name="Title">Reviews</f:section>
+<f:section name="Javascripts">
+</f:section>
+
+<f:section name="Content">
+	<form action="/gerrit/status" method="get">
+		<f:render partial="ReviewView" arguments="{
+		results: results,
+		aggregations: aggregations,
+		pagesToLinkTo: pagesToLinkTo,
+		currentPage: currentPage,
+		prev: prev,
+		next: next,
+		filters: filters,
+		totalResults: totalResults,
+		startingAtItem: startingAtItem,
+		endingAtItem: endingAtItem
+		action: 'status'
+		}" />
+	</form>
+	<f:render partial="RedmineModal" />
+</f:section>

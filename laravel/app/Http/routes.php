@@ -12,3 +12,5 @@
 */
 
 Route::get('/', 'SearchController@index');
+
+Route::get('/boards/reviews', 'Boards/ReviewController');

@@ -7,7 +7,8 @@
 	"require": {
 		"laravel/framework": "5.0.*",
 		"kbsali/redmine-api": "^1.5",
-		"ruflin/elastica": "^2.1"
+		"ruflin/elastica": "^2.1",
+		"typo3fluid/fluid": "dev-master"
 	},
 	"require-dev": {
 		"phpunit/phpunit": "~4.0",
