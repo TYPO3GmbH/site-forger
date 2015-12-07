@@ -3,8 +3,7 @@
 use Illuminate\Foundation\Bus\DispatchesCommands;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Foundation\Validation\ValidatesRequests;
-use View;
-use Config;
+use TYPO3Fluid\Fluid\Core\ViewHelper\ViewHelperResolver;
 
 abstract class Controller extends BaseController
 {
@@ -26,6 +25,11 @@ abstract class Controller extends BaseController
         $context = $this->view->getRenderingContext();
         $context->setControllerName($this->determineControllerName());
         $this->view->setRenderingContext($context);
+
+        $viewHelperResolver = $this->view->getViewHelperResolver();
+        $viewHelperResolver->registerNamespace('fl', 'FoT3\\FluidLaravel\\ViewHelpers');
+        $viewHelperResolver->registerNamespace('wmdb', 'App\\ViewHelpers');
+        $this->view->setViewHelperResolver($viewHelperResolver);
     }
 
     /**
