@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "e1dc44ccf168e1bf78aae89a3c646107",
-    "content-hash": "23000993ef69f38f6677f766e8a17575",
+    "hash": "d1291ffc409e6f2b09e8bd3fa8f59c11",
+    "content-hash": "c25eb27b3942aacc0e9fe851be163334",
     "packages": [
         {
             "name": "classpreloader/classpreloader",
@@ -2001,6 +2001,36 @@
                 "environment"
             ],
             "time": "2015-05-30 15:59:26"
+        },
+        {
+            "name": "wmdbsystems/fluidlaravel",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/wmdbsystems/FluidLaravel.git",
+                "reference": "a229df8441745f73d2669a60f2cffe973fc7ea29"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/wmdbsystems/FluidLaravel/zipball/a229df8441745f73d2669a60f2cffe973fc7ea29",
+                "reference": "a229df8441745f73d2669a60f2cffe973fc7ea29",
+                "shasum": ""
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "FoT3\\FluidLaravel\\": "Classes/"
+                }
+            },
+            "license": [
+                "LGPL-3.0+"
+            ],
+            "description": "Laravel integration for TYPO3 Fluid",
+            "support": {
+                "source": "https://github.com/wmdbsystems/FluidLaravel/tree/master",
+                "issues": "https://github.com/wmdbsystems/FluidLaravel/issues"
+            },
+            "time": "2015-12-07 17:11:06"
         }
     ],
     "packages-dev": [
@@ -3071,7 +3101,8 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "typo3fluid/fluid": 20
+        "typo3fluid/fluid": 20,
+        "wmdbsystems/fluidlaravel": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,
