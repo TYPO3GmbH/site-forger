@@ -6,13 +6,13 @@
 <f:section name="Content">
 	<h1>Registration</h1>
 
-	<f:flashMessages />
+	<fl:flashMessages />
 
-	<f:form action="create" controller="Login" method="post" name="loginform">
-		<label>User:</label><f:form.textfield name="name" /><br />
-		<label>Pass:</label><f:form.password name="pass" /><br />
-		<label>Pass repeat:</label><f:form.password name="pass2" /><br />
-		<f:form.submit value="Login" />
-	</f:form>
+	<fl:form action="create" controller="Login" method="post" name="loginform">
+		<label>User:</label><fl:form.textfield name="name" /><br />
+		<label>Pass:</label><fl:form.password name="pass" /><br />
+		<label>Pass repeat:</label><fl:form.password name="pass2" /><br />
+		<fl:form.submit value="Login" />
+	</fl:form>
 
 </f:section>

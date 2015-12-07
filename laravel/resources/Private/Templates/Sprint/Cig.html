@@ -14,14 +14,14 @@
         <div class="col-xs-12">
             <div class="btn-group">
                 <f:for each="{boardMenu}" as="boardNav">
-                    <f:link.action
+                    <fl:link.action
                             class="btn btn-default {f:if(condition: boardNav.active, then: 'active')}"
                             data="{toggle:'tooltip', placement:'top', container:'body'}"
                             title="{boardNav.count.open} open, {boardNav.count.closed} closed,  {boardNav.count.total} total"
                             controller="Sprint"
                             action="CIG"
                             arguments="{boardId:boardNav.id}"
-                            >{boardNav.name} ({boardNav.count.percentage}%)</f:link.action>
+                            >{boardNav.name} ({boardNav.count.percentage}%)</fl:link.action>
                 </f:for>
             </div>
             <f:if condition="{board}">

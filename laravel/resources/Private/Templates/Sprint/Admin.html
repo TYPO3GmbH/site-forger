@@ -11,12 +11,12 @@
 			<f:if condition="{boardNav.active}">
 				<f:then>
 					<dd class="active">
-						<f:link.action controller="Sprint" action="Index" arguments="{boardId:boardNav.id}">{boardNav.name}</f:link.action>
+						<fl:link.action controller="Sprint" action="Index" arguments="{boardId:boardNav.id}">{boardNav.name}</fl:link.action>
 					</dd>
 				</f:then>
 				<f:else>
 					<dd>
-						<f:link.action controller="Sprint" action="Index" arguments="{boardId:boardNav.id}">{boardNav.name}</f:link.action>
+						<fl:link.action controller="Sprint" action="Index" arguments="{boardId:boardNav.id}">{boardNav.name}</fl:link.action>
 					</dd>
 				</f:else>
 			</f:if>

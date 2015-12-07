@@ -23,9 +23,9 @@
     </tr>
     <tr>
         <td class="col-md-3">Created:</td>
-        <td class="col-md-3"><strong><time is="time-ago" datetime="{review._source.created_on->f:format.date(format: 'c')}">{issue.hit._source.created_on}</time></strong></td>
+        <td class="col-md-3"><strong><time is="time-ago" datetime="{review._source.created_on->fl:format.date(format: 'c')}">{issue.hit._source.created_on}</time></strong></td>
         <td class="col-md-3">Updated:</td>
-        <td class="col-md-3"><strong><time is="time-ago" datetime="{review._source.updated_on->f:format.date(format: 'c')}">{issue.hit._source.updated_on}</time></strong></td>
+        <td class="col-md-3"><strong><time is="time-ago" datetime="{review._source.updated_on->fl:format.date(format: 'c')}">{issue.hit._source.updated_on}</time></strong></td>
     </tr>
     <tr>
         <td class="col-md-3">

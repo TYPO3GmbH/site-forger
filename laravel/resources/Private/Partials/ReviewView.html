@@ -1,4 +1,3 @@
-{namespace wmdb=WMDB\Forger\ViewHelpers}
 
 <div class="col-sm-3">
 	<h4>Aggregations</h4>
@@ -27,10 +26,10 @@
         <f:for each="{pagesToLinkTo}" as="page" key="pageDesc">
             <f:if condition="{currentPage} == {page}">
                 <f:then>
-                    <li class="active"><f:link.action action="{action}" arguments="{query: query, page: page, filters: filters}">{page}</f:link.action></li>
+                    <li class="active"><fl:link.action action="{action}" arguments="{query: query, page: page, filters: filters}">{page}</fl:link.action></li>
                 </f:then>
                 <f:else>
-                    <li><f:link.action action="{action}" arguments="{query: query, page: page, filters: filters}">{page}</f:link.action></li>
+                    <li><fl:link.action action="{action}" arguments="{query: query, page: page, filters: filters}">{page}</fl:link.action></li>
                 </f:else>
             </f:if>
         </f:for>

@@ -8,7 +8,7 @@
 	<div class="container">
         <div class="row">
             <div class="col-sm-12 col-md-6">
-                <img class="img-responsive" src="{f:uri.resource(package: 'WMDB.Forger', path: 'images/slack.svg')}" />
+                <img class="img-responsive" src="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/slack.svg')}" />
             </div>
         </div>
         <div class="row">
@@ -36,7 +36,7 @@
                  <p>This service is sponsored by <a href="https://slack.com" target="_blank">Slack.com</a> - thanks a lot folks, we appreciate it.</p>
             </div>
             <div class="col-sm-12 col-md-6">
-                <f:form action="sendInvite" additionalAttributes="{data-abide:true}" class="form-horizontal">
+                <fl:form action="sendInvite" additionalAttributes="{data-abide:true}" class="form-horizontal">
                     <div class="form-group">
                         <label for="email" class="col-sm-3 control-label">Email:<br/> <small>required</small></label>
                         <div class="col-sm-9">
@@ -60,10 +60,10 @@
                     </div>
                     <div class="form-group">
                         <div class="col-sm-offset-3 col-sm-9">
-                            <f:form.submit value="send request" class="btn btn-success"  />
+                            <fl:form.submit value="send request" class="btn btn-success"  />
                         </div>
                     </div>
-                </f:form>
+                </fl:form>
             </div>
         </div>
 	</div>

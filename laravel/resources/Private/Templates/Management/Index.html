@@ -7,18 +7,18 @@
 <f:section name="Content">
 
 	<h3>Issue Management View</h3>
-	<f:form action="index" object="{trackerFilters}" objectName="trackerFilters" class="form-inline" method="get">
+	<fl:form action="index" object="{trackerFilters}" objectName="trackerFilters" class="form-inline" method="get">
 		<div class="form-group">
-			<label class="checkbox-inline"><f:form.checkbox property="epic" value="1" /> Exclude Epics</label>
-			<label class="checkbox-inline"><f:form.checkbox property="story" value="1" /> Exclude Stories</label>
-			<label class="checkbox-inline"><f:form.checkbox property="feature" value="1" /> Exclude Features</label>
-			<label class="checkbox-inline"><f:form.checkbox property="task" value="1" /> Exclude Tasks</label>
-			<label class="checkbox-inline"><f:form.checkbox property="bug" value="1" /> Exclude Bugs</label>
+			<label class="checkbox-inline"><fl:form.checkbox property="epic" value="1" /> Exclude Epics</label>
+			<label class="checkbox-inline"><fl:form.checkbox property="story" value="1" /> Exclude Stories</label>
+			<label class="checkbox-inline"><fl:form.checkbox property="feature" value="1" /> Exclude Features</label>
+			<label class="checkbox-inline"><fl:form.checkbox property="task" value="1" /> Exclude Tasks</label>
+			<label class="checkbox-inline"><fl:form.checkbox property="bug" value="1" /> Exclude Bugs</label>
 		</div>
 		<div class="form-group">
 			<button type="submit" class="btn btn-success">Filter</button>
 		</div>
-	</f:form>
+	</fl:form>
 	<f:for each="{aggs}" as="year">
 		<div class="container-fluid">
             <div class="row">

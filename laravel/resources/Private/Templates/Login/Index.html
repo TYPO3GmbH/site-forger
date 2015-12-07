@@ -6,18 +6,18 @@
 <f:section name="Content">
 	<h1>Login</h1>
 
-	<f:flashMessages />
+	<fl:flashMessages />
 
 	<f:security.ifHasRole role="BoardAdmin">
 		<f:then>
-			<f:link.action action="logout" controller="Login">Logout</f:link.action>
+			<fl:link.action action="logout" controller="Login">Logout</fl:link.action>
 		</f:then>
 		<f:else>
-			<f:form action="authenticate" method="post" name="loginform" class="loginform">
-				<label>User:</label><f:form.textfield name="__authentication[TYPO3][Flow][Security][Authentication][Token][UsernamePassword][username]" /><br />
-				<label>Pass:</label><f:form.password name="__authentication[TYPO3][Flow][Security][Authentication][Token][UsernamePassword][password]" /><br />
-				<f:form.submit value="Login" />
-			</f:form>
+			<fl:form action="authenticate" method="post" name="loginform" class="loginform">
+				<label>User:</label><fl:form.textfield name="__authentication[TYPO3][Flow][Security][Authentication][Token][UsernamePassword][username]" /><br />
+				<label>Pass:</label><fl:form.password name="__authentication[TYPO3][Flow][Security][Authentication][Token][UsernamePassword][password]" /><br />
+				<fl:form.submit value="Login" />
+			</fl:form>
 		</f:else>
 	</f:security.ifHasRole>
 

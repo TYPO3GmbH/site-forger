@@ -2,9 +2,9 @@
 
 <f:section name="Title">Dashboard</f:section>
 <f:section name="Javascripts">
-	<script type="text/javascript" src="{f:uri.resource(package: 'WMDB.Forger', path: 'js/amcharts/amcharts.js')}"></script>
-	<script type="text/javascript" src="{f:uri.resource(package: 'WMDB.Forger', path: 'js/amcharts/serial.js')}"></script>
-	<script type="text/javascript" src="{f:uri.resource(package: 'WMDB.Forger', path: 'js/amcharts/pie.js')}"></script>
+	<script type="text/javascript" src="{fl:uri.resource(package: 'WMDB.Forger', path: 'js/amcharts/amcharts.js')}"></script>
+	<script type="text/javascript" src="{fl:uri.resource(package: 'WMDB.Forger', path: 'js/amcharts/serial.js')}"></script>
+	<script type="text/javascript" src="{fl:uri.resource(package: 'WMDB.Forger', path: 'js/amcharts/pie.js')}"></script>
 </f:section>
 
 <f:section name="Content">
@@ -21,7 +21,7 @@
             <div id="general" class="graph">
                 <div class="row">
                     <div class="col-sm-7 column"><h3>Open Issues:</h3></div>
-                    <div class="col-sm-5 column"><h1><f:link.action controller="gerrit" action="status">{openIssues}</f:link.action></h1></div>
+                    <div class="col-sm-5 column"><h1><fl:link.action controller="gerrit" action="status">{openIssues}</fl:link.action></h1></div>
                 </div>
                 <div class="row">
                     <div class="col-sm-7 column"><h3>Open Reviews:</h3></div>

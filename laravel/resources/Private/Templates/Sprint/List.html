@@ -15,7 +15,7 @@
 
     <div class="btn-group">
         <f:for each="{boardMenu}" as="boardNav">
-            <f:link.action class="btn btn-default {f:if(condition: boardNav.active, then: 'active')}" controller="Sprint" action="List" arguments="{boardId:boardNav.id}">{boardNav.name}</f:link.action>
+            <fl:link.action class="btn btn-default {f:if(condition: boardNav.active, then: 'active')}" controller="Sprint" action="List" arguments="{boardId:boardNav.id}">{boardNav.name}</fl:link.action>
         </f:for>
     </div>
     <div class="btn-group pull-right">

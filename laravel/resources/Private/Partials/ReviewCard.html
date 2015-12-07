@@ -20,7 +20,7 @@
     <div class="card-body">
         <div class="row">
             <div class="col-sm-12">
-                <i class="fa fa-user"></i> {card.owner} <span class="pull-right"><time is="time-ago" datetime="{card.updated_on->f:format.date(format: 'c')}">{issue.hit._source.updated_on}</time></span>
+                <i class="fa fa-user"></i> {card.owner} <span class="pull-right"><time is="time-ago" datetime="{card.updated_on->fl:format.date(format: 'c')}">{issue.hit._source.updated_on}</time></span>
             </div>
         </div>
         <div class="row">

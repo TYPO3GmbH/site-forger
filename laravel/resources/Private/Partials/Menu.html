@@ -2,50 +2,50 @@
 	<li class="dropdown">
 		<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Reviews <span class="caret"></span></a>
 		<ul class="dropdown-menu" role="menu">
-			<li><f:link.action controller="gerrit" action="status">All (excl. WIP)</f:link.action></li>
-			<li><f:link.action controller="gerrit" action="mergeReady"><i class="fa fa-fw fa-check-square-o"></i> Has verifications</f:link.action></li>
-			<li><f:link.action controller="gerrit" action="missesVerification"><i class="fa fa-fw fa-plus-square-o"></i> Needs Verification</f:link.action></li>
-			<li><f:link.action controller="gerrit" action="missesReview"><i class="fa fa-fw fa-plus-square-o"></i> Needs Review</f:link.action></li>
-			<li><f:link.action controller="gerrit" action="rebase"><i class="fa fa-fw fa-refresh"></i> Rebase necessary</f:link.action></li>
+			<li><fl:link.action controller="gerrit" action="status">All (excl. WIP)</fl:link.action></li>
+			<li><fl:link.action controller="gerrit" action="mergeReady"><i class="fa fa-fw fa-check-square-o"></i> Has verifications</fl:link.action></li>
+			<li><fl:link.action controller="gerrit" action="missesVerification"><i class="fa fa-fw fa-plus-square-o"></i> Needs Verification</fl:link.action></li>
+			<li><fl:link.action controller="gerrit" action="missesReview"><i class="fa fa-fw fa-plus-square-o"></i> Needs Review</fl:link.action></li>
+			<li><fl:link.action controller="gerrit" action="rebase"><i class="fa fa-fw fa-refresh"></i> Rebase necessary</fl:link.action></li>
 		</ul>
 	</li>
 	<li class="dropdown">
 		<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Sprints <span class="caret"></span></a>
 		<ul class="dropdown-menu" role="menu">
-			<li><f:link.action controller="sprint" action="index"><i class="fa fa-fw fa-table"></i> Sprint Boards</f:link.action></li>
-			<li><f:link.action controller="sprint" action="list"><i class="fa fa-fw fa-list"></i> Sprint Lists</f:link.action></li>
-			<li><f:link.action controller="sprint" action="focus"><i class="fa fa-fw fa-asterisk"></i> Focus Boards</f:link.action></li>
-			<li><f:link.action controller="sprint" action="cig"><i class="fa fa-fw fa-users"></i> CIG Boards</f:link.action></li>
-			<li><f:link.action controller="reviewsprint" action="index"><i class="fa fa-fw fa-cogs"></i> Reviews</f:link.action></li>
-			<li><f:link.action controller="management" action="index"><i class="fa fa-fw fa-th-list"></i> Issue Management</f:link.action></li>
+			<li><fl:link.action controller="sprint" action="index"><i class="fa fa-fw fa-table"></i> Sprint Boards</fl:link.action></li>
+			<li><fl:link.action controller="sprint" action="list"><i class="fa fa-fw fa-list"></i> Sprint Lists</fl:link.action></li>
+			<li><fl:link.action controller="sprint" action="focus"><i class="fa fa-fw fa-asterisk"></i> Focus Boards</fl:link.action></li>
+			<li><fl:link.action controller="sprint" action="cig"><i class="fa fa-fw fa-users"></i> CIG Boards</fl:link.action></li>
+			<li><fl:link.action controller="review" action="index"><i class="fa fa-fw fa-cogs"></i> Reviews</fl:link.action></li>
+			<li><fl:link.action controller="management" action="index"><i class="fa fa-fw fa-th-list"></i> Issue Management</fl:link.action></li>
 		</ul>
 	</li>
 	<li class="dropdown">
 		<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Utility <span class="caret"></span></a>
 		<ul class="dropdown-menu" role="menu">
-			<li><f:link.action controller="standard" action="rst"><i class="fa fa-fw fa-file-text-o"></i> ReST Helper</f:link.action></li>
-			<li><f:link.action controller="standard" action="calendar"><i class="fa fa-fw fa-calendar"></i> Team Calendar</f:link.action></li>
-			<li><f:link.action controller="slack" action="index"><i class="fa fa-fw fa-slack"></i> Slack Invite</f:link.action></li>
+			<li><fl:link.action controller="standard" action="rst"><i class="fa fa-fw fa-file-text-o"></i> ReST Helper</fl:link.action></li>
+			<li><fl:link.action controller="standard" action="calendar"><i class="fa fa-fw fa-calendar"></i> Team Calendar</fl:link.action></li>
+			<li><fl:link.action controller="slack" action="index"><i class="fa fa-fw fa-slack"></i> Slack Invite</fl:link.action></li>
 		</ul>
 	</li>
 	<li class="dropdown">
 		<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Help <span class="caret"></span></a>
 		<ul class="dropdown-menu" role="menu">
-			<li><f:link.action controller="standard" action="help"><i class="fa fa-fw fa-question-circle"></i> Graphs</f:link.action></li>
+			<li><fl:link.action controller="standard" action="help"><i class="fa fa-fw fa-question-circle"></i> Graphs</fl:link.action></li>
 			<li><a href="https://github.com/wmdbsystems/WMDB.Forger" target="_blank"><i class="fa fa-fw fa-github"></i> Fork us on Github</a></li>
 		</ul>
 	</li>
 </ul>
 
-<f:form action="search" controller="standard" method="get" class="navbar-form navbar-right">
+<fl:form action="search" controller="standard" method="get" class="navbar-form navbar-right">
 	<div class="form-group">
 		<div class="input-group">
-			<f:form.textfield name="query" placeholder="Issue ID or Searchwords" class="form-control" value="" />
+			<fl:form.textfield name="query" placeholder="Issue ID or Searchwords" class="form-control" value="" />
 			<span class="input-group-btn">
 				<button type="submit" class="btn btn-success"><i class="fa fa-fw fa-search"></i></button>
 			</span>
 		</div>
 	</div>
-</f:form>
+</fl:form>
 
 
