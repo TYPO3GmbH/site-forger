@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "d1291ffc409e6f2b09e8bd3fa8f59c11",
-    "content-hash": "c25eb27b3942aacc0e9fe851be163334",
+    "hash": "735328c23c31cf2b2a2456a66fa6932b",
+    "content-hash": "2238c735458e82b78a0268c103d876f3",
     "packages": [
         {
             "name": "classpreloader/classpreloader",
@@ -833,6 +833,59 @@
                 "time"
             ],
             "time": "2015-11-04 20:07:17"
+        },
+        {
+            "name": "netcarver/textile",
+            "version": "v3.5.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/textile/php-textile.git",
+                "reference": "1b95af533775316d09bd36a38bee2c0b804add12"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/textile/php-textile/zipball/1b95af533775316d09bd36a38bee2c0b804add12",
+                "reference": "1b95af533775316d09bd36a38bee2c0b804add12",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "3.7.*",
+                "satooshi/php-coveralls": "0.6.*",
+                "squizlabs/php_codesniffer": "1.5.*",
+                "symfony/yaml": "2.3.*"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "3.5-dev"
+                }
+            },
+            "autoload": {
+                "psr-0": {
+                    "Netcarver\\Textile": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD-3-Clause"
+            ],
+            "description": "Textile markup language parser",
+            "homepage": "https://github.com/textile/php-textile",
+            "keywords": [
+                "document",
+                "format",
+                "html",
+                "language",
+                "markup",
+                "parser",
+                "php-textile",
+                "plaintext",
+                "textile"
+            ],
+            "time": "2014-01-02 09:39:06"
         },
         {
             "name": "nikic/php-parser",
@@ -2008,13 +2061,20 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/wmdbsystems/FluidLaravel.git",
-                "reference": "a229df8441745f73d2669a60f2cffe973fc7ea29"
+                "reference": "0623508f75cb5bb276fc671970cf5b332c1e5e10"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/wmdbsystems/FluidLaravel/zipball/a229df8441745f73d2669a60f2cffe973fc7ea29",
-                "reference": "a229df8441745f73d2669a60f2cffe973fc7ea29",
+                "url": "https://api.github.com/repos/wmdbsystems/FluidLaravel/zipball/0623508f75cb5bb276fc671970cf5b332c1e5e10",
+                "reference": "0623508f75cb5bb276fc671970cf5b332c1e5e10",
                 "shasum": ""
+            },
+            "require": {
+                "php": ">=5.4.0",
+                "typo3fluid/fluid": "dev-master"
+            },
+            "require-dev": {
+                "laravel/framework": "5.1.*"
             },
             "type": "library",
             "autoload": {
@@ -2025,12 +2085,22 @@
             "license": [
                 "LGPL-3.0+"
             ],
+            "authors": [
+                {
+                    "name": "Frank Nägler",
+                    "email": "frank.naegler@typo3.org"
+                },
+                {
+                    "name": "Mathias Schreiber",
+                    "email": "mathias.schreiber@typo3.org"
+                }
+            ],
             "description": "Laravel integration for TYPO3 Fluid",
             "support": {
                 "source": "https://github.com/wmdbsystems/FluidLaravel/tree/master",
                 "issues": "https://github.com/wmdbsystems/FluidLaravel/issues"
             },
-            "time": "2015-12-07 17:11:06"
+            "time": "2015-12-08 16:03:48"
         }
     ],
     "packages-dev": [
@@ -2743,23 +2813,23 @@
         },
         {
             "name": "sebastian/diff",
-            "version": "1.4.0",
+            "version": "1.4.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/diff.git",
-                "reference": "2b0112e42c338afa9ad9dfeb94d66f6d84c2f828"
+                "reference": "13edfd8706462032c2f52b4b862974dd46b71c9e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/diff/zipball/2b0112e42c338afa9ad9dfeb94d66f6d84c2f828",
-                "reference": "2b0112e42c338afa9ad9dfeb94d66f6d84c2f828",
+                "url": "https://api.github.com/repos/sebastianbergmann/diff/zipball/13edfd8706462032c2f52b4b862974dd46b71c9e",
+                "reference": "13edfd8706462032c2f52b4b862974dd46b71c9e",
                 "shasum": ""
             },
             "require": {
                 "php": ">=5.3.3"
             },
             "require-dev": {
-                "phpunit/phpunit": "~5"
+                "phpunit/phpunit": "~4.8"
             },
             "type": "library",
             "extra": {
@@ -2791,7 +2861,7 @@
             "keywords": [
                 "diff"
             ],
-            "time": "2015-12-06 07:21:36"
+            "time": "2015-12-08 07:14:41"
         },
         {
             "name": "sebastian/environment",
