@@ -29,7 +29,6 @@ class GerritController extends Controller
         parent::__construct();
         date_default_timezone_set('UTC');
         $this->connection = $connection;
-        $this->view->assign('context', 'Laravel');
         if (isset($_GET['page'])) {
             $this->currentPage = intval($_GET['page']);
         }

@@ -30,6 +30,7 @@ abstract class Controller extends BaseController
         $viewHelperResolver->registerNamespace('fl', 'FoT3\\FluidLaravel\\ViewHelpers');
         $viewHelperResolver->registerNamespace('wmdb', 'App\\ViewHelpers');
         $this->view->setViewHelperResolver($viewHelperResolver);
+        $this->view->assign('context', env('APP_ENV'));
     }
 
     /**
