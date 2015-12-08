@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Bus\DispatchesCommands;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Foundation\Validation\ValidatesRequests;
+use TYPO3Fluid\Fluid as Fluid;
 
 abstract class Controller extends BaseController
 {
@@ -10,7 +11,7 @@ abstract class Controller extends BaseController
 
     public function __construct()
     {
-        $paths = new \TYPO3Fluid\Fluid\View\TemplatePaths();
+        $paths = new Fluid\View\TemplatePaths();
         $paths->setTemplateRootPaths(array(
             base_path() . '/resources/Private/Templates/'
         ));
@@ -20,7 +21,13 @@ abstract class Controller extends BaseController
         $paths->setPartialRootPaths(array(
             base_path() . '/resources/Private/Partials/'
         ));
-        $this->view = new \TYPO3Fluid\Fluid\View\TemplateView($paths);
+
+        /**
+         * Set up fluid caches
+         */
+        $fluidCache = new Fluid\Core\Cache\SimpleFileCache(base_path() . '/storage/app/Cache/Fluid');
+
+        $this->view = new Fluid\View\TemplateView($paths, null, null);
         $this->view->assign('APP_ENV', 'L5 ' . env('APP_ENV'));
 
         $context = $this->view->getRenderingContext();
