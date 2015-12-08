@@ -3,11 +3,6 @@ namespace App\ViewHelpers;
 
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
-/**
- * Class LowercaseViewHelper
- *
- * @package WMDB\Forger\ViewHelpers
- */
 class LowercaseViewHelper extends AbstractViewHelper
 {
 
