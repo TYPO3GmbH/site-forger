@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Elastic\Connection;
 use Illuminate\Http\Response;
+use Elastica;
 
 class GerritController extends Controller
 {
-
     /**
      * @var string
      */
@@ -19,9 +20,20 @@ class GerritController extends Controller
     private $totalHits;
 
     /**
-     * @var Es\ElasticSearchConnectio
+     * @var Connection
      */
     private $connection;
+
+    public function __construct(Connection $connection)
+    {
+        parent::__construct();
+        date_default_timezone_set('UTC');
+        $this->connection = $connection;
+        $this->view->assign('context', 'Laravel');
+        if (isset($_GET['page'])) {
+            $this->currentPage = intval($_GET['page']);
+        }
+    }
 
     /**
      * Show the index screen to the user.
@@ -99,7 +111,43 @@ class GerritController extends Controller
      */
     public function getMissesVerification()
     {
-        return $this->view->render('index');
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'range' => [
+                                'positive_reviews' => [
+                                    'gte' => 1
+                                ]
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'positive_verifications' => [
+                                    'lt' => 1
+                                ]
+                            ],
+                        ]
+                    ],
+                    'must_not' => [
+                        'terms' => [
+                            'status' => [
+                                'MERGED',
+                                'ABANDONED'
+                            ]
+                        ],
+                    ]
+                ]
+            ],
+            'filter' => $this->queryFilters(),
+            'sort' => $this->querySort(),
+            'size' => $this->perPage,
+            'from' => (($this->currentPage * $this->perPage) - $this->perPage),
+            'aggregations' => $this->queryAggregations()
+        ];
+        $this->search($fullRequest);
+        return $this->view->render('missesVerification');
     }
 
     /**
@@ -109,7 +157,43 @@ class GerritController extends Controller
      */
     public function getMissesReview()
     {
-        return $this->view->render('index');
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'range' => [
+                                'positive_reviews' => [
+                                    'lt' => 1
+                                ]
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'positive_verifications' => [
+                                    'gte' => 1
+                                ]
+                            ],
+                        ]
+                    ],
+                    'must_not' => [
+                        'terms' => [
+                            'status' => [
+                                'MERGED',
+                                'ABANDONED'
+                            ]
+                        ],
+                    ]
+                ]
+            ],
+            'filter' => $this->queryFilters(),
+            'sort' => $this->querySort(),
+            'size' => $this->perPage,
+            'from' => (($this->currentPage * $this->perPage) - $this->perPage),
+            'aggregations' => $this->queryAggregations()
+        ];
+        $this->search($fullRequest);
+        return $this->view->render('MissesReview');
     }
 
     /**
@@ -122,44 +206,17 @@ class GerritController extends Controller
         return $this->view->render('index');
     }
 
-
-    /**
-     * @return void
-     */
-    public function indexAction()
-    {
-        $this->redirect('index', 'standard');
-    }
-
-    protected function initializeAction()
-    {
-
-        date_default_timezone_set('UTC');
-
-        $this->connection = new Es\ElasticSearchConnection();
-        $this->connection->init();
-        $context = $this->env->getContext();
-        if ($context == 'Development') {
-            $this->context = 'DEV';
-        } else {
-            $this->context = 'PRD';
-        }
-        if (isset($_GET['page'])) {
-            $this->currentPage = intval($_GET['page']);
-        }
-    }
-
     /**
      * @param array $fullRequest
      */
     protected function search(array $fullRequest)
     {
-        $query = new El\Query($fullRequest);
+        $query = new Elastica\Query($fullRequest);
         $usedFilters = $this->addFilters();
         if ($usedFilters !== false) {
             $query->setPostFilter($usedFilters);
         }
-        $resultSet = $this->connection->getIndex()->search($query);
+        $resultSet = $this->connection->getElasticIndex()->search($query);
         $this->totalHits = $resultSet->getTotalHits();
         if (intval($this->totalHits) <= intval(($this->currentPage * $this->perPage))) {
             $this->view->assign('endingAtItem', intval($this->totalHits));
@@ -231,87 +288,9 @@ class GerritController extends Controller
     /**
      * @return string
      */
-    public function missesVerificationAction()
-    {
-        $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        [
-                            'range' => [
-                                'positive_reviews' => [
-                                    'gte' => 1
-                                ]
-                            ],
-                        ],
-                        [
-                            'range' => [
-                                'positive_verifications' => [
-                                    'lt' => 1
-                                ]
-                            ],
-                        ]
-                    ],
-                    'must_not' => [
-                        'terms' => [
-                            'status' => [
-                                'MERGED',
-                                'ABANDONED'
-                            ]
-                        ],
-                    ]
-                ]
-            ],
-            'filter' => $this->queryFilters(),
-            'sort' => $this->querySort(),
-            'size' => $this->perPage,
-            'from' => (($this->currentPage * $this->perPage) - $this->perPage),
-            'aggregations' => $this->queryAggregations()
-        ];
-        $this->search($fullRequest);
-    }
-
-    /**
-     * @return string
-     */
     public function missesReviewAction()
     {
-        $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        [
-                            'range' => [
-                                'positive_reviews' => [
-                                    'lt' => 1
-                                ]
-                            ],
-                        ],
-                        [
-                            'range' => [
-                                'positive_verifications' => [
-                                    'gte' => 1
-                                ]
-                            ],
-                        ]
-                    ],
-                    'must_not' => [
-                        'terms' => [
-                            'status' => [
-                                'MERGED',
-                                'ABANDONED'
-                            ]
-                        ],
-                    ]
-                ]
-            ],
-            'filter' => $this->queryFilters(),
-            'sort' => $this->querySort(),
-            'size' => $this->perPage,
-            'from' => (($this->currentPage * $this->perPage) - $this->perPage),
-            'aggregations' => $this->queryAggregations()
-        ];
-        $this->search($fullRequest);
+
     }
 
     /**
@@ -338,15 +317,15 @@ class GerritController extends Controller
             return false;
         }
         $filterCount = 0;
-        $filters = new El\Filter\Bool();
+        $filters = new Elastica\Filter\Bool();
 
         foreach ($_GET['filters'] as $key => $filterValue) {
             $filterCatCount = 0;
-            $filterPart = new El\Filter\BoolOr();
+            $filterPart = new Elastica\Filter\BoolOr();
             foreach ($filterValue as $term => $enabled) {
                 if ($enabled == 'true') {
                     $term = str_replace('_', ' ', $term);
-                    $filter = new El\Filter\Term();
+                    $filter = new Elastica\Filter\Term();
                     $filter->setTerm($key, $term);
                     $filterPart->addFilter($filter);
                     $filterCount++;
