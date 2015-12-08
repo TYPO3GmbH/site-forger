@@ -7,12 +7,8 @@ $(document).ready(function () {
 
 	var getData = function(docType, view, callback) {
 		$.ajax({
-			url: "/dashboard/",
+			url: '/graphs/' + docType + '/' + view,
 			type : 'GET',
-			data : {
-				type: docType,
-				graph: view
-			},
 			dataType : 'json',
 			success : callback
 		});
@@ -69,7 +65,7 @@ $(document).ready(function () {
 				marginBottom: 20,
 				marginRight: 20
 			};
-			var imagePath = '/_Resources/Static/Packages/WMDB.Forger/js/amcharts/images/';
+			var imagePath = '/js/amcharts/images/';
 			var chartCursor = {
 				"cursorPosition": "mouse",
 				"pan": true,
@@ -156,7 +152,7 @@ $(document).ready(function () {
 				marginBottom: 20,
 				marginRight: 20
 			};
-			var imagePath = '/_Resources/Static/Packages/WMDB.Forger/js/amcharts/images/';
+			var imagePath = '/js/amcharts/images/';
 			var chartCursor = {
 				"cursorPosition": "mouse",
 				"pan": true,
@@ -274,7 +270,7 @@ $(document).ready(function () {
 				marginBottom: 20,
 				marginRight: 20
 			};
-			var imagePath = '/_Resources/Static/Packages/WMDB.Forger/js/amcharts/images/';
+			var imagePath = '/js/amcharts/images/';
 			var chartCursor = {
 				"cursorPosition": "mouse",
 				"pan": true,
@@ -354,7 +350,7 @@ $(document).ready(function () {
 				marginBottom: 20,
 				marginRight: 20
 			};
-			var imagePath = '/_Resources/Static/Packages/WMDB.Forger/js/amcharts/images/';
+			var imagePath = '/js/amcharts/images/';
 			var chartCursor = {
 				"cursorPosition": "mouse",
 				"pan": true,
