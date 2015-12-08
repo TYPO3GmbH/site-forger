@@ -4,8 +4,8 @@
 		<meta charset="utf-8">
 		<title>[{APP_ENV}] <f:render section="Title" /> :: Forger</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'css/forger.css')}" />
         <link rel="stylesheet" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'css/font-awesome.min.css')}" />
-        <link rel="stylesheet" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'css/WMDB.Forger.css')}" />
 		<link rel="apple-touch-icon" sizes="57x57" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/apple-touch-icon-57x57.png')}">
 		<link rel="apple-touch-icon" sizes="60x60" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/apple-touch-icon-60x60.png')}">
 		<link rel="apple-touch-icon" sizes="72x72" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/apple-touch-icon-72x72.png')}">
@@ -51,7 +51,7 @@
 	<div class="container-fluid">
 		<f:render section="Content" />
 	</div>
-	<script type="application/javascript" src="{fl:uri.resource(package: 'WMDB.Forger', path: 'js/WMDB.Forger.min.js')}"></script>
+	<script type="application/javascript" src="{fl:uri.resource(package: 'WMDB.Forger', path: 'js/forger.js')}"></script>
 	<script type="application/javascript" src="{fl:uri.resource(package: 'WMDB.Forger', path: 'js/register-element.js')}"></script>
 	<script type="application/javascript" src="{fl:uri.resource(package: 'WMDB.Forger', path: 'js/time-elements.js')}"></script>
 	<f:render section="Javascripts" />

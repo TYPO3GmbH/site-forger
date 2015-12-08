@@ -55,4 +55,15 @@ elixir(function (mix) {
 	mix.copy(
 		'node_modules/font-awesome/css/font-awesome.min.css', 'public/css'
 	);
+
+	// Copy single JS files which don't work on their own
+	mix.copy(
+		[
+			'resources/Private/Javascripts/WMDB.Forger.Rst.js',
+			'resources/Private/Javascripts/sprintf.min.js',
+			'resources/Private/Javascripts/register-element.js',
+			'resources/Private/Javascripts/time-elements.js'
+		],
+		'public/js'
+	);
 });
