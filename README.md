@@ -50,3 +50,7 @@ A ``package.json`` is also available, so you can simple call ``npm install`` to 
 *Do not edit the JavaScript or CSS files in public folder directly* All changes has to be done in the less files.
 
 Please look into the ``gulpfile.js`` for details to the tasks.
+
+### Add inline scripts to aggregations in elasticsearch
+
+script.engine.groovy.inline.aggs: on in elasticsearch.yml
