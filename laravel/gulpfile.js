@@ -47,4 +47,12 @@ elixir(function (mix) {
 	mix.copy(
 		'node_modules/amcharts/dist/amcharts', 'public/js/amcharts'
 	);
+
+	// Copy fonts
+	mix.copy(
+		'node_modules/font-awesome/fonts', 'public/fonts'
+	);
+	mix.copy(
+		'node_modules/font-awesome/css/font-awesome.min.css', 'public/css'
+	);
 });

@@ -11,6 +11,7 @@
     "laravel-elixir": "*",
     "bootstrap": "3.*",
     "amcharts": "*",
+    "font-awesome": "*",
     "jquery": "*"
   }
 }
