@@ -1,4 +1,6 @@
-<?php namespace App\Elastic;
+<?php
+
+namespace App\Elastic;
 
 class Connection
 {
