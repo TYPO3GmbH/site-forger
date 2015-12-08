@@ -23,14 +23,12 @@ class BucketCounterViewHelper extends AbstractViewHelper
     }
 
     /**
-     * @param $category
-     * @param $buckets
-     *
      * @return string
      */
-    public function render($category, $buckets)
+    public function render()
     {
-        $category = $this->fixWording($category);
+        $buckets = $this->arguments['buckets'];
+        $category = $this->fixWording($this->arguments['category']);
         $activeCount = 0;
         foreach ($buckets as $bucket) {
             $key = $this->fixWording($bucket['key']);
@@ -44,14 +42,15 @@ class BucketCounterViewHelper extends AbstractViewHelper
     }
 
     /**
-     * @param $in
+     * @param      $in
+     * @param bool $lowerCase
      *
      * @return mixed|string
      */
-    private function fixWording($in, $lowercase = true)
+    private function fixWording($in, $lowerCase = true)
     {
         $in = str_replace(' ', '_', $in);
-        if ($lowercase) {
+        if ($lowerCase) {
             $in = strtolower($in);
         }
 

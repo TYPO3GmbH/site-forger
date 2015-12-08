@@ -30,15 +30,26 @@ class LowercaseViewHelper extends AbstractViewHelper
      * checked="{{title -> wmdb:lowercase({bucket.key})}}" value="true" />
      * <label for="{title -> wmdb:lowercase()}_{index}">{bucket.key} ({bucket.doc_count})</label>
      *
-     * @param string $category
-     * @param string $index
-     * @param string $bucket
-     * @param int    $docCount
-     *
      * @return string
      */
-    public function render($category = '', $index = '', $bucket = '', $docCount = 0)
+    public function render()
     {
+        $category = '';
+        if (isset($this->arguments['category'])) {
+            $category = $this->arguments['category'];
+        }
+        $index = '';
+        if (isset($this->arguments['index'])) {
+            $index = $this->arguments['index'];
+        }
+        $bucket = '';
+        if (isset($this->arguments['bucket'])) {
+            $bucket = $this->arguments['bucket'];
+        }
+        $docCount = 0;
+        if (isset($this->arguments['docCount'])) {
+            $docCount = (int)$this->arguments['docCount'];
+        }
         $regularBucket = $bucket;
         $category = $this->fixWording($category);
         $bucket = $this->fixWording($bucket, false);
