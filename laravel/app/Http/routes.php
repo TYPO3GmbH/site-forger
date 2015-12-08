@@ -11,9 +11,14 @@
 |
 */
 
-Route::get('/', 'SearchController@index');
-
-Route::controller('/boards/reviews', 'Boards\ReviewController');
-Route::controller('/gerrit', 'GerritController');
-
 Route::get('/graphs/{type?}/{graph?}', 'GraphController@index');
+Route::get('/', 'SearchController@getIndex');
+Route::get('/search', 'SearchController@getSearch');
+
+Route::controller('/boards/reviews/{boardId?}', 'ReviewController');
+Route::controller('/gerrit', 'GerritController');
+Route::controller('/management', 'ManagementController');
+Route::controller('/sprint', 'SprintController');
+Route::controller('/slack', 'SlackController');
+Route::controller('/utility', 'UtilityController');
+
