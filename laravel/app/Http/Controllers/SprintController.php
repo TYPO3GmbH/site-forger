@@ -6,6 +6,7 @@ use App\Elastic\Connection;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Symfony\Component\Yaml\Parser;
+use Debugbar;
 
 class SprintController extends Controller
 {
@@ -118,11 +119,6 @@ class SprintController extends Controller
             $query = array(
                 'bool' => array(
                     'must' => array(
-//						array(
-//							'term' => array(
-//								'focus.name' => 'Remote Sprint'
-//							)
-//						),
                         array(
                             'term' => array(
                                 'assigned_to.id' => (int)$boardId
@@ -145,6 +141,7 @@ class SprintController extends Controller
         $this->view->assign('progress', $this->calculateProgressBars($ticketCount));
         $this->view->assign('board', $boardData);
         $this->view->assign('boardInfo', $boardInfo);
+        Debugbar::startMeasure('Fluid', 'Fluid Rendering');
 
     }
 
@@ -232,6 +229,7 @@ class SprintController extends Controller
      */
     protected function getBoardData($query)
     {
+        Debugbar::startMeasure(__FUNCTION__, __FUNCTION__);
         $this->view->assign('boardConfig', json_encode($query, JSON_PRETTY_PRINT));
         $out = [
             'BLOCKED' => [],
@@ -282,6 +280,7 @@ class SprintController extends Controller
                 $out[$getBoardGroup][] = $this->getReviewCard($ticket->getData('id'));
             }
         }
+        Debugbar::stopMeasure(__FUNCTION__);
 
         return $out;
     }
@@ -416,18 +415,22 @@ class SprintController extends Controller
      */
     protected function getAllUsers()
     {
+        Debugbar::startMeasure(__FUNCTION__, __FUNCTION__);
         $res = $this->connection->getElasticIndex()->getType('user')->search('', array('size' => 100));
         $results = $res->getResults();
         foreach ($results as $hit) {
             $user = $hit->getSource();
             $this->users[$user['id']] = $user;
         }
+        Debugbar::stopMeasure(__FUNCTION__);
     }
 
     protected function getSprintConfig()
     {
+        Debugbar::startMeasure('loadYaml','Load YAML Config');
         $yaml = new Parser();
         $config = $yaml->parse(file_get_contents(config_path() . '/Sprints.yaml'));
+        Debugbar::stopMeasure('loadYaml');
         return $config;
     }
 }

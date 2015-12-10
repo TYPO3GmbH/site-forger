@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Elastic\Connection;
 use Illuminate\Http\Response;
 use Elastica;
+use Debugbar;
 
 class GerritController extends Controller
 {
@@ -41,6 +42,7 @@ class GerritController extends Controller
      */
     public function getStatus()
     {
+        Debugbar::startMeasure(__FUNCTION__, __FUNCTION__);
         $fullRequest = [
             'query' => [
                 'match' => [
@@ -54,6 +56,7 @@ class GerritController extends Controller
             'aggregations' => $this->queryAggregations()
         ];
         $this->search($fullRequest);
+        Debugbar::stopMeasure(__FUNCTION__);
         return $this->view->render('status');
     }
 
@@ -233,6 +236,7 @@ class GerritController extends Controller
             'aggregations' => $resultSet->getAggregations(),
             'context' => $this->context
         ]);
+        Debugbar::info('Elasticsearch Time: ' . $resultSet->getTotalTime());
         if (isset($_GET['filters'])) {
             $this->view->assign('filters', $_GET['filters']);
         }
