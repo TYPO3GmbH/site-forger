@@ -1,0 +1,61 @@
+'WMDB':
+  'Forger':
+    'Boards':
+      'SS_6215':
+        'Name': 6.2.16 Stabilisation
+        'Query':
+          'bool':
+            'must':
+              - 'term': {'focus.name': Stabilization Sprint}
+              - 'term': {'fixed_version.name': 6.2.16}
+      'SS_761':
+        'Name': 7.6.1 Stabilization
+        'Query':
+          'bool':
+            'must':
+              - 'term': {fixed_version.name': 7.6.1}
+#      PRC':
+#        Name': PRC
+#        Query':
+#          bool':
+#            must':
+#              - term': {focus.name': PRC}
+    'FocusBoards':
+      'FormEngine':
+        'Name': FormEngine
+        'Query':
+          'filtered':
+            'filter':
+              'bool':
+                'must':
+                  - 'term': {'fixed_version.name': 7 LTS}
+                'should':
+                  - 'term': {'category.id': 983}
+                  - 'term': {'category.id': 978}
+      'Installation':
+        'Name': Installation
+        'Query':
+          'bool':
+            'must':
+              - 'term': {'category.id': 1601}
+              - 'term': {'fixed_version.name': 7 LTS}
+      'BackendUI':
+        'Name': Backend UI
+        'Query':
+          'bool':
+            'must':
+              - 'term': {'category.id': 972}
+              - 'term': {'fixed_version.name': 7 LTS}
+    'CIGBoards':
+      'FormsNG':
+        'Name': Forms Next generation
+        'Query':
+          'bool':
+            'must':
+              - 'term': {'category.id': 1107}
+      'MySQLStrict':
+        'Name': MySQL Strict
+        'Query':
+          'bool':
+            'must':
+              - 'term': {'parent.id': 68397}

@@ -13,7 +13,8 @@
 		"ruflin/elastica": "^2.1",
 		"typo3fluid/fluid": "dev-master",
 		"wmdbsystems/fluidlaravel": "dev-master",
-		"netcarver/textile": "3.5.*"
+		"netcarver/textile": "3.5.*",
+		"symfony/yaml": "^3.0"
 	},
 	"require-dev": {
 		"phpunit/phpunit": "~4.0",
