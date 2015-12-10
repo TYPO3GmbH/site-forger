@@ -27,7 +27,7 @@ abstract class Controller extends BaseController
          */
         $fluidCache = new Fluid\Core\Cache\SimpleFileCache(base_path() . '/storage/app/Cache/Fluid');
 
-        $this->view = new Fluid\View\TemplateView($paths, null, null);
+        $this->view = new Fluid\View\TemplateView($paths, null, $fluidCache);
         $this->view->assign('APP_ENV', 'L5 ' . env('APP_ENV'));
 
         $context = $this->view->getRenderingContext();
