@@ -62,7 +62,7 @@ $(document).ready(function () {
 		}
 
 		$.ajax({
-			url: 'getissuejson',
+			url: 'issue',
 			data: {
 				issueId: ticketId
 			},
