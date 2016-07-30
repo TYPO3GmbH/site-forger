@@ -33,21 +33,21 @@ class SearchController extends Controller
      * @param Request $request
      *
      * @return string
+     * @throws \Exception
      */
     public function getSearch(Request $request)
     {
         $query = $request->input('query');
+        $searchClosed = false;
         if ($request->has('searchClosed')) {
             $searchClosed = true;
-        } else {
-            $searchClosed = false;
         }
         $results = [];
         $this->view->assign('query', $query);
         $this->view->assign('searchClosed', $searchClosed);
         if ($this->checkIfQueryIsIssue($query)) {
             $issue = $this->findIssue($query);
-            if (isset($issue['error'])) {
+            if (array_key_exists('error', $issue)) {
                 $this->view->assign('ErrorMessage', $issue['error']);
             } else {
                 $results = $this->findDupes($issue['id'], $searchClosed);
@@ -59,7 +59,7 @@ class SearchController extends Controller
             ]);
         }
         $this->view->assign('result', $results);
-        if (isset($_GET['filters'])) {
+        if (array_key_exists('filters', $_GET)) {
             $this->view->assign('filters', $_GET['filters']);
         }
         return $this->view->render('search');
@@ -75,7 +75,7 @@ class SearchController extends Controller
         $result = false;
         $pattern = '(^[0-9]{4,6}$)';
         preg_match($pattern, $query, $matches);
-        if (!empty($matches)) {
+        if (count($matches) > 0) {
             $result = true;
         }
 
@@ -98,6 +98,7 @@ class SearchController extends Controller
      * @param bool $searchInClosedIssues
      *
      * @return \Elastica\ResultSet
+     * @throws \Exception
      */
     private function findDupes($issueId, $searchInClosedIssues = false)
     {
@@ -139,9 +140,7 @@ class SearchController extends Controller
             unset($query['query']['bool']['must_not']);
         }
 
-        $results = $search->doSearch($query);
-
-        return $results;
+        return $search->doSearch($query);
     }
 
     /**
@@ -174,9 +173,10 @@ class SearchController extends Controller
 
     /**
      * @param string $searchTerms
-     * @param bool $searchInClosedIssues
+     * @param bool   $searchInClosedIssues
      *
      * @return \Elastica\ResultSet
+     * @throws \Exception
      */
     private function findByQuery($searchTerms, $searchInClosedIssues = false)
     {
@@ -209,8 +209,7 @@ class SearchController extends Controller
         if ($searchInClosedIssues) {
             unset($query['query']['bool']['must_not']);
         }
-        $results = $search->doSearch($query);
-        return $results;
+        return $search->doSearch($query);
     }
 
     /**
