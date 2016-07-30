@@ -3,10 +3,6 @@
 namespace App\Elastic;
 
 use Elastica\Aggregation\Terms;
-use Elastica\Filter\Bool;
-use Elastica\Filter\BoolOr;
-use Elastica\Filter\Term;
-use Elastica\Filter\Type;
 use Elastica\Query;
 
 /**
@@ -42,18 +38,18 @@ class ElasticSearch
      */
     public function doSearch(array $query)
     {
-        if (isset($_GET['page'])) {
-            $this->currentPage = intval($_GET['page']);
+        if (array_key_exists('page', $_GET)) {
+            $this->currentPage = (int) $_GET['page'];
+        }
+        $usedFilters = $this->addFilters();
+        if (count($usedFilters) > 0) {
+            $query['post_filter'] = $usedFilters;
         }
 
         $search = $this->connection->getElasticIndex()->createSearch($query);
         $search->addType('issue');
         $search->getQuery()->setSize($this->perPage);
         $search->getQuery()->setFrom(($this->currentPage * $this->perPage) - $this->perPage);
-        $usedFilters = $this->addFilters();
-        if ($usedFilters !== false) {
-            $search->getQuery()->setPostFilter($usedFilters);
-        }
 
         $this->addAggregations($search->getQuery());
 
@@ -70,57 +66,51 @@ class ElasticSearch
             'next' => $this->currentPage < ceil($this->totalHits / $this->perPage) ? $this->currentPage + 1 : 0,
             'totalResults' => $this->totalHits,
             'startingAtItem' => ($this->currentPage * $this->perPage) - ($this->perPage - 1),
-            'endingAtItem' => ($this->currentPage * $this->perPage),
+            'endingAtItem' => $this->currentPage * $this->perPage,
             'results' => $results,
             'maxScore' => $maxScore,
             'aggs' => $aggs
         );
-        if (intval($this->totalHits) <= intval($out['endingAtItem'])) {
-            $out['endingAtItem'] = intval($this->totalHits);
+        if ((int)$this->totalHits <= (int)$out['endingAtItem']) {
+            $out['endingAtItem'] = (int) $this->totalHits;
         }
-
-
         return $out;
     }
 
     /**
-     * @return BoolOr
+     * Adds filters based on get parameters
+     *
+     * @return array
      */
     private function addFilters()
     {
 
-//		$filterCount = 0;
-        $filters = new Bool();
+        $query = new Query();
+        $filters = new Query\BoolQuery();
 
-        $typeFilter = new Type('issue');
-
-        $filters->addMust($typeFilter);
-
-
-        if (!isset($_GET['filters'])) {
+        if (!array_key_exists('filters', $_GET)) {
             return $filters;
         }
         foreach ($_GET['filters'] as $key => $filterValue) {
             $filterCatCount = 0;
-            $filterPart = new BoolOr();
+            $filterPart = new Query\BoolQuery();
             foreach ($filterValue as $term => $enabled) {
-                if ($enabled == 'true') {
+                if ($enabled === 'true') {
                     $term = str_replace('_', ' ', $term);
-                    $filter = new Term();
-                    if ($key == 'tracker'
-                        || $key == 'project'
-                        || $key == 'category'
-                        || $key == 'status'
-                        || $key == 'author'
-                        || $key == 'priority'
-                        || $key == 'fixed_version'
+                    $filter = new Query\Term();
+                    if ($key === 'tracker'
+                        || $key === 'project'
+                        || $key === 'category'
+                        || $key === 'status'
+                        || $key === 'author'
+                        || $key === 'priority'
+                        || $key === 'fixed_version'
                     ) {
                         $filter->setTerm($key . '.name', $term);
                     } else {
                         $filter->setTerm($key, $term);
                     }
-                    $filterPart->addFilter($filter);
-//					$filterCount++;
+                    $filterPart->addShould($filter);
                     $filterCatCount++;
                 }
             }
@@ -128,10 +118,8 @@ class ElasticSearch
                 $filters->addMust($filterPart);
             }
         }
-//		if($filterCount === 0) {
-//			return false;
-//		}
-        return $filters;
+        $query->setQuery($filters);
+        return $query;
     }
 
     /**
@@ -208,7 +196,7 @@ class ElasticSearch
 
         $out = array();
         while ($i < $numPages) {
-            $out[$i] = ($i + 1);
+            $out[(int)$i] = ($i + 1);
             $i++;
         }
 
