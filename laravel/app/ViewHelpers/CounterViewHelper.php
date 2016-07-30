@@ -15,6 +15,7 @@ class CounterViewHelper extends AbstractViewHelper
      * Initialize arguments
      *
      * @return void
+     * @throws \TYPO3Fluid\Fluid\Core\ViewHelper\Exception
      * @api
      */
     public function initializeArguments()
@@ -30,15 +31,16 @@ class CounterViewHelper extends AbstractViewHelper
     public function render()
     {
         $counterId = 'CounterViewHelper_counter';
-        if (isset($this->arguments['id']) && $this->arguments['id'] !== null) {
+        if (array_key_exists('id', $this->arguments) && $this->arguments['id'] !== null) {
             $counterId .= ':' . $this->arguments['id'];
         }
         if (empty($GLOBALS[$counterId])) {
             $GLOBALS[$counterId] = 0;
         }
-        $GLOBALS[$counterId] = ($GLOBALS[$counterId] + (int)$this->arguments['increase']);
+        $GLOBALS[$counterId] += (int)$this->arguments['increase'];
         if ($this->arguments['output']) {
             return $GLOBALS[$counterId];
         }
+        return null;
     }
 }
