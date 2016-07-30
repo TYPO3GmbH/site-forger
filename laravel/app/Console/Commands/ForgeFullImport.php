@@ -25,7 +25,7 @@ class ForgeFullImport extends Command
      *
      * @var string
      */
-    protected $description = 'Command description.';
+    protected $description = 'Central data import functions';
 
     /**
      * @var Repository
