@@ -10,6 +10,9 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
  */
 class BucketCounterViewHelper extends AbstractViewHelper
 {
+
+    protected $escapeOutput = false;
+
     /**
      * Initialize arguments
      *

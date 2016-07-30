@@ -1,17 +1,30 @@
 <?php namespace App\Http\Controllers;
 
-use Illuminate\Foundation\Bus\DispatchesCommands;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Foundation\Validation\ValidatesRequests;
-use TYPO3Fluid\Fluid as Fluid;
+use TYPO3Fluid\Fluid;
 
 abstract class Controller extends BaseController
 {
-	use DispatchesCommands, ValidatesRequests;
+	use ValidatesRequests;
+
+    /**
+     * @var Fluid\View\TemplateView
+     */
+    protected $view;
 
     public function __construct()
     {
         $paths = new Fluid\View\TemplatePaths();
+
+
+        /**
+         * Set up fluid caches
+         */
+        $fluidCache = new Fluid\Core\Cache\SimpleFileCache(base_path() . '/storage/app/Cache/Fluid');
+
+        $this->view = new Fluid\View\TemplateView();
+        $paths = $this->view->getTemplatePaths();
         $paths->setTemplateRootPaths(array(
             base_path() . '/resources/Private/Templates/'
         ));
@@ -21,13 +34,7 @@ abstract class Controller extends BaseController
         $paths->setPartialRootPaths(array(
             base_path() . '/resources/Private/Partials/'
         ));
-
-        /**
-         * Set up fluid caches
-         */
-        $fluidCache = new Fluid\Core\Cache\SimpleFileCache(base_path() . '/storage/app/Cache/Fluid');
-
-        $this->view = new Fluid\View\TemplateView($paths, null, $fluidCache);
+//        $this->view->setCache($fluidCache);
         $this->view->assign('APP_ENV', 'L5 ' . env('APP_ENV'));
 
         $context = $this->view->getRenderingContext();
@@ -35,9 +42,9 @@ abstract class Controller extends BaseController
         $this->view->setRenderingContext($context);
 
         $viewHelperResolver = $this->view->getViewHelperResolver();
-        $viewHelperResolver->registerNamespace('fl', 'FoT3\\FluidLaravel\\ViewHelpers');
-        $viewHelperResolver->registerNamespace('wmdb', 'App\\ViewHelpers');
-        $this->view->setViewHelperResolver($viewHelperResolver);
+        $viewHelperResolver->addNamespace('fl', 'FoT3\\FluidLaravel\\ViewHelpers');
+        $viewHelperResolver->addNamespace('wmdb', 'App\\ViewHelpers');
+//        $this->view->setViewHelperResolver($viewHelperResolver);
     }
 
     /**
