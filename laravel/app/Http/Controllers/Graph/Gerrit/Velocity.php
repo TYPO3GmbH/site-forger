@@ -86,7 +86,7 @@ class Velocity extends AbstractGraph
                 'bool' => [
                     'must' => [
                         'terms' => [
-                            'status' => [
+                            'reviewstatus' => [
                                 'MERGED',
                                 'ABANDONED'
                             ]

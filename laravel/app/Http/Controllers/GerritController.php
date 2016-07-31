@@ -88,7 +88,7 @@ class GerritController extends Controller
                     ],
                     'must_not' => [
                         'terms' => [
-                            'status' => [
+                            'reviewstatus' => [
                                 'MERGED',
                                 'ABANDONED'
                             ]
@@ -134,7 +134,7 @@ class GerritController extends Controller
                     ],
                     'must_not' => [
                         'terms' => [
-                            'status' => [
+                            'reviewstatus' => [
                                 'MERGED',
                                 'ABANDONED'
                             ]
@@ -180,7 +180,7 @@ class GerritController extends Controller
                     ],
                     'must_not' => [
                         'terms' => [
-                            'status' => [
+                            'reviewstatus' => [
                                 'MERGED',
                                 'ABANDONED'
                             ]
@@ -271,7 +271,7 @@ class GerritController extends Controller
                     ],
                     'must_not' => [
                         'terms' => [
-                            'status' => [
+                            'reviewstatus' => [
                                 'MERGED',
                                 'ABANDONED'
                             ]

@@ -27,7 +27,7 @@ class Full extends AbstractGraph
                     'must_not' => [
                         [
                             'terms' => [
-                                'status' => [
+                                'reviewstatus' => [
                                     'ABANDONED',
                                     'MERGED'
                                 ]

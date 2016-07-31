@@ -25,7 +25,7 @@ class ByAuthor extends AbstractGraph
                     'must_not' => [
                         [
                             'terms' => [
-                                'status' => [
+                                'reviewstatus' => [
                                     'ABANDONED',
                                     'MERGED'
                                 ]

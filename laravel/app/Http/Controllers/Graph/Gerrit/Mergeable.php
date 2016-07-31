@@ -21,7 +21,7 @@ class Mergeable extends AbstractGraph
                 'bool' => [
                     'must' => [
                         'terms' => [
-                            'status' => [
+                            'reviewstatus' => [
                                 'NEW',
                             ]
                         ],

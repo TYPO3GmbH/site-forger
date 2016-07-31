@@ -30,7 +30,7 @@ class Overview extends AbstractGraph
                     'must' => [
                         [
                             'terms' => [
-                                'status' => [
+                                'reviewstatus' => [
                                     'ABANDONED',
                                     'MERGED'
                                 ]
@@ -58,7 +58,7 @@ class Overview extends AbstractGraph
                     'aggregations' => [
                         'issue_type' => [
                             'terms' => [
-                                'field' => 'status'
+                                'field' => 'reviewstatus'
                             ]
                         ]
                     ]
