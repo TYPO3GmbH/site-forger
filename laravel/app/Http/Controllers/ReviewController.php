@@ -25,6 +25,7 @@ class ReviewController extends Controller
      * @param Request $request
      *
      * @return \HttpResponse
+     * @throws \Exception
      */
     public function getIndex(Request $request)
     {
@@ -40,6 +41,7 @@ class ReviewController extends Controller
      * @param string $boardId
      *
      * @return array
+     * @throws \Exception
      */
     protected function prepareBoardData($boardId = '')
     {
@@ -98,6 +100,7 @@ class ReviewController extends Controller
      * @param string $active
      *
      * @return array
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function makeBoardMenu($active = '')
     {
@@ -106,19 +109,19 @@ class ReviewController extends Controller
                 'id' => 'bugfix',
                 'count' => $this->getTicketByBoardQuery($this->getBoardQuery('bugfix')),
                 'name' => 'Bugfixes',
-                'active' => ('bugfix' === $active) ? true : false,
+                'active' => 'bugfix' === $active,
             ],
             [
                 'id' => 'task',
                 'count' => $this->getTicketByBoardQuery($this->getBoardQuery('task')),
                 'name' => 'Tasks',
-                'active' => ('task' === $active) ? true : false,
+                'active' => 'task' === $active,
             ],
             [
                 'id' => 'feature',
                 'count' => $this->getTicketByBoardQuery($this->getBoardQuery('feature')),
                 'name' => 'Features',
-                'active' => ('feature' === $active) ? true : false,
+                'active' => 'feature' === $active,
             ]
         ];
 
@@ -129,6 +132,7 @@ class ReviewController extends Controller
      * @param array $query
      *
      * @return string
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function getTicketByBoardQuery(array $query)
     {
