@@ -294,11 +294,11 @@ class GerritController extends Controller
      */
     protected function search(array $fullRequest)
     {
-        $query = new Elastica\Query($fullRequest);
         $usedFilters = $this->addFilters();
         if (count($usedFilters) > 0) {
             $fullRequest['post_filter'] = $usedFilters;
         }
+        $query = new Elastica\Query($fullRequest);
         $resultSet = $this->connection->getElasticIndex()->search($query);
         $this->totalHits = $resultSet->getTotalHits();
         if ((int) $this->totalHits <= (int)($this->currentPage * $this->perPage)) {
@@ -340,22 +340,32 @@ class GerritController extends Controller
      */
     protected function addFilters()
     {
-        if (!isset($_GET['filters'])) {
-            return false;
-        }
-        $filterCount = 0;
-        $filters = new Elastica\Filter\Bool();
+        $query = new Elastica\Query();
+        $filters = new Elastica\Query\BoolQuery();
 
+        if (!array_key_exists('filters', $_GET)) {
+            return $filters;
+        }
         foreach ($_GET['filters'] as $key => $filterValue) {
             $filterCatCount = 0;
-            $filterPart = new Elastica\Filter\BoolOr();
+            $filterPart = new Elastica\Query\BoolQuery();
             foreach ($filterValue as $term => $enabled) {
-                if ($enabled == 'true') {
+                if ($enabled === 'true') {
                     $term = str_replace('_', ' ', $term);
-                    $filter = new Elastica\Filter\Term();
-                    $filter->setTerm($key, $term);
-                    $filterPart->addFilter($filter);
-                    $filterCount++;
+                    $filter = new Elastica\Query\Term();
+                    if ($key === 'tracker'
+                        || $key === 'project'
+                        || $key === 'category'
+                        || $key === 'status'
+                        || $key === 'author'
+                        || $key === 'priority'
+                        || $key === 'fixed_version'
+                    ) {
+                        $filter->setTerm($key . '.name', $term);
+                    } else {
+                        $filter->setTerm($key, $term);
+                    }
+                    $filterPart->addShould($filter);
                     $filterCatCount++;
                 }
             }
@@ -363,11 +373,8 @@ class GerritController extends Controller
                 $filters->addMust($filterPart);
             }
         }
-        if ($filterCount === 0) {
-            return false;
-        }
-
-        return $filters;
+        $query->setQuery($filters);
+        return $query;
     }
 
     /**
