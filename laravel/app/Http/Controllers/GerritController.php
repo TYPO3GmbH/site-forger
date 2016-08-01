@@ -30,8 +30,8 @@ class GerritController extends Controller
         parent::__construct();
         date_default_timezone_set('UTC');
         $this->connection = $connection;
-        if (isset($_GET['page'])) {
-            $this->currentPage = intval($_GET['page']);
+        if (array_key_exists('page', $_GET)) {
+            $this->currentPage = (int)$_GET['page'];
         }
     }
 
@@ -46,13 +46,13 @@ class GerritController extends Controller
         $fullRequest = [
             'query' => [
                 'match' => [
-                    'status' => 'NEW'
+                    'reviewstatus' => 'NEW'
                 ]
             ],
-            'filter' => $this->queryFilters(),
+            'post_filter' => $this->queryFilters(),
             'sort' => $this->querySort(),
             'size' => $this->perPage,
-            'from' => (($this->currentPage * $this->perPage) - $this->perPage),
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
             'aggregations' => $this->queryAggregations()
         ];
         $this->search($fullRequest);
@@ -96,10 +96,10 @@ class GerritController extends Controller
                     ]
                 ]
             ],
-            'filter' => $this->queryFilters(),
+            'post_filter' => $this->queryFilters(),
             'sort' => $this->querySort(),
             'size' => $this->perPage,
-            'from' => (($this->currentPage * $this->perPage) - $this->perPage),
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
             'aggregations' => $this->queryAggregations()
         ];
         $this->search($fullRequest);
@@ -142,10 +142,10 @@ class GerritController extends Controller
                     ]
                 ]
             ],
-            'filter' => $this->queryFilters(),
+            'post_filter' => $this->queryFilters(),
             'sort' => $this->querySort(),
             'size' => $this->perPage,
-            'from' => (($this->currentPage * $this->perPage) - $this->perPage),
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
             'aggregations' => $this->queryAggregations()
         ];
         $this->search($fullRequest);
@@ -188,10 +188,10 @@ class GerritController extends Controller
                     ]
                 ]
             ],
-            'filter' => $this->queryFilters(),
+            'post_filter' => $this->queryFilters(),
             'sort' => $this->querySort(),
             'size' => $this->perPage,
-            'from' => (($this->currentPage * $this->perPage) - $this->perPage),
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
             'aggregations' => $this->queryAggregations()
         ];
         $this->search($fullRequest);
@@ -215,15 +215,15 @@ class GerritController extends Controller
     {
         $query = new Elastica\Query($fullRequest);
         $usedFilters = $this->addFilters();
-        if ($usedFilters !== false) {
-            $query->setPostFilter($usedFilters);
+        if (count($usedFilters) > 0) {
+            $fullRequest['post_filter'] = $usedFilters;
         }
         $resultSet = $this->connection->getElasticIndex()->search($query);
         $this->totalHits = $resultSet->getTotalHits();
-        if (intval($this->totalHits) <= intval(($this->currentPage * $this->perPage))) {
-            $this->view->assign('endingAtItem', intval($this->totalHits));
+        if ((int) $this->totalHits <= (int)($this->currentPage * $this->perPage)) {
+            $this->view->assign('endingAtItem', (int)$this->totalHits);
         } else {
-            $this->view->assign('endingAtItem', ($this->currentPage * $this->perPage));
+            $this->view->assign('endingAtItem', $this->currentPage * $this->perPage);
         }
         $this->view->assignMultiple([
             'results' => $resultSet->getResults(),
@@ -236,8 +236,7 @@ class GerritController extends Controller
             'aggregations' => $resultSet->getAggregations(),
             'context' => $this->context
         ]);
-        Debugbar::info('Elasticsearch Time: ' . $resultSet->getTotalTime());
-        if (isset($_GET['filters'])) {
+        if (array_key_exists('filters', $_GET)) {
             $this->view->assign('filters', $_GET['filters']);
         }
     }
@@ -249,10 +248,7 @@ class GerritController extends Controller
     public function rebaseAction()
     {
         $aggs = $this->queryAggregations();
-        unset($aggs['Mergeable']);
-        unset($aggs['Patchsets']);
-        unset($aggs['Releases']);
-        unset($aggs['Topic']);
+        unset($aggs['Mergeable'], $aggs['Patchsets'], $aggs['Releases'], $aggs['Topic']);
         $fullRequest = [
             'query' => [
                 'bool' => [
@@ -279,10 +275,10 @@ class GerritController extends Controller
                     ]
                 ]
             ],
-            'filter' => $this->queryFilters(),
+            'post_filter' => $this->queryFilters(),
             'sort' => $this->querySort(),
             'size' => $this->perPage,
-            'from' => (($this->currentPage * $this->perPage) - $this->perPage),
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
             'aggregations' => $aggs
         ];
         $this->search($fullRequest);
@@ -306,9 +302,7 @@ class GerritController extends Controller
     protected function fixTime($in)
     {
         $date = substr($in, 0, 10);
-        $out = str_replace('/', '-', $date);
-
-        return $out;
+        return str_replace('/', '-', $date);
     }
 
     /**
@@ -460,7 +454,7 @@ class GerritController extends Controller
 
         $out = array();
         while ($i < $numPages) {
-            $out[$i] = ($i + 1);
+            $out[(int)$i] = ($i + 1);
             $i++;
         }
 
