@@ -202,7 +202,8 @@ return [
 
 	'redmine' => [
 		'url' => env('APP_REDMINE_URL', 'https://forge.typo3.org'),
-		'apiKey' => env('APP_REDMINE_APIKEY')
+		'apiKey' => env('APP_REDMINE_APIKEY'),
+		'elevatedApiKey' => env('REDMINE_ELEVATED_APIKEY'),
 	],
 
 	'elastic' => [

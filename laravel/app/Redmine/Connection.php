@@ -12,6 +12,11 @@ class Connection {
 	protected $redmineClient;
 
 	/**
+	 * @var \Redmine\Client;
+	 */
+	protected $elevatedRedmineClient;
+
+	/**
 	 * @param \Illuminate\Config\Repository $config
 	 */
 	public function __construct(\Illuminate\Config\Repository $config) {
@@ -21,6 +26,11 @@ class Connection {
 			$this->config->get('app.redmine.url'),
 			$this->config->get('app.redmine.apiKey')
 		);
+
+		$this->elevatedRedmineClient = new \Redmine\Client(
+			$this->config->get('app.redmine.url'),
+			$this->config->get('app.redmine.elevatedApiKey')
+		);
 	}
 
 	/**
@@ -29,4 +39,12 @@ class Connection {
 	public function getRedmineClient() {
 		return $this->redmineClient;
 	}
+
+    /**
+     * @return \Redmine\Client
+     */
+    public function getElevatedRedmineClient()
+    {
+        return $this->elevatedRedmineClient;
+    }
 }
