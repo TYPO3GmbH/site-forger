@@ -45,11 +45,35 @@ class GerritController extends Controller
         Debugbar::startMeasure(__FUNCTION__, __FUNCTION__);
         $fullRequest = [
             'query' => [
-                'match' => [
-                    'reviewstatus' => 'NEW'
+                'bool' => [
+                    'must' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'NEW',
+                                ],
+                            ],
+
+                        ]
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED'
+                                ],
+                            ],
+
+                        ],
+                        [
+                            'term' => [
+                                'subject' => 'wip'
+                            ],
+                        ]
+                    ]
                 ]
             ],
-            'post_filter' => $this->queryFilters(),
             'sort' => $this->querySort(),
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
@@ -87,16 +111,23 @@ class GerritController extends Controller
                         ]
                     ],
                     'must_not' => [
-                        'terms' => [
-                            'reviewstatus' => [
-                                'MERGED',
-                                'ABANDONED'
-                            ]
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED'
+                                ],
+                            ],
+
                         ],
+                        [
+                            'term' => [
+                                'subject' => 'wip'
+                            ],
+                        ]
                     ]
                 ]
             ],
-            'post_filter' => $this->queryFilters(),
             'sort' => $this->querySort(),
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
@@ -133,16 +164,23 @@ class GerritController extends Controller
                         ]
                     ],
                     'must_not' => [
-                        'terms' => [
-                            'reviewstatus' => [
-                                'MERGED',
-                                'ABANDONED'
-                            ]
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED'
+                                ],
+                            ],
+
                         ],
+                        [
+                            'term' => [
+                                'subject' => 'wip'
+                            ],
+                        ]
                     ]
                 ]
             ],
-            'post_filter' => $this->queryFilters(),
             'sort' => $this->querySort(),
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
@@ -179,16 +217,23 @@ class GerritController extends Controller
                         ]
                     ],
                     'must_not' => [
-                        'terms' => [
-                            'reviewstatus' => [
-                                'MERGED',
-                                'ABANDONED'
-                            ]
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED'
+                                ],
+                            ],
+
                         ],
+                        [
+                            'term' => [
+                                'subject' => 'wip'
+                            ],
+                        ]
                     ]
                 ]
             ],
-            'post_filter' => $this->queryFilters(),
             'sort' => $this->querySort(),
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
@@ -205,7 +250,43 @@ class GerritController extends Controller
      */
     public function getRebase()
     {
-        return $this->view->render('index');
+        $aggs = $this->queryAggregations();
+        unset($aggs['Mergeable'], $aggs['Patchsets'], $aggs['Releases'], $aggs['Topic']);
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'term' => [
+                                'mergeable' => 'no'
+                            ],
+                        ],
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED'
+                                ],
+                            ],
+
+                        ],
+                        [
+                            'term' => [
+                                'subject' => 'wip'
+                            ],
+                        ]
+                    ]
+                ]
+            ],
+            'sort' => $this->querySort(),
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => $aggs
+        ];
+        $this->search($fullRequest);
+        return $this->view->render('Rebase');
     }
 
     /**
@@ -239,57 +320,6 @@ class GerritController extends Controller
         if (array_key_exists('filters', $_GET)) {
             $this->view->assign('filters', $_GET['filters']);
         }
-    }
-
-
-    /**
-     * @return string
-     */
-    public function rebaseAction()
-    {
-        $aggs = $this->queryAggregations();
-        unset($aggs['Mergeable'], $aggs['Patchsets'], $aggs['Releases'], $aggs['Topic']);
-        $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        [
-                            'term' => [
-                                'mergeable' => 'no'
-                            ],
-                        ],
-//						[	'range' => [
-//								'positive_verifications' => [
-//									'gte' => 1
-//								]
-//							],
-//						]
-                    ],
-                    'must_not' => [
-                        'terms' => [
-                            'reviewstatus' => [
-                                'MERGED',
-                                'ABANDONED'
-                            ]
-                        ],
-                    ]
-                ]
-            ],
-            'post_filter' => $this->queryFilters(),
-            'sort' => $this->querySort(),
-            'size' => $this->perPage,
-            'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $aggs
-        ];
-        $this->search($fullRequest);
-    }
-
-    /**
-     * @return string
-     */
-    public function missesReviewAction()
-    {
-
     }
 
     /**
@@ -381,29 +411,6 @@ class GerritController extends Controller
                     'field' => 'owner',
                     'size' => 10000
                 ],
-            ],
-        ];
-    }
-
-    /**
-     * Central Query filters
-     *
-     * @return array
-     */
-    protected function queryFilters()
-    {
-        return [
-            'bool' => [
-                'must' => [
-                    'type' => [
-                        'value' => 'review'
-                    ],
-                ],
-                'must_not' => [
-                    'term' => [
-                        'subject' => 'wip'
-                    ]
-                ]
             ],
         ];
     }
