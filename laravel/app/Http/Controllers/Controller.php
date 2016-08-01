@@ -15,14 +15,6 @@ abstract class Controller extends BaseController
 
     public function __construct()
     {
-        $paths = new Fluid\View\TemplatePaths();
-
-
-        /**
-         * Set up fluid caches
-         */
-        $fluidCache = new Fluid\Core\Cache\SimpleFileCache(base_path() . '/storage/app/Cache/Fluid');
-
         $this->view = new Fluid\View\TemplateView();
         $paths = $this->view->getTemplatePaths();
         $paths->setTemplateRootPaths(array(
@@ -34,7 +26,14 @@ abstract class Controller extends BaseController
         $paths->setPartialRootPaths(array(
             base_path() . '/resources/Private/Partials/'
         ));
-//        $this->view->setCache($fluidCache);
+        $fluidCaching = env('FLUID_CACHE');
+        if ($fluidCaching) {
+            /**
+             * Set up fluid caches
+             */
+            $fluidCache = new Fluid\Core\Cache\SimpleFileCache(base_path() . '/storage/app/Cache/Fluid');
+            $this->view->setCache($fluidCache);
+        }
         $this->view->assign('APP_ENV', 'L5 ' . env('APP_ENV'));
 
         $context = $this->view->getRenderingContext();
@@ -44,7 +43,6 @@ abstract class Controller extends BaseController
         $viewHelperResolver = $this->view->getViewHelperResolver();
         $viewHelperResolver->addNamespace('fl', 'FoT3\\FluidLaravel\\ViewHelpers');
         $viewHelperResolver->addNamespace('wmdb', 'App\\ViewHelpers');
-//        $this->view->setViewHelperResolver($viewHelperResolver);
     }
 
     /**
@@ -57,7 +55,6 @@ abstract class Controller extends BaseController
         $className = get_class($this);
         $namespaceParts = explode('\\', $className);
         $fullControllerName = array_pop($namespaceParts);
-        $controllerName = str_replace('Controller', '', $fullControllerName);
-        return $controllerName;
+        return str_replace('Controller', '', $fullControllerName);
     }
 }
