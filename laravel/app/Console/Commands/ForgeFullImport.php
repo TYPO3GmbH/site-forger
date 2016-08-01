@@ -38,6 +38,11 @@ class ForgeFullImport extends Command
     protected $redmineClient;
 
     /**
+     * @var \Redmine\Client
+     */
+    protected $elevatedRedmineClient;
+
+    /**
      * @var \Elastica\Client
      */
     protected $elasticClient;
@@ -86,6 +91,7 @@ class ForgeFullImport extends Command
     protected function startUp()
     {
         $this->redmineClient = $this->redmineConnection->getRedmineClient();
+        $this->elevatedRedmineClient = $this->redmineConnection->getElevatedRedmineClient();
         $this->elasticClient = $this->elasticConnection->getElasticClient();
         $this->elasticIndex = $this->elasticConnection->getElasticIndex();
     }
@@ -119,7 +125,7 @@ class ForgeFullImport extends Command
                 break;
             case 'RedmineFull':
                 $fullAmount = 50000;
-                $currentSlot = -100;
+                $currentSlot = 24300;
                 $perRun = 100;
                 while ($currentSlot < $fullAmount) {
                     $result = $this->redmineClient->api('issue')->all(
@@ -158,6 +164,16 @@ class ForgeFullImport extends Command
                     }
                     $currentSlot += $perRun;
                     $this->output->writeln('');
+                }
+                break;
+            case 'Users':
+                $memberships = $this->elevatedRedmineClient->api('membership')->all('typo3cms-core', array('limit' => 1000));
+                if (isset($memberships['memberships'])) {
+                    foreach ($memberships['memberships'] as $userData) {
+                        $this->insertUser($userData['user']['id'], $userData['user']['login']);
+                    }
+                } else {
+                    $this->output->writeln('Cannot fetch memberships. Maybe the user may not read them?');
                 }
                 break;
             default:
@@ -461,22 +477,6 @@ class ForgeFullImport extends Command
             return $matches[1];
         } else {
             return 'broken';
-        }
-    }
-
-    /**
-     * Imports users from Redmine
-     */
-    public function usersCommand()
-    {
-        $this->startUp('elevated');
-        $memberships = $this->redmineClient->api('membership')->all('typo3cms-core', array('limit' => 1000));
-        if (isset($memberships['memberships'])) {
-            foreach ($memberships['memberships'] as $userData) {
-                $this->insertUser($userData['user']['id'], $userData['user']['login']);
-            }
-        } else {
-            $this->output->writeln('Cannot fetch memberships. Maybe the user may not read them?');
         }
     }
 
