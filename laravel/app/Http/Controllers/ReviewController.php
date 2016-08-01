@@ -67,13 +67,13 @@ class ReviewController extends Controller
                 'must' => [
                     [
                         'query_string' => [
-                            'default_field' => 'review.subject',
+                            'default_field' => 'subject',
                             'query' => '' . strtoupper($boardId) . ''
                         ]
                     ],
                     [
                         'query_string' => [
-                            'default_field' => 'review.status',
+                            'default_field' => 'reviewstatus',
                             'query' => 'NEW'
                         ]
                     ]
