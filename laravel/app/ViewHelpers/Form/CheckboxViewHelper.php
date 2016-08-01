@@ -7,6 +7,10 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 class CheckboxViewHelper extends AbstractViewHelper
 {
 
+    public function __construct()
+    {
+        $this->escapeOutput = false;
+    }
     /**
      * Initialize arguments
      *
