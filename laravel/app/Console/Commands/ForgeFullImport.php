@@ -8,6 +8,7 @@ use Elastica\Type as DocType;
 use Illuminate\Config\Repository;
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Yaml\Yaml;
 
 class ForgeFullImport extends Command
@@ -18,7 +19,7 @@ class ForgeFullImport extends Command
      *
      * @var string
      */
-    protected $name = 'Forger:Import';
+    protected $name = 'Forger:Import {--startAt=}';
 
     /**
      * The console command description.
@@ -125,7 +126,10 @@ class ForgeFullImport extends Command
                 break;
             case 'RedmineFull':
                 $fullAmount = 50000;
-                $currentSlot = 24300;
+                $currentSlot = -100;
+                if(is_numeric($this->argument('startAt')[0])) {
+                    $currentSlot = (int) $this->argument('startAt')[0];
+                }
                 $perRun = 100;
                 while ($currentSlot < $fullAmount) {
                     $result = $this->redmineClient->api('issue')->all(
@@ -214,7 +218,8 @@ class ForgeFullImport extends Command
     protected function getArguments()
     {
         return [
-            ['mode', InputArgument::REQUIRED, 'Potential modes'],
+            ['mode', InputArgument::REQUIRED, 'Import mode; Allowed values are: AddMapping, GerritTest, RedmineTest, RedmineDelta, RedmineFull, GerritDelta, GerritFull, Users'],
+            ['startAt', InputOption::VALUE_OPTIONAL, 'In case of using the RedmineFull command, you can optionally define the startingpoint'],
         ];
     }
 
