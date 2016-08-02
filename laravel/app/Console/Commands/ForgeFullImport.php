@@ -127,7 +127,8 @@ class ForgeFullImport extends Command
             case 'RedmineFull':
                 $fullAmount = 50000;
                 $currentSlot = -100;
-                if(is_numeric($this->argument('startAt')[0])) {
+                $optionalStartOffset = $this->argument('startAt');
+                if(array_key_exists(0, $optionalStartOffset) && is_numeric($optionalStartOffset[0])) {
                     $currentSlot = (int) $this->argument('startAt')[0];
                 }
                 $perRun = 100;
