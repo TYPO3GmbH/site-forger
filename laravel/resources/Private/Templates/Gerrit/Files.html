@@ -1,0 +1,31 @@
+<f:layout name="Default" />
+
+<f:section name="Title">Reviews</f:section>
+<f:section name="Javascripts">
+</f:section>
+
+<f:section name="Content">
+
+	<form action="/gerrit/files" method="get">
+		<div class="row">
+			<div class="col-sm-12">
+				<f:render partial="SearchBox" arguments="{query: query}" />
+			</div>
+		</div>
+		<f:render partial="ReviewView" arguments="{
+		results: results,
+		aggregations: aggregations,
+		pagesToLinkTo: pagesToLinkTo,
+		currentPage: currentPage,
+		prev: prev,
+		next: next,
+		filters: filters,
+		totalResults: totalResults,
+		startingAtItem: startingAtItem,
+		endingAtItem: endingAtItem,
+		query: query,
+		action: 'status'
+		}" />
+	</form>
+	<f:render partial="RedmineModal" />
+</f:section>

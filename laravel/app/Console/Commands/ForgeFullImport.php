@@ -288,6 +288,7 @@ class ForgeFullImport extends Command
             }
 
             $author = $change['revisions'][$change['current_revision']]['commit']['author']['name'];
+            $filesInPatchset = array_keys($change['revisions'][$change['current_revision']]['files']);
 
             $out[$change['_number']] = [
                 'id' => $change['_number'],
@@ -311,6 +312,7 @@ class ForgeFullImport extends Command
                     $change['revisions'][$change['current_revision']]['commit']['message']
                 ),
                 'owner' => isset($author) ? $author : 'no one',
+                'files' => $filesInPatchset
             ];
             if (array_key_exists('_more_changes', $change)) {
                 $moreChanges = true;

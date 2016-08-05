@@ -85,6 +85,65 @@ class GerritController extends Controller
     }
 
     /**
+     * Show the index screen to the user.
+     *
+     * @return Response
+     */
+    public function getFiles()
+    {
+        Debugbar::startMeasure(__FUNCTION__, __FUNCTION__);
+        if (array_key_exists('query', $_GET)) {
+            $searchClosed = false;
+            if (array_key_exists('searchClosed', $_GET) && $_GET['searchClosed'] === 'true') {
+                $searchClosed = true;
+            }
+            $fullRequest = [
+                'query' => [
+                    'bool' => [
+                        'must' => [
+                            [
+                                'terms' => [
+                                    'files' => [
+                                        htmlspecialchars($_GET['query']),
+                                    ],
+                                ],
+
+                            ]
+                        ],
+                        'must_not' => [
+                            [
+                                'terms' => [
+                                    'reviewstatus' => [
+                                        'MERGED',
+                                        'ABANDONED'
+                                    ],
+                                ],
+
+                            ],
+    //                        [
+    //                            'term' => [
+    //                                'subject' => 'wip'
+    //                            ],
+    //                        ]
+                        ]
+                    ]
+                ],
+                'sort' => $this->querySort(),
+                'size' => $this->perPage,
+                'from' => $this->currentPage * $this->perPage - $this->perPage,
+                'aggregations' => $this->queryAggregations()
+            ];
+            if ($searchClosed) {
+                unset($fullRequest['query']['bool']['must_not']);
+            }
+            $this->search($fullRequest);
+            $this->view->assign('query', htmlspecialchars($_GET['query']));
+        }
+        Debugbar::stopMeasure(__FUNCTION__);
+        return $this->view->render('files');
+    }
+
+    /**
      * Show the Reviews ready to merge.
      *
      * @return Response
