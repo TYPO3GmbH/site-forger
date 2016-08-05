@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Elastic\Connection;
 use App\Elastic\ElasticSearch;
+use App\Http\Controllers\Graph\Forge\Full as FullForge;
+use App\Http\Controllers\Graph\Gerrit\Full;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -26,6 +28,10 @@ class SearchController extends Controller
      */
     public function getIndex()
     {
+        $reviewGraph = new Full($this->connection);
+        $issueGraph = new FullForge($this->connection);
+        $this->view->assign('openReviews', $reviewGraph->render());
+        $this->view->assign('openIssues', $issueGraph->render());
         return $this->view->render('index');
     }
 
