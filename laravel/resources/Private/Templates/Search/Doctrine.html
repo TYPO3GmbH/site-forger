@@ -1,0 +1,40 @@
+<f:layout name="Default" />
+
+<f:section name="Title">Doctrine Checker</f:section>
+<f:section name="Javascripts"></f:section>
+
+<f:section name="Content">
+	<div class="row">
+		<div class="col-sm-12 col-md-3">
+			<b>Total ({totals.end} / {totals.start})</b>
+		</div>
+		<div class="col-sm-12 col-md-9">
+			<div class="progress">
+				<f:if condition="{totals.percentage_done}">
+					<div class="progress-bar progress-bar-success" role="progressbar" style="width: {totals.percentage_done}%;">{totals.percentage_done}%</div>
+				</f:if>
+				<div class="progress-bar progress-bar-danger" role="progressbar" style="width: {totals.percentage_missing}%;">{totals.percentage_missing}%</div>
+			</div>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
+			<h4>Details</h4>
+		</div>
+	</div>
+	<f:for each="{result}" as="row">
+    <div class="row">
+            <div class="col-sm-12 col-md-3">
+	            {row.method} ({row.current} / {row.start})
+            </div>
+		    <div class="col-sm-12 col-md-9">
+			    <div class="progress">
+				        <f:if condition="{row.percentage_done}">
+					        <div class="progress-bar progress-bar-success" role="progressbar" style="width: {row.percentage_done}%;">{row.percentage_done}%</div>
+				        </f:if>
+				        <div class="progress-bar progress-bar-danger" role="progressbar" style="width: {row.percentage_missing}%;">{row.percentage_missing}%</div>
+			        </div>
+		    </div>
+    </div>
+	</f:for>
+</f:section>

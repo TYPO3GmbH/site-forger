@@ -14,6 +14,7 @@
 Route::get('/graphs/{type?}/{graph?}', 'GraphController@index');
 Route::get('/', 'SearchController@getIndex');
 Route::get('/search', 'SearchController@getSearch');
+Route::get('/doctrine', 'SearchController@getDoctrine');
 
 Route::controller('/boards/reviews/{boardId?}', 'ReviewController');
 Route::controller('/gerrit', 'GerritController');
