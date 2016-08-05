@@ -214,5 +214,10 @@ return [
         'index'		=> env('ELASTIC_INDEX', 'forger'),
         'username'	=> env('ELASTIC_AUTH_USERNAME'),
         'password'	=> env('ELASTIC_AUTH_PASSWORD')
-	]
+	],
+
+    'slack' => [
+        'teamUrl' => env('SLACK_TEAM_URL'),
+        'token' => env('SLACK_TOKEN')
+    ]
 ];

@@ -5,6 +5,7 @@ use App\Redmine\Connection as RedmineConnection;
 use Elastica\Document;
 use Elastica\Type;
 use Elastica\Type as DocType;
+use GuzzleHttp\Client;
 use Illuminate\Config\Repository;
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -29,7 +30,7 @@ class ForgeFullImport extends Command
     protected $description = 'Central data import functions';
 
     /**
-     * @var Repository
+     * @var \Illuminate\Config\Repository
      */
     protected $config;
 
@@ -180,6 +181,10 @@ class ForgeFullImport extends Command
                 } else {
                     $this->output->writeln('Cannot fetch memberships. Maybe the user may not read them?');
                 }
+                break;
+            case 'SlackTest':
+                $doc = $this->redmineClient->api('issue')->show(63618, array('include' => array('journals')));
+                $this->sendSlackMessage($doc['issue']);
                 break;
             default:
                 $this->error('The provided import-mode has not yet been implemented');
@@ -454,8 +459,7 @@ class ForgeFullImport extends Command
                 try {
                     $type->getDocument($document['id']);
                 } catch (\Exception $e) {
-                    #$message = new Message();
-                    #$message->sendMessage($document);
+                    $this->sendSlackMessage($document);
                 }
                 break;
             case 'review':
@@ -533,5 +537,48 @@ class ForgeFullImport extends Command
         }
 
         return $result;
+    }
+
+    protected function sendSlackMessage(array $issue)
+    {
+        $slackConfig['Url'] = $this->config->get('app.slack.teamUrl');
+        if ($slackConfig['Url'] === 'TEAMURL') {
+            return true;
+        }
+        if ($issue['tracker']['name'] === 'Bug') {
+            $color = 'danger';
+        } else {
+            $color = 'good';
+        }
+        $jsonString = json_encode([
+            'channel' => '#typo3-cms-issues',
+            'username' => 'Forger found a new issue',
+            'icon_url' => 'https://typo3.slack.com/services/B02KBL9GG',
+            'attachments' => [
+                [
+                    'title' => $issue['subject'],
+                    'title_link' => 'https://forge.typo3.org/issues/' . $issue['id'],
+                    'text' => $issue['description'],
+                    'fallback' => $issue['subject'],
+                    'author_name' => $issue['author']['name'],
+                    'color' => $color,
+                    'fields' => [
+                        [
+                            'title' => 'Status',
+                            'value' => $issue['status']['name'],
+                            'short' => true
+                        ],
+                        [
+                            'title' => 'Tracker',
+                            'value' => $issue['tracker']['name'],
+                            'short' => true
+                        ]
+                    ]
+                ]
+            ]
+        ], JSON_PRETTY_PRINT);
+        $client = new Client();
+        $client->request('POST', $slackConfig['Url'], ['body' => $jsonString]);
+        return true;
     }
 }
