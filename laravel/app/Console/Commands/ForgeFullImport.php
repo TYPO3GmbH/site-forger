@@ -193,7 +193,7 @@ class ForgeFullImport extends Command
      *
      * @throws \Symfony\Component\Yaml\Exception\ParseException
      */
-    protected function addMapping(string $mappingName)
+    protected function addMapping($mappingName)
     {
         $parser = new Yaml();
         $yamlString = file_get_contents(config_path() . '/Mappings/' . $mappingName . '.yaml');
