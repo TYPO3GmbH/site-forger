@@ -31,7 +31,13 @@ class Full extends AbstractGraph
                                     'ABANDONED',
                                     'MERGED'
                                 ]
-                            ],
+                            ]
+                        ],
+                        [
+                            'query_string' => [
+                                'default_field' => 'subject',
+                                'query' => 'WIP'
+                            ]
                         ]
                     ]
                 ],
