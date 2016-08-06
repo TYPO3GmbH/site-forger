@@ -36,7 +36,9 @@
                  <p>This service is sponsored by <a href="https://slack.com" target="_blank">Slack.com</a> - thanks a lot folks, we appreciate it.</p>
             </div>
             <div class="col-sm-12 col-md-6">
-                <fl:form action="sendInvite" additionalAttributes="{data-abide:true}" class="form-horizontal">
+                <form action="/slack/invite" data-abide="true" class="form-horizontal" method="post">
+                    <input type="hidden" name="_token" value="{csrf_token}">
+
                     <div class="form-group">
                         <label for="email" class="col-sm-3 control-label">Email:<br/> <small>required</small></label>
                         <div class="col-sm-9">
@@ -63,7 +65,7 @@
                             <input type="submit" value="send request" class="btn btn-success"  />
                         </div>
                     </div>
-                </fl:form>
+                </form>
             </div>
         </div>
 	</div>
