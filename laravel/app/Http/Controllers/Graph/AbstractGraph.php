@@ -6,8 +6,6 @@ use Elastica as El;
 
 /**
  * Class AbstractGraph
- *
- * @package WMDB\Forger\Graph
  */
 class AbstractGraph
 {
@@ -66,23 +64,6 @@ class AbstractGraph
     protected function getGuides()
     {
         $out = [];
-//        $chartSettings =
-//            $this->configurationManager->getConfiguration(ConfigurationManager::CONFIGURATION_TYPE_SETTINGS,
-//                'WMDB.Forger.Charts');
-//        foreach ($chartSettings['Phases'] as $version => $phases) {
-//            foreach ($phases as $phaseName => $dates) {
-//                $out[] = [
-//                    'fillAlpha' => 0.5,
-//                    'date' => $dates['start'],
-//                    'toDate' => $dates['end'],
-//                    'label' => $phaseName,
-//                    'position' => 'top',
-//                    'inside' => true,
-//                    'fillColor' => $chartSettings['Colors'][$phaseName]
-//                ];
-//            }
-//        }
-
         return $out;
     }
 }

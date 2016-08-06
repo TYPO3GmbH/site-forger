@@ -5,8 +5,6 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**
  * Class CounterViewHelper
- *
- * @package WMDB\Forger\ViewHelpers
  */
 class CounterViewHelper extends AbstractViewHelper
 {

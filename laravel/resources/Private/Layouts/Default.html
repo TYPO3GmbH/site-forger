@@ -4,24 +4,24 @@
 		<meta charset="utf-8">
 		<title>[{APP_ENV}] <f:render section="Title" /> :: Forger</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'css/forger.css')}" />
-        <link rel="stylesheet" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'css/font-awesome.min.css')}" />
-		<link rel="apple-touch-icon" sizes="57x57" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/apple-touch-icon-57x57.png')}">
-		<link rel="apple-touch-icon" sizes="60x60" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/apple-touch-icon-60x60.png')}">
-		<link rel="apple-touch-icon" sizes="72x72" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/apple-touch-icon-72x72.png')}">
-		<link rel="apple-touch-icon" sizes="76x76" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/apple-touch-icon-76x76.png')}">
-		<link rel="apple-touch-icon" sizes="114x114" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/apple-touch-icon-114x114.png')}">
-		<link rel="apple-touch-icon" sizes="120x120" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/apple-touch-icon-120x120.png')}">
-		<link rel="apple-touch-icon" sizes="144x144" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/apple-touch-icon-144x144.png')}">
-		<link rel="apple-touch-icon" sizes="152x152" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/apple-touch-icon-152x152.png')}">
-		<link rel="apple-touch-icon" sizes="180x180" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/apple-touch-icon-180x180.png')}">
-		<link rel="icon" type="image/png" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/favicon-32x32.png')}" sizes="32x32">
-		<link rel="icon" type="image/png" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/android-chrome-192x192.png')}" sizes="192x192">
-		<link rel="icon" type="image/png" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/favicon-96x96.png')}" sizes="96x96">
-		<link rel="icon" type="image/png" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/favicon-16x16.png')}" sizes="16x16">
-		<link rel="manifest" href="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/manifest.json')}">
+        <link rel="stylesheet" href="/css/forger.css" />
+        <link rel="stylesheet" href="/css/font-awesome.min.css" />
+		<link rel="apple-touch-icon" sizes="57x57" href="/images/favicon/apple-touch-icon-57x57.png">
+		<link rel="apple-touch-icon" sizes="60x60" href="/images/favicon/apple-touch-icon-60x60.png">
+		<link rel="apple-touch-icon" sizes="72x72" href="/images/favicon/apple-touch-icon-72x72.png">
+		<link rel="apple-touch-icon" sizes="76x76" href="/images/favicon/apple-touch-icon-76x76.png">
+		<link rel="apple-touch-icon" sizes="114x114" href="/images/favicon/apple-touch-icon-114x114.png">
+		<link rel="apple-touch-icon" sizes="120x120" href="/images/favicon/apple-touch-icon-120x120.png">
+		<link rel="apple-touch-icon" sizes="144x144" href="/images/favicon/apple-touch-icon-144x144.png">
+		<link rel="apple-touch-icon" sizes="152x152" href="/images/favicon/apple-touch-icon-152x152.png">
+		<link rel="apple-touch-icon" sizes="180x180" href="/images/favicon/apple-touch-icon-180x180.png">
+		<link rel="icon" type="image/png" href="/images/favicon/favicon-32x32.png" sizes="32x32">
+		<link rel="icon" type="image/png" href="/images/favicon/android-chrome-192x192.png" sizes="192x192">
+		<link rel="icon" type="image/png" href="/images/favicon/favicon-96x96.png" sizes="96x96">
+		<link rel="icon" type="image/png" href="/images/favicon/favicon-16x16.png" sizes="16x16">
+		<link rel="manifest" href="/images/favicon/manifest.json">
 		<meta name="msapplication-TileColor" content="#ffffff">
-		<meta name="msapplication-TileImage" content="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/favicon/mstile-144x144.png')}">
+		<meta name="msapplication-TileImage" content="/images/favicon/mstile-144x144.png">
 		<meta name="theme-color" content="#ffffff“>
 		<base href="/" />
 	</head>
@@ -51,29 +51,12 @@
 	<div class="container-fluid">
 		<f:render section="Content" />
 	</div>
-	<script type="application/javascript" src="{fl:uri.resource(package: 'WMDB.Forger', path: 'js/forger.js')}"></script>
-	<script type="application/javascript" src="{fl:uri.resource(package: 'WMDB.Forger', path: 'js/register-element.js')}"></script>
-	<script type="application/javascript" src="{fl:uri.resource(package: 'WMDB.Forger', path: 'js/time-elements.js')}"></script>
+	<script type="application/javascript" src="/js/forger.js"></script>
+	<script type="application/javascript" src="/js/register-element.js"></script>
+	<script type="application/javascript" src="/js/time-elements.js"></script>
 	<f:render section="Javascripts" />
 	<script type="application/javascript">
 	</script>
-	<f:if condition="{0:context} == {0:'PRD'}">
-	<!-- Piwik -->
-	<script type="text/javascript">
-		var _paq = _paq || [];
-		_paq.push(['trackPageView']);
-		_paq.push(['enableLinkTracking']);
-		(function() {
-			var u="//analytics.wmdb.de/";
-			_paq.push(['setTrackerUrl', u+'piwik.php']);
-			_paq.push(['setSiteId', 7]);
-			var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-			g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
-		})();
-	</script>
-	<noscript><p><img src="//analytics.wmdb.de/piwik.php?idsite=7" style="border:0;" alt="" /></p></noscript>
-	<!-- End Piwik Code -->
-	</f:if>
-		<a href="https://twitter.com/CodingDave" target="_blank"><img src="{fl:uri.resource(package: 'WMDB.Forger', path: 'images/dave.png')}" style="width:150px" title="banana? @CodingDave"></a>
+		<a href="https://twitter.com/CodingDave" target="_blank"><img src="/images/dave.png" style="width:150px" title="banana? @CodingDave"></a>
 	</body>
 </html>

@@ -107,13 +107,13 @@ class SprintController extends Controller
         $boardInfo = [];
         $this->getAllUsers();
         $this->view->assign('boardMenu', $this->makeBoardMenu($boardId, $boardType));
-        if (!isset($this->sprintConfig['WMDB']['Forger'][$boardType][$boardId]) && !is_numeric($boardId)) {
+        if (!isset($this->sprintConfig['T3G']['Forger'][$boardType][$boardId]) && !is_numeric($boardId)) {
             return;
         }
         $query = '';
-        if (isset($this->sprintConfig['WMDB']['Forger'][$boardType][$boardId])) {
-            $query = $this->sprintConfig['WMDB']['Forger'][$boardType][$boardId]['Query'];
-            $boardInfo = $this->sprintConfig['WMDB']['Forger'][$boardType][$boardId];
+        if (isset($this->sprintConfig['T3G']['Forger'][$boardType][$boardId])) {
+            $query = $this->sprintConfig['T3G']['Forger'][$boardType][$boardId]['Query'];
+            $boardInfo = $this->sprintConfig['T3G']['Forger'][$boardType][$boardId];
         }
         if (is_numeric($boardId)) {
             $query = array(
@@ -156,7 +156,7 @@ class SprintController extends Controller
     protected function makeBoardMenu($active = '', $boardType = 'Boards')
     {
         $out = [];
-        foreach ($this->sprintConfig['WMDB']['Forger'][$boardType] as $boardId => $boardSetup) {
+        foreach ($this->sprintConfig['T3G']['Forger'][$boardType] as $boardId => $boardSetup) {
             $resultCount = $this->getTicketByBoardQuery($boardSetup['Query']);
             $out[] = [
                 'id' => $boardId,

@@ -26,10 +26,6 @@ class LowercaseViewHelper extends AbstractViewHelper
     }
 
     /**
-     * <f:form.checkbox id="{title -> wmdb:lowercase()}_{index}" name="filters[{title -> wmdb:lowercase()}][]"
-     * checked="{{title -> wmdb:lowercase({bucket.key})}}" value="true" />
-     * <label for="{title -> wmdb:lowercase()}_{index}">{bucket.key} ({bucket.doc_count})</label>
-     *
      * @return string
      */
     public function render()
@@ -73,7 +69,8 @@ class LowercaseViewHelper extends AbstractViewHelper
     }
 
     /**
-     * @param $in
+     * @param string $in
+     * @param bool   $lowercase
      *
      * @return mixed|string
      */

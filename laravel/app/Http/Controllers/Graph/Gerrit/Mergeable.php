@@ -5,8 +5,6 @@ use App\Http\Controllers\Graph\AbstractGraph;
 
 /**
  * Class Mergeable
- *
- * @package WMDB\Forger\Graph\Gerrit
  */
 class Mergeable extends AbstractGraph
 {

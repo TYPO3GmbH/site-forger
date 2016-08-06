@@ -28,7 +28,7 @@ elixir(function (mix) {
 
 	// Build CSS files
 	mix.less(
-		'../../Private/Stylesheets/WMDB.Forger.less',
+		'../../Private/Stylesheets/Forger.less',
 		'public/css/forger.css'
 	);
 
@@ -37,7 +37,7 @@ elixir(function (mix) {
 		[
 			'../../../node_modules/jquery/dist/jquery.js',
 			'../../../node_modules/bootstrap/dist/js/bootstrap.js',
-			'../../Private/Javascripts/WMDB.Forger.js'
+			'../../Private/Javascripts/forger.js'
 		],
 		'public/js/forger.js'
 	)
@@ -59,7 +59,7 @@ elixir(function (mix) {
 	// Copy single JS files which don't work on their own
 	mix.copy(
 		[
-			'resources/Private/Javascripts/WMDB.Forger.Rst.js',
+			'resources/Private/Javascripts/forger.Rst.js',
 			'resources/Private/Javascripts/sprintf.min.js',
 			'resources/Private/Javascripts/register-element.js',
 			'resources/Private/Javascripts/time-elements.js'

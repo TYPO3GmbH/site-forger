@@ -7,8 +7,6 @@ use Elastica\Query;
 
 /**
  * Class ElasticSearch
- *
- * @package WMDB\Forger\Utilities\ElasticSearch
  */
 class ElasticSearch
 {

@@ -5,8 +5,6 @@ use App\Http\Controllers\Graph\AbstractGraph;
 
 /**
  * Class Full
- *
- * @package WMDB\Forger\Graph\Gerrit
  */
 class Full extends AbstractGraph
 {

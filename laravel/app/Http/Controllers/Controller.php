@@ -42,7 +42,7 @@ abstract class Controller extends BaseController
 
         $viewHelperResolver = $this->view->getViewHelperResolver();
         $viewHelperResolver->addNamespace('fl', 'FoT3\\FluidLaravel\\ViewHelpers');
-        $viewHelperResolver->addNamespace('wmdb', 'App\\ViewHelpers');
+        $viewHelperResolver->addNamespace('frg', 'App\\ViewHelpers');
     }
 
     /**
