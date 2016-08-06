@@ -82,7 +82,7 @@ return [
 
 	'key' => env('APP_KEY', 'SomeRandomString'),
 
-	'cipher' => 'AES-256-CBC',
+	'cipher' => (version_compare(PHP_VERSION, '7.0.0', '<') ? 'AES-256-CBC' : MCRYPT_RIJNDAEL_128),
 
 	/*
 	|--------------------------------------------------------------------------
