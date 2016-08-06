@@ -23,18 +23,42 @@
 		</div>
 	</div>
 	<f:for each="{result}" as="row">
-    <div class="row">
-            <div class="col-sm-12 col-md-3">
-	            {row.method} ({row.current} / {row.start})
-            </div>
-		    <div class="col-sm-12 col-md-9">
-			    <div class="progress">
-				        <f:if condition="{row.percentage_done}">
-					        <div class="progress-bar progress-bar-success" role="progressbar" style="width: {row.percentage_done}%;">{row.percentage_done}%</div>
-				        </f:if>
-				        <div class="progress-bar progress-bar-danger" role="progressbar" style="width: {row.percentage_missing}%;">{row.percentage_missing}%</div>
-			        </div>
-		    </div>
-    </div>
+		<f:if condition="{row.percentage_done} != '100'">
+			<div class="row">
+				<div class="col-sm-12 col-md-3">
+					{row.method} ({row.current} / {row.start})
+				</div>
+				<div class="col-sm-12 col-md-9">
+					<div class="progress">
+						<f:if condition="{row.percentage_done}">
+							<div class="progress-bar progress-bar-success" role="progressbar" style="width: {row.percentage_done}%;">{row.percentage_done}%</div>
+						</f:if>
+						<div class="progress-bar progress-bar-danger" role="progressbar" style="width: {row.percentage_missing}%;">{row.percentage_missing}%</div>
+					</div>
+				</div>
+			</div>
+		</f:if>
+	</f:for>
+	<div class="row">
+		<div class="col-sm-12">
+			<h4>Done</h4>
+		</div>
+	</div>
+	<f:for each="{result}" as="row">
+		<f:if condition="{row.percentage_done} == '100'">
+			<div class="row">
+				<div class="col-sm-12 col-md-3">
+					{row.method} ({row.current} / {row.start})
+				</div>
+				<div class="col-sm-12 col-md-9">
+					<div class="progress">
+						<f:if condition="{row.percentage_done}">
+							<div class="progress-bar progress-bar-success" role="progressbar" style="width: {row.percentage_done}%;">{row.percentage_done}%</div>
+						</f:if>
+						<div class="progress-bar progress-bar-danger" role="progressbar" style="width: {row.percentage_missing}%;">{row.percentage_missing}%</div>
+					</div>
+				</div>
+			</div>
+		</f:if>
 	</f:for>
 </f:section>
