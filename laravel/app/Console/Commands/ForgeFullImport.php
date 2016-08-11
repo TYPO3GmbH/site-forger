@@ -541,7 +541,7 @@ class ForgeFullImport extends Command
 
     protected function sendSlackMessage(array $issue)
     {
-        $slackConfig['Url'] = $this->config->get('app.slack.teamUrl');
+        $slackConfig['Url'] = $this->config->get('app.slack.webhook_url');
         if ($slackConfig['Url'] === 'TEAMURL') {
             return true;
         }
