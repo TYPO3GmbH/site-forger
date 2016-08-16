@@ -54,3 +54,43 @@ Please look into the ``gulpfile.js`` for details to the tasks.
 ### Add inline scripts to aggregations in elasticsearch
 
 script.engine.groovy.inline.aggs: on in elasticsearch.yml
+
+### Use Elasticorn to set up the indices
+
+Config files are located in `laravel/config/Elasticorn/t3_forger`
+
+## Imports
+
+Forger allows the following commands to be used on CLI:
+
+* php artisan Forger:Import GerritTest
+
+  Shows the last review from Gerrit. Does **not** import data.
+
+* php artisan Forger:Import RedmineTest
+
+  Imports issue #63618 into Elasticsearch
+
+* php artisan Forger:Import SlackTest
+
+  Links issue #63618 into the official Slack channel
+
+* php artisan Forger:Import RedmineDelta
+
+  Imports 50 issues into elasticsearch based on their last update
+
+* php artisan Forger:Import RedmineFull
+
+  Imports **all** issues from redmine into elasticsearch. beware, this can take up to 10 hours. If Redmine does not answer in between the import is stopped. You can optionally add the `--startAt=[INTEGER]`` parameter to start at a certain state of the import.
+
+* php artisan Forger:Import GerritDelta
+
+  Imports the latest 35 reviews from Gerrit into Elasticsearch
+
+* php artisan Forger:Import GerritFull
+
+  Imports **all** reviews from Gerrit into Elasticsearch. This normally takes about 10 minutes.
+
+* php artisan Forger:Import Users
+
+  Imports all **members** of the core project on redmine into elasticsearch.

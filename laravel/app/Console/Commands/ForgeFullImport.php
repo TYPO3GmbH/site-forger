@@ -110,11 +110,6 @@ class ForgeFullImport extends Command
         $this->info('Trying to run mode: "' . $mode . '"');
         $this->startUp();
         switch ($mode) {
-            case 'AddMapping':
-                $this->addMapping('issue');
-                $this->addMapping('user');
-                $this->addMapping('review');
-                break;
             case 'GerritTest':
                 $res = $this->getReviewBlock(1, 1);
                 break;
@@ -188,31 +183,6 @@ class ForgeFullImport extends Command
                 break;
             default:
                 $this->error('The provided import-mode has not yet been implemented');
-        }
-    }
-
-    /**
-     * Loads ElasticSearch document type mappings and applies them
-     *
-     * @param string $mappingName
-     *
-     * @throws \Symfony\Component\Yaml\Exception\ParseException
-     */
-    protected function addMapping($mappingName)
-    {
-        $parser = new Yaml();
-        $yamlString = file_get_contents(config_path() . '/Mappings/' . $mappingName . '.yaml');
-        $mapping = $parser::parse($yamlString);
-        $typeMapping = $mapping['T3G']['Forger']['Elasticsearch']['Mapping'];
-        foreach ($typeMapping as $index => $item) {
-            $docTypeToMap = $this->elasticIndex->getType($index);
-            try {
-                $this->info('Try to apply mapping for "' . $index . '"');
-                $docTypeToMap->setMapping($item);
-            } catch (\Exception $e) {
-                $this->error($e->getMessage());
-            }
-            $this->info('Added mapping for "' . $index . '"');
         }
     }
 
