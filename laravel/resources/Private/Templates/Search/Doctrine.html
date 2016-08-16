@@ -6,7 +6,7 @@
 <f:section name="Content">
 	<div class="row">
 		<div class="col-sm-12 col-md-3">
-			<b>Total ({totals.end} / {totals.start})</b>
+			<b>Total <b>({totals.end}</b> of <i>{totals.start}</i>)</b>
 		</div>
 		<div class="col-sm-12 col-md-9">
 			<div class="progress">
@@ -26,7 +26,7 @@
 		<f:if condition="{row.percentage_done} != '100'">
 			<div class="row">
 				<div class="col-sm-12 col-md-3">
-					{row.method} ({row.current} / {row.start})
+					{row.method} (<b>{row.current}</b> / <i>{row.start}</i>)
 				</div>
 				<div class="col-sm-12 col-md-9">
 					<div class="progress">
@@ -48,7 +48,7 @@
 		<f:if condition="{row.percentage_done} == '100'">
 			<div class="row">
 				<div class="col-sm-12 col-md-3">
-					{row.method} ({row.current} / {row.start})
+					{row.method} (<b>{row.current}</b> / <i>{row.start}</i>)
 				</div>
 				<div class="col-sm-12 col-md-9">
 					<div class="progress">
