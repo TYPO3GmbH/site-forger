@@ -61,4 +61,21 @@
 			</div>
 		</f:if>
 	</f:for>
+	<div class="row">
+		<div class="col-sm-12">
+			<h1>Affected Files</h1>
+			<table class="table">
+				<tr>
+					<th>Name</th>
+					<th>Calls</th>
+				</tr>
+				<f:for each="{files}" as="file" key="key">
+					<tr>
+						<td>{key}</td>
+						<td>{file}</td>
+					</tr>
+				</f:for>
+			</table>
+		</div>
+	</div>
 </f:section>

@@ -45,6 +45,7 @@ class SearchController extends Controller
         $resultArray = [];
         $start = unserialize(file_get_contents(storage_path() . '/app/doctrine_start.txt'));
         $end = unserialize(file_get_contents(storage_path() . '/app/doctrine_current.txt'));
+        $doctrineFiles = unserialize(file_get_contents(storage_path() . '/app/doctrine_files.txt'));
         $startTotal = 0;
         $endTotal = 0;
         foreach ($start as $index => $item) {
@@ -69,6 +70,7 @@ class SearchController extends Controller
         ];
         $this->view->assign('totals', $totals);
         $this->view->assign('result', $resultArray);
+        $this->view->assign('files', $doctrineFiles);
         return $this->view->render('doctrine');
     }
 
