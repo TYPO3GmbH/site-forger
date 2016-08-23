@@ -71,7 +71,7 @@
 				</tr>
 				<f:for each="{files}" as="file" key="key">
 					<tr>
-						<td>{key}</td>
+						<td><fl:link.action action="files" controller="gerrit" arguments="{'query':key}">{key}</fl:link.action></td>
 						<td>{file}</td>
 					</tr>
 				</f:for>

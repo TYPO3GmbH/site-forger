@@ -46,6 +46,9 @@ class SearchController extends Controller
         $start = unserialize(file_get_contents(storage_path() . '/app/doctrine_start.txt'));
         $end = unserialize(file_get_contents(storage_path() . '/app/doctrine_current.txt'));
         $doctrineFiles = unserialize(file_get_contents(storage_path() . '/app/doctrine_files.txt'));
+        foreach ($doctrineFiles as $index => $doctrineFile) {
+            $fixedDoctrine['typo3/' . $index] = $doctrineFile;
+        }
         $startTotal = 0;
         $endTotal = 0;
         foreach ($start as $index => $item) {
@@ -70,7 +73,7 @@ class SearchController extends Controller
         ];
         $this->view->assign('totals', $totals);
         $this->view->assign('result', $resultArray);
-        $this->view->assign('files', $doctrineFiles);
+        $this->view->assign('files', $fixedDoctrine);
         return $this->view->render('doctrine');
     }
 
