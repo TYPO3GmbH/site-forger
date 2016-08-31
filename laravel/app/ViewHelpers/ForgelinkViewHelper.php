@@ -10,6 +10,7 @@ class ForgelinkViewHelper extends AbstractViewHelper
      * Initialize arguments
      *
      * @return void
+     * @throws \TYPO3Fluid\Fluid\Core\ViewHelper\Exception
      * @api
      */
     public function initializeArguments()
@@ -21,17 +22,17 @@ class ForgelinkViewHelper extends AbstractViewHelper
     }
 
     /**
-     * @param string         $year
-     * @param string         $month
-     * @param string         $statusId
-     * @param TrackerFilters $trackerFilters
-     *
      * @return string
      */
-    public function render($year = '2015', $month = '01', $statusId = 'o', TrackerFilters $trackerFilters = null)
+    public function render()
     {
         $redmineUrl = 'https://forge.typo3.org/projects/typo3cms-core/issues?set_filter=1';
-        $filtersString = $this->getFiltersString($year, $month, $statusId, $trackerFilters);
+        $filtersString = $this->getFiltersString(
+            $this->arguments['year'],
+            $this->arguments['month'],
+            $this->arguments['statusId'],
+            $this->arguments['trackerFilters']
+        );
         $content = $redmineUrl . $filtersString . '&f[]=' . $this->getColumnsString() . '&group_by=';
         return $content;
     }
@@ -46,7 +47,7 @@ class ForgelinkViewHelper extends AbstractViewHelper
     {
         $dateString = $year . '-' . $month . '-16';
 
-        return date("Y-m-t", strtotime($dateString));
+        return date('Y-m-t', strtotime($dateString));
     }
 
     /**
@@ -64,8 +65,8 @@ class ForgelinkViewHelper extends AbstractViewHelper
             'category',
             'fixed_version'
         ];
-        foreach ($columns as $colname) {
-            $string .= '&c[]=' . $colname;
+        foreach ($columns as $columnName) {
+            $string .= '&c[]=' . $columnName;
         }
 
         return $string;
