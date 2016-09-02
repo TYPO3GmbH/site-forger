@@ -12,7 +12,7 @@
             <div id="collapse{frg:counter(output: 1)}" class="panel-collapse collapse {f:if(condition: '{frg:counter(output: 1)} == 1', then: 'in')}" role="tabpanel" aria-labelledby="heading{frg:counter(output: 1)}">
                 <div class="panel-body">
                     <f:for each="{buckets.buckets}" as="bucket" key="index">
-                        <div>
+                        <div class="checkbox">
                             <frg:lowercase category="{title}" index="{index}" bucket="{bucket.key}" docCount="{bucket.doc_count}" />
                         </div>
                     </f:for>

@@ -60,10 +60,9 @@ class LowercaseViewHelper extends AbstractViewHelper
         }
 
         $content = '
-		<input type="checkbox" id="' . $category . '-' . $index . '" name="filters[' . $category . '][' . $bucket .
-            ']"' . $checked . ' value="true" />
-		<label' . $labelStyle . ' for="' . $category . '-' . $index . '">' . $regularBucket . ' (' . $docCount . ')</label>
-		';
+            <label' . $labelStyle . ' for="' . $category . '-' . $index . '">'
+                . '<input type="checkbox" id="' . $category . '-' . $index . '" name="filters[' . $category . '][' . $bucket . ']"' . $checked . ' value="true" />' . $regularBucket . ' (' . $docCount . ')'
+            . '</label>';
 
         return $content;
     }
