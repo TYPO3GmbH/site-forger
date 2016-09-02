@@ -14,6 +14,13 @@
           'bool':
             'must':
               - 'term': {fixed_version.name': 7.6.1}
+      'CodingNight':
+        'Name': CodingNight DevDays 2016
+        'Query':
+          'bool':
+            'must':
+              - 'term': {'focus.name': On Location Sprint}
+              - 'term': {'fixed_version.name': 8.4}
 #      PRC':
 #        Name': PRC
 #        Query':
