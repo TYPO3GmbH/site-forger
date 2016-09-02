@@ -3,26 +3,27 @@ namespace App\ViewHelpers;
 
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
-class LowercaseViewHelper extends AbstractViewHelper
+class AggregationBucketViewHelper extends AbstractViewHelper
 {
 
-    /**
-     * @var boolean
-     */
-    protected $escapeOutput = false;
+    public function __construct()
+    {
+        $this->escapeOutput = false;
+    }
 
     /**
      * Initialize arguments
      *
      * @return void
+     * @throws \TYPO3Fluid\Fluid\Core\ViewHelper\Exception
      * @api
      */
     public function initializeArguments()
     {
-        $this->registerArgument('category', 'int', 'Specifies the name of an anchor');
-        $this->registerArgument('index', 'int', 'Specifies the name of an anchor');
-        $this->registerArgument('bucket', 'int', 'Specifies the name of an anchor');
-        $this->registerArgument('docCount', 'int', 'Specifies the name of an anchor');
+        $this->registerArgument('category', 'int', 'Specifies the name of an anchor', false, '');
+        $this->registerArgument('index', 'int', 'Specifies the name of an anchor', false, '');
+        $this->registerArgument('bucket', 'int', 'Specifies the name of an anchor', false, '');
+        $this->registerArgument('docCount', 'int', 'Specifies the name of an anchor', false, 0);
     }
 
     /**
@@ -30,22 +31,10 @@ class LowercaseViewHelper extends AbstractViewHelper
      */
     public function render()
     {
-        $category = '';
-        if (isset($this->arguments['category'])) {
-            $category = $this->arguments['category'];
-        }
-        $index = '';
-        if (isset($this->arguments['index'])) {
-            $index = $this->arguments['index'];
-        }
-        $bucket = '';
-        if (isset($this->arguments['bucket'])) {
-            $bucket = $this->arguments['bucket'];
-        }
-        $docCount = 0;
-        if (isset($this->arguments['docCount'])) {
-            $docCount = (int)$this->arguments['docCount'];
-        }
+        $category = $this->arguments['category'];
+        $index = $this->arguments['index'];
+        $bucket = $this->arguments['bucket'];
+        $docCount = (int)$this->arguments['docCount'];
         $regularBucket = $bucket;
         $category = $this->fixWording($category);
         $bucket = $this->fixWording($bucket, false);
@@ -79,7 +68,6 @@ class LowercaseViewHelper extends AbstractViewHelper
         if ($lowercase) {
             $in = strtolower($in);
         }
-
         return $in;
     }
 }
