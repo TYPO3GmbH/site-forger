@@ -1,19 +1,19 @@
 'T3G':
   'Forger':
     'Boards':
-      'SS_6215':
-        'Name': 6.2.16 Stabilisation
-        'Query':
-          'bool':
-            'must':
-              - 'term': {'focus.name': Stabilization Sprint}
-              - 'term': {'fixed_version.name': 6.2.16}
-      'SS_761':
-        'Name': 7.6.1 Stabilization
-        'Query':
-          'bool':
-            'must':
-              - 'term': {fixed_version.name': 7.6.1}
+#      'SS_6215':
+#        'Name': 6.2.16 Stabilisation
+#        'Query':
+#          'bool':
+#            'must':
+#              - 'term': {'focus.name': Stabilization Sprint}
+#              - 'term': {'fixed_version.name': 6.2.16}
+#      'SS_761':
+#        'Name': 7.6.1 Stabilization
+#        'Query':
+#          'bool':
+#            'must':
+#              - 'term': {fixed_version.name': 7.6.1}
       'CodingNight':
         'Name': CodingNight DevDays 2016
         'Query':
