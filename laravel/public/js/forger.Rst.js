@@ -124,8 +124,9 @@ $(document).ready(function () {
 			headline = sprintf('%s: #%d - %s', ticketType, ticketId, title),
 			filename = sprintf('%s-%d-%s', ticketType, ticketId, title.toUpperCamelCase().replace(/[^0-9a-z-_]/gi, '')) + '.rst';
 
-		var restContent = sprintf('%s\n%s\n%s', '='.repeat(headline.length), headline, '='.repeat(headline.length)),
-			restBody = '';
+		var restBody = '';
+		var restContent = '.. include:: ../../Includes.txt\n\n';
+		restContent += sprintf('%s\n%s\n%s', '='.repeat(headline.length), headline, '='.repeat(headline.length));
 
 		$('textarea:visible').each(function () {
 			var $me = $(this),
