@@ -65,13 +65,13 @@
 			<f:if condition="{result.currentPage} == {page}">
 				<f:then>
 					<li class="active">
-						<fl:link.action action="search" controller="search" arguments="{query: query, page: page, filters: filters}">{page}
+						<fl:link.action action="search" controller="search" arguments="{query: query, page: page, filters: filters, searchClosed:searchClosed}">{page}
 						</fl:link.action>
 					</li>
 				</f:then>
 				<f:else>
 					<li>
-						<fl:link.action action="search" controller="search" arguments="{query: query, page: page, filters: filters}">{page}
+						<fl:link.action action="search" controller="search" arguments="{query: query, page: page, filters: filters, searchClosed:searchClosed}">{page}
 						</fl:link.action>
 					</li>
 				</f:else>
