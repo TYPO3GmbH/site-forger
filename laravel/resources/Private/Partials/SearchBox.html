@@ -2,7 +2,7 @@
 	<fl:form.textfield name="query" placeholder="Issue ID or Searchwords" class="form-control input-lg" value="{query}" />
 	<span class="input-group-addon checkbox">
 		<label>
-			<input type="checkbox" name="searchClosed" value="true" aria-label="Search in closed tickets, too" {f:if(condition: '{0:searchClosed} == {0:'true'}', then: 'checked=\"checked\"')}> Search closed Tickets
+			<input type="checkbox" name="searchClosed" value="1" aria-label="Search in closed tickets, too" {f:if(condition: '{0:searchClosed} == {0:1}', then: 'checked=\"checked\"')}> Search closed Tickets
 		</label>
 	</span>
 	<span class="input-group-btn">
