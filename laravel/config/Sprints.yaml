@@ -14,6 +14,12 @@
 #          'bool':
 #            'must':
 #              - 'term': {fixed_version.name': 7.6.1}
+      'CodeSprint':
+        'Name': Code Sprints
+        'Query':
+          'bool':
+            'must':
+              - 'term': {'focus.name': On Location Sprint}
       'CodingNight':
         'Name': CodingNight DevDays 2016
         'Query':
