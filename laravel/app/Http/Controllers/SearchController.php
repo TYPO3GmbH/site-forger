@@ -43,6 +43,7 @@ class SearchController extends Controller
     public function getDoctrine()
     {
         $resultArray = [];
+        $fixedDoctrine = [];
         $start = unserialize(file_get_contents(storage_path() . '/app/doctrine_start.txt'));
         $end = unserialize(file_get_contents(storage_path() . '/app/doctrine_current.txt'));
         $doctrineFiles = unserialize(file_get_contents(storage_path() . '/app/doctrine_files.txt'));
