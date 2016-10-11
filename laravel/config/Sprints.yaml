@@ -20,12 +20,12 @@
           'bool':
             'must':
               - 'term': {'focus.name': On Location Sprint}
-      'CodingNight':
-        'Name': CodingNight DevDays 2016
+      'Stab84':
+        'Name': Stabilization 8.4
         'Query':
           'bool':
             'must':
-              - 'term': {'focus.name': On Location Sprint}
+              - 'term': {'focus.name': Stabilization Sprint}
               - 'term': {'fixed_version.name': 8.4}
 #      PRC':
 #        Name': PRC
