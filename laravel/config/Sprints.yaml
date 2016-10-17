@@ -20,13 +20,20 @@
           'bool':
             'must':
               - 'term': {'focus.name': On Location Sprint}
-      'Stab84':
-        'Name': Stabilization 8.4
+      'Stab85':
+        'Name': Stabilization 8.5
         'Query':
           'bool':
             'must':
               - 'term': {'focus.name': Stabilization Sprint}
-              - 'term': {'fixed_version.name': 8.4}
+              - 'term': {'fixed_version.name': 8.5}
+      'nmr':
+        'Name': Next Maintenance Release
+        'Query':
+          'bool':
+            'should':
+              - 'term': {'fixed_version.id': 3285}
+              - 'term': {'fixed_version.id': 2354}
 #      PRC':
 #        Name': PRC
 #        Query':
