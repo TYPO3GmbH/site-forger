@@ -125,7 +125,7 @@ $(document).ready(function () {
 			filename = sprintf('%s-%d-%s', ticketType, ticketId, title.toUpperCamelCase().replace(/[^0-9a-z-_]/gi, '')) + '.rst';
 
 		var restBody = '';
-		var forgeRef = 'See :forge:`' + ticketId + '`';
+		var forgeRef = 'See :issue:`' + ticketId + '`';
 		var restContent = '.. include:: ../../Includes.txt\n\n';
 		restContent += sprintf('%s\n%s\n%s\n\n%s', '='.repeat(headline.length), headline, '='.repeat(headline.length), forgeRef);
 
