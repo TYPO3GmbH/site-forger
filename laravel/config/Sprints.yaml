@@ -66,6 +66,19 @@
             'must':
               - 'term': {'category.id': 972}
               - 'term': {'fixed_version.name': 7 LTS}
+      'Localization':
+        'Name': Localization
+        'Query':
+          'bool':
+            'minimum_should_match': 2
+#            'must':
+            'should':
+              - 'term': {'category.id': 1290}
+              - 'term': {'fixed_version.id': 3452}
+              - 'term': {'fixed_version.id': 2976}
+              - 'term': {'fixed_version.id': 3287}
+              - 'term': {'fixed_version.id': 3285}
+              - 'term': {'fixed_version.id': 2354}
     'CIGBoards':
       'FormsNG':
         'Name': Forms Next generation
