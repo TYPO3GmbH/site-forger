@@ -124,8 +124,10 @@ $(document).ready(function () {
 			headline = sprintf('%s: #%d - %s', ticketType, ticketId, title),
 			filename = sprintf('%s-%d-%s', ticketType, ticketId, title.toUpperCamelCase().replace(/[^0-9a-z-_]/gi, '')) + '.rst';
 
-		var restContent = sprintf('%s\n%s\n%s', '='.repeat(headline.length), headline, '='.repeat(headline.length)),
-			restBody = '';
+		var restBody = '';
+		var forgeRef = 'See :issue:`' + ticketId + '`';
+		var restContent = '.. include:: ../../Includes.txt\n\n';
+		restContent += sprintf('%s\n%s\n%s\n\n%s', '='.repeat(headline.length), headline, '='.repeat(headline.length), forgeRef);
 
 		$('textarea:visible').each(function () {
 			var $me = $(this),
@@ -137,6 +139,14 @@ $(document).ready(function () {
 				restBody += sprintf('\n\n\n%s\n%s\n\n%s', labelText, '='.repeat(labelText.length), value);
 			}
 		});
+
+		var checkedTags = $('input[name="tag[]"]:checked');
+		if (checkedTags.length > 0) {
+			var tags = $.map(checkedTags, function(x) {
+				return x.value;
+			});
+			restBody += sprintf('\n\n.. index:: %s', tags.join(', '));
+		}
 		restContent += restBody.replace('\n', '');
 
 		$modal.find('.modal-title')

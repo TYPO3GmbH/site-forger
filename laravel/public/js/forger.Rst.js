@@ -139,6 +139,14 @@ $(document).ready(function () {
 				restBody += sprintf('\n\n\n%s\n%s\n\n%s', labelText, '='.repeat(labelText.length), value);
 			}
 		});
+
+		var checkedTags = $('input[name="tag[]"]:checked');
+		if (checkedTags.length > 0) {
+			var tags = $.map(checkedTags, function(x) {
+				return x.value;
+			});
+			restBody += sprintf('\n\n.. index:: %s', tags.join(', '));
+		}
 		restContent += restBody.replace('\n', '');
 
 		$modal.find('.modal-title')
