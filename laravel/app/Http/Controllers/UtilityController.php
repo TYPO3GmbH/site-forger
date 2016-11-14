@@ -21,6 +21,12 @@ class UtilityController extends Controller
      */
     public function getRst()
     {
+        $tags = [
+            'Backend', 'CLI', 'Database', 'FAL', 'FlexForm', 'Fluid', 'Frontend', 'LocalConfiguration', 'JavaScript',
+            'PHP-API', 'RTE', 'TCA', 'TSConfig', 'TypoScript',
+        ];
+        sort($tags);
+        $this->view->assign('tags', $tags);
         return $this->view->render('rst');
     }
     /**
