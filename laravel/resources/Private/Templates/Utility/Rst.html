@@ -70,6 +70,22 @@
                             <textarea class="form-control" rows="5" id="migration" title="Migration"></textarea>
                         </div>
                     </div>
+					<div class="form-group hidden" data-tickettypes="breaking deprecation feature important">
+						<label class="col-sm-2 control-label">Tags</label>
+						<div class="col-sm-10">
+							<div class="row">
+								<f:for each="{tags}" as="tag">
+									<div class="col-sm-3">
+										<div class="checkbox">
+											<label>
+												<input type="checkbox" value="{tag}" name="tag[]"> {tag}
+											</label>
+										</div>
+									</div>
+								</f:for>
+							</div>
+						</div>
+					</div>
                     <div class="form-group" data-tickettypes="breaking deprecation feature important">
                         <div class="col-sm-offset-2 col-sm-10">
                             <input id="generate" type="button" class="btn btn-block btn-success hidden" value="Create ReST manual">
