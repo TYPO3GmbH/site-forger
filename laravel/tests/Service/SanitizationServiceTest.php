@@ -47,6 +47,22 @@ class SanitizationServiceTest extends \PHPUnit_Framework_TestCase
                 '<h1 class="dont-kill-me">huhu</h1><script>BÖÖÖÖÖÖÖSE</script>',
                 '<h1>huhu</h1>BÖÖÖÖÖÖÖSE',
             ],
+            'img with onload' => [
+                '<img onload="alert(\'bööse\');" />',
+                ''
+            ],
+            'custom tag with onload' => [
+                '<object-foo onload="alert();"></object-foo>',
+                ''
+            ],
+            'custom tag with number as first character' => [
+                '<1test onload="alert();"></1test>',
+                ''
+            ],
+            'all common tags' => [
+                '<a><abbr><acronym><address><applet><area><b><base><basefont><bdo><bgsound><big><blockquote><blink><body><br><button><caption><center><cite><code><col><colgroup><dd><dfn><del><dir><dl><div><dt><embed><em><fieldset><font><form><frame><frameset><h1><h2><h3><h4><h5><h6><head><hr><html><iframe><img><input><ins><isindex><i><kbd><label><legend><li><link><marquee><menu><meta><noframe><noscript><optgroup><option><ol><p><pre><q><s><samp><script><select><small><span><strike><strong><style><sub><sup><table><td><th><tr><tbody><textarea><tfoot><thead><title><tt><u><ul><var>',
+                '<code><h1><h2><h3><h4><h5><h6><li><ol><p><pre><ul>'
+            ]
         ];
     }
 }

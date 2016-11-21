@@ -15,7 +15,7 @@ class SanitizationService
         /**
          * Kill off all attributes because we don't want them
          */
-        $content = preg_replace("/<([a-z][a-z0-9]*)[^>]*?(\/?)>/i",'<$1$2>', $content);
+        $content = preg_replace('/<([a-z][a-z0-9]*)[^>]*?(\/?)>/i','<$1$2>', $content);
         return $content;
     }
 }
