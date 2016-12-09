@@ -350,6 +350,9 @@ class GerritController extends Controller
         return $this->view->render('Rebase');
     }
 
+    /**
+     * @return string
+     */
     public function getWorkInProgress()
     {
         $fullRequest = [
