@@ -348,6 +348,46 @@ class GerritController extends Controller
         return $this->view->render('Rebase');
     }
 
+    public function getNegativeVoteCleanup
+    {
+        $aggs = $this->queryAggregations();
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'term' => [
+                                'mergeable' => 'no'
+                            ],
+                        ],
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED'
+                                ],
+                            ],
+
+                        ],
+                        [
+                            'term' => [
+                                'subject' => 'wip'
+                            ],
+                        ]
+                    ]
+                ]
+            ],
+            'sort' => $this->querySort(),
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => $aggs
+        ];
+        $this->search($fullRequest);
+        return $this->view->render('Rebase');
+    }
+
     /**
      * @param array $fullRequest
      */
