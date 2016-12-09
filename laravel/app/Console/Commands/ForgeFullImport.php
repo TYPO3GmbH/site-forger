@@ -364,24 +364,26 @@ class ForgeFullImport extends Command
             }
             if (array_key_exists('all', $subRow)) {
                 foreach ($subRow['all'] as $vote) {
-                    switch ($vote['value']) {
-                        case 1:
-                            ++$out['positive' . $key];
-                            break;
-                        case 2:
-                            $out['positive' . $key] += 2;
-                            break;
-                        case -1:
-                            ++$out['negative' . $key];
-                            break;
-                        case -2:
-                            $out['negative' . $key] += 2;
-                            break;
-                        case 0:
-                            // nothing to do here
-                            break;
-                        default:
-                            throw new \InvalidArgumentException('Unknown Vote Type');
+                    if ($vote['_account_id'] !== 49454) {
+                        switch ($vote['value']) {
+                            case 1:
+                                ++$out['positive' . $key];
+                                break;
+                            case 2:
+                                $out['positive' . $key] += 2;
+                                break;
+                            case -1:
+                                ++$out['negative' . $key];
+                                break;
+                            case -2:
+                                $out['negative' . $key] += 2;
+                                break;
+                            case 0:
+                                // nothing to do here
+                                break;
+                            default:
+                                throw new \InvalidArgumentException('Unknown Vote Type');
+                        }
                     }
                 }
             }
