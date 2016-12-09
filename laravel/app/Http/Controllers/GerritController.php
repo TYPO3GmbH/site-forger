@@ -20,6 +20,8 @@ class GerritController extends Controller
 
     private $totalHits;
 
+    protected $dateInterval = 'month';
+
     /**
      * @var Connection
      */
@@ -346,6 +348,59 @@ class GerritController extends Controller
         ];
         $this->search($fullRequest);
         return $this->view->render('Rebase');
+    }
+
+    public function getWorkInProgress()
+    {
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'term' => [
+                                'subject' => 'wip'
+                            ],
+                        ]
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED'
+                                ],
+                            ],
+
+                        ]
+                    ]
+                ]
+            ],
+            'sort' => [
+                'updated_on' => 'asc',
+                'insertions' => 'asc',
+                'deletions' => 'asc',
+                'patchsets' => 'desc'
+            ],
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => [
+                'Releases' => [
+                    'terms' => [
+                        'field' => 'releases',
+                        'size' => 0
+                    ]
+                ],
+                'Last updated' => [
+                    'date_histogram' => [
+                        'field' => 'updated_on',
+                        'interval' => $this->dateInterval,
+                        'format' => 'yyyy-MM-dd'
+                    ],
+                ]
+            ]
+        ];
+        $this->search($fullRequest);
+        return $this->view->render('WorkInProgress');
     }
 
     /**
