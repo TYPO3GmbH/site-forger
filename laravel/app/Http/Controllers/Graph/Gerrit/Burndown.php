@@ -62,13 +62,23 @@ class Burndown extends AbstractGraph
      * Get's opened reviews over time
      *
      * @return array
+     * @throws \Elastica\Exception\InvalidException
      */
     private function getOpenedReviews()
     {
         $opened = [];
         $fullRequest = [
             'query' => [
-                'match_all' => []
+                'bool' => [
+                    'must_not' => [
+                        [
+                            'query_string' => [
+                                'default_field' => 'subject',
+                                'query' => 'WIP'
+                            ]
+                        ]
+                    ]
+                ]
             ],
             'size' => 0,
             'aggregations' => [
@@ -113,7 +123,14 @@ class Burndown extends AbstractGraph
                             ]
                         ],
                     ],
-
+                    'must_not' => [
+                        [
+                            'query_string' => [
+                                'default_field' => 'subject',
+                                'query' => 'WIP'
+                            ]
+                        ]
+                    ]
                 ],
             ],
             'size' => 0,

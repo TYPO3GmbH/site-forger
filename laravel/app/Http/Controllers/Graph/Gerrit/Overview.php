@@ -43,7 +43,14 @@ class Overview extends AbstractGraph
                                 ]
                             ]
                         ]
-
+                    ],
+                    'must_not' => [
+                        [
+                            'query_string' => [
+                                'default_field' => 'subject',
+                                'query' => 'WIP'
+                            ]
+                        ]
                     ]
                 ],
 
@@ -101,6 +108,14 @@ class Overview extends AbstractGraph
                                 'created_on' => [
                                     'gte' => $this->weirdTimeThingy
                                 ]
+                            ]
+                        ]
+                    ],
+                    'must_not' => [
+                        [
+                            'query_string' => [
+                                'default_field' => 'subject',
+                                'query' => 'WIP'
                             ]
                         ]
                     ]

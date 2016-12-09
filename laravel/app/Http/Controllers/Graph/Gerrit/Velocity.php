@@ -47,7 +47,16 @@ class Velocity extends AbstractGraph
         $opened = [];
         $fullRequest = [
             'query' => [
-                'match_all' => []
+                'bool' => [
+                    'must_not' => [
+                        [
+                            'query_string' => [
+                                'default_field' => 'subject',
+                                'query' => 'WIP'
+                            ]
+                        ]
+                    ]
+                ]
             ],
             'size' => 0,
             'aggregations' => [
@@ -92,7 +101,14 @@ class Velocity extends AbstractGraph
                             ]
                         ],
                     ],
-
+                    'must_not' => [
+                        [
+                            'query_string' => [
+                                'default_field' => 'subject',
+                                'query' => 'WIP'
+                            ]
+                        ]
+                    ]
                 ],
             ],
             'size' => 0,

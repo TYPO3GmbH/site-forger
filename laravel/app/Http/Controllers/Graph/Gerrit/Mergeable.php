@@ -24,7 +24,14 @@ class Mergeable extends AbstractGraph
                             ]
                         ],
                     ],
-
+                    'must_not' => [
+                        [
+                            'query_string' => [
+                                'default_field' => 'subject',
+                                'query' => 'WIP'
+                            ]
+                        ]
+                    ]
                 ],
             ],
             'size' => 0,
