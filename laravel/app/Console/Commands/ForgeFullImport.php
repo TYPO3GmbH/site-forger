@@ -140,7 +140,7 @@ class ForgeFullImport extends Command
                         ]
                     );
                     foreach ($result['issues'] as $doc) {
-                        $this->getTicketAndJournal($doc['id']);
+                        $this->getTicketAndJournal($doc);
                     }
                     $currentSlot += $perRun;
                     $this->output->writeln($currentSlot);
@@ -226,16 +226,21 @@ class ForgeFullImport extends Command
      * Imports a single ticket.
      * A sleep(1) might be useful here to not hammer forge
      *
-     * @param int $issueId
+     * @param array $issue
      *
      * @throws \InvalidArgumentException
      * @throws \Exception
      */
-    private function getTicketAndJournal($issueId)
+    private function getTicketAndJournal(array $issue)
     {
-        $res = $this->redmineClient->api('issue')->show($issueId, array('include' => array('journals')));
-        if (is_array($res)) {
-            $this->addDocumentToElastic($res['issue']);
+        //import journals only if issue status is "Under review" (ID: 8)
+        if(isset($issue['status']['id']) && (int)$issue['status']['id'] === 8) {
+            $issueWithJournals = $this->redmineClient->api('issue')->show($issue['id'], array('include' => array('journals')));
+            if (is_array($issueWithJournals)) {
+                $this->addDocumentToElastic($issueWithJournals['issue']);
+            }
+        } else {
+            $this->addDocumentToElastic($issue);
         }
     }
 

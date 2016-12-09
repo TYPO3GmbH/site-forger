@@ -261,19 +261,9 @@ class SprintController extends Controller
                 }
             }
             if ($getBoardGroup !== 'Review') {
-                $ticketInfo = $ticket->getData('id');
+                $ticketInfo = $ticket->getData();
                 if (isset($ticketInfo['assigned_to']) && isset($this->users[$ticketInfo['assigned_to']['id']])) {
                     $ticketInfo['avatar'] = $this->users[$ticketInfo['assigned_to']['id']];
-                }
-                foreach ($ticket->__get('journals') as $journalEntries) {
-                    if (isset($journalEntries['notes'])
-                        && isset($journalEntries['user'])
-                        && $journalEntries['notes'] !== ''
-                        && $journalEntries['user']['id'] !== 36798
-                        && !strstr($journalEntries['notes'], 'Applied in changeset commit:')
-                    ) {
-                        $ticketInfo['lastComment'] = $journalEntries;
-                    }
                 }
                 $out[$getBoardGroup][] = $ticketInfo;
             } else {
