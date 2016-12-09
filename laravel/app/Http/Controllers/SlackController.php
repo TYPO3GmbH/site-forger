@@ -15,6 +15,7 @@ class SlackController extends Controller
      */
     public function getIndex()
     {
+        $this->view->assign('sitekey', config('app.slack.recaptcha_site'));
         $this->view->assign('csrf_token', csrf_token());
         return $this->view->render('index');
     }
@@ -29,8 +30,12 @@ class SlackController extends Controller
         $email = $request->get('email');
         $firstName = $request->get('firstName');
         $lastName = $request->get('lastName');
+        $recaptcha = $request->get('g-recaptcha-response');
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) && trim($firstName) === '' && trim($lastName) === '') {
             return redirect('index');
+        }
+        if (!$this->checkRecaptcha($recaptcha)) {
+            return redirect('slack');
         }
         $this->sendApiRequest($email, $firstName, $lastName);
         $this->view->assignMultiple([
@@ -63,5 +68,28 @@ class SlackController extends Controller
                 'set_active' => 'true'
             ]
         ]);
+    }
+
+    /**
+     * @param string $recaptcha
+     *
+     * @return bool
+     */
+    protected function checkRecaptcha($recaptcha)
+    {
+        $client = new Client([
+            'base_uri' => 'https://www.google.com/'
+        ]);
+
+        $response = $client->post('recaptcha/api/siteverify', [
+            'form_params' => [
+                'secret' => config('app.slack.recaptcha_secret'),
+                'response' => $recaptcha
+            ]
+        ]);
+
+        $body = (string) $response->getBody();
+        $result = json_decode($body);
+        return $result->success;
     }
 }

@@ -219,6 +219,8 @@ return [
     'slack' => [
         'teamUrl' => env('SLACK_TEAM_URL'),
         'token' => env('SLACK_TOKEN'),
-        'webhook_url' => env('SLACK_WEBHOOK_URL')
+        'webhook_url' => env('SLACK_WEBHOOK_URL'),
+        'recaptcha_site' => env('SLACK_RECAPTCHA_SITE'),
+        'recaptcha_secret' => env('SLACK_RECAPTCHA_SECRET')
     ]
 ];
