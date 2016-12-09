@@ -394,7 +394,7 @@ class GerritController extends Controller
                     'date_histogram' => [
                         'field' => 'updated_on',
                         'interval' => $this->dateInterval,
-                        'format' => 'yyyy-MM-dd'
+                        'format' => 'MMMM yyyy'
                     ],
                 ]
             ]

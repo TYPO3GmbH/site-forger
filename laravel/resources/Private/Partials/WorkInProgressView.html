@@ -14,7 +14,7 @@
         <f:render section="paginator" arguments="{_all}" />
     </f:if>
     <f:for each="{results}" as="result">
-        <f:render partial="WorkInProgress" arguments="{review: result.hit}" />
+        <f:render partial="Review" arguments="{review: result.hit}" />
     </f:for>
     <f:if condition="{results}">
         <f:render section="paginator" arguments="{_all}" />

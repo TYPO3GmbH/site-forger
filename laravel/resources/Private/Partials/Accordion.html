@@ -13,7 +13,7 @@
                 <div class="panel-body">
                     <f:for each="{buckets.buckets}" as="bucket" key="index">
                         <div class="checkbox">
-                            <frg:aggregationBucket category="{title}" index="{index}" bucket="{bucket.key}" docCount="{bucket.doc_count}" />
+                            <frg:aggregationBucket category="{title}" index="{index}" bucket="{f:if(condition: '{bucket.key_as_string} != \'\'', then: '{bucket.key_as_string}', else: '{bucket.key}' )}" docCount="{bucket.doc_count}" />
                         </div>
                     </f:for>
                 </div>
