@@ -56,7 +56,7 @@ class Velocity extends AbstractGraph
                             ]
                         ]
                     ]
-                ],
+                ]
             ],
             'size' => 0,
             'aggregations' => [
