@@ -1,0 +1,23 @@
+<f:layout name="Default" />
+
+<f:section name="Title">Needs to be rebased</f:section>
+<f:section name="Javascripts">
+</f:section>
+
+<f:section name="Content">
+    <form action="/gerrit/negative-vote-cleanup" method="get">
+        <f:render partial="NegativeVoteCleanup" arguments="{
+		results: results,
+		aggregations: aggregations,
+		pagesToLinkTo: pagesToLinkTo,
+		currentPage: currentPage,
+		prev: prev,
+		next: next,
+		filters: filters,
+		totalResults: totalResults,
+		startingAtItem: startingAtItem,
+		endingAtItem: endingAtItem
+		action: 'negative-vote-cleanup'
+		}" />
+    </form>
+</f:section>

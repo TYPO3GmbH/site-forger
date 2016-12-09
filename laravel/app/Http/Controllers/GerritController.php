@@ -20,6 +20,8 @@ class GerritController extends Controller
 
     private $totalHits;
 
+    protected $dateInterval = 'month';
+
     /**
      * @var Connection
      */
@@ -348,18 +350,34 @@ class GerritController extends Controller
         return $this->view->render('Rebase');
     }
 
-    public function getNegativeVoteCleanup
+    public function getNegativeVoteCleanup()
     {
-        $aggs = $this->queryAggregations();
+        $aggregations = $this->queryAggregations();
+        unset(
+            $aggregations['Mergeable'],
+            $aggregations['Patchsets'],
+            $aggregations['Affected Files'],
+            $aggregations['Topic'],
+            $aggregations['Owner']
+        );
         $fullRequest = [
             'query' => [
                 'bool' => [
-                    'must' => [
+                    'should' => [
                         [
-                            'term' => [
-                                'mergeable' => 'no'
+                            'range' => [
+                                'negative_reviews' => [
+                                    'gte' => 1
+                                ]
                             ],
                         ],
+                        [
+                            'range' => [
+                                'negative_verifications' => [
+                                    'gte' => 1
+                                ]
+                            ],
+                        ]
                     ],
                     'must_not' => [
                         [
@@ -382,7 +400,7 @@ class GerritController extends Controller
             'sort' => $this->querySort(),
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $aggs
+            'aggregations' => $aggregations
         ];
         $this->search($fullRequest);
         return $this->view->render('Rebase');
@@ -516,6 +534,13 @@ class GerritController extends Controller
                 'terms' => [
                     'field' => 'owner',
                     'size' => 10000
+                ],
+            ],
+            'Last updated' => [
+                'date_histogram' => [
+                    'field' => 'updated_on',
+                    'interval' => $this->dateInterval,
+                    'format' => 'MMMM yyyy'
                 ],
             ],
         ];
