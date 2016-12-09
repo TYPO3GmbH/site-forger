@@ -14,6 +14,7 @@ use Symfony\Component\Yaml\Yaml;
 
 class ForgeFullImport extends Command
 {
+    private $bambooUserId = 49454;
 
     /**
      * The console command name.
@@ -364,7 +365,7 @@ class ForgeFullImport extends Command
             }
             if (array_key_exists('all', $subRow)) {
                 foreach ($subRow['all'] as $vote) {
-                    if ($vote['_account_id'] !== 49454) {
+                    if ($vote['_account_id'] !== $this->bambooUserId) {
                         switch ($vote['value']) {
                             case 1:
                                 ++$out['positive' . $key];
