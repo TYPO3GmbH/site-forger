@@ -14,6 +14,7 @@ use Symfony\Component\Yaml\Yaml;
 
 class ForgeFullImport extends Command
 {
+    const BAMBOO_USER_ID = 49454;
 
     /**
      * The console command name.
@@ -364,24 +365,26 @@ class ForgeFullImport extends Command
             }
             if (array_key_exists('all', $subRow)) {
                 foreach ($subRow['all'] as $vote) {
-                    switch ($vote['value']) {
-                        case 1:
-                            ++$out['positive' . $key];
-                            break;
-                        case 2:
-                            $out['positive' . $key] += 2;
-                            break;
-                        case -1:
-                            ++$out['negative' . $key];
-                            break;
-                        case -2:
-                            $out['negative' . $key] += 2;
-                            break;
-                        case 0:
-                            // nothing to do here
-                            break;
-                        default:
-                            throw new \InvalidArgumentException('Unknown Vote Type');
+                    if ($vote['_account_id'] !== self::BAMBOO_USER_ID) {
+                        switch ($vote['value']) {
+                            case 1:
+                                ++$out['positive' . $key];
+                                break;
+                            case 2:
+                                $out['positive' . $key] += 2;
+                                break;
+                            case -1:
+                                ++$out['negative' . $key];
+                                break;
+                            case -2:
+                                $out['negative' . $key] += 2;
+                                break;
+                            case 0:
+                                // nothing to do here
+                                break;
+                            default:
+                                throw new \InvalidArgumentException('Unknown Vote Type');
+                        }
                     }
                 }
             }
