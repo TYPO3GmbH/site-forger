@@ -253,45 +253,49 @@ class ForgeFullImport extends Command
         $json = file_get_contents('https://review.typo3.org/changes/?q=project:Packages/TYPO3.CMS&n=' . $perRun .
             '&start=' . $current . '&o=DETAILED_LABELS&o=CURRENT_REVISION&o=ALL_FILES&o=CURRENT_COMMIT');
         $data = json_decode(str_replace(")]}'", '', $json), true);
-        foreach ($data as $change) {
-            $labels = $this->extractLabels($change['labels']);
-            if (!array_key_exists('mergeable', $change)) {
-                $change['mergeable'] = false;
-            }
+        if (!is_array($data)) {
+            $this->line('no array from result');
+        } else {
+            foreach ($data as $change) {
+                $labels = $this->extractLabels($change['labels']);
+                if (!array_key_exists('mergeable', $change)) {
+                    $change['mergeable'] = false;
+                }
 
-            if (!array_key_exists('current_revision', $change)) {
-                continue;
-            }
+                if (!array_key_exists('current_revision', $change)) {
+                    continue;
+                }
 
-            $author = $change['revisions'][$change['current_revision']]['commit']['author']['name'];
-            $filesInPatchset = array_keys($change['revisions'][$change['current_revision']]['files']);
+                $author = $change['revisions'][$change['current_revision']]['commit']['author']['name'];
+                $filesInPatchset = array_keys($change['revisions'][$change['current_revision']]['files']);
 
-            $out[$change['_number']] = [
-                'id' => $change['_number'],
-                'change_id' => $change['change_id'],
-                'reviewstatus' => $change['status'],
-                'subject' => $change['subject'],
-                'branch' => $change['branch'],
-                'topic' => array_key_exists('topic', $change) ? $change['topic'] : 'no topic',
-                'mergeable' => ($change['mergeable'] === true) ? 'yes' : 'no',
-                'affected_files' => count($change['revisions'][$change['current_revision']]['files']),
-                'insertions' => $change['insertions'],
-                'deletions' => $change['deletions'],
-                'positive_reviews' => $labels['positive_reviews'],
-                'negative_reviews' => $labels['negative_reviews'],
-                'positive_verifications' => $labels['positive_verifications'],
-                'negative_verifications' => $labels['negative_verifications'],
-                'patchsets' => $change['revisions'][$change['current_revision']]['_number'],
-                'created_on' => $this->fixDateFormat(str_replace('-', '/', $change['created'])),
-                'updated_on' => $this->fixDateFormat(str_replace('-', '/', $change['updated'])),
-                'releases' => $this->extractReleases(
-                    $change['revisions'][$change['current_revision']]['commit']['message']
-                ),
-                'owner' => isset($author) ? $author : 'no one',
-                'files' => $filesInPatchset
-            ];
-            if (array_key_exists('_more_changes', $change)) {
-                $moreChanges = true;
+                $out[$change['_number']] = [
+                    'id' => $change['_number'],
+                    'change_id' => $change['change_id'],
+                    'reviewstatus' => $change['status'],
+                    'subject' => $change['subject'],
+                    'branch' => $change['branch'],
+                    'topic' => array_key_exists('topic', $change) ? $change['topic'] : 'no topic',
+                    'mergeable' => ($change['mergeable'] === true) ? 'yes' : 'no',
+                    'affected_files' => count($change['revisions'][$change['current_revision']]['files']),
+                    'insertions' => $change['insertions'],
+                    'deletions' => $change['deletions'],
+                    'positive_reviews' => $labels['positive_reviews'],
+                    'negative_reviews' => $labels['negative_reviews'],
+                    'positive_verifications' => $labels['positive_verifications'],
+                    'negative_verifications' => $labels['negative_verifications'],
+                    'patchsets' => $change['revisions'][$change['current_revision']]['_number'],
+                    'created_on' => $this->fixDateFormat(str_replace('-', '/', $change['created'])),
+                    'updated_on' => $this->fixDateFormat(str_replace('-', '/', $change['updated'])),
+                    'releases' => $this->extractReleases(
+                        $change['revisions'][$change['current_revision']]['commit']['message']
+                    ),
+                    'owner' => isset($author) ? $author : 'no one',
+                    'files' => $filesInPatchset
+                ];
+                if (array_key_exists('_more_changes', $change)) {
+                    $moreChanges = true;
+                }
             }
         }
         if ($moreChanges === false) {
