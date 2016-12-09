@@ -393,7 +393,7 @@ class GerritController extends Controller
                         'size' => 0
                     ]
                 ],
-                'Last updated' => [
+                'Updated on' => [
                     'date_histogram' => [
                         'field' => 'updated_on',
                         'interval' => $this->dateInterval,
@@ -469,19 +469,33 @@ class GerritController extends Controller
             foreach ($filterValue as $term => $enabled) {
                 if ($enabled === 'true') {
                     $term = str_replace('_', ' ', $term);
-                    $filter = new Elastica\Query\Term();
-                    if ($key === 'tracker'
-                        || $key === 'project'
-                        || $key === 'category'
-                        || $key === 'status'
-                        || $key === 'author'
-                        || $key === 'priority'
-                        || $key === 'fixed_version'
-                    ) {
-                        $filter->setTerm($key . '.name', $term);
+                    if ($key === 'updated_on') {
+                        $filter = new Elastica\Query\Range();
+                        $startDate = \DateTime::createFromFormat('U', (int)$term / 1000);
+                        $endDate = \DateTime::createFromFormat('U', (int)$term / 1000)->modify('+1 month -1 second');
+                        $filter->addField(
+                            $key,
+                            [
+                                'gte' => $startDate->format('Y/m/d H:i:s'),
+                                'lte' => $endDate->format('Y/m/d H:i:s'),
+                            ]
+                        );
                     } else {
-                        $filter->setTerm($key, $term);
+                        $filter = new Elastica\Query\Term();
+                        if ($key === 'tracker'
+                            || $key === 'project'
+                            || $key === 'category'
+                            || $key === 'status'
+                            || $key === 'author'
+                            || $key === 'priority'
+                            || $key === 'fixed_version'
+                        ) {
+                            $filter->setTerm($key . '.name', $term);
+                        } else {
+                            $filter->setTerm($key, $term);
+                        }
                     }
+
                     $filterPart->addShould($filter);
                     $filterCatCount++;
                 }
