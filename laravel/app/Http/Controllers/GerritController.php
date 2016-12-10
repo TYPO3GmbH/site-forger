@@ -20,6 +20,8 @@ class GerritController extends Controller
 
     private $totalHits;
 
+    protected $dateInterval = 'month';
+
     /**
      * @var Connection
      */
@@ -349,6 +351,62 @@ class GerritController extends Controller
     }
 
     /**
+     * @return string
+     */
+    public function getWorkInProgress()
+    {
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'term' => [
+                                'subject' => 'wip'
+                            ],
+                        ]
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED'
+                                ],
+                            ],
+
+                        ]
+                    ]
+                ]
+            ],
+            'sort' => [
+                'updated_on' => 'asc',
+                'insertions' => 'asc',
+                'deletions' => 'asc',
+                'patchsets' => 'desc'
+            ],
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => [
+                'Releases' => [
+                    'terms' => [
+                        'field' => 'releases',
+                        'size' => 0
+                    ]
+                ],
+                'Updated on' => [
+                    'date_histogram' => [
+                        'field' => 'updated_on',
+                        'interval' => $this->dateInterval,
+                        'format' => 'MMMM yyyy'
+                    ],
+                ]
+            ]
+        ];
+        $this->search($fullRequest);
+        return $this->view->render('WorkInProgress');
+    }
+
+    /**
      * @param array $fullRequest
      */
     protected function search(array $fullRequest)
@@ -411,19 +469,33 @@ class GerritController extends Controller
             foreach ($filterValue as $term => $enabled) {
                 if ($enabled === 'true') {
                     $term = str_replace('_', ' ', $term);
-                    $filter = new Elastica\Query\Term();
-                    if ($key === 'tracker'
-                        || $key === 'project'
-                        || $key === 'category'
-                        || $key === 'status'
-                        || $key === 'author'
-                        || $key === 'priority'
-                        || $key === 'fixed_version'
-                    ) {
-                        $filter->setTerm($key . '.name', $term);
+                    if ($key === 'updated_on') {
+                        $filter = new Elastica\Query\Range();
+                        $startDate = \DateTime::createFromFormat('U', (int)$term / 1000);
+                        $endDate = \DateTime::createFromFormat('U', (int)$term / 1000)->modify('+1 month -1 second');
+                        $filter->addField(
+                            $key,
+                            [
+                                'gte' => $startDate->format('Y/m/d H:i:s'),
+                                'lte' => $endDate->format('Y/m/d H:i:s'),
+                            ]
+                        );
                     } else {
-                        $filter->setTerm($key, $term);
+                        $filter = new Elastica\Query\Term();
+                        if ($key === 'tracker'
+                            || $key === 'project'
+                            || $key === 'category'
+                            || $key === 'status'
+                            || $key === 'author'
+                            || $key === 'priority'
+                            || $key === 'fixed_version'
+                        ) {
+                            $filter->setTerm($key . '.name', $term);
+                        } else {
+                            $filter->setTerm($key, $term);
+                        }
                     }
+
                     $filterPart->addShould($filter);
                     $filterCatCount++;
                 }
