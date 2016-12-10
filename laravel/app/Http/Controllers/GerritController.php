@@ -403,7 +403,7 @@ class GerritController extends Controller
             'aggregations' => $aggregations
         ];
         $this->search($fullRequest);
-        return $this->view->render('Rebase');
+        return $this->view->render('NegativeVoteCleanup');
     }
 
     /**
