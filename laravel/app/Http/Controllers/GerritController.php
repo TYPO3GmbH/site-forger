@@ -205,6 +205,13 @@ class GerritController extends Controller
      */
     public function getCoreteamMerge()
     {
+
+        $aggregations = $this->queryAggregations();
+        unset(
+            $aggregations['Mergeable'],
+            $aggregations['Patchsets'],
+            $aggregations['Affected Files']
+        );
         $fullRequest = [
             'query' => [
                 'bool' => [
@@ -264,7 +271,7 @@ class GerritController extends Controller
             'sort' => $this->querySort(),
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $this->queryAggregations()
+            'aggregations' => $aggregations
         ];
         $this->search($fullRequest);
         return $this->view->render('CoreteamMerge');
