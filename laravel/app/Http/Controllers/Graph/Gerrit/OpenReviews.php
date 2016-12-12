@@ -21,6 +21,7 @@ class OpenReviews extends AbstractGraph
 
     /**
      * @return string
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function getReviewsOverTime()
     {
@@ -36,6 +37,13 @@ class OpenReviews extends AbstractGraph
                                     'MERGED'
                                 ]
                             ],
+                        ],
+                        [
+                            [
+                                'term' => [
+                                    'subject' => 'wip'
+                                ],
+                            ]
                         ]
                     ]
                 ],
