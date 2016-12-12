@@ -606,7 +606,7 @@ class GerritController extends Controller
                     'size' => 10000
                 ],
             ],
-            'Last updated' => [
+            'Updated on' => [
                 'date_histogram' => [
                     'field' => 'updated_on',
                     'interval' => $this->dateInterval,
