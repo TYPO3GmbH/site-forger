@@ -20,6 +20,8 @@ class GerritController extends Controller
 
     private $totalHits;
 
+    protected $dateInterval = 'month';
+
     /**
      * @var Connection
      */
@@ -197,6 +199,85 @@ class GerritController extends Controller
     }
 
     /**
+     * Show the Reviews ready to merge without any negative votes on them.
+     *
+     * @return Response
+     */
+    public function getCoreteamMerge()
+    {
+
+        $aggregations = $this->queryAggregations();
+        unset(
+            $aggregations['Mergeable'],
+            $aggregations['Patchsets'],
+            $aggregations['Affected Files']
+        );
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'range' => [
+                                'positive_reviews' => [
+                                    'gte' => 1
+                                ]
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'positive_verifications' => [
+                                    'gte' => 1
+                                ]
+                            ],
+                        ],
+                        [
+                            'term' => [
+                                'mergeable' => 'yes'
+                            ],
+                        ],
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED'
+                                ],
+                            ],
+
+                        ],
+                        [
+                            'term' => [
+                                'subject' => 'wip'
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'negative_reviews' => [
+                                    'gte' => 1
+                                ]
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'negative_verifications' => [
+                                    'gte' => 1
+                                ]
+                            ],
+                        ]
+                    ]
+                ]
+            ],
+            'sort' => $this->querySort(),
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => $aggregations
+        ];
+        $this->search($fullRequest);
+        return $this->view->render('CoreteamMerge');
+    }
+
+    /**
      * Show the index screen to the user.
      *
      * @return Response
@@ -348,6 +429,118 @@ class GerritController extends Controller
         return $this->view->render('Rebase');
     }
 
+    public function getNegativeVoteCleanup()
+    {
+        $aggregations = $this->queryAggregations();
+        unset(
+            $aggregations['Mergeable'],
+            $aggregations['Patchsets'],
+            $aggregations['Affected Files'],
+            $aggregations['Topic'],
+            $aggregations['Owner']
+        );
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'should' => [
+                        [
+                            'range' => [
+                                'negative_reviews' => [
+                                    'gte' => 1
+                                ]
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'negative_verifications' => [
+                                    'gte' => 1
+                                ]
+                            ],
+                        ]
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED'
+                                ],
+                            ],
+
+                        ],
+                        [
+                            'term' => [
+                                'subject' => 'wip'
+                            ],
+                        ]
+                    ]
+                ]
+            ],
+            'sort' => $this->querySort(),
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => $aggregations
+        ];
+        $this->search($fullRequest);
+        return $this->view->render('NegativeVoteCleanup');
+    }
+
+    /**
+     * @return string
+     */
+    public function getWorkInProgress()
+    {
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'term' => [
+                                'subject' => 'wip'
+                            ],
+                        ]
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED'
+                                ],
+                            ],
+
+                        ]
+                    ]
+                ]
+            ],
+            'sort' => [
+                'updated_on' => 'asc',
+                'insertions' => 'asc',
+                'deletions' => 'asc',
+                'patchsets' => 'desc'
+            ],
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => [
+                'Releases' => [
+                    'terms' => [
+                        'field' => 'releases',
+                        'size' => 0
+                    ]
+                ],
+                'Updated on' => [
+                    'date_histogram' => [
+                        'field' => 'updated_on',
+                        'interval' => $this->dateInterval,
+                        'format' => 'MMMM yyyy'
+                    ],
+                ]
+            ]
+        ];
+        $this->search($fullRequest);
+        return $this->view->render('WorkInProgress');
+    }
+
     /**
      * @param array $fullRequest
      */
@@ -411,19 +604,33 @@ class GerritController extends Controller
             foreach ($filterValue as $term => $enabled) {
                 if ($enabled === 'true') {
                     $term = str_replace('_', ' ', $term);
-                    $filter = new Elastica\Query\Term();
-                    if ($key === 'tracker'
-                        || $key === 'project'
-                        || $key === 'category'
-                        || $key === 'status'
-                        || $key === 'author'
-                        || $key === 'priority'
-                        || $key === 'fixed_version'
-                    ) {
-                        $filter->setTerm($key . '.name', $term);
+                    if ($key === 'updated_on') {
+                        $filter = new Elastica\Query\Range();
+                        $startDate = \DateTime::createFromFormat('U', (int)$term / 1000);
+                        $endDate = \DateTime::createFromFormat('U', (int)$term / 1000)->modify('+1 month -1 second');
+                        $filter->addField(
+                            $key,
+                            [
+                                'gte' => $startDate->format('Y/m/d H:i:s'),
+                                'lte' => $endDate->format('Y/m/d H:i:s'),
+                            ]
+                        );
                     } else {
-                        $filter->setTerm($key, $term);
+                        $filter = new Elastica\Query\Term();
+                        if ($key === 'tracker'
+                            || $key === 'project'
+                            || $key === 'category'
+                            || $key === 'status'
+                            || $key === 'author'
+                            || $key === 'priority'
+                            || $key === 'fixed_version'
+                        ) {
+                            $filter->setTerm($key . '.name', $term);
+                        } else {
+                            $filter->setTerm($key, $term);
+                        }
                     }
+
                     $filterPart->addShould($filter);
                     $filterCatCount++;
                 }
@@ -476,6 +683,13 @@ class GerritController extends Controller
                 'terms' => [
                     'field' => 'owner',
                     'size' => 10000
+                ],
+            ],
+            'Updated on' => [
+                'date_histogram' => [
+                    'field' => 'updated_on',
+                    'interval' => $this->dateInterval,
+                    'format' => 'MMMM yyyy'
                 ],
             ],
         ];

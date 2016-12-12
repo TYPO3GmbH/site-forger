@@ -1,6 +1,8 @@
 <?php
 namespace App\ViewHelpers;
 
+use App\Service\SanitizationService;
+use Netcarver\Textile\Parser;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 class TextileViewHelper extends AbstractViewHelper
@@ -8,54 +10,16 @@ class TextileViewHelper extends AbstractViewHelper
 
     /**
      * @return string
+     * @throws \InvalidArgumentException
      */
     public function render()
     {
-        $parser = new \Netcarver\Textile\Parser();
+        $sanitizer = new SanitizationService();
+
+        $parser = new Parser();
         $content = $this->renderChildren();
-        $content = nl2br($content);
         $content = $parser->textileThis($content);
-        $content = $this->keepTags($content);
-
-        return $content;
-    }
-
-    /**
-     * @param string $content
-     *
-     * @return string
-     */
-    protected function keepTags($content)
-    {
-        $search = [
-            '&lt;pre&gt;',
-            '&lt;/pre&gt;'
-        ];
-        $replace = [
-            '<pre><code>',
-            '</code></pre>'
-        ];
-        $content = str_replace($search, $replace, $content);
-
-        return $this->fixCodeParts($content);
-    }
-
-    /**
-     * @param string $content
-     *
-     * @return string
-     */
-    protected function fixCodeParts($content = '')
-    {
-        $content = str_replace("<code><br />\n", '<code>', $content);
-        $pattern = '/(?s)<code>((?:(?!<\/code>).)*)<\/code>/m';
-        preg_match_all($pattern, $content, $matches);
-        if (isset($matches[1])) {
-            foreach ($matches[1] as $key => $hit) {
-                $strippedHit = str_replace("\n\n", "\n", strip_tags($hit));
-                $content = str_replace($hit, $strippedHit, $content);
-            }
-        }
+        $content = $sanitizer->sanitizeHtml($content);
 
         return $content;
     }

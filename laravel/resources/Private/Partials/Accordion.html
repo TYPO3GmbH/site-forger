@@ -11,11 +11,13 @@
             </div>
             <div id="collapse{frg:counter(output: 1)}" class="panel-collapse collapse {f:if(condition: '{frg:counter(output: 1)} == 1', then: 'in')}" role="tabpanel" aria-labelledby="heading{frg:counter(output: 1)}">
                 <div class="panel-body">
-                    <f:for each="{buckets.buckets}" as="bucket" key="index">
-                        <div class="checkbox">
-                            <frg:aggregationBucket category="{title}" index="{index}" bucket="{bucket.key}" docCount="{bucket.doc_count}" />
-                        </div>
-                    </f:for>
+	                <f:for each="{buckets.buckets}" as="bucket" key="index">
+	                    <f:if condition="{bucket.doc_count} > 0">
+	                        <div class="checkbox">
+	                            <frg:aggregationBucket category="{title}" index="{index}" label="{f:if(condition: '{bucket.key_as_string} != \'\'', then: '{bucket.key_as_string}', else: '{bucket.key}' )}" bucket="{bucket.key}" docCount="{bucket.doc_count}" />
+	                        </div>
+	                    </f:if>
+	                </f:for>
                 </div>
             </div>
         </div>

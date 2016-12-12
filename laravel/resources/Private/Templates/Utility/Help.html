@@ -36,7 +36,7 @@
             </p>
             <p>FORGER aggregates these values by weeks - the date indicates the first day of the respective week.</p>
             <p>The data goes back for one year.</p>
-            <div id="reviewOverTime"  data-type="Forge" data-graph="OpenReviews" data-chart="Line" data-charttitle="Open Reviews" class="graph"></div>
+            <div id="reviewOverTime" data-type="Gerrit" data-graph="OpenReviews" data-chart="Line" data-charttitle="Open Reviews" class="graph"></div>
 
             <h4>Open vs. Closed Issues on Forge</h4>
             <p>
@@ -56,20 +56,6 @@
                 It only takes issues into account that are not either "Closed", "Rejected" or "Resolved".
             </p>
             <div id="trackertype" data-type="Forge" data-graph="TrackerTypes" data-chart="BarHorizontal" data-charttitle="Tracker Types" class="graph"></div>
-
-            <h4>Cycle Time</h4>
-            <p>
-                This one is a bit harder to understand.<br>
-                The term "cycle time" defines how long it takes an issue get go through its lifecycle - meaning from "New" to "Closed", "Rejected" or "Resolved".</p>
-            <p>
-                In general you can say that a high cycle time is a bad thing.<br>
-                In our case this is a bit different, because we are simply overwhelmed with the amount of feedback we get, not necessarily just bugs.<br>
-                So instead of aiming for a low cycle time we tend to discuss things with users, give them feedback etc. - all these things add to the cycle time of an issue.
-            </p>
-            <p>
-                A high cycle in context of TYPO3 CMS means that we are dealing with issues that have been open for a long time - which we consider more of a good thing.
-            </p>
-            <div id="cycleTime" data-type="Forge" data-graph="CycleTime" data-chart="Line" data-charttitle="CycleTime" class="graph"></div>
 
             <h4>Review Overview</h4>
             <p>This chart is pretty straight-forward.<br>

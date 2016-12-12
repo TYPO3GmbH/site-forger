@@ -24,6 +24,7 @@ class AggregationBucketViewHelper extends AbstractViewHelper
         $this->registerArgument('index', 'int', 'Specifies the name of an anchor', false, '');
         $this->registerArgument('bucket', 'int', 'Specifies the name of an anchor', false, '');
         $this->registerArgument('docCount', 'int', 'Specifies the name of an anchor', false, 0);
+        $this->registerArgument('label', 'char', 'Specifies the label of an anchor', false, 0);
     }
 
     /**
@@ -35,7 +36,7 @@ class AggregationBucketViewHelper extends AbstractViewHelper
         $index = $this->arguments['index'];
         $bucket = $this->arguments['bucket'];
         $docCount = (int)$this->arguments['docCount'];
-        $regularBucket = $bucket;
+        $regularBucket = $this->arguments['label'];
         $category = $this->fixWording($category);
         $bucket = $this->fixWording($bucket, false);
 
