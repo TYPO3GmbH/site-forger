@@ -199,6 +199,85 @@ class GerritController extends Controller
     }
 
     /**
+     * Show the Reviews ready to merge without any negative votes on them.
+     *
+     * @return Response
+     */
+    public function getCoreteamMerge()
+    {
+
+        $aggregations = $this->queryAggregations();
+        unset(
+            $aggregations['Mergeable'],
+            $aggregations['Patchsets'],
+            $aggregations['Affected Files']
+        );
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'range' => [
+                                'positive_reviews' => [
+                                    'gte' => 1
+                                ]
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'positive_verifications' => [
+                                    'gte' => 1
+                                ]
+                            ],
+                        ],
+                        [
+                            'term' => [
+                                'mergeable' => 'yes'
+                            ],
+                        ],
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED'
+                                ],
+                            ],
+
+                        ],
+                        [
+                            'term' => [
+                                'subject' => 'wip'
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'negative_reviews' => [
+                                    'gte' => 1
+                                ]
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'negative_verifications' => [
+                                    'gte' => 1
+                                ]
+                            ],
+                        ]
+                    ]
+                ]
+            ],
+            'sort' => $this->querySort(),
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => $aggregations
+        ];
+        $this->search($fullRequest);
+        return $this->view->render('CoreteamMerge');
+    }
+
+    /**
      * Show the index screen to the user.
      *
      * @return Response
