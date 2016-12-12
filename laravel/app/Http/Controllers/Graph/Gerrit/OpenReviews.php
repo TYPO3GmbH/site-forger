@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\Graph\Forge;
+namespace App\Http\Controllers\Graph\Gerrit;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
@@ -27,9 +27,18 @@ class OpenReviews extends AbstractGraph
         $chartData = [];
         $fullRequest = [
             'query' => [
-                'term' => [
-                    'status.name' => 'Under Review'
-                ]
+                'bool' => [
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'ABANDONED',
+                                    'MERGED'
+                                ]
+                            ],
+                        ]
+                    ]
+                ],
             ],
             'size' => 0,
             'aggregations' => [
@@ -42,7 +51,7 @@ class OpenReviews extends AbstractGraph
             ]
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
-        $search->addType('issue');
+        $search->addType('review');
         $resultSet = $search->search();
         $data = $resultSet->getAggregations();
         foreach ($data['over_time']['buckets'] as $frame) {
