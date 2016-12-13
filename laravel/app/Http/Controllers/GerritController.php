@@ -543,6 +543,8 @@ class GerritController extends Controller
 
     /**
      * @param array $fullRequest
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function search(array $fullRequest)
     {
@@ -550,8 +552,9 @@ class GerritController extends Controller
         if (count($usedFilters) > 0) {
             $fullRequest['post_filter'] = $usedFilters;
         }
-        $query = new Elastica\Query($fullRequest);
-        $resultSet = $this->connection->getElasticIndex()->search($query);
+        $query = $this->connection->getElasticIndex()->createSearch($fullRequest);
+        $query->addType('review');
+        $resultSet = $query->search();
         $this->totalHits = $resultSet->getTotalHits();
         if ((int) $this->totalHits <= (int)($this->currentPage * $this->perPage)) {
             $this->view->assign('endingAtItem', (int)$this->totalHits);
