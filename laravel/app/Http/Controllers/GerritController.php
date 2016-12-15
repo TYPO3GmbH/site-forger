@@ -542,6 +542,122 @@ class GerritController extends Controller
     }
 
     /**
+     * @return string
+     */
+    public function getStaleIssues()
+    {
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'term' => [
+                                'status.id' => '8'
+                            ],
+                        ]
+                    ],
+                ]
+            ],
+            'sort' => [
+                'updated_on' => 'asc',
+                'insertions' => 'asc',
+                'deletions' => 'asc',
+                'patchsets' => 'desc'
+            ],
+            'size' => 1000,
+            'from' => 0,
+            'aggregations' => [
+                'Releases' => [
+                    'terms' => [
+                        'field' => 'releases',
+                        'size' => 0
+                    ]
+                ],
+                'Updated on' => [
+                    'date_histogram' => [
+                        'field' => 'updated_on',
+                        'interval' => $this->dateInterval,
+                        'format' => 'MMMM yyyy'
+                    ],
+                ]
+            ]
+        ];
+        $query = $this->connection->getElasticIndex()->createSearch($fullRequest);
+        $query->addType('issue');
+        $resultSet = $query->search();
+        $reviewIds = [];
+        $re = '/http[s]*:\/\/review\.typo3\.org\/([0-9]*)/';
+        foreach ($resultSet->getResults() as $result) {
+            foreach ($result->getData()['journals'] as $journal) {
+                if (isset($journal['notes'])) {
+                    preg_match_all($re, $journal['notes'], $matches);
+                    $id = $matches[1][0] ?? null;
+                    if ($id !== null && $id !== '') {
+                        $reviewIds[] = $id;
+                    }
+                }
+            }
+        }
+        $reviewIds = array_unique($reviewIds);
+        $filter = [];
+        foreach ($reviewIds as $reviewId) {
+            $filter[] = [
+                'term' => [
+                    'id' => $reviewId
+                ],
+            ];
+        }
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED'
+                                ],
+                            ],
+                        ]
+                    ],
+                ]
+            ],
+            'filter' => [
+                'or' => $filter
+            ],
+            'sort' => [
+                'updated_on' => 'asc',
+                'insertions' => 'asc',
+                'deletions' => 'asc',
+                'patchsets' => 'desc'
+            ],
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage
+        ];
+        $query = $this->connection->getElasticIndex()->createSearch($fullRequest);
+        $query->addType('review');
+        $resultSet = $query->search();
+        $this->totalHits = $resultSet->getTotalHits();
+
+        if ((int) $this->totalHits <= (int)($this->currentPage * $this->perPage)) {
+            $this->view->assign('endingAtItem', (int)$this->totalHits);
+        } else {
+            $this->view->assign('endingAtItem', $this->currentPage * $this->perPage);
+        }
+        $this->view->assignMultiple([
+            'results' => $resultSet->getResults(),
+            'pagesToLinkTo' => $this->getPages(),
+            'currentPage' => $this->currentPage,
+            'prev' => $this->currentPage - 1,
+            'next' => $this->currentPage < ceil($this->totalHits / $this->perPage) ? $this->currentPage + 1 : 0,
+            'totalResults' => $this->totalHits,
+            'startingAtItem' => ($this->currentPage * $this->perPage) - ($this->perPage - 1),
+            'context' => $this->context
+        ]);
+        return $this->view->render('StaleIssues');
+    }
+
+    /**
      * @param array $fullRequest
      *
      * @throws \Elastica\Exception\InvalidException
