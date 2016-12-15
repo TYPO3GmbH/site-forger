@@ -1,14 +1,16 @@
 
-<div class="col-sm-3">
-	<h4>Aggregations</h4>
+<f:if condition="{aggregations}">
+    <div class="col-sm-3">
+        <h4>Aggregations</h4>
 
-    <button type="submit" class="btn btn-success"><i class="fa fa-filter"></i> Filter</button>
+        <button type="submit" class="btn btn-success"><i class="fa fa-filter"></i> Filter</button>
 
-    <f:render partial="Accordion" arguments="{aggregations: aggregations, query: query}" />
+        <f:render partial="Accordion" arguments="{aggregations: aggregations, query: query}" />
 
-    <button type="submit" class="btn btn-success"><i class="fa fa-filter"></i> Filter</button>
-</div>
-<div class="col-sm-9">
+        <button type="submit" class="btn btn-success"><i class="fa fa-filter"></i> Filter</button>
+    </div>
+</f:if>
+<div class="{f:if(condition: aggregations, then: 'col-sm-9', else: 'col-sm-12')}">
 	<h4>Showing hits <strong>{startingAtItem} </strong>to <strong>{endingAtItem}</strong> of <strong>{totalResults}</strong></h4>
 	<f:if condition="{results}">
         <f:render section="paginator" arguments="{_all}" />
