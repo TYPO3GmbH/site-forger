@@ -586,7 +586,7 @@ class GerritController extends Controller
         $query->addType('issue');
         $resultSet = $query->search();
         $reviewIds = [];
-        $re = '/https:\/\/review\.typo3\.org\/([0-9]*)/';
+        $re = '/http[s]*:\/\/review\.typo3\.org\/([0-9]*)/';
         foreach ($resultSet->getResults() as $result) {
             foreach ($result->getData()['journals'] as $journal) {
                 if (isset($journal['notes'])) {
@@ -612,9 +612,12 @@ class GerritController extends Controller
                 'bool' => [
                     'must' => [
                         [
-                            'term' => [
-                                'reviewstatus' => 'ABANDONED'
-                            ]
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED'
+                                ],
+                            ],
                         ]
                     ],
                 ]
