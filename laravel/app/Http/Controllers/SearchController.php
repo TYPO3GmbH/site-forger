@@ -37,50 +37,6 @@ class SearchController extends Controller
     }
 
     /**
-     * Show the index screen to the user.
-     *
-     * @return Response
-     */
-    public function getDoctrine()
-    {
-        $resultArray = [];
-        $fixedDoctrine = [];
-        $start = unserialize(file_get_contents(storage_path().'/app/doctrine_start.txt'));
-        $end = unserialize(file_get_contents(storage_path().'/app/doctrine_current.txt'));
-        $doctrineFiles = unserialize(file_get_contents(storage_path().'/app/doctrine_files.txt'));
-        foreach ($doctrineFiles as $index => $doctrineFile) {
-            $fixedDoctrine['typo3/'.$index] = $doctrineFile;
-        }
-        $startTotal = 0;
-        $endTotal = 0;
-        foreach ($start as $index => $item) {
-            if (!isset($end[$index])) {
-                $end[$index] = 0;
-            }
-            $startTotal = $startTotal + $item;
-            $endTotal = $endTotal + $end[$index];
-            $resultArray[] = [
-                'method' => $index,
-                'start' => $item,
-                'current' => $end[$index],
-                'percentage_missing' => round($end[$index] / ($item / 100)),
-                'percentage_done' => 100 - round($end[$index] / ($item / 100)),
-            ];
-        }
-        $totals = [
-            'start' => $startTotal,
-            'end' => $endTotal,
-            'percentage_missing' => round($endTotal / ($startTotal / 100)),
-            'percentage_done' => 100 - round($endTotal / ($startTotal / 100)),
-        ];
-        $this->view->assign('totals', $totals);
-        $this->view->assign('result', $resultArray);
-        $this->view->assign('files', $fixedDoctrine);
-
-        return $this->view->render('doctrine');
-    }
-
-    /**
      * @param Request $request
      *
      * @return string
