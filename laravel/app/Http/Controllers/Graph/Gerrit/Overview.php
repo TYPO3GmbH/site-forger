@@ -4,10 +4,19 @@ namespace App\Http\Controllers\Graph\Gerrit;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
+/**
+ * Class Overview.
+ */
 class Overview extends AbstractGraph
 {
+    /**
+     * @var
+     */
     protected $weirdTimeThingy;
 
+    /**
+     * @throws \Elastica\Exception\InvalidException
+     */
     protected function getData()
     {
         $this->weirdTimeThingy = strftime('%Y/%m/%d 00:00:00', time() - (((365 / 2) - 31) * 24 * 60 * 60));
@@ -20,6 +29,11 @@ class Overview extends AbstractGraph
     /**********************************************
      * GERRIT RELATED THINGS
      ***********************************************/
+    /**
+     * @return array
+     *
+     * @throws \Elastica\Exception\InvalidException
+     */
     protected function gerritOpenVsClosedAction()
     {
         $row = [];
@@ -72,21 +86,23 @@ class Overview extends AbstractGraph
                 ],
             ],
         ];
-        $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
-        $search->addType('review');
-        $resultSet = $search->search();
+        $resultSet = $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW);
         $data = $resultSet->getAggregations();
         $i = 0;
-        foreach ($data['over_time']['buckets'] as $frame) {
-            $date = $this->fixTime($frame['key_as_string']);
-            $row[$i]['date'] = $date;
-            foreach ($frame['issue_type']['buckets'] as $issueType) {
-                $row[$i][$issueType['key']] = $issueType['doc_count'];
+        if (is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $frame) {
+                $date = $this->fixTime($frame['key_as_string']);
+                $row[$i]['date'] = $date;
+                if (is_array($frame['issue_type']['buckets'])) {
+                    foreach ($frame['issue_type']['buckets'] as $issueType) {
+                        $row[$i][$issueType['key']] = $issueType['doc_count'];
+                    }
+                    if (isset($opened[$date])) {
+                        $row[$i]['NEW'] = $opened[$date];
+                    }
+                    ++$i;
+                }
             }
-            if (isset($opened[$date])) {
-                $row[$i]['NEW'] = $opened[$date];
-            }
-            ++$i;
         }
 
         return $row;
@@ -94,6 +110,8 @@ class Overview extends AbstractGraph
 
     /**
      * @return array
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function gerritGetOpened()
     {
@@ -131,12 +149,12 @@ class Overview extends AbstractGraph
                 ],
             ],
         ];
-        $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
-        $search->addType('review');
-        $resultSet = $search->search();
+        $resultSet = $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW);
         $data = $resultSet->getAggregations();
-        foreach ($data['over_time']['buckets'] as $frame) {
-            $row[$this->fixTime($frame['key_as_string'])] = $frame['doc_count'];
+        if (is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $frame) {
+                $row[$this->fixTime($frame['key_as_string'])] = $frame['doc_count'];
+            }
         }
 
         return $row;

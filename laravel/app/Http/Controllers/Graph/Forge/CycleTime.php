@@ -4,8 +4,14 @@ namespace App\Http\Controllers\Graph\Forge;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
+/**
+ * Class CycleTime.
+ */
 class CycleTime extends AbstractGraph
 {
+    /**
+     * @throws \Elastica\Exception\InvalidException
+     */
     protected function getData()
     {
         $this->chartData = [
@@ -17,10 +23,14 @@ class CycleTime extends AbstractGraph
                 ],
             ],
         ];
+
+        return $this->chartData;
     }
 
     /**
      * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function getCycleTime()
     {
@@ -56,15 +66,15 @@ class CycleTime extends AbstractGraph
                 ],
             ],
         ];
-        $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
-        $search->addType('issue');
-        $resultSet = $search->search();
+        $resultSet = $this->doSearch($fullRequest);
         $data = $resultSet->getAggregations();
-        foreach ($data['over_time']['buckets'] as $frame) {
-            $chartData[] = [
-                'date' => $this->fixTime($frame['key_as_string']),
-                'cycleTime' => floor($frame['cycle']['avg']),
-            ];
+        if (is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $frame) {
+                $chartData[] = [
+                    'date' => $this->fixTime($frame['key_as_string']),
+                    'cycleTime' => floor($frame['cycle']['avg']),
+                ];
+            }
         }
 
         return $chartData;

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Elastic\Connection;
-use Illuminate\Http\Response;
 
+/**
+ * Class GraphController.
+ */
 class GraphController extends Controller
 {
     /**
@@ -29,13 +31,11 @@ class GraphController extends Controller
      * @param string $type  The Document Type from Elastic to work on
      * @param string $graph The Name of the Graph Class to call
      *
-     * @return Response
+     * @return string
      */
-    public function index($type = 'Gerrit', $graph = 'Velocity')
+    public function index(string $type = 'Gerrit', string $graph = 'Velocity') : string
     {
-        $graph = $this->getGraphName($graph, $type);
-
-        return $graph->render();
+        return $this->getGraphName($graph, $type)->render();
     }
 
     /**
@@ -47,8 +47,7 @@ class GraphController extends Controller
     protected function getGraphName($graph, $docType)
     {
         $graphName = '\\App\\Http\\Controllers\\Graph\\'.$docType.'\\'.$graph;
-        $graph = new $graphName($this->connection);
 
-        return $graph;
+        return new $graphName($this->connection);
     }
 }

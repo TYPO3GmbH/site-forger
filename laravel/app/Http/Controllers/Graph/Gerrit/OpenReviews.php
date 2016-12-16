@@ -4,8 +4,14 @@ namespace App\Http\Controllers\Graph\Gerrit;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
+/**
+ * Class OpenReviews.
+ */
 class OpenReviews extends AbstractGraph
 {
+    /**
+     * @throws \Elastica\Exception\InvalidException
+     */
     protected function getData()
     {
         $this->chartData = [
@@ -59,15 +65,15 @@ class OpenReviews extends AbstractGraph
                 ],
             ],
         ];
-        $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
-        $search->addType('review');
-        $resultSet = $search->search();
+        $resultSet = $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW);
         $data = $resultSet->getAggregations();
-        foreach ($data['over_time']['buckets'] as $frame) {
-            $chartData[] = [
-                'date' => $this->fixTime($frame['key_as_string']),
-                'open' => $frame['doc_count'],
-            ];
+        if (is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $frame) {
+                $chartData[] = [
+                    'date' => $this->fixTime($frame['key_as_string']),
+                    'open' => $frame['doc_count'],
+                ];
+            }
         }
 
         return $chartData;

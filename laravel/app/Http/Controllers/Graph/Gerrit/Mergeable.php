@@ -10,7 +10,7 @@ use App\Http\Controllers\Graph\AbstractGraph;
 class Mergeable extends AbstractGraph
 {
     /**
-     * @return array
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function getData()
     {
@@ -43,15 +43,15 @@ class Mergeable extends AbstractGraph
                 ],
             ],
         ];
-        $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
-        $search->addType('review');
-        $resultSet = $search->search();
+        $resultSet = $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW);
         $data = $resultSet->getAggregations();
-        foreach ($data['Mergeable']['buckets'] as $bucket) {
-            $this->chartData['chartData'][] = [
-                'name' => $bucket['key'],
-                'value' => $bucket['doc_count'],
-            ];
+        if (isset($data['Mergeable']['buckets'])) {
+            foreach ($data['Mergeable']['buckets'] as $bucket) {
+                $this->chartData['chartData'][] = [
+                    'name' => $bucket['key'],
+                    'value' => $bucket['doc_count'],
+                ];
+            }
         }
         $this->chartData['lines'] = [
             'no' => [

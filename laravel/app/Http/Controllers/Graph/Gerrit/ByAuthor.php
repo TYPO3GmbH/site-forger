@@ -4,20 +4,15 @@ namespace App\Http\Controllers\Graph\Gerrit;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
+/**
+ * Class ByAuthor.
+ */
 class ByAuthor extends AbstractGraph
 {
     /**
-     *
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function getData()
-    {
-        $this->chartData = $this->getAllOpenReviews();
-    }
-
-    /**********************************************
-     * GERRIT RELATED THINGS
-     ***********************************************/
-    protected function getAllOpenReviews()
     {
         $fullRequest = [
             'query' => [
@@ -44,12 +39,6 @@ class ByAuthor extends AbstractGraph
                 ],
             ],
         ];
-        $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
-        $search->addType('review');
-        $result = $search->search();
-        $aggs = $result->getAggregations();
-        $result2 = $result->getTotalHits();
-
-        return $result2;
+        $this->chartData = $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW)->getTotalHits();
     }
 }
