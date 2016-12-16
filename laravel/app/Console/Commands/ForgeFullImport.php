@@ -218,7 +218,7 @@ class ForgeFullImport extends Command
         ];
         $result = $this->redmineClient->api('issue')->all($config);
         foreach ($result['issues'] as $doc) {
-            $this->getTicketAndJournal($doc['id']);
+            $this->getTicketAndJournal($doc);
         }
     }
 
