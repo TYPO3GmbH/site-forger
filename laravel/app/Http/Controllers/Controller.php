@@ -1,4 +1,6 @@
-<?php namespace App\Http\Controllers;
+<?php
+
+namespace App\Http\Controllers;
 
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Foundation\Validation\ValidatesRequests;
@@ -6,7 +8,7 @@ use TYPO3Fluid\Fluid;
 
 abstract class Controller extends BaseController
 {
-	use ValidatesRequests;
+    use ValidatesRequests;
 
     /**
      * @var Fluid\View\TemplateView
@@ -18,23 +20,23 @@ abstract class Controller extends BaseController
         $this->view = new Fluid\View\TemplateView();
         $paths = $this->view->getTemplatePaths();
         $paths->setTemplateRootPaths(array(
-            base_path() . '/resources/Private/Templates/'
+            base_path().'/resources/Private/Templates/',
         ));
         $paths->setLayoutRootPaths(array(
-            base_path() . '/resources/Private/Layouts/'
+            base_path().'/resources/Private/Layouts/',
         ));
         $paths->setPartialRootPaths(array(
-            base_path() . '/resources/Private/Partials/'
+            base_path().'/resources/Private/Partials/',
         ));
         $fluidCaching = env('FLUID_CACHE');
         if ($fluidCaching) {
-            /**
+            /*
              * Set up fluid caches
              */
-            $fluidCache = new Fluid\Core\Cache\SimpleFileCache(base_path() . '/storage/app/Cache/Fluid');
+            $fluidCache = new Fluid\Core\Cache\SimpleFileCache(base_path().'/storage/app/Cache/Fluid');
             $this->view->setCache($fluidCache);
         }
-        $this->view->assign('APP_ENV', 'L5 ' . env('APP_ENV'));
+        $this->view->assign('APP_ENV', 'L5 '.env('APP_ENV'));
 
         $context = $this->view->getRenderingContext();
         $context->setControllerName($this->determineControllerName());
@@ -46,7 +48,7 @@ abstract class Controller extends BaseController
     }
 
     /**
-     * Determines the current controller name and passes it to Fluid
+     * Determines the current controller name and passes it to Fluid.
      *
      * @return mixed
      */
@@ -55,6 +57,7 @@ abstract class Controller extends BaseController
         $className = get_class($this);
         $namespaceParts = explode('\\', $className);
         $fullControllerName = array_pop($namespaceParts);
+
         return str_replace('Controller', '', $fullControllerName);
     }
 }

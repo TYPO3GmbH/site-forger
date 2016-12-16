@@ -1,24 +1,24 @@
 <?php
+
 namespace App\ViewHelpers;
 
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**
- * Class BucketCounterViewHelper
+ * Class BucketCounterViewHelper.
  */
 class BucketCounterViewHelper extends AbstractViewHelper
 {
-
     public function __construct()
     {
         $this->escapeOutput = false;
     }
 
     /**
-     * Initialize arguments
+     * Initialize arguments.
      *
-     * @return void
      * @throws \TYPO3Fluid\Fluid\Core\ViewHelper\Exception
+     *
      * @api
      */
     public function initializeArguments()
@@ -38,13 +38,14 @@ class BucketCounterViewHelper extends AbstractViewHelper
         foreach ($buckets as $bucket) {
             $key = $this->fixWording($bucket['key'], false);
             if (isset($_GET['filters'][$category][$key]) && $_GET['filters'][$category][$key] === 'true') {
-                $activeCount++;
+                ++$activeCount;
             }
         }
         if ($activeCount === 0) {
             return '';
         }
-        return '<span class="label label-default pull-right">' . $activeCount . ' / ' . count($buckets) . '</span>';
+
+        return '<span class="label label-default pull-right">'.$activeCount.' / '.count($buckets).'</span>';
     }
 
     /**

@@ -1,11 +1,11 @@
 <?php
+
 namespace App\Http\Controllers\Graph\Forge;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
 class CycleTime extends AbstractGraph
 {
-
     protected function getData()
     {
         $this->chartData = [
@@ -13,9 +13,9 @@ class CycleTime extends AbstractGraph
             'lines' => [
                 'cycleTime' => [
                     'color' => '#E69D00',
-                    'title' => 'Days'
-                ]
-            ]
+                    'title' => 'Days',
+                ],
+            ],
         ];
     }
 
@@ -33,28 +33,28 @@ class CycleTime extends AbstractGraph
                             'status.name' => [
                                 'Closed',
                                 'Rejected',
-                                'Resolved'
+                                'Resolved',
                             ],
                         ],
-                    ]
-                ]
+                    ],
+                ],
             ],
             'size' => 0,
             'aggregations' => [
                 'over_time' => [
                     'date_histogram' => [
                         'field' => 'updated_on',
-                        'interval' => 'month'
+                        'interval' => 'month',
                     ],
                     'aggregations' => [
                         'cycle' => [
                             'stats' => [
                                 'script' => '((doc["updated_on"].value-doc["created_on"].value) / (1000 * 86400))',
-                            ]
-                        ]
-                    ]
-                ]
-            ]
+                            ],
+                        ],
+                    ],
+                ],
+            ],
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $search->addType('issue');

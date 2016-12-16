@@ -1,14 +1,14 @@
 <?php
+
 namespace App\Http\Controllers\Graph\Gerrit;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
 /**
- * Class Full
+ * Class Full.
  */
 class Full extends AbstractGraph
 {
-
     protected function getData()
     {
         $this->chartData = $this->getAllOpenReviews();
@@ -27,17 +27,17 @@ class Full extends AbstractGraph
                             'terms' => [
                                 'reviewstatus' => [
                                     'ABANDONED',
-                                    'MERGED'
-                                ]
-                            ]
+                                    'MERGED',
+                                ],
+                            ],
                         ],
                         [
                             'query_string' => [
                                 'default_field' => 'subject',
-                                'query' => 'WIP'
-                            ]
-                        ]
-                    ]
+                                'query' => 'WIP',
+                            ],
+                        ],
+                    ],
                 ],
             ],
             'size' => 0,

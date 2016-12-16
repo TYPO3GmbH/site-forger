@@ -37,18 +37,18 @@ class ManagementController extends Controller
                                 'status.name' => [
                                     'Closed',
                                     'Rejected',
-                                    'Resolved'
-                                ]
+                                    'Resolved',
+                                ],
                             ],
                         ],
                         [
                             'terms' => [
                                 'project.id' => [
-                                    '78'
-                                ]
+                                    '78',
+                                ],
                             ],
-                        ]
-                    ]
+                        ],
+                    ],
                 ],
             ],
             'size' => 0,
@@ -57,25 +57,25 @@ class ManagementController extends Controller
                 'year' => [
                     'date_histogram' => [
                         'field' => 'updated_on',
-                        'interval' => 'year'
+                        'interval' => 'year',
                     ],
                     'aggregations' => [
                         'month' => [
                             'date_histogram' => [
                                 'field' => 'updated_on',
-                                'interval' => 'month'
+                                'interval' => 'month',
                             ],
                             'aggregations' => [
                                 'status' => [
                                     'terms' => [
-                                        'field' => 'status.name'
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
+                                        'field' => 'status.name',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
         ];
         if ($trackerFilters->isFeature()) {
             $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = 'Feature';
@@ -108,24 +108,25 @@ class ManagementController extends Controller
                     foreach ($month['status']['buckets'] as $status) {
                         $stati[] = [
                             'name' => $status['key'],
-                            'total' => $status['doc_count']
+                            'total' => $status['doc_count'],
                         ];
                     }
-                    $monthIndex = (int)$monthName - 1;
+                    $monthIndex = (int) $monthName - 1;
                     $months[$monthIndex] = [
                         'month' => $monthName,
                         'total' => $month['doc_count'],
-                        'stati' => $stati
+                        'stati' => $stati,
                     ];
                 }
                 $out[] = [
                     'year' => $yearName,
                     'total' => $bucket['doc_count'],
-                    'months' => $months
+                    'months' => $months,
                 ];
             }
         }
         $this->view->assign('aggs', $out);
+
         return $this->view->render('index');
     }
 
@@ -134,18 +135,18 @@ class ManagementController extends Controller
      */
     protected function queryFilters()
     {
-        $filters =  [
+        $filters = [
             'bool' => [
                 'must' => [
                     'type' => [
-                        'value' => 'issue'
+                        'value' => 'issue',
                     ],
                 ],
                 'must_not' => [
 //					'term' => [
 //						'subject' => 'wip'
 //					]
-                ]
+                ],
             ],
         ];
 

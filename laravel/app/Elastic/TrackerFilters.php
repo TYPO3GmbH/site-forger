@@ -1,38 +1,39 @@
 <?php
+
 namespace App\Elastic;
 
 class TrackerFilters
 {
     /**
-     * Bug
+     * Bug.
      *
      * @var bool
      */
     public $bug = false;
 
     /**
-     * Feature
+     * Feature.
      *
      * @var bool
      */
     public $feature = false;
 
     /**
-     * Task
+     * Task.
      *
      * @var bool
      */
     public $task = false;
 
     /**
-     * Story
+     * Story.
      *
      * @var bool
      */
     public $story = false;
 
     /**
-     * Epic
+     * Epic.
      *
      * @var bool
      */
@@ -58,7 +59,7 @@ class TrackerFilters
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     public function isBug()
     {
@@ -66,7 +67,7 @@ class TrackerFilters
     }
 
     /**
-     * @param boolean $bug
+     * @param bool $bug
      */
     public function setBug($bug)
     {
@@ -74,7 +75,7 @@ class TrackerFilters
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     public function isFeature()
     {
@@ -82,7 +83,7 @@ class TrackerFilters
     }
 
     /**
-     * @param boolean $feature
+     * @param bool $feature
      */
     public function setFeature($feature)
     {
@@ -90,7 +91,7 @@ class TrackerFilters
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     public function isTask()
     {
@@ -98,7 +99,7 @@ class TrackerFilters
     }
 
     /**
-     * @param boolean $task
+     * @param bool $task
      */
     public function setTask($task)
     {
@@ -106,7 +107,7 @@ class TrackerFilters
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     public function isStory()
     {
@@ -114,7 +115,7 @@ class TrackerFilters
     }
 
     /**
-     * @param boolean $story
+     * @param bool $story
      */
     public function setStory($story)
     {
@@ -122,7 +123,7 @@ class TrackerFilters
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     public function isEpic()
     {
@@ -130,7 +131,7 @@ class TrackerFilters
     }
 
     /**
-     * @param boolean $epic
+     * @param bool $epic
      */
     public function setEpic($epic)
     {

@@ -1,13 +1,13 @@
 <?php
+
 namespace App\Http\Controllers\Graph\Forge;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
 class TrackerTypes extends AbstractGraph
 {
-
     /**
-     * Does stuff
+     * Does stuff.
      */
     protected function getData()
     {
@@ -19,27 +19,27 @@ class TrackerTypes extends AbstractGraph
                             'status.name' => [
                                 'Closed',
                                 'Rejected',
-                                'Resolved'
-                            ]
+                                'Resolved',
+                            ],
                         ],
-                    ]
-                ]
+                    ],
+                ],
             ],
             'size' => 0,
             'aggregations' => [
                 'trackertype' => [
                     'terms' => [
-                        'field' => 'tracker.name'
+                        'field' => 'tracker.name',
                     ],
                     'aggregations' => [
                         'status' => [
                             'terms' => [
-                                'field' => 'status.name'
-                            ]
-                        ]
-                    ]
+                                'field' => 'status.name',
+                            ],
+                        ],
+                    ],
                 ],
-            ]
+            ],
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $search->addType('issue');
@@ -51,12 +51,12 @@ class TrackerTypes extends AbstractGraph
                 $this->chartData['bars'][$i][$this->fixKey($issueType['key'])] = $issueType['doc_count'];
             }
             $this->chartData['bars'][$i]['panel'] = $frame['key'];
-            $i++;
+            ++$i;
         }
     }
 
     /**
-     * Makes the array keys lowercase and removes spaces
+     * Makes the array keys lowercase and removes spaces.
      *
      * @param string $in
      *
@@ -65,7 +65,7 @@ class TrackerTypes extends AbstractGraph
     protected function fixKey($in)
     {
         $fixedString = strtolower(str_replace(' ', '', $in));
-        /**
+        /*
          * Fixed Lookup colors
          */
         $colors = [
@@ -80,7 +80,7 @@ class TrackerTypes extends AbstractGraph
         $this->chartData['lookup'][$fixedString] = [
             'lookup' => $fixedString,
             'title' => $in,
-            'color' => $colors[$fixedString]
+            'color' => $colors[$fixedString],
         ];
 
         return $fixedString;

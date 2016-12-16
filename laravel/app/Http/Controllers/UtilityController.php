@@ -8,7 +8,6 @@ use Illuminate\Http\Response;
 
 class UtilityController extends Controller
 {
-
     /**
      * @var Connection
      */
@@ -27,6 +26,7 @@ class UtilityController extends Controller
         ];
         sort($tags);
         $this->view->assign('tags', $tags);
+
         return $this->view->render('rst');
     }
     /**
@@ -56,6 +56,7 @@ class UtilityController extends Controller
             $issueId = $request->input('issueId');
         }
         $issueData = $this->findIssue($issueId);
+
         return json_encode($issueData);
     }
 
@@ -73,9 +74,10 @@ class UtilityController extends Controller
             $data = $res->getData();
         } catch (\Exception $e) {
             $data = array(
-                'error' => 'Issue #' . $issueId . ' was not found.' . $e->getMessage()
+                'error' => 'Issue #'.$issueId.' was not found.'.$e->getMessage(),
             );
         }
+
         return $data;
     }
 }

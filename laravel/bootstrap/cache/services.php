@@ -1,6 +1,7 @@
-<?php return array (
-  'providers' => 
-  array (
+<?php
+
+return array(
+  'providers' => array(
     0 => 'Illuminate\\Foundation\\Providers\\ArtisanServiceProvider',
     1 => 'Illuminate\\Auth\\AuthServiceProvider',
     2 => 'Illuminate\\Bus\\BusServiceProvider',
@@ -30,8 +31,7 @@
     26 => 'App\\Providers\\EventServiceProvider',
     27 => 'App\\Providers\\RouteServiceProvider',
   ),
-  'eager' => 
-  array (
+  'eager' => array(
     0 => 'Illuminate\\Auth\\AuthServiceProvider',
     1 => 'Illuminate\\Cookie\\CookieServiceProvider',
     2 => 'Illuminate\\Database\\DatabaseServiceProvider',
@@ -48,8 +48,7 @@
     13 => 'App\\Providers\\EventServiceProvider',
     14 => 'App\\Providers\\RouteServiceProvider',
   ),
-  'deferred' => 
-  array (
+  'deferred' => array(
     'command.clear-compiled' => 'Illuminate\\Foundation\\Providers\\ConsoleSupportServiceProvider',
     'command.auth.resets.clear' => 'Illuminate\\Foundation\\Providers\\ConsoleSupportServiceProvider',
     'command.config.cache' => 'Illuminate\\Foundation\\Providers\\ConsoleSupportServiceProvider',
@@ -133,46 +132,32 @@
     'command.ide-helper.generate' => 'Barryvdh\\LaravelIdeHelper\\IdeHelperServiceProvider',
     'command.ide-helper.models' => 'Barryvdh\\LaravelIdeHelper\\IdeHelperServiceProvider',
   ),
-  'when' => 
-  array (
-    'Illuminate\\Foundation\\Providers\\ArtisanServiceProvider' => 
-    array (
+  'when' => array(
+    'Illuminate\\Foundation\\Providers\\ArtisanServiceProvider' => array(
     ),
-    'Illuminate\\Bus\\BusServiceProvider' => 
-    array (
+    'Illuminate\\Bus\\BusServiceProvider' => array(
     ),
-    'Illuminate\\Cache\\CacheServiceProvider' => 
-    array (
+    'Illuminate\\Cache\\CacheServiceProvider' => array(
     ),
-    'Illuminate\\Foundation\\Providers\\ConsoleSupportServiceProvider' => 
-    array (
+    'Illuminate\\Foundation\\Providers\\ConsoleSupportServiceProvider' => array(
     ),
-    'Illuminate\\Hashing\\HashServiceProvider' => 
-    array (
+    'Illuminate\\Hashing\\HashServiceProvider' => array(
     ),
-    'Illuminate\\Mail\\MailServiceProvider' => 
-    array (
+    'Illuminate\\Mail\\MailServiceProvider' => array(
     ),
-    'Illuminate\\Pipeline\\PipelineServiceProvider' => 
-    array (
+    'Illuminate\\Pipeline\\PipelineServiceProvider' => array(
     ),
-    'Illuminate\\Queue\\QueueServiceProvider' => 
-    array (
+    'Illuminate\\Queue\\QueueServiceProvider' => array(
     ),
-    'Illuminate\\Redis\\RedisServiceProvider' => 
-    array (
+    'Illuminate\\Redis\\RedisServiceProvider' => array(
     ),
-    'Illuminate\\Auth\\Passwords\\PasswordResetServiceProvider' => 
-    array (
+    'Illuminate\\Auth\\Passwords\\PasswordResetServiceProvider' => array(
     ),
-    'Illuminate\\Translation\\TranslationServiceProvider' => 
-    array (
+    'Illuminate\\Translation\\TranslationServiceProvider' => array(
     ),
-    'Illuminate\\Validation\\ValidationServiceProvider' => 
-    array (
+    'Illuminate\\Validation\\ValidationServiceProvider' => array(
     ),
-    'Barryvdh\\LaravelIdeHelper\\IdeHelperServiceProvider' => 
-    array (
+    'Barryvdh\\LaravelIdeHelper\\IdeHelperServiceProvider' => array(
     ),
   ),
 );

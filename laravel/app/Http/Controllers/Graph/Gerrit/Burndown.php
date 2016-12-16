@@ -1,11 +1,11 @@
 <?php
+
 namespace App\Http\Controllers\Graph\Gerrit;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
 class Burndown extends AbstractGraph
 {
-
     protected $dateInterval = 'week';
 
     /**
@@ -17,7 +17,7 @@ class Burndown extends AbstractGraph
         $final = [];
         $lastRow = [
             'closed' => 1,
-            'open' => 1
+            'open' => 1,
         ];
         $open = $this->getOpenedReviews();
         $close = $this->getClosedReviews();
@@ -27,7 +27,7 @@ class Burndown extends AbstractGraph
             $rawData[] = [
                 'date' => $date,
                 'open' => (isset($rows['open']) ? $rows['open'] : $lastRow['open']),
-                'closed' => (isset($rows['closed']) ? $rows['closed'] : $lastRow['closed'])
+                'closed' => (isset($rows['closed']) ? $rows['closed'] : $lastRow['closed']),
             ];
             if (!isset($rows['closed'])) {
                 $rows['closed'] = $lastRow['closed'];
@@ -42,26 +42,26 @@ class Burndown extends AbstractGraph
             if ($reviewCount > 0) {
                 $final[] = [
                     'date' => $values['date'],
-                    'diff' => $reviewCount
+                    'diff' => $reviewCount,
                 ];
             }
-
         }
         $this->chartData = [
             'chartData' => $final,
             'lines' => [
                 'diff' => [
                     'color' => '#C2274A',
-                    'title' => 'Days'
-                ]
-            ]
+                    'title' => 'Days',
+                ],
+            ],
         ];
     }
 
     /**
-     * Get's opened reviews over time
+     * Get's opened reviews over time.
      *
      * @return array
+     *
      * @throws \Elastica\Exception\InvalidException
      */
     private function getOpenedReviews()
@@ -74,21 +74,21 @@ class Burndown extends AbstractGraph
                         [
                             'query_string' => [
                                 'default_field' => 'subject',
-                                'query' => 'WIP'
-                            ]
-                        ]
-                    ]
-                ]
+                                'query' => 'WIP',
+                            ],
+                        ],
+                    ],
+                ],
             ],
             'size' => 0,
             'aggregations' => [
                 'over_time' => [
                     'date_histogram' => [
                         'field' => 'created_on',
-                        'interval' => $this->dateInterval
+                        'interval' => $this->dateInterval,
                     ],
-                ]
-            ]
+                ],
+            ],
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $search->addType('review');
@@ -105,7 +105,7 @@ class Burndown extends AbstractGraph
     }
 
     /**
-     * Get's closed reviews over time
+     * Get's closed reviews over time.
      *
      * @return array
      */
@@ -119,18 +119,18 @@ class Burndown extends AbstractGraph
                         'terms' => [
                             'reviewstatus' => [
                                 'MERGED',
-                                'ABANDONED'
-                            ]
+                                'ABANDONED',
+                            ],
                         ],
                     ],
                     'must_not' => [
                         [
                             'query_string' => [
                                 'default_field' => 'subject',
-                                'query' => 'WIP'
-                            ]
-                        ]
-                    ]
+                                'query' => 'WIP',
+                            ],
+                        ],
+                    ],
                 ],
             ],
             'size' => 0,
@@ -138,10 +138,10 @@ class Burndown extends AbstractGraph
                 'over_time' => [
                     'date_histogram' => [
                         'field' => 'updated_on',
-                        'interval' => $this->dateInterval
+                        'interval' => $this->dateInterval,
                     ],
-                ]
-            ]
+                ],
+            ],
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $search->addType('review');

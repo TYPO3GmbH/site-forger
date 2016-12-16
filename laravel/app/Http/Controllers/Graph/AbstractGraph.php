@@ -1,11 +1,11 @@
 <?php
+
 namespace App\Http\Controllers\Graph;
 
 use App\Elastic\Connection;
-use Elastica as El;
 
 /**
- * Class AbstractGraph
+ * Class AbstractGraph.
  */
 class AbstractGraph
 {
@@ -27,7 +27,7 @@ class AbstractGraph
     }
 
     /**
-     * Makes the date string from elastic JS compatible
+     * Makes the date string from elastic JS compatible.
      *
      * @param string $in
      *
@@ -47,6 +47,7 @@ class AbstractGraph
     public function render()
     {
         $this->getData();
+
         return json_encode($this->chartData);
     }
 
@@ -64,6 +65,7 @@ class AbstractGraph
     protected function getGuides()
     {
         $out = [];
+
         return $out;
     }
 }

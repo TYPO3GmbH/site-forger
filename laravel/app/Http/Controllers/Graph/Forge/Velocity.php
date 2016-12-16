@@ -1,11 +1,11 @@
 <?php
+
 namespace App\Http\Controllers\Graph\Forge;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
 class Velocity extends AbstractGraph
 {
-
     protected $dateInterval = 'week';
 
     /**
@@ -15,7 +15,7 @@ class Velocity extends AbstractGraph
     {
         $lastRow = [
             'closed' => 1,
-            'open' => 1
+            'open' => 1,
         ];
         $open = $this->getOpenedReviews();
         $close = $this->getClosedReviews();
@@ -25,7 +25,7 @@ class Velocity extends AbstractGraph
             $this->chartData[] = [
                 'date' => $date,
                 'open' => (isset($rows['open']) ? $rows['open'] : $lastRow['open']),
-                'closed' => (isset($rows['closed']) ? $rows['closed'] : $lastRow['closed'])
+                'closed' => (isset($rows['closed']) ? $rows['closed'] : $lastRow['closed']),
             ];
             if (!isset($rows['closed'])) {
                 $rows['closed'] = $lastRow['closed'];
@@ -38,7 +38,7 @@ class Velocity extends AbstractGraph
     }
 
     /**
-     * Get's opened reviews over time
+     * Get's opened reviews over time.
      *
      * @return array
      */
@@ -47,17 +47,17 @@ class Velocity extends AbstractGraph
         $opened = [];
         $fullRequest = [
             'query' => [
-                'match_all' => []
+                'match_all' => [],
             ],
             'size' => 0,
             'aggregations' => [
                 'over_time' => [
                     'date_histogram' => [
                         'field' => 'created_on',
-                        'interval' => $this->dateInterval
+                        'interval' => $this->dateInterval,
                     ],
-                ]
-            ]
+                ],
+            ],
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $search->addType('issue');
@@ -74,7 +74,7 @@ class Velocity extends AbstractGraph
     }
 
     /**
-     * Get's closed reviews over time
+     * Get's closed reviews over time.
      *
      * @return array
      */
@@ -89,8 +89,8 @@ class Velocity extends AbstractGraph
                             'status.name' => [
                                 'Closed',
                                 'Resolved',
-                                'Rejected'
-                            ]
+                                'Rejected',
+                            ],
                         ],
                     ],
 
@@ -101,10 +101,10 @@ class Velocity extends AbstractGraph
                 'over_time' => [
                     'date_histogram' => [
                         'field' => 'updated_on',
-                        'interval' => $this->dateInterval
+                        'interval' => $this->dateInterval,
                     ],
-                ]
-            ]
+                ],
+            ],
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $search->addType('issue');

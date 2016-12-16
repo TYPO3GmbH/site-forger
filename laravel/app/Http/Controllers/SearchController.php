@@ -32,6 +32,7 @@ class SearchController extends Controller
         $issueGraph = new FullForge($this->connection);
         $this->view->assign('openReviews', $reviewGraph->render());
         $this->view->assign('openIssues', $issueGraph->render());
+
         return $this->view->render('index');
     }
 
@@ -44,11 +45,11 @@ class SearchController extends Controller
     {
         $resultArray = [];
         $fixedDoctrine = [];
-        $start = unserialize(file_get_contents(storage_path() . '/app/doctrine_start.txt'));
-        $end = unserialize(file_get_contents(storage_path() . '/app/doctrine_current.txt'));
-        $doctrineFiles = unserialize(file_get_contents(storage_path() . '/app/doctrine_files.txt'));
+        $start = unserialize(file_get_contents(storage_path().'/app/doctrine_start.txt'));
+        $end = unserialize(file_get_contents(storage_path().'/app/doctrine_current.txt'));
+        $doctrineFiles = unserialize(file_get_contents(storage_path().'/app/doctrine_files.txt'));
         foreach ($doctrineFiles as $index => $doctrineFile) {
-            $fixedDoctrine['typo3/' . $index] = $doctrineFile;
+            $fixedDoctrine['typo3/'.$index] = $doctrineFile;
         }
         $startTotal = 0;
         $endTotal = 0;
@@ -63,18 +64,19 @@ class SearchController extends Controller
                 'start' => $item,
                 'current' => $end[$index],
                 'percentage_missing' => round($end[$index] / ($item / 100)),
-                'percentage_done' => 100 - round($end[$index] / ($item / 100))
+                'percentage_done' => 100 - round($end[$index] / ($item / 100)),
             ];
         }
         $totals = [
             'start' => $startTotal,
             'end' => $endTotal,
             'percentage_missing' => round($endTotal / ($startTotal / 100)),
-            'percentage_done' => 100 - round($endTotal / ($startTotal / 100))
+            'percentage_done' => 100 - round($endTotal / ($startTotal / 100)),
         ];
         $this->view->assign('totals', $totals);
         $this->view->assign('result', $resultArray);
         $this->view->assign('files', $fixedDoctrine);
+
         return $this->view->render('doctrine');
     }
 
@@ -82,6 +84,7 @@ class SearchController extends Controller
      * @param Request $request
      *
      * @return string
+     *
      * @throws \Exception
      */
     public function getSearch(Request $request)
@@ -104,13 +107,14 @@ class SearchController extends Controller
         } else {
             $results = $this->findByQuery($query, $searchClosed);
             $this->view->assignMultiple([
-                'mode' => 'query'
+                'mode' => 'query',
             ]);
         }
         $this->view->assign('result', $results);
         if (array_key_exists('filters', $_GET)) {
             $this->view->assign('filters', $_GET['filters']);
         }
+
         return $this->view->render('search');
     }
 
@@ -147,6 +151,7 @@ class SearchController extends Controller
      * @param bool $searchInClosedIssues
      *
      * @return \Elastica\ResultSet
+     *
      * @throws \Exception
      */
     private function findDupes($issueId, $searchInClosedIssues = false)
@@ -160,16 +165,16 @@ class SearchController extends Controller
                             'more_like_this' => [
                                 'fields' => [
                                     'subject',
-                                    'description'
+                                    'description',
                                 ],
                                 'ids' => [
-                                    $issueId
+                                    $issueId,
                                 ],
                                 'min_term_freq' => 2,
                                 'max_query_terms' => 25,
                                 'minimum_should_match' => '50%',
-                            ]
-                        ]
+                            ],
+                        ],
                     ],
                     'must_not' => [
                         [
@@ -177,11 +182,11 @@ class SearchController extends Controller
                                 'status.name' => [
                                     'Closed',
                                     'Rejected',
-                                    'Resolved'
-                                ]
+                                    'Resolved',
+                                ],
                             ],
-                        ]
-                    ]
+                        ],
+                    ],
                 ],
             ],
         ];
@@ -209,14 +214,15 @@ class SearchController extends Controller
             $data = $res->getData();
             $this->view->assign('issue', [
                 'hit' => [
-                    '_source' => $data
-                ]
+                    '_source' => $data,
+                ],
             ]);
         } catch (\Exception $e) {
             $data = array(
-                'error' => 'Issue #' . $issueId . ' was not found.'
+                'error' => 'Issue #'.$issueId.' was not found.',
             );
         }
+
         return $data;
     }
 
@@ -225,6 +231,7 @@ class SearchController extends Controller
      * @param bool   $searchInClosedIssues
      *
      * @return \Elastica\ResultSet
+     *
      * @throws \Exception
      */
     private function findByQuery($searchTerms, $searchInClosedIssues = false)
@@ -237,9 +244,9 @@ class SearchController extends Controller
                     'must' => [
                         [
                             'query_string' => [
-                                'query' => $searchTerms
-                            ]
-                        ]
+                                'query' => $searchTerms,
+                            ],
+                        ],
                     ],
                     'must_not' => [
                         [
@@ -247,23 +254,24 @@ class SearchController extends Controller
                                 'status.name' => [
                                     'Closed',
                                     'Rejected',
-                                    'Resolved'
-                                ]
+                                    'Resolved',
+                                ],
                             ],
-                        ]
-                    ]
+                        ],
+                    ],
                 ],
             ],
         ];
         if ($searchInClosedIssues) {
             unset($query['query']['bool']['must_not']);
         }
+
         return $search->doSearch($query);
     }
 
     /**
      * Escape a value for special query characters such as ':', '(', ')', '*', '?', etc.
-     * NOTE: inside a phrase fewer characters need escaped, use {@link Apache_Solr_Service::escapePhrase()} instead
+     * NOTE: inside a phrase fewer characters need escaped, use {@link Apache_Solr_Service::escapePhrase()} instead.
      *
      * @param string $value
      *

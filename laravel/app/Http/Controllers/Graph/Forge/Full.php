@@ -1,11 +1,11 @@
 <?php
+
 namespace App\Http\Controllers\Graph\Forge;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
 class Full extends AbstractGraph
 {
-
     protected function getData()
     {
         $this->chartData = $this->getAllOpenIssues();
@@ -25,11 +25,11 @@ class Full extends AbstractGraph
                                 'status.name' => [
                                     'Closed',
                                     'Rejected',
-                                    'Resolved'
-                                ]
+                                    'Resolved',
+                                ],
                             ],
-                        ]
-                    ]
+                        ],
+                    ],
                 ],
             ],
             'size' => 0,

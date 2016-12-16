@@ -1,11 +1,11 @@
 <?php
+
 namespace App\Http\Controllers\Graph\Gerrit;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
 class Overview extends AbstractGraph
 {
-
     protected $weirdTimeThingy;
 
     protected function getData()
@@ -32,26 +32,26 @@ class Overview extends AbstractGraph
                             'terms' => [
                                 'reviewstatus' => [
                                     'ABANDONED',
-                                    'MERGED'
-                                ]
+                                    'MERGED',
+                                ],
                             ],
                         ],
                         [
                             'range' => [
                                 'updated_on' => [
-                                    'gte' => $this->weirdTimeThingy
-                                ]
-                            ]
-                        ]
+                                    'gte' => $this->weirdTimeThingy,
+                                ],
+                            ],
+                        ],
                     ],
                     'must_not' => [
                         [
                             'query_string' => [
                                 'default_field' => 'subject',
-                                'query' => 'WIP'
-                            ]
-                        ]
-                    ]
+                                'query' => 'WIP',
+                            ],
+                        ],
+                    ],
                 ],
 
             ],
@@ -60,17 +60,17 @@ class Overview extends AbstractGraph
                 'over_time' => [
                     'date_histogram' => [
                         'field' => 'updated_on',
-                        'interval' => 'day'
+                        'interval' => 'day',
                     ],
                     'aggregations' => [
                         'issue_type' => [
                             'terms' => [
-                                'field' => 'reviewstatus'
-                            ]
-                        ]
-                    ]
-                ]
-            ]
+                                'field' => 'reviewstatus',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $search->addType('review');
@@ -86,7 +86,7 @@ class Overview extends AbstractGraph
             if (isset($opened[$date])) {
                 $row[$i]['NEW'] = $opened[$date];
             }
-            $i++;
+            ++$i;
         }
 
         return $row;
@@ -106,19 +106,19 @@ class Overview extends AbstractGraph
                         [
                             'range' => [
                                 'created_on' => [
-                                    'gte' => $this->weirdTimeThingy
-                                ]
-                            ]
-                        ]
+                                    'gte' => $this->weirdTimeThingy,
+                                ],
+                            ],
+                        ],
                     ],
                     'must_not' => [
                         [
                             'query_string' => [
                                 'default_field' => 'subject',
-                                'query' => 'WIP'
-                            ]
-                        ]
-                    ]
+                                'query' => 'WIP',
+                            ],
+                        ],
+                    ],
                 ],
             ],
             'size' => 0,
@@ -126,10 +126,10 @@ class Overview extends AbstractGraph
                 'over_time' => [
                     'date_histogram' => [
                         'field' => 'created_on',
-                        'interval' => 'day'
-                    ]
-                ]
-            ]
+                        'interval' => 'day',
+                    ],
+                ],
+            ],
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $search->addType('review');

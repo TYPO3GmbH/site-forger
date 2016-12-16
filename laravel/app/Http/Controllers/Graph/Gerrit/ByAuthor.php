@@ -1,11 +1,11 @@
 <?php
+
 namespace App\Http\Controllers\Graph\Gerrit;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
 class ByAuthor extends AbstractGraph
 {
-
     /**
      *
      */
@@ -27,11 +27,11 @@ class ByAuthor extends AbstractGraph
                             'terms' => [
                                 'reviewstatus' => [
                                     'ABANDONED',
-                                    'MERGED'
-                                ]
+                                    'MERGED',
+                                ],
                             ],
-                        ]
-                    ]
+                        ],
+                    ],
                 ],
             ],
             'size' => 0,
@@ -39,10 +39,10 @@ class ByAuthor extends AbstractGraph
                 'Author' => [
                     'terms' => [
                         'field' => 'owner',
-                        'size' => 10000
+                        'size' => 10000,
                     ],
-                ]
-            ]
+                ],
+            ],
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $search->addType('review');

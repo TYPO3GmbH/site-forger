@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 
 class ReviewController extends Controller
 {
-
     /**
      * @var Connection
      */
@@ -25,6 +24,7 @@ class ReviewController extends Controller
      * @param Request $request
      *
      * @return \HttpResponse
+     *
      * @throws \Exception
      */
     public function getIndex(Request $request)
@@ -34,6 +34,7 @@ class ReviewController extends Controller
             $boardId = $request->input('boardId');
         }
         $this->prepareBoardData($boardId);
+
         return $this->view->render('index');
     }
 
@@ -41,6 +42,7 @@ class ReviewController extends Controller
      * @param string $boardId
      *
      * @return array
+     *
      * @throws \Exception
      */
     protected function prepareBoardData($boardId = '')
@@ -70,36 +72,38 @@ class ReviewController extends Controller
                     [
                         'query_string' => [
                             'default_field' => 'subject',
-                            'query' => '' . strtoupper($boardId) . ''
-                        ]
+                            'query' => ''.strtoupper($boardId).'',
+                        ],
                     ],
                     [
                         'query_string' => [
                             'default_field' => 'reviewstatus',
-                            'query' => 'NEW'
-                        ]
-                    ]
+                            'query' => 'NEW',
+                        ],
+                    ],
                 ],
                 'must_not' => [
                     [
                         'query_string' => [
                             'default_field' => 'review.subject',
-                            'query' => 'WIP'
-                        ]
-                    ]
-                ]
+                            'query' => 'WIP',
+                        ],
+                    ],
+                ],
 
-            ]
+            ],
         ];
+
         return $query;
     }
 
     /**
-     * Generates a list of boards to link to
+     * Generates a list of boards to link to.
      *
      * @param string $active
      *
      * @return array
+     *
      * @throws \Elastica\Exception\InvalidException
      */
     protected function makeBoardMenu($active = '')
@@ -122,7 +126,7 @@ class ReviewController extends Controller
                 'count' => $this->getTicketByBoardQuery($this->getBoardQuery('feature')),
                 'name' => 'Features',
                 'active' => 'feature' === $active,
-            ]
+            ],
         ];
 
         return $out;
@@ -132,17 +136,19 @@ class ReviewController extends Controller
      * @param array $query
      *
      * @return string
+     *
      * @throws \Elastica\Exception\InvalidException
      */
     protected function getTicketByBoardQuery(array $query)
     {
         $fullRequest = [
             'query' => $query,
-            'size' => 0
+            'size' => 0,
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $search->addType('review');
         $resultSet = $search->search();
+
         return $resultSet->getTotalHits();
     }
 
@@ -150,6 +156,7 @@ class ReviewController extends Controller
      * @param string $query
      *
      * @return array
+     *
      * @throws \Exception
      */
     protected function getBoardData($query)
@@ -175,11 +182,12 @@ class ReviewController extends Controller
             $getBoardGroup = $this->defineBoardGroup($review->getSource());
             $out[$getBoardGroup][] = $review->getSource();
         }
+
         return $out;
     }
 
     /**
-     * Defines board columns
+     * Defines board columns.
      *
      * @param array $review
      *
@@ -188,44 +196,44 @@ class ReviewController extends Controller
     protected function defineBoardGroup(array $review)
     {
         switch (true) {
-            case (
+            case
                 $review['positive_reviews'] === 0
                 && $review['positive_verifications'] === 0
                 && $review['negative_reviews'] === 0
                 && $review['negative_verifications'] === 0
-            ):
+            :
                 $metaStatus = 'missesBoth';
                 break;
-            case (
+            case
                 $review['positive_reviews'] === 1
                 && $review['positive_verifications'] === 0
                 && $review['negative_reviews'] === 0
                 && $review['negative_verifications'] === 0
-            ):
+            :
                 $metaStatus = 'missesTesting';
                 break;
-            case (
+            case
                 $review['positive_reviews'] === 0
                 && $review['positive_verifications'] === 1
                 && $review['negative_reviews'] === 0
                 && $review['negative_verifications'] === 0
-            ):
+            :
                 $metaStatus = 'missesCodeReview';
                 break;
-            case (
+            case
                 $review['positive_reviews'] === 1
                 && $review['positive_verifications'] === 1
                 && $review['negative_reviews'] === 0
                 && $review['negative_verifications'] === 0
-            ):
+            :
                 $metaStatus = 'hasPlusOne';
                 break;
-            case (
+            case
                 $review['positive_reviews'] === 2
                 && $review['positive_verifications'] === 2
                 && $review['negative_reviews'] === 0
                 && $review['negative_verifications'] === 0
-            ):
+            :
                 $metaStatus = 'hasPlusTwo';
                 break;
             default:

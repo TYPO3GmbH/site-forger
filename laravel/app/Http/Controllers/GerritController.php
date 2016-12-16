@@ -33,7 +33,7 @@ class GerritController extends Controller
         date_default_timezone_set('UTC');
         $this->connection = $connection;
         if (array_key_exists('page', $_GET)) {
-            $this->currentPage = (int)$_GET['page'];
+            $this->currentPage = (int) $_GET['page'];
         }
     }
 
@@ -56,33 +56,34 @@ class GerritController extends Controller
                                 ],
                             ],
 
-                        ]
+                        ],
                     ],
                     'must_not' => [
                         [
                             'terms' => [
                                 'reviewstatus' => [
                                     'MERGED',
-                                    'ABANDONED'
+                                    'ABANDONED',
                                 ],
                             ],
 
                         ],
                         [
                             'term' => [
-                                'subject' => 'wip'
+                                'subject' => 'wip',
                             ],
-                        ]
-                    ]
-                ]
+                        ],
+                    ],
+                ],
             ],
             'sort' => $this->querySort(),
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $this->queryAggregations()
+            'aggregations' => $this->queryAggregations(),
         ];
         $this->search($fullRequest);
         Debugbar::stopMeasure(__FUNCTION__);
+
         return $this->view->render('status');
     }
 
@@ -110,14 +111,14 @@ class GerritController extends Controller
                                     ],
                                 ],
 
-                            ]
+                            ],
                         ],
                         'must_not' => [
                             [
                                 'terms' => [
                                     'reviewstatus' => [
                                         'MERGED',
-                                        'ABANDONED'
+                                        'ABANDONED',
                                     ],
                                 ],
 
@@ -127,13 +128,13 @@ class GerritController extends Controller
     //                                'subject' => 'wip'
     //                            ],
     //                        ]
-                        ]
-                    ]
+                        ],
+                    ],
                 ],
                 'sort' => $this->querySort(),
                 'size' => $this->perPage,
                 'from' => $this->currentPage * $this->perPage - $this->perPage,
-                'aggregations' => $this->queryAggregations()
+                'aggregations' => $this->queryAggregations(),
             ];
             if ($searchClosed) {
                 unset($fullRequest['query']['bool']['must_not']);
@@ -142,6 +143,7 @@ class GerritController extends Controller
             $this->view->assign('query', htmlspecialchars($_GET['query']));
         }
         Debugbar::stopMeasure(__FUNCTION__);
+
         return $this->view->render('files');
     }
 
@@ -159,42 +161,43 @@ class GerritController extends Controller
                         [
                             'range' => [
                                 'positive_reviews' => [
-                                    'gte' => 1
-                                ]
+                                    'gte' => 1,
+                                ],
                             ],
                         ],
                         [
                             'range' => [
                                 'positive_verifications' => [
-                                    'gte' => 1
-                                ]
+                                    'gte' => 1,
+                                ],
                             ],
-                        ]
+                        ],
                     ],
                     'must_not' => [
                         [
                             'terms' => [
                                 'reviewstatus' => [
                                     'MERGED',
-                                    'ABANDONED'
+                                    'ABANDONED',
                                 ],
                             ],
 
                         ],
                         [
                             'term' => [
-                                'subject' => 'wip'
+                                'subject' => 'wip',
                             ],
-                        ]
-                    ]
-                ]
+                        ],
+                    ],
+                ],
             ],
             'sort' => $this->querySort(),
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $this->queryAggregations()
+            'aggregations' => $this->queryAggregations(),
         ];
         $this->search($fullRequest);
+
         return $this->view->render('MergeReady');
     }
 
@@ -205,7 +208,6 @@ class GerritController extends Controller
      */
     public function getCoreteamMerge()
     {
-
         $aggregations = $this->queryAggregations();
         unset(
             $aggregations['Mergeable'],
@@ -219,20 +221,20 @@ class GerritController extends Controller
                         [
                             'range' => [
                                 'positive_reviews' => [
-                                    'gte' => 1
-                                ]
+                                    'gte' => 1,
+                                ],
                             ],
                         ],
                         [
                             'range' => [
                                 'positive_verifications' => [
-                                    'gte' => 1
-                                ]
+                                    'gte' => 1,
+                                ],
                             ],
                         ],
                         [
                             'term' => [
-                                'mergeable' => 'yes'
+                                'mergeable' => 'yes',
                             ],
                         ],
                     ],
@@ -241,39 +243,40 @@ class GerritController extends Controller
                             'terms' => [
                                 'reviewstatus' => [
                                     'MERGED',
-                                    'ABANDONED'
+                                    'ABANDONED',
                                 ],
                             ],
 
                         ],
                         [
                             'term' => [
-                                'subject' => 'wip'
+                                'subject' => 'wip',
                             ],
                         ],
                         [
                             'range' => [
                                 'negative_reviews' => [
-                                    'gte' => 1
-                                ]
+                                    'gte' => 1,
+                                ],
                             ],
                         ],
                         [
                             'range' => [
                                 'negative_verifications' => [
-                                    'gte' => 1
-                                ]
+                                    'gte' => 1,
+                                ],
                             ],
-                        ]
-                    ]
-                ]
+                        ],
+                    ],
+                ],
             ],
             'sort' => $this->querySort(),
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $aggregations
+            'aggregations' => $aggregations,
         ];
         $this->search($fullRequest);
+
         return $this->view->render('CoreteamMerge');
     }
 
@@ -291,42 +294,43 @@ class GerritController extends Controller
                         [
                             'range' => [
                                 'positive_reviews' => [
-                                    'gte' => 1
-                                ]
+                                    'gte' => 1,
+                                ],
                             ],
                         ],
                         [
                             'range' => [
                                 'positive_verifications' => [
-                                    'lt' => 1
-                                ]
+                                    'lt' => 1,
+                                ],
                             ],
-                        ]
+                        ],
                     ],
                     'must_not' => [
                         [
                             'terms' => [
                                 'reviewstatus' => [
                                     'MERGED',
-                                    'ABANDONED'
+                                    'ABANDONED',
                                 ],
                             ],
 
                         ],
                         [
                             'term' => [
-                                'subject' => 'wip'
+                                'subject' => 'wip',
                             ],
-                        ]
-                    ]
-                ]
+                        ],
+                    ],
+                ],
             ],
             'sort' => $this->querySort(),
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $this->queryAggregations()
+            'aggregations' => $this->queryAggregations(),
         ];
         $this->search($fullRequest);
+
         return $this->view->render('missesVerification');
     }
 
@@ -344,42 +348,43 @@ class GerritController extends Controller
                         [
                             'range' => [
                                 'positive_reviews' => [
-                                    'lt' => 1
-                                ]
+                                    'lt' => 1,
+                                ],
                             ],
                         ],
                         [
                             'range' => [
                                 'positive_verifications' => [
-                                    'gte' => 1
-                                ]
+                                    'gte' => 1,
+                                ],
                             ],
-                        ]
+                        ],
                     ],
                     'must_not' => [
                         [
                             'terms' => [
                                 'reviewstatus' => [
                                     'MERGED',
-                                    'ABANDONED'
+                                    'ABANDONED',
                                 ],
                             ],
 
                         ],
                         [
                             'term' => [
-                                'subject' => 'wip'
+                                'subject' => 'wip',
                             ],
-                        ]
-                    ]
-                ]
+                        ],
+                    ],
+                ],
             ],
             'sort' => $this->querySort(),
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $this->queryAggregations()
+            'aggregations' => $this->queryAggregations(),
         ];
         $this->search($fullRequest);
+
         return $this->view->render('MissesReview');
     }
 
@@ -398,7 +403,7 @@ class GerritController extends Controller
                     'must' => [
                         [
                             'term' => [
-                                'mergeable' => 'no'
+                                'mergeable' => 'no',
                             ],
                         ],
                     ],
@@ -407,25 +412,26 @@ class GerritController extends Controller
                             'terms' => [
                                 'reviewstatus' => [
                                     'MERGED',
-                                    'ABANDONED'
+                                    'ABANDONED',
                                 ],
                             ],
 
                         ],
                         [
                             'term' => [
-                                'subject' => 'wip'
+                                'subject' => 'wip',
                             ],
-                        ]
-                    ]
-                ]
+                        ],
+                    ],
+                ],
             ],
             'sort' => $this->querySort(),
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $aggs
+            'aggregations' => $aggs,
         ];
         $this->search($fullRequest);
+
         return $this->view->render('Rebase');
     }
 
@@ -446,42 +452,43 @@ class GerritController extends Controller
                         [
                             'range' => [
                                 'negative_reviews' => [
-                                    'gte' => 1
-                                ]
+                                    'gte' => 1,
+                                ],
                             ],
                         ],
                         [
                             'range' => [
                                 'negative_verifications' => [
-                                    'gte' => 1
-                                ]
+                                    'gte' => 1,
+                                ],
                             ],
-                        ]
+                        ],
                     ],
                     'must_not' => [
                         [
                             'terms' => [
                                 'reviewstatus' => [
                                     'MERGED',
-                                    'ABANDONED'
+                                    'ABANDONED',
                                 ],
                             ],
 
                         ],
                         [
                             'term' => [
-                                'subject' => 'wip'
+                                'subject' => 'wip',
                             ],
-                        ]
-                    ]
-                ]
+                        ],
+                    ],
+                ],
             ],
             'sort' => $this->querySort(),
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $aggregations
+            'aggregations' => $aggregations,
         ];
         $this->search($fullRequest);
+
         return $this->view->render('NegativeVoteCleanup');
     }
 
@@ -496,28 +503,28 @@ class GerritController extends Controller
                     'must' => [
                         [
                             'term' => [
-                                'subject' => 'wip'
+                                'subject' => 'wip',
                             ],
-                        ]
+                        ],
                     ],
                     'must_not' => [
                         [
                             'terms' => [
                                 'reviewstatus' => [
                                     'MERGED',
-                                    'ABANDONED'
+                                    'ABANDONED',
                                 ],
                             ],
 
-                        ]
-                    ]
-                ]
+                        ],
+                    ],
+                ],
             ],
             'sort' => [
                 'updated_on' => 'asc',
                 'insertions' => 'asc',
                 'deletions' => 'asc',
-                'patchsets' => 'desc'
+                'patchsets' => 'desc',
             ],
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
@@ -525,19 +532,20 @@ class GerritController extends Controller
                 'Releases' => [
                     'terms' => [
                         'field' => 'releases',
-                        'size' => 0
-                    ]
+                        'size' => 0,
+                    ],
                 ],
                 'Updated on' => [
                     'date_histogram' => [
                         'field' => 'updated_on',
                         'interval' => $this->dateInterval,
-                        'format' => 'MMMM yyyy'
+                        'format' => 'MMMM yyyy',
                     ],
-                ]
-            ]
+                ],
+            ],
         ];
         $this->search($fullRequest);
+
         return $this->view->render('WorkInProgress');
     }
 
@@ -568,11 +576,11 @@ class GerritController extends Controller
             }
         }
         $this->view->assign('issues', $staleIssues);
+
         return $this->view->render('StaleIssues');
     }
 
     /**
-     *
      * @throws \Elastica\Exception\InvalidException
      */
     protected function search(array $fullRequest)
@@ -585,8 +593,8 @@ class GerritController extends Controller
         $query->addType('review');
         $resultSet = $query->search();
         $this->totalHits = $resultSet->getTotalHits();
-        if ((int) $this->totalHits <= (int)($this->currentPage * $this->perPage)) {
-            $this->view->assign('endingAtItem', (int)$this->totalHits);
+        if ((int) $this->totalHits <= (int) ($this->currentPage * $this->perPage)) {
+            $this->view->assign('endingAtItem', (int) $this->totalHits);
         } else {
             $this->view->assign('endingAtItem', $this->currentPage * $this->perPage);
         }
@@ -599,7 +607,7 @@ class GerritController extends Controller
             'totalResults' => $this->totalHits,
             'startingAtItem' => ($this->currentPage * $this->perPage) - ($this->perPage - 1),
             'aggregations' => $resultSet->getAggregations(),
-            'context' => $this->context
+            'context' => $this->context,
         ]);
         if (array_key_exists('filters', $_GET)) {
             $this->view->assign('filters', $_GET['filters']);
@@ -607,7 +615,7 @@ class GerritController extends Controller
     }
 
     /**
-     * Makes the date string from elastic JS compatible
+     * Makes the date string from elastic JS compatible.
      *
      * @param string $in
      *
@@ -616,6 +624,7 @@ class GerritController extends Controller
     protected function fixTime($in)
     {
         $date = substr($in, 0, 10);
+
         return str_replace('/', '-', $date);
     }
 
@@ -638,8 +647,8 @@ class GerritController extends Controller
                     $term = str_replace('_', ' ', $term);
                     if ($key === 'updated_on') {
                         $filter = new Elastica\Query\Range();
-                        $startDate = \DateTime::createFromFormat('U', (int)$term / 1000);
-                        $endDate = \DateTime::createFromFormat('U', (int)$term / 1000)->modify('+1 month -1 second');
+                        $startDate = \DateTime::createFromFormat('U', (int) $term / 1000);
+                        $endDate = \DateTime::createFromFormat('U', (int) $term / 1000)->modify('+1 month -1 second');
                         $filter->addField(
                             $key,
                             [
@@ -657,14 +666,14 @@ class GerritController extends Controller
                             || $key === 'priority'
                             || $key === 'fixed_version'
                         ) {
-                            $filter->setTerm($key . '.name', $term);
+                            $filter->setTerm($key.'.name', $term);
                         } else {
                             $filter->setTerm($key, $term);
                         }
                     }
 
                     $filterPart->addShould($filter);
-                    $filterCatCount++;
+                    ++$filterCatCount;
                 }
             }
             if ($filterCatCount > 0) {
@@ -672,6 +681,7 @@ class GerritController extends Controller
             }
         }
         $query->setQuery($filters);
+
         return $query;
     }
 
@@ -684,51 +694,51 @@ class GerritController extends Controller
             'Releases' => [
                 'terms' => [
                     'field' => 'releases',
-                    'size' => 0
-                ]
+                    'size' => 0,
+                ],
             ],
             'Affected Files' => [
                 'terms' => [
-                    'field' => 'affected_files'
-                ]
+                    'field' => 'affected_files',
+                ],
             ],
             'Topic' => [
                 'terms' => [
                     'field' => 'topic',
                     'size' => 0,
                     'order' => [
-                        '_term' => 'asc'
-                    ]
-                ]
+                        '_term' => 'asc',
+                    ],
+                ],
             ],
             'Patchsets' => [
                 'terms' => [
-                    'field' => 'patchsets'
-                ]
+                    'field' => 'patchsets',
+                ],
             ],
             'Mergeable' => [
                 'terms' => [
-                    'field' => 'mergeable'
-                ]
+                    'field' => 'mergeable',
+                ],
             ],
             'Owner' => [
                 'terms' => [
                     'field' => 'owner',
-                    'size' => 10000
+                    'size' => 10000,
                 ],
             ],
             'Updated on' => [
                 'date_histogram' => [
                     'field' => 'updated_on',
                     'interval' => $this->dateInterval,
-                    'format' => 'MMMM yyyy'
+                    'format' => 'MMMM yyyy',
                 ],
             ],
         ];
     }
 
     /**
-     * Query sorting
+     * Query sorting.
      *
      * @return array
      */
@@ -738,12 +748,12 @@ class GerritController extends Controller
             'updated_on' => 'desc',
             'insertions' => 'asc',
             'deletions' => 'asc',
-            'patchsets' => 'desc'
+            'patchsets' => 'desc',
         ];
     }
 
     /**
-     * Returns an array of linkable pages
+     * Returns an array of linkable pages.
      *
      * @return array
      */
@@ -751,7 +761,7 @@ class GerritController extends Controller
     {
         $numPages = ceil($this->totalHits / $this->perPage);
         $i = 0;
-        /**
+        /*
          *
          */
         $maxPages = $numPages;
@@ -773,8 +783,8 @@ class GerritController extends Controller
 
         $out = array();
         while ($i < $numPages) {
-            $out[(int)$i] = ($i + 1);
-            $i++;
+            $out[(int) $i] = ($i + 1);
+            ++$i;
         }
 
         return $out;
@@ -791,7 +801,7 @@ class GerritController extends Controller
         foreach ($ids as $reviewId) {
             $filter[] = [
                 'term' => [
-                    'id' => $reviewId
+                    'id' => $reviewId,
                 ],
             ];
         }
@@ -803,27 +813,28 @@ class GerritController extends Controller
                             'terms' => [
                                 'reviewstatus' => [
                                     'MERGED',
-                                    'ABANDONED'
+                                    'ABANDONED',
                                 ],
                             ],
-                        ]
+                        ],
                     ],
-                ]
+                ],
             ],
             'filter' => [
-                'or' => $filter
+                'or' => $filter,
             ],
             'sort' => [
                 'updated_on' => 'asc',
                 'insertions' => 'asc',
                 'deletions' => 'asc',
-                'patchsets' => 'desc'
+                'patchsets' => 'desc',
             ],
             'size' => $this->perPage,
-            'from' => $this->currentPage * $this->perPage - $this->perPage
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
         ];
         $query = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $query->addType('review');
+
         return $query->search();
     }
 
@@ -838,17 +849,17 @@ class GerritController extends Controller
                     'must' => [
                         [
                             'term' => [
-                                'status.id' => '8'
+                                'status.id' => '8',
                             ],
-                        ]
+                        ],
                     ],
-                ]
+                ],
             ],
             'sort' => [
                 'updated_on' => 'asc',
                 'insertions' => 'asc',
                 'deletions' => 'asc',
-                'patchsets' => 'desc'
+                'patchsets' => 'desc',
             ],
             'size' => 1000,
             'from' => 0,
@@ -856,20 +867,21 @@ class GerritController extends Controller
                 'Releases' => [
                     'terms' => [
                         'field' => 'releases',
-                        'size' => 0
-                    ]
+                        'size' => 0,
+                    ],
                 ],
                 'Updated on' => [
                     'date_histogram' => [
                         'field' => 'updated_on',
                         'interval' => $this->dateInterval,
-                        'format' => 'MMMM yyyy'
+                        'format' => 'MMMM yyyy',
                     ],
-                ]
-            ]
+                ],
+            ],
         ];
         $query = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $query->addType('issue');
+
         return $query->search();
     }
 }

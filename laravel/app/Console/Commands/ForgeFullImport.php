@@ -1,4 +1,6 @@
-<?php namespace App\Console\Commands;
+<?php
+
+namespace App\Console\Commands;
 
 use App\Elastic\Connection;
 use App\Redmine\Connection as RedmineConnection;
@@ -10,7 +12,6 @@ use Illuminate\Config\Repository;
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Yaml\Yaml;
 
 class ForgeFullImport extends Command
 {
@@ -73,9 +74,9 @@ class ForgeFullImport extends Command
     /**
      * ForgeFullImport constructor.
      *
-     * @param Repository $config
-     * @param Connection                    $elasticConnection
-     * @param RedmineConnection             $redmineConnection
+     * @param Repository        $config
+     * @param Connection        $elasticConnection
+     * @param RedmineConnection $redmineConnection
      */
     public function __construct(
         Repository $config,
@@ -89,7 +90,7 @@ class ForgeFullImport extends Command
     }
 
     /**
-     * Initializes all client connections to forge and to Elasticsearch
+     * Initializes all client connections to forge and to Elasticsearch.
      */
     protected function startUp()
     {
@@ -103,12 +104,13 @@ class ForgeFullImport extends Command
      * Execute the console command.
      *
      * @return mixed
+     *
      * @throws \Exception
      */
     public function fire()
     {
         $mode = $this->argument('mode');
-        $this->info('Trying to run mode: "' . $mode . '"');
+        $this->info('Trying to run mode: "'.$mode.'"');
         $this->startUp();
         switch ($mode) {
             case 'GerritTest':
@@ -125,7 +127,7 @@ class ForgeFullImport extends Command
                 $fullAmount = 50000;
                 $currentSlot = -100;
                 $optionalStartOffset = $this->argument('startAt');
-                if(array_key_exists(0, $optionalStartOffset) && is_numeric($optionalStartOffset[0])) {
+                if (array_key_exists(0, $optionalStartOffset) && is_numeric($optionalStartOffset[0])) {
                     $currentSlot = (int) $this->argument('startAt')[0];
                 }
                 $perRun = 100;
@@ -136,7 +138,7 @@ class ForgeFullImport extends Command
                             'offset' => $currentSlot + $perRun,
                             'project_id' => 27,
                             'status_id' => '*',
-                            'sort' => 'updated_on:desc'
+                            'sort' => 'updated_on:desc',
                         ]
                     );
                     foreach ($result['issues'] as $doc) {
@@ -157,7 +159,7 @@ class ForgeFullImport extends Command
                 $currentSlot = 0;
                 $perRun = 100;
                 while ($currentSlot <= $fullAmount) {
-                    $this->info('Importing Gerrit Changes starting at ' . $currentSlot);
+                    $this->info('Importing Gerrit Changes starting at '.$currentSlot);
                     if ($this->moreIssuesFromGerrit) {
                         $result = $this->getReviewBlock($currentSlot, $perRun);
                         foreach ($result as $review) {
@@ -202,7 +204,7 @@ class ForgeFullImport extends Command
 
     /**
      * Get the updates since the last run
-     * GET /issues.xml?updated_on=%3E%3D2014-01-02T08:12:32Z
+     * GET /issues.xml?updated_on=%3E%3D2014-01-02T08:12:32Z.
      *
      * @throws \InvalidArgumentException
      * @throws \Exception
@@ -214,7 +216,7 @@ class ForgeFullImport extends Command
             'limit' => 50,
             'project_id' => 27,
             'status_id' => '*',
-            'sort' => 'updated_on:desc'
+            'sort' => 'updated_on:desc',
         ];
         $result = $this->redmineClient->api('issue')->all($config);
         foreach ($result['issues'] as $doc) {
@@ -224,7 +226,7 @@ class ForgeFullImport extends Command
 
     /**
      * Imports a single ticket.
-     * A sleep(1) might be useful here to not hammer forge
+     * A sleep(1) might be useful here to not hammer forge.
      *
      * @param array $issue
      *
@@ -234,7 +236,7 @@ class ForgeFullImport extends Command
     private function getTicketAndJournal(array $issue)
     {
         //import journals only if issue status is "Under review" (ID: 8)
-        if(isset($issue['status']['id']) && (int)$issue['status']['id'] === 8) {
+        if (isset($issue['status']['id']) && (int) $issue['status']['id'] === 8) {
             $issueWithJournals = $this->redmineClient->api('issue')->show($issue['id'], array('include' => array('journals')));
             if (is_array($issueWithJournals)) {
                 $this->addDocumentToElastic($issueWithJournals['issue']);
@@ -249,14 +251,15 @@ class ForgeFullImport extends Command
      * @param $perRun
      *
      * @return array
+     *
      * @throws \Exception
      */
     protected function getReviewBlock($current, $perRun)
     {
         $moreChanges = false;
         $out = [];
-        $json = file_get_contents('https://review.typo3.org/changes/?q=project:Packages/TYPO3.CMS&n=' . $perRun .
-            '&start=' . $current . '&o=DETAILED_LABELS&o=CURRENT_REVISION&o=ALL_FILES&o=CURRENT_COMMIT');
+        $json = file_get_contents('https://review.typo3.org/changes/?q=project:Packages/TYPO3.CMS&n='.$perRun.
+            '&start='.$current.'&o=DETAILED_LABELS&o=CURRENT_REVISION&o=ALL_FILES&o=CURRENT_COMMIT');
         $data = json_decode(str_replace(")]}'", '', $json), true);
         if (!is_array($data)) {
             $this->line('no array from result');
@@ -296,7 +299,7 @@ class ForgeFullImport extends Command
                         $change['revisions'][$change['current_revision']]['commit']['message']
                     ),
                     'owner' => isset($author) ? $author : 'no one',
-                    'files' => $filesInPatchset
+                    'files' => $filesInPatchset,
                 ];
                 if (array_key_exists('_more_changes', $change)) {
                     $moreChanges = true;
@@ -314,6 +317,7 @@ class ForgeFullImport extends Command
      * @param string $message
      *
      * @throws \Exception
+     *
      * @return array
      */
     protected function extractReleases($message)
@@ -323,7 +327,7 @@ class ForgeFullImport extends Command
         if (!isset($matches[1])) {
             return ['omitted'];
         }
-        /**
+        /*
          * fix Stuff
          */
         if (strstr($matches[1], 'master.')) {
@@ -338,7 +342,7 @@ class ForgeFullImport extends Command
         $releaseArray = $this->trimExplode(',', $matches[1]);
         foreach ($releaseArray as $key => $release) {
             if (strstr($release, ' ')) {
-                throw new \InvalidArgumentException('Release contains space? ' . $message);
+                throw new \InvalidArgumentException('Release contains space? '.$message);
             }
             $releaseArray[$key] = $release;
         }
@@ -350,6 +354,7 @@ class ForgeFullImport extends Command
      * @param array $labels
      *
      * @throws \Exception
+     *
      * @return array
      */
     protected function extractLabels(array $labels)
@@ -370,23 +375,23 @@ class ForgeFullImport extends Command
                     $key = '_reviews';
                     break;
                 default:
-                    throw new \InvalidArgumentException('Unknown Label type ' . $labelType);
+                    throw new \InvalidArgumentException('Unknown Label type '.$labelType);
             }
             if (array_key_exists('all', $subRow)) {
                 foreach ($subRow['all'] as $vote) {
                     if ($vote['_account_id'] !== self::BAMBOO_USER_ID) {
                         switch ($vote['value']) {
                             case 1:
-                                ++$out['positive' . $key];
+                                ++$out['positive'.$key];
                                 break;
                             case 2:
-                                $out['positive' . $key] += 2;
+                                $out['positive'.$key] += 2;
                                 break;
                             case -1:
-                                ++$out['negative' . $key];
+                                ++$out['negative'.$key];
                                 break;
                             case -2:
-                                $out['negative' . $key] += 2;
+                                $out['negative'.$key] += 2;
                                 break;
                             case 0:
                                 // nothing to do here
@@ -398,6 +403,7 @@ class ForgeFullImport extends Command
                 }
             }
         }
+
         return $out;
     }
 
@@ -488,7 +494,7 @@ class ForgeFullImport extends Command
             'id' => $userId,
             'username' => $username,
             'email' => (isset($userData['user']['mail']) ? $userData['user']['mail'] : null),
-            'fullname' => $userData['user']['firstname'] . ' ' . $userData['user']['lastname']
+            'fullname' => $userData['user']['firstname'].' '.$userData['user']['lastname'],
         ];
         $this->addDocumentToElastic($compiledData, 'user');
     }
@@ -497,13 +503,14 @@ class ForgeFullImport extends Command
      * Explodes a string and trims all values for whitespace in the ends.
      * If $onlyNonEmptyValues is set, then all blank ('') values are removed.
      *
-     * @param	string	$delim	Delimiter string to explode with
-     * @param	string	$string	The string to explode
-     * @param	boolean	$removeEmptyValues	If set, all empty values will be removed in output
-
-     * @return	array		Exploded values
+     * @param string $delim             Delimiter string to explode with
+     * @param string $string            The string to explode
+     * @param bool   $removeEmptyValues If set, all empty values will be removed in output
+     
+     * @return array Exploded values
      */
-    public function trimExplode($delim, $string, $removeEmptyValues = FALSE) {
+    public function trimExplode($delim, $string, $removeEmptyValues = false)
+    {
         $explodedValues = explode($delim, $string);
 
         $result = array_map('trim', $explodedValues);
@@ -539,7 +546,7 @@ class ForgeFullImport extends Command
             'attachments' => [
                 [
                     'title' => $issue['subject'],
-                    'title_link' => 'https://forge.typo3.org/issues/' . $issue['id'],
+                    'title_link' => 'https://forge.typo3.org/issues/'.$issue['id'],
                     'text' => $issue['description'],
                     'fallback' => $issue['subject'],
                     'author_name' => $issue['author']['name'],
@@ -548,19 +555,20 @@ class ForgeFullImport extends Command
                         [
                             'title' => 'Status',
                             'value' => $issue['status']['name'],
-                            'short' => true
+                            'short' => true,
                         ],
                         [
                             'title' => 'Tracker',
                             'value' => $issue['tracker']['name'],
-                            'short' => true
-                        ]
-                    ]
-                ]
-            ]
+                            'short' => true,
+                        ],
+                    ],
+                ],
+            ],
         ], JSON_PRETTY_PRINT);
         $client = new Client();
         $client->request('POST', $slackConfig['Url'], ['body' => $jsonString]);
+
         return true;
     }
 }

@@ -1,13 +1,13 @@
 <?php
+
 namespace App\Http\Controllers\Graph\Forge;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
 class OpenVsClosed extends AbstractGraph
 {
-
     /**
-     * Get's the data
+     * Get's the data.
      */
     protected function getData()
     {
@@ -17,13 +17,13 @@ class OpenVsClosed extends AbstractGraph
             'lines' => [
                 'open' => [
                     'color' => '#ff0000',
-                    'title' => 'Opened Tickets'
+                    'title' => 'Opened Tickets',
                 ],
                 'closed' => [
                     'color' => '#43ac6a',
-                    'title' => 'Closed Tickets'
-                ]
-            ]
+                    'title' => 'Closed Tickets',
+                ],
+            ],
         ];
     }
 
@@ -41,28 +41,28 @@ class OpenVsClosed extends AbstractGraph
                             'status.name' => [
                                 'Closed',
                                 'Rejected',
-                                'Resolved'
-                            ]
+                                'Resolved',
+                            ],
                         ],
                     ],
                     'must_not' => [
                         'range' => [
                             'updated_on' => [
-                                'lte' => date('Y/m/d h:i:s', (time() - (86400 * 60)))
-                            ]
-                        ]
-                    ]
-                ]
+                                'lte' => date('Y/m/d h:i:s', (time() - (86400 * 60))),
+                            ],
+                        ],
+                    ],
+                ],
             ],
             'size' => 0,
             'aggregations' => [
                 'over_time' => [
                     'date_histogram' => [
                         'field' => 'updated_on',
-                        'interval' => 'day'
-                    ]
-                ]
-            ]
+                        'interval' => 'day',
+                    ],
+                ],
+            ],
         ];
         $openedTickets = $this->getOpened();
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
@@ -79,7 +79,7 @@ class OpenVsClosed extends AbstractGraph
             $chartData[] = [
                 'date' => $time,
                 'closed' => $frame['doc_count'],
-                'open' => $open
+                'open' => $open,
             ];
         }
 
@@ -102,22 +102,22 @@ class OpenVsClosed extends AbstractGraph
                         [
                             'range' => [
                                 'created_on' => [
-                                    'lte' => date('Y/m/d h:i:s', (time() - (86400 * 60)))
-                                ]
+                                    'lte' => date('Y/m/d h:i:s', (time() - (86400 * 60))),
+                                ],
                             ],
                         ],
-                    ]
-                ]
+                    ],
+                ],
             ],
             'size' => 0,
             'aggregations' => [
                 'over_time' => [
                     'date_histogram' => [
                         'field' => 'created_on',
-                        'interval' => 'day'
-                    ]
-                ]
-            ]
+                        'interval' => 'day',
+                    ],
+                ],
+            ],
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $search->addType('issue');

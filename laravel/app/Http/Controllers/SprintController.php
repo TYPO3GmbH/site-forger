@@ -10,9 +10,8 @@ use Debugbar;
 
 class SprintController extends Controller
 {
-
     /**
-     * Board settings
+     * Board settings.
      *
      * @var array
      */
@@ -24,7 +23,7 @@ class SprintController extends Controller
     protected $users;
 
     /**
-     * Central BoardId Param from request
+     * Central BoardId Param from request.
      *
      * @var string
      */
@@ -62,6 +61,7 @@ class SprintController extends Controller
     public function getIndex()
     {
         $this->prepareBoardData($this->boardId);
+
         return $this->view->render('index');
     }
 
@@ -73,6 +73,7 @@ class SprintController extends Controller
     public function getList()
     {
         $this->prepareBoardData($this->boardId);
+
         return $this->view->render('list');
     }
 
@@ -84,6 +85,7 @@ class SprintController extends Controller
     public function getFocus()
     {
         $this->prepareBoardData($this->boardId, 'FocusBoards');
+
         return $this->view->render('focus');
     }
 
@@ -95,6 +97,7 @@ class SprintController extends Controller
     public function getCig()
     {
         $this->prepareBoardData($this->boardId, 'CIGBoards');
+
         return $this->view->render('cig');
     }
 
@@ -121,14 +124,14 @@ class SprintController extends Controller
                     'must' => array(
                         array(
                             'term' => array(
-                                'assigned_to.id' => (int)$boardId
-                            )
+                                'assigned_to.id' => (int) $boardId,
+                            ),
                         ),
-                    )
-                )
+                    ),
+                ),
             );
             if (isset($this->users[$boardId])) {
-                $boardInfo['Name'] = 'Private Board: ' . $this->users[$boardId]['fullname'];
+                $boardInfo['Name'] = 'Private Board: '.$this->users[$boardId]['fullname'];
             } else {
                 $boardInfo['Name'] = '';
             }
@@ -142,11 +145,10 @@ class SprintController extends Controller
         $this->view->assign('board', $boardData);
         $this->view->assign('boardInfo', $boardInfo);
         Debugbar::startMeasure('Fluid', 'Fluid Rendering');
-
     }
 
     /**
-     * Generates a list of boards to link to
+     * Generates a list of boards to link to.
      *
      * @param string $active
      * @param string $boardType
@@ -185,8 +187,8 @@ class SprintController extends Controller
                     'terms' => [
                         'field' => 'status.id',
                     ],
-                ]
-            ]
+                ],
+            ],
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $search->addType('issue');
@@ -195,7 +197,7 @@ class SprintController extends Controller
             'open' => 0,
             'closed' => 0,
             'review' => 0,
-            'total' => 0
+            'total' => 0,
         ];
         foreach ($resultSet->getAggregation('status')['buckets'] as $bucket) {
             if ($bucket['key'] === 3 || $bucket['key'] === 5 || $bucket['key'] === 6) {
@@ -225,6 +227,7 @@ class SprintController extends Controller
      * @param string $query
      *
      * @return array
+     *
      * @throws \Exception
      */
     protected function getBoardData($query)
@@ -241,7 +244,7 @@ class SprintController extends Controller
         $fullRequest = [
             'query' => $query,
             'filter' => $this->queryFilters(),
-            'size' => 10000
+            'size' => 10000,
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $search->addType('issue');
@@ -254,9 +257,9 @@ class SprintController extends Controller
                 $ticketTime = new \DateTime($ticket->__get('updated_on'));
                 $now = new \DateTime();
                 $ageDiff = $now->diff($ticketTime);
-                $age = (int)$ageDiff->format('%a');
+                $age = (int) $ageDiff->format('%a');
                 if ($age > 30) {
-                    $this->closedTicketsNotBeingShown++;
+                    ++$this->closedTicketsNotBeingShown;
                     continue;
                 }
             }
@@ -276,16 +279,16 @@ class SprintController extends Controller
     }
 
     /**
-     * Special handling for review cards
+     * Special handling for review cards.
      *
      * @param array $ticket
      *
      * @return array
+     *
      * @throws \Exception
      */
     protected function getReviewCard(array $ticket)
     {
-
         $notes = '';
         if (isset($ticket['journals'])) {
             foreach ($ticket['journals'] as $journalEntry) {
@@ -304,7 +307,7 @@ class SprintController extends Controller
             $pattern = '|.*\/\/review.typo3.org\/(?<reviewId>[0-9]{1,6})|';
             preg_match($pattern, $notes, $matches);
             if (!isset($matches['reviewId'])) {
-                throw new \Exception('There should be a review id in ' . $notes);
+                throw new \Exception('There should be a review id in '.$notes);
             }
             $reviewType = $this->connection->getElasticIndex()->getType('review');
             try {
@@ -333,7 +336,7 @@ class SprintController extends Controller
         return [
             'bool' => [
                 'must' => [],
-                'must_not' => []
+                'must_not' => [],
             ],
         ];
     }
@@ -385,7 +388,7 @@ class SprintController extends Controller
         $data['Done'] = $data['Done'] + $this->closedTicketsNotBeingShown;
         $fullCount = array_sum($data);
         $percentage = $fullCount / 100;
-        $percentage = $percentage ? : 1;
+        $percentage = $percentage ?: 1;
         foreach ($data as $key => $count) {
             $out['sections'][strtolower($key)]['classes'] = strtolower($key);
             if ($key === 'WIP') {
@@ -417,10 +420,11 @@ class SprintController extends Controller
 
     protected function getSprintConfig()
     {
-        Debugbar::startMeasure('loadYaml','Load YAML Config');
+        Debugbar::startMeasure('loadYaml', 'Load YAML Config');
         $yaml = new Parser();
-        $config = $yaml->parse(file_get_contents(config_path() . '/Sprints.yaml'));
+        $config = $yaml->parse(file_get_contents(config_path().'/Sprints.yaml'));
         Debugbar::stopMeasure('loadYaml');
+
         return $config;
     }
 }

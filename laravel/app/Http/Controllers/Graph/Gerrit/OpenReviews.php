@@ -1,11 +1,11 @@
 <?php
+
 namespace App\Http\Controllers\Graph\Gerrit;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
 class OpenReviews extends AbstractGraph
 {
-
     protected function getData()
     {
         $this->chartData = [
@@ -13,14 +13,15 @@ class OpenReviews extends AbstractGraph
             'lines' => [
                 'open' => [
                     'color' => '#CB00E6',
-                    'title' => 'Reviews'
-                ]
-            ]
+                    'title' => 'Reviews',
+                ],
+            ],
         ];
     }
 
     /**
      * @return string
+     *
      * @throws \Elastica\Exception\InvalidException
      */
     protected function getReviewsOverTime()
@@ -34,18 +35,18 @@ class OpenReviews extends AbstractGraph
                             'terms' => [
                                 'reviewstatus' => [
                                     'ABANDONED',
-                                    'MERGED'
-                                ]
+                                    'MERGED',
+                                ],
                             ],
                         ],
                         [
                             [
                                 'term' => [
-                                    'subject' => 'wip'
+                                    'subject' => 'wip',
                                 ],
-                            ]
-                        ]
-                    ]
+                            ],
+                        ],
+                    ],
                 ],
             ],
             'size' => 0,
@@ -53,10 +54,10 @@ class OpenReviews extends AbstractGraph
                 'over_time' => [
                     'date_histogram' => [
                         'field' => 'created_on',
-                        'interval' => 'week'
-                    ]
-                ]
-            ]
+                        'interval' => 'week',
+                    ],
+                ],
+            ],
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $search->addType('review');
@@ -65,7 +66,7 @@ class OpenReviews extends AbstractGraph
         foreach ($data['over_time']['buckets'] as $frame) {
             $chartData[] = [
                 'date' => $this->fixTime($frame['key_as_string']),
-                'open' => $frame['doc_count']
+                'open' => $frame['doc_count'],
             ];
         }
 

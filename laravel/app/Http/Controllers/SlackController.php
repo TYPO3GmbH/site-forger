@@ -17,6 +17,7 @@ class SlackController extends Controller
     {
         $this->view->assign('sitekey', config('app.slack.recaptcha_site'));
         $this->view->assign('csrf_token', csrf_token());
+
         return $this->view->render('index');
     }
 
@@ -43,6 +44,7 @@ class SlackController extends Controller
             'firstName' => $firstName,
             'lastName' => $lastName,
         ]);
+
         return $this->view->render('SendInvite');
     }
 
@@ -56,17 +58,17 @@ class SlackController extends Controller
     protected function sendApiRequest($email, $firstName, $lastName)
     {
         $client = new Client([
-            'base_uri' => config('app.slack.teamUrl')
+            'base_uri' => config('app.slack.teamUrl'),
         ]);
 
-        $client->request('POST', '/api/users.admin.invite?t=' . time(), [
+        $client->request('POST', '/api/users.admin.invite?t='.time(), [
             'form_params' => [
                 'email' => $email,
                 'first_name' => $firstName,
                 'last_name' => $lastName,
                 'token' => config('app.slack.token'),
-                'set_active' => 'true'
-            ]
+                'set_active' => 'true',
+            ],
         ]);
     }
 
@@ -78,18 +80,19 @@ class SlackController extends Controller
     protected function checkRecaptcha($recaptcha)
     {
         $client = new Client([
-            'base_uri' => 'https://www.google.com/'
+            'base_uri' => 'https://www.google.com/',
         ]);
 
         $response = $client->post('recaptcha/api/siteverify', [
             'form_params' => [
                 'secret' => config('app.slack.recaptcha_secret'),
-                'response' => $recaptcha
-            ]
+                'response' => $recaptcha,
+            ],
         ]);
 
         $body = (string) $response->getBody();
         $result = json_decode($body);
+
         return $result->success;
     }
 }
