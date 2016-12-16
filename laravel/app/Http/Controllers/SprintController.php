@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Elastic\Connection;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Symfony\Component\Yaml\Parser;
 use Debugbar;
 
+/**
+ * Class SprintController.
+ */
 class SprintController extends Controller
 {
     /**
@@ -56,7 +58,9 @@ class SprintController extends Controller
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
+     *
+     * @throws \Exception
      */
     public function getIndex()
     {
@@ -68,7 +72,9 @@ class SprintController extends Controller
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
+     *
+     * @throws \Exception
      */
     public function getList()
     {
@@ -80,7 +86,9 @@ class SprintController extends Controller
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
+     *
+     * @throws \Exception
      */
     public function getFocus()
     {
@@ -92,7 +100,9 @@ class SprintController extends Controller
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
+     *
+     * @throws \Exception
      */
     public function getCig()
     {
@@ -104,13 +114,15 @@ class SprintController extends Controller
     /**
      * @param string $boardId
      * @param string $boardType
+     *
+     * @throws \Exception
      */
     protected function prepareBoardData($boardId = '', $boardType = 'Boards')
     {
         $boardInfo = [];
         $this->getAllUsers();
         $this->view->assign('boardMenu', $this->makeBoardMenu($boardId, $boardType));
-        if (!isset($this->sprintConfig['T3G']['Forger'][$boardType][$boardId]) && !is_numeric($boardId)) {
+        if (!is_numeric($boardId) && !isset($this->sprintConfig['T3G']['Forger'][$boardType][$boardId])) {
             return;
         }
         $query = '';
@@ -158,14 +170,16 @@ class SprintController extends Controller
     protected function makeBoardMenu($active = '', $boardType = 'Boards')
     {
         $out = [];
-        foreach ($this->sprintConfig['T3G']['Forger'][$boardType] as $boardId => $boardSetup) {
-            $resultCount = $this->getTicketByBoardQuery($boardSetup['Query']);
-            $out[] = [
-                'id' => $boardId,
-                'name' => $boardSetup['Name'],
-                'count' => $resultCount,
-                'active' => ($boardId === $active) ? true : false,
-            ];
+        if (is_array($this->sprintConfig['T3G']['Forger'][$boardType])) {
+            foreach ($this->sprintConfig['T3G']['Forger'][$boardType] as $boardId => $boardSetup) {
+                $resultCount = $this->getTicketByBoardQuery($boardSetup['Query']);
+                $out[] = [
+                    'id' => $boardId,
+                    'name' => $boardSetup['Name'],
+                    'count' => $resultCount,
+                    'active' => ($boardId === $active) ? true : false,
+                ];
+            }
         }
 
         return $out;
@@ -175,6 +189,8 @@ class SprintController extends Controller
      * @param array $query
      *
      * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function getTicketByBoardQuery(array $query)
     {
@@ -201,13 +217,13 @@ class SprintController extends Controller
         ];
         foreach ($resultSet->getAggregation('status')['buckets'] as $bucket) {
             if ($bucket['key'] === 3 || $bucket['key'] === 5 || $bucket['key'] === 6) {
-                $count['closed'] = $count['closed'] + $bucket['doc_count'];
+                $count['closed'] += $bucket['doc_count'];
             } elseif ($bucket['key'] === 8) {
-                $count['review'] = $count['review'] + $bucket['doc_count'];
+                $count['review'] += $bucket['doc_count'];
             } else {
-                $count['open'] = $count['open'] + $bucket['doc_count'];
+                $count['open'] += $bucket['doc_count'];
             }
-            $count['total'] = $count['total'] + $bucket['doc_count'];
+            $count['total'] += $bucket['doc_count'];
         }
         if ($count['total'] > 0) {
             $count['reviewPercentage'] = round($count['review'] * 100.0 / $count['total']);
@@ -250,11 +266,11 @@ class SprintController extends Controller
         $search->addType('issue');
         $resultSet = $search->search();
         foreach ($resultSet->getResults() as $ticket) {
-            $status = $ticket->__get('status');
+            $status = $ticket->status;
             $getBoardGroup = $this->defineBoardGroup($status['name']);
             if ($getBoardGroup === 'Done') {
                 //@todo yes, this is butt-ugly, but either like this or with two queries.
-                $ticketTime = new \DateTime($ticket->__get('updated_on'));
+                $ticketTime = new \DateTime($ticket->updated_on);
                 $now = new \DateTime();
                 $ageDiff = $now->diff($ticketTime);
                 $age = (int) $ageDiff->format('%a');
@@ -265,12 +281,12 @@ class SprintController extends Controller
             }
             if ($getBoardGroup !== 'Review') {
                 $ticketInfo = $ticket->getData();
-                if (isset($ticketInfo['assigned_to']) && isset($this->users[$ticketInfo['assigned_to']['id']])) {
+                if (isset($ticketInfo['assigned_to'], $this->users[$ticketInfo['assigned_to']['id']])) {
                     $ticketInfo['avatar'] = $this->users[$ticketInfo['assigned_to']['id']];
                 }
                 $out[$getBoardGroup][] = $ticketInfo;
             } else {
-                $out[$getBoardGroup][] = $this->getReviewCard($ticket->getData('id'));
+                $out[$getBoardGroup][] = $this->getReviewCard($ticket->getData()['id']);
             }
         }
         Debugbar::stopMeasure(__FUNCTION__);
@@ -293,9 +309,9 @@ class SprintController extends Controller
         if (isset($ticket['journals'])) {
             foreach ($ticket['journals'] as $journalEntry) {
                 if (isset($journalEntry['notes']) && (
-                        strstr($journalEntry['notes'], 'It is available at http://review.typo3.org/')
+                        false !== strpos($journalEntry['notes'], 'It is available at http://review.typo3.org/')
                         ||
-                        strstr($journalEntry['notes'], 'It is available at https://review.typo3.org/')
+                        false !== strpos($journalEntry['notes'], 'It is available at https://review.typo3.org/')
                     )
                 ) {
                     $notes = $journalEntry['notes'];
@@ -316,7 +332,7 @@ class SprintController extends Controller
                 return $ticket;
             }
             $returnValue = $item->getData();
-            if (isset($ticket['assigned_to']) && isset($this->users[$ticket['assigned_to']['id']])) {
+            if (isset($ticket['assigned_to'], $this->users[$ticket['assigned_to']['id']])) {
                 $returnValue['avatar'] = $this->users[$ticket['assigned_to']['id']];
             }
             $returnValue['_redmine_issue_id'] = $ticket['id'];
@@ -385,18 +401,19 @@ class SprintController extends Controller
     protected function calculateProgressBars(array $data)
     {
         $out = [];
-        $data['Done'] = $data['Done'] + $this->closedTicketsNotBeingShown;
+        $data['Done'] += $this->closedTicketsNotBeingShown;
         $fullCount = array_sum($data);
         $percentage = $fullCount / 100;
         $percentage = $percentage ?: 1;
         foreach ($data as $key => $count) {
-            $out['sections'][strtolower($key)]['classes'] = strtolower($key);
+            $lowerKey = strtolower($key);
+            $out['sections'][$lowerKey]['classes'] = $lowerKey;
             if ($key === 'WIP') {
-                $out['sections'][strtolower($key)]['classes'] = 'wip active progress-bar-striped';
+                $out['sections'][$lowerKey]['classes'] = 'wip active progress-bar-striped';
             }
 
-            $out['sections'][strtolower($key)]['value'] = ($count / $percentage);
-            $out['sections'][strtolower($key)]['label'] = $key;
+            $out['sections'][$lowerKey]['value'] = ($count / $percentage);
+            $out['sections'][$lowerKey]['label'] = $key;
         }
         $out['total'] = $fullCount;
 
@@ -409,7 +426,7 @@ class SprintController extends Controller
     protected function getAllUsers()
     {
         Debugbar::startMeasure(__FUNCTION__, __FUNCTION__);
-        $res = $this->connection->getElasticIndex()->getType('user')->search('', array('size' => 100));
+        $res = $this->connection->getElasticIndex()->getType('user')->search('', ['size' => 100]);
         $results = $res->getResults();
         foreach ($results as $hit) {
             $user = $hit->getSource();
@@ -418,6 +435,11 @@ class SprintController extends Controller
         Debugbar::stopMeasure(__FUNCTION__);
     }
 
+    /**
+     * @return mixed
+     *
+     * @throws \Symfony\Component\Yaml\Exception\ParseException
+     */
     protected function getSprintConfig()
     {
         Debugbar::startMeasure('loadYaml', 'Load YAML Config');

@@ -9,15 +9,10 @@ use App\Http\Controllers\Graph\AbstractGraph;
  */
 class Full extends AbstractGraph
 {
+    /**
+     * @throws \Elastica\Exception\InvalidException
+     */
     protected function getData()
-    {
-        $this->chartData = $this->getAllOpenReviews();
-    }
-
-    /**********************************************
-     * GERRIT RELATED THINGS
-     ***********************************************/
-    protected function getAllOpenReviews()
     {
         $fullRequest = [
             'query' => [
@@ -42,11 +37,6 @@ class Full extends AbstractGraph
             ],
             'size' => 0,
         ];
-        $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
-        $search->addType('review');
-        $result = $search->search();
-        $result2 = $result->getTotalHits();
-
-        return $result2;
+        $this->chartData = $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW)->getTotalHits();
     }
 }

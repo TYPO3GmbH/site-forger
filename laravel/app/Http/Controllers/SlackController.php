@@ -4,14 +4,16 @@ namespace app\Http\Controllers;
 
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 
+/**
+ * Class SlackController.
+ */
 class SlackController extends Controller
 {
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
      */
     public function getIndex()
     {
@@ -24,18 +26,18 @@ class SlackController extends Controller
     /**
      * @param Request $request
      *
-     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
+     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector|string
      */
     public function sendInvite(Request $request)
     {
         $email = $request->get('email');
         $firstName = $request->get('firstName');
         $lastName = $request->get('lastName');
-        $recaptcha = $request->get('g-recaptcha-response');
+        $reCaptcha = $request->get('g-recaptcha-response');
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) && trim($firstName) === '' && trim($lastName) === '') {
             return redirect('index');
         }
-        if (!$this->checkRecaptcha($recaptcha)) {
+        if (!$this->checkReCaptcha($reCaptcha)) {
             return redirect('slack');
         }
         $this->sendApiRequest($email, $firstName, $lastName);
@@ -49,11 +51,9 @@ class SlackController extends Controller
     }
 
     /**
-     * @param string $email
-     * @param string $firstName
-     * @param string $lastName
-     *
-     * @return bool
+     * @param $email
+     * @param $firstName
+     * @param $lastName
      */
     protected function sendApiRequest($email, $firstName, $lastName)
     {
@@ -73,11 +73,11 @@ class SlackController extends Controller
     }
 
     /**
-     * @param string $recaptcha
+     * @param string $reCaptcha
      *
      * @return bool
      */
-    protected function checkRecaptcha($recaptcha)
+    protected function checkReCaptcha($reCaptcha)
     {
         $client = new Client([
             'base_uri' => 'https://www.google.com/',
@@ -86,13 +86,12 @@ class SlackController extends Controller
         $response = $client->post('recaptcha/api/siteverify', [
             'form_params' => [
                 'secret' => config('app.slack.recaptcha_secret'),
-                'response' => $recaptcha,
+                'response' => $reCaptcha,
             ],
         ]);
 
         $body = (string) $response->getBody();
-        $result = json_decode($body);
 
-        return $result->success;
+        return json_decode($body)->success;
     }
 }

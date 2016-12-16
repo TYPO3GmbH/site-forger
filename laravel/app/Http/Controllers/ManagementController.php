@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Elastic\Connection;
 use App\Elastic\TrackerFilters;
-use Illuminate\Http\Response;
 
+/**
+ * Class ManagementController.
+ */
 class ManagementController extends Controller
 {
     /**
@@ -13,15 +15,23 @@ class ManagementController extends Controller
      */
     private $connection;
 
+    /**
+     * ManagementController constructor.
+     *
+     * @param Connection $connection
+     */
     public function __construct(Connection $connection)
     {
         parent::__construct();
         $this->connection = $connection;
     }
+
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     public function getIndex()
     {
@@ -143,9 +153,9 @@ class ManagementController extends Controller
                     ],
                 ],
                 'must_not' => [
-//					'term' => [
-//						'subject' => 'wip'
-//					]
+                    //'term' => [
+                    //    'subject' => 'wip'
+                    //]
                 ],
             ],
         ];

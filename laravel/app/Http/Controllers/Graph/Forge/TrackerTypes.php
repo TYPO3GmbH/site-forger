@@ -4,10 +4,15 @@ namespace App\Http\Controllers\Graph\Forge;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
+/**
+ * Class TrackerTypes.
+ */
 class TrackerTypes extends AbstractGraph
 {
     /**
      * Does stuff.
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function getData()
     {
@@ -41,17 +46,19 @@ class TrackerTypes extends AbstractGraph
                 ],
             ],
         ];
-        $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
-        $search->addType('issue');
-        $resultSet = $search->search();
+        $resultSet = $this->doSearch($fullRequest);
         $data = $resultSet->getAggregations();
         $i = 0;
-        foreach ($data['trackertype']['buckets'] as $frame) {
-            foreach ($frame['status']['buckets'] as $issueType) {
-                $this->chartData['bars'][$i][$this->fixKey($issueType['key'])] = $issueType['doc_count'];
+        if (is_array($data['trackertype']['buckets'])) {
+            foreach ($data['trackertype']['buckets'] as $frame) {
+                if (is_array($frame['status']['buckets'])) {
+                    foreach ($frame['status']['buckets'] as $issueType) {
+                        $this->chartData['bars'][$i][$this->fixKey($issueType['key'])] = $issueType['doc_count'];
+                    }
+                    $this->chartData['bars'][$i]['panel'] = $frame['key'];
+                    ++$i;
+                }
             }
-            $this->chartData['bars'][$i]['panel'] = $frame['key'];
-            ++$i;
         }
     }
 
@@ -65,9 +72,8 @@ class TrackerTypes extends AbstractGraph
     protected function fixKey($in)
     {
         $fixedString = strtolower(str_replace(' ', '', $in));
-        /*
-         * Fixed Lookup colors
-         */
+
+        // Fixed Lookup colors
         $colors = [
             'new' => '#fb7e7e',
             'accepted' => '#fbee99',

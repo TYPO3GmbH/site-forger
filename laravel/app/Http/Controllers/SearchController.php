@@ -7,8 +7,10 @@ use App\Elastic\ElasticSearch;
 use App\Http\Controllers\Graph\Forge\Full as FullForge;
 use App\Http\Controllers\Graph\Gerrit\Full;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 
+/**
+ * Class SearchController.
+ */
 class SearchController extends Controller
 {
     /**
@@ -16,6 +18,11 @@ class SearchController extends Controller
      */
     private $connection;
 
+    /**
+     * SearchController constructor.
+     *
+     * @param Connection $connection
+     */
     public function __construct(Connection $connection)
     {
         parent::__construct();
@@ -24,7 +31,7 @@ class SearchController extends Controller
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
      */
     public function getIndex()
     {
