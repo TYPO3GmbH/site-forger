@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Elastic\Connection;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 
+/**
+ * Class UtilityController.
+ */
 class UtilityController extends Controller
 {
     /**
@@ -16,7 +18,7 @@ class UtilityController extends Controller
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
      */
     public function getRst()
     {
@@ -32,7 +34,7 @@ class UtilityController extends Controller
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
      */
     public function getHelp()
     {
@@ -41,13 +43,19 @@ class UtilityController extends Controller
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
      */
     public function getCalendar()
     {
         return $this->view->render('calendar');
     }
 
+    /**
+     * @param Connection $connection
+     * @param Request    $request
+     *
+     * @return string
+     */
     public function getIssue(Connection $connection, Request $request)
     {
         $this->connection = $connection;

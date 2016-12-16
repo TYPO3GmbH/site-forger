@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Elastic\Connection;
 use Illuminate\Http\Request;
 
+/**
+ * Class ReviewController.
+ */
 class ReviewController extends Controller
 {
     /**
@@ -12,6 +15,11 @@ class ReviewController extends Controller
      */
     private $connection;
 
+    /**
+     * ReviewController constructor.
+     *
+     * @param Connection $connection
+     */
     public function __construct(Connection $connection)
     {
         parent::__construct();
@@ -23,7 +31,7 @@ class ReviewController extends Controller
      *
      * @param Request $request
      *
-     * @return \HttpResponse
+     * @return string
      *
      * @throws \Exception
      */
@@ -41,18 +49,14 @@ class ReviewController extends Controller
     /**
      * @param string $boardId
      *
-     * @return array
-     *
      * @throws \Exception
      */
     protected function prepareBoardData($boardId = '')
     {
-        $this->view->assignMultiple(
-            [
-                'boardMenu' => $this->makeBoardMenu($boardId),
-            ]
-        );
-        if ($boardId === 'bugfix' || $boardId === 'feature' || $boardId === 'task') {
+        $this->view->assignMultiple([
+            'boardMenu' => $this->makeBoardMenu($boardId),
+        ]);
+        if (in_array($boardId, ['bugfix', 'feature', 'task'], true)) {
             $query = $this->getBoardQuery($boardId);
             $boardData = $this->getBoardData($query);
             $this->view->assign('board', $boardData);
@@ -72,7 +76,7 @@ class ReviewController extends Controller
                     [
                         'query_string' => [
                             'default_field' => 'subject',
-                            'query' => ''.strtoupper($boardId).'',
+                            'query' => strtoupper($boardId),
                         ],
                     ],
                     [

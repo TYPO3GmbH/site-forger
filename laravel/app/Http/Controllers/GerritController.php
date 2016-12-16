@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Elastic\Connection;
-use Illuminate\Http\Response;
+use Elastica\Query\BoolQuery;
 use Elastica;
 use Debugbar;
 
+/**
+ * Class GerritController.
+ */
 class GerritController extends Controller
 {
     /**
@@ -14,12 +17,24 @@ class GerritController extends Controller
      */
     protected $context;
 
+    /**
+     * @var int
+     */
     private $perPage = 25;
 
+    /**
+     * @var int
+     */
     private $currentPage = 1;
 
+    /**
+     * @var
+     */
     private $totalHits;
 
+    /**
+     * @var string
+     */
     protected $dateInterval = 'month';
 
     /**
@@ -27,6 +42,11 @@ class GerritController extends Controller
      */
     private $connection;
 
+    /**
+     * GerritController constructor.
+     *
+     * @param Connection $connection
+     */
     public function __construct(Connection $connection)
     {
         parent::__construct();
@@ -40,7 +60,9 @@ class GerritController extends Controller
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     public function getStatus()
     {
@@ -90,7 +112,9 @@ class GerritController extends Controller
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     public function getFiles()
     {
@@ -123,11 +147,6 @@ class GerritController extends Controller
                                 ],
 
                             ],
-    //                        [
-    //                            'term' => [
-    //                                'subject' => 'wip'
-    //                            ],
-    //                        ]
                         ],
                     ],
                 ],
@@ -150,7 +169,9 @@ class GerritController extends Controller
     /**
      * Show the Reviews ready to merge.
      *
-     * @return Response
+     * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     public function getMergeReady()
     {
@@ -204,7 +225,9 @@ class GerritController extends Controller
     /**
      * Show the Reviews ready to merge without any negative votes on them.
      *
-     * @return Response
+     * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     public function getCoreteamMerge()
     {
@@ -283,7 +306,9 @@ class GerritController extends Controller
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     public function getMissesVerification()
     {
@@ -337,7 +362,9 @@ class GerritController extends Controller
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     public function getMissesReview()
     {
@@ -391,7 +418,9 @@ class GerritController extends Controller
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     public function getRebase()
     {
@@ -435,6 +464,11 @@ class GerritController extends Controller
         return $this->view->render('Rebase');
     }
 
+    /**
+     * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
+     */
     public function getNegativeVoteCleanup()
     {
         $aggregations = $this->queryAggregations();
@@ -494,6 +528,8 @@ class GerritController extends Controller
 
     /**
      * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     public function getWorkInProgress()
     {
@@ -551,10 +587,12 @@ class GerritController extends Controller
 
     /**
      * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     public function getStaleIssues()
     {
-        $re = '/http[s]*:\/\/review\.typo3\.org\/([0-9]*)/';
+        $re = '/http[s]*:\/\/review\.typo3\.org\/([\d]*)/';
         $staleIssues = [];
 
         $resultSet = $this->getUnderReviewIssues();
@@ -581,6 +619,8 @@ class GerritController extends Controller
     }
 
     /**
+     * @param array $fullRequest
+     *
      * @throws \Elastica\Exception\InvalidException
      */
     protected function search(array $fullRequest)
@@ -629,19 +669,19 @@ class GerritController extends Controller
     }
 
     /**
-     * @return array
+     * @return Elastica\Query|BoolQuery
      */
     protected function addFilters()
     {
         $query = new Elastica\Query();
-        $filters = new Elastica\Query\BoolQuery();
+        $filters = new BoolQuery();
 
         if (!array_key_exists('filters', $_GET)) {
             return $filters;
         }
+        $filterPart = new BoolQuery();
         foreach ($_GET['filters'] as $key => $filterValue) {
             $filterCatCount = 0;
-            $filterPart = new Elastica\Query\BoolQuery();
             foreach ($filterValue as $term => $enabled) {
                 if ($enabled === 'true') {
                     $term = str_replace('_', ' ', $term);
@@ -794,6 +834,8 @@ class GerritController extends Controller
      * @param array $ids
      *
      * @return Elastica\ResultSet
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function getOpenReviewsByIds(array $ids) : Elastica\ResultSet
     {
@@ -840,6 +882,8 @@ class GerritController extends Controller
 
     /**
      * @return Elastica\ResultSet
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function getUnderReviewIssues() : Elastica\ResultSet
     {
