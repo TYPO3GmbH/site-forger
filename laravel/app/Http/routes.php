@@ -25,4 +25,4 @@ Route::controller('/sprint', 'SprintController');
 Route::controller('/slack', 'SlackController');
 Route::controller('/utility', 'UtilityController');
 
-Route::get('/api/{type?}/{graph?}', 'ApiController@index');
+Route::get('/api/{type?}/{documentId?}', 'ApiController@index');
