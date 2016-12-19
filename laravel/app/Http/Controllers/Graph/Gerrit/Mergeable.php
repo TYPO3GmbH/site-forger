@@ -1,16 +1,16 @@
 <?php
+
 namespace App\Http\Controllers\Graph\Gerrit;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
 /**
- * Class Mergeable
+ * Class Mergeable.
  */
 class Mergeable extends AbstractGraph
 {
-
     /**
-     * @return array
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function getData()
     {
@@ -21,17 +21,17 @@ class Mergeable extends AbstractGraph
                         'terms' => [
                             'reviewstatus' => [
                                 'NEW',
-                            ]
+                            ],
                         ],
                     ],
                     'must_not' => [
                         [
                             'query_string' => [
                                 'default_field' => 'subject',
-                                'query' => 'WIP'
-                            ]
-                        ]
-                    ]
+                                'query' => 'WIP',
+                            ],
+                        ],
+                    ],
                 ],
             ],
             'size' => 0,
@@ -40,28 +40,28 @@ class Mergeable extends AbstractGraph
                     'terms' => [
                         'field' => 'mergeable',
                     ],
-                ]
-            ]
+                ],
+            ],
         ];
-        $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
-        $search->addType('review');
-        $resultSet = $search->search();
+        $resultSet = $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW);
         $data = $resultSet->getAggregations();
-        foreach ($data['Mergeable']['buckets'] as $bucket) {
-            $this->chartData['chartData'][] = [
-                'name' => $bucket['key'],
-                'value' => $bucket['doc_count']
-            ];
+        if (isset($data['Mergeable']['buckets'])) {
+            foreach ($data['Mergeable']['buckets'] as $bucket) {
+                $this->chartData['chartData'][] = [
+                    'name' => $bucket['key'],
+                    'value' => $bucket['doc_count'],
+                ];
+            }
         }
         $this->chartData['lines'] = [
             'no' => [
                 'color' => '#f04124',
-                'title' => 'Cannot be merged'
+                'title' => 'Cannot be merged',
             ],
             'yes' => [
                 'color' => '#43ac6a',
-                'title' => 'Can be merged'
-            ]
+                'title' => 'Can be merged',
+            ],
         ];
     }
 }

@@ -29,8 +29,8 @@ class Connection
         $elasticConfig = $this->config->get('app.elastic');
         if (!empty($elasticConfig['username']) && !empty($elasticConfig['password'])) {
             $elasticConfig['headers'] = array(
-                'Authorization' => 'Basic ' .
-                    base64_encode($elasticConfig['username'] . ':' . $elasticConfig['password']) . '=='
+                'Authorization' => 'Basic '.
+                    base64_encode($elasticConfig['username'].':'.$elasticConfig['password']).'==',
             );
         }
 

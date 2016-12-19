@@ -1,13 +1,18 @@
 <?php
+
 namespace App\Http\Controllers\Graph\Forge;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
+/**
+ * Class OpenVsClosed.
+ */
 class OpenVsClosed extends AbstractGraph
 {
-
     /**
-     * Get's the data
+     * Get's the data.
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function getData()
     {
@@ -17,18 +22,22 @@ class OpenVsClosed extends AbstractGraph
             'lines' => [
                 'open' => [
                     'color' => '#ff0000',
-                    'title' => 'Opened Tickets'
+                    'title' => 'Opened Tickets',
                 ],
                 'closed' => [
                     'color' => '#43ac6a',
-                    'title' => 'Closed Tickets'
-                ]
-            ]
+                    'title' => 'Closed Tickets',
+                ],
+            ],
         ];
+
+        return $this->chartData;
     }
 
     /**
      * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function getClosed()
     {
@@ -41,46 +50,46 @@ class OpenVsClosed extends AbstractGraph
                             'status.name' => [
                                 'Closed',
                                 'Rejected',
-                                'Resolved'
-                            ]
+                                'Resolved',
+                            ],
                         ],
                     ],
                     'must_not' => [
                         'range' => [
                             'updated_on' => [
-                                'lte' => date('Y/m/d h:i:s', (time() - (86400 * 60)))
-                            ]
-                        ]
-                    ]
-                ]
+                                'lte' => date('Y/m/d h:i:s', time() - (86400 * 60)),
+                            ],
+                        ],
+                    ],
+                ],
             ],
             'size' => 0,
             'aggregations' => [
                 'over_time' => [
                     'date_histogram' => [
                         'field' => 'updated_on',
-                        'interval' => 'day'
-                    ]
-                ]
-            ]
+                        'interval' => 'day',
+                    ],
+                ],
+            ],
         ];
         $openedTickets = $this->getOpened();
-        $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
-        $search->addType('issue');
-        $resultSet = $search->search();
+        $resultSet = $this->doSearch($fullRequest);
         $data = $resultSet->getAggregations();
-        foreach ($data['over_time']['buckets'] as $frame) {
-            $time = $this->fixTime($frame['key_as_string']);
-            if (isset($openedTickets[$time])) {
-                $open = $openedTickets[$time];
-            } else {
-                $open = 0;
+        if (is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $frame) {
+                $time = $this->fixTime($frame['key_as_string']);
+                if (isset($openedTickets[$time])) {
+                    $open = $openedTickets[$time];
+                } else {
+                    $open = 0;
+                }
+                $chartData[] = [
+                    'date' => $time,
+                    'closed' => $frame['doc_count'],
+                    'open' => $open,
+                ];
             }
-            $chartData[] = [
-                'date' => $time,
-                'closed' => $frame['doc_count'],
-                'open' => $open
-            ];
         }
 
         return $chartData;
@@ -88,6 +97,8 @@ class OpenVsClosed extends AbstractGraph
 
     /**
      * @return array
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function getOpened()
     {
@@ -102,29 +113,29 @@ class OpenVsClosed extends AbstractGraph
                         [
                             'range' => [
                                 'created_on' => [
-                                    'lte' => date('Y/m/d h:i:s', (time() - (86400 * 60)))
-                                ]
+                                    'lte' => date('Y/m/d h:i:s', time() - (86400 * 60)),
+                                ],
                             ],
                         ],
-                    ]
-                ]
+                    ],
+                ],
             ],
             'size' => 0,
             'aggregations' => [
                 'over_time' => [
                     'date_histogram' => [
                         'field' => 'created_on',
-                        'interval' => 'day'
-                    ]
-                ]
-            ]
+                        'interval' => 'day',
+                    ],
+                ],
+            ],
         ];
-        $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
-        $search->addType('issue');
-        $resultSet = $search->search();
+        $resultSet = $this->doSearch($fullRequest);
         $data = $resultSet->getAggregations();
-        foreach ($data['over_time']['buckets'] as $frame) {
-            $chartData[$this->fixTime($frame['key_as_string'])] = $frame['doc_count'];
+        if (is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $frame) {
+                $chartData[$this->fixTime($frame['key_as_string'])] = $frame['doc_count'];
+            }
         }
 
         return $chartData;

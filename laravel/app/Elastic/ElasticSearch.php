@@ -6,11 +6,10 @@ use Elastica\Aggregation\Terms;
 use Elastica\Query;
 
 /**
- * Class ElasticSearch
+ * Class ElasticSearch.
  */
 class ElasticSearch
 {
-
     /**
      * @var Connection
      */
@@ -31,8 +30,8 @@ class ElasticSearch
      * @param array $query
      *
      * @return \Elastica\ResultSet
-     * @throws \Exception
      *
+     * @throws \Exception
      */
     public function doSearch(array $query)
     {
@@ -67,22 +66,22 @@ class ElasticSearch
             'endingAtItem' => $this->currentPage * $this->perPage,
             'results' => $results,
             'maxScore' => $maxScore,
-            'aggs' => $aggs
+            'aggs' => $aggs,
         );
-        if ((int)$this->totalHits <= (int)$out['endingAtItem']) {
+        if ((int) $this->totalHits <= (int) $out['endingAtItem']) {
             $out['endingAtItem'] = (int) $this->totalHits;
         }
+
         return $out;
     }
 
     /**
-     * Adds filters based on get parameters
+     * Adds filters based on get parameters.
      *
      * @return array
      */
     private function addFilters()
     {
-
         $query = new Query();
         $filters = new Query\BoolQuery();
 
@@ -104,12 +103,12 @@ class ElasticSearch
                         || $key === 'priority'
                         || $key === 'fixed_version'
                     ) {
-                        $filter->setTerm($key . '.name', $term);
+                        $filter->setTerm($key.'.name', $term);
                     } else {
                         $filter->setTerm($key, $term);
                     }
                     $filterPart->addShould($filter);
-                    $filterCatCount++;
+                    ++$filterCatCount;
                 }
             }
             if ($filterCatCount > 0) {
@@ -117,6 +116,7 @@ class ElasticSearch
             }
         }
         $query->setQuery($filters);
+
         return $query;
     }
 
@@ -172,7 +172,7 @@ class ElasticSearch
     {
         $numPages = ceil($this->totalHits / $this->perPage);
         $i = 0;
-        /**
+        /*
          *
          */
         $maxPages = $numPages;
@@ -194,8 +194,8 @@ class ElasticSearch
 
         $out = array();
         while ($i < $numPages) {
-            $out[(int)$i] = ($i + 1);
-            $i++;
+            $out[(int) $i] = ($i + 1);
+            ++$i;
         }
 
         return $out;

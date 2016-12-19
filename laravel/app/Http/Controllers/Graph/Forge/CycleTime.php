@@ -1,11 +1,17 @@
 <?php
+
 namespace App\Http\Controllers\Graph\Forge;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
+/**
+ * Class CycleTime.
+ */
 class CycleTime extends AbstractGraph
 {
-
+    /**
+     * @throws \Elastica\Exception\InvalidException
+     */
     protected function getData()
     {
         $this->chartData = [
@@ -13,14 +19,18 @@ class CycleTime extends AbstractGraph
             'lines' => [
                 'cycleTime' => [
                     'color' => '#E69D00',
-                    'title' => 'Days'
-                ]
-            ]
+                    'title' => 'Days',
+                ],
+            ],
         ];
+
+        return $this->chartData;
     }
 
     /**
      * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
      */
     protected function getCycleTime()
     {
@@ -33,38 +43,38 @@ class CycleTime extends AbstractGraph
                             'status.name' => [
                                 'Closed',
                                 'Rejected',
-                                'Resolved'
+                                'Resolved',
                             ],
                         ],
-                    ]
-                ]
+                    ],
+                ],
             ],
             'size' => 0,
             'aggregations' => [
                 'over_time' => [
                     'date_histogram' => [
                         'field' => 'updated_on',
-                        'interval' => 'month'
+                        'interval' => 'month',
                     ],
                     'aggregations' => [
                         'cycle' => [
                             'stats' => [
                                 'script' => '((doc["updated_on"].value-doc["created_on"].value) / (1000 * 86400))',
-                            ]
-                        ]
-                    ]
-                ]
-            ]
+                            ],
+                        ],
+                    ],
+                ],
+            ],
         ];
-        $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
-        $search->addType('issue');
-        $resultSet = $search->search();
+        $resultSet = $this->doSearch($fullRequest);
         $data = $resultSet->getAggregations();
-        foreach ($data['over_time']['buckets'] as $frame) {
-            $chartData[] = [
-                'date' => $this->fixTime($frame['key_as_string']),
-                'cycleTime' => floor($frame['cycle']['avg']),
-            ];
+        if (is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $frame) {
+                $chartData[] = [
+                    'date' => $this->fixTime($frame['key_as_string']),
+                    'cycleTime' => floor($frame['cycle']['avg']),
+                ];
+            }
         }
 
         return $chartData;

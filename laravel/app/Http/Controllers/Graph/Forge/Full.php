@@ -1,19 +1,34 @@
 <?php
+
 namespace App\Http\Controllers\Graph\Forge;
 
 use App\Http\Controllers\Graph\AbstractGraph;
 
+/**
+ * Class Full.
+ */
 class Full extends AbstractGraph
 {
-
+    /**
+     * @return int
+     *
+     * @throws \Elastica\Exception\InvalidException
+     */
     protected function getData()
     {
         $this->chartData = $this->getAllOpenIssues();
+
+        return $this->chartData;
     }
 
     /**********************************************
      * REDMINE RELATED THINGS
      ***********************************************/
+    /**
+     * @return int
+     *
+     * @throws \Elastica\Exception\InvalidException
+     */
     protected function getAllOpenIssues()
     {
         $fullRequest = [
@@ -25,20 +40,17 @@ class Full extends AbstractGraph
                                 'status.name' => [
                                     'Closed',
                                     'Rejected',
-                                    'Resolved'
-                                ]
+                                    'Resolved',
+                                ],
                             ],
-                        ]
-                    ]
+                        ],
+                    ],
                 ],
             ],
             'size' => 0,
         ];
-        $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
-        $search->addType('issue');
-        $result = $search->search();
-        $result2 = $result->getTotalHits();
+        $resultSet = $this->doSearch($fullRequest);
 
-        return $result2;
+        return $resultSet->getTotalHits();
     }
 }

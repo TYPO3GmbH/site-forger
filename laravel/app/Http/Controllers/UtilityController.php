@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Elastic\Connection;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 
+/**
+ * Class UtilityController.
+ */
 class UtilityController extends Controller
 {
-
     /**
      * @var Connection
      */
@@ -17,7 +18,7 @@ class UtilityController extends Controller
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
      */
     public function getRst()
     {
@@ -27,12 +28,13 @@ class UtilityController extends Controller
         ];
         sort($tags);
         $this->view->assign('tags', $tags);
+
         return $this->view->render('rst');
     }
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
      */
     public function getHelp()
     {
@@ -41,13 +43,19 @@ class UtilityController extends Controller
     /**
      * Show the index screen to the user.
      *
-     * @return Response
+     * @return string
      */
     public function getCalendar()
     {
         return $this->view->render('calendar');
     }
 
+    /**
+     * @param Connection $connection
+     * @param Request    $request
+     *
+     * @return string
+     */
     public function getIssue(Connection $connection, Request $request)
     {
         $this->connection = $connection;
@@ -56,6 +64,7 @@ class UtilityController extends Controller
             $issueId = $request->input('issueId');
         }
         $issueData = $this->findIssue($issueId);
+
         return json_encode($issueData);
     }
 
@@ -73,9 +82,10 @@ class UtilityController extends Controller
             $data = $res->getData();
         } catch (\Exception $e) {
             $data = array(
-                'error' => 'Issue #' . $issueId . ' was not found.' . $e->getMessage()
+                'error' => 'Issue #'.$issueId.' was not found.'.$e->getMessage(),
             );
         }
+
         return $data;
     }
 }

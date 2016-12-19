@@ -24,3 +24,5 @@ Route::controller('/management', 'ManagementController');
 Route::controller('/sprint', 'SprintController');
 Route::controller('/slack', 'SlackController');
 Route::controller('/utility', 'UtilityController');
+
+Route::get('/api/{type?}/{documentId?}', 'ApiController@index');

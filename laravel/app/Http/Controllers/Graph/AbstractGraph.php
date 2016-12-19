@@ -1,15 +1,27 @@
 <?php
+
 namespace App\Http\Controllers\Graph;
 
 use App\Elastic\Connection;
-use Elastica as El;
+use Elastica\ResultSet;
 
 /**
- * Class AbstractGraph
+ * Class AbstractGraph.
  */
 class AbstractGraph
 {
+    const DOCUMENT_TYPE_ISSUE = 'issue';
+    const DOCUMENT_TYPE_REVIEW = 'review';
+
+    /**
+     * @var array
+     */
     protected $chartData = [];
+
+    /**
+     * @var string
+     */
+    protected $dateInterval = 'week';
 
     /**
      * @var Connection
@@ -27,7 +39,7 @@ class AbstractGraph
     }
 
     /**
-     * Makes the date string from elastic JS compatible
+     * Makes the date string from elastic JS compatible.
      *
      * @param string $in
      *
@@ -36,9 +48,8 @@ class AbstractGraph
     protected function fixTime($in)
     {
         $date = substr($in, 0, 10);
-        $out = str_replace('/', '-', $date);
 
-        return $out;
+        return str_replace('/', '-', $date);
     }
 
     /**
@@ -47,6 +58,7 @@ class AbstractGraph
     public function render()
     {
         $this->getData();
+
         return json_encode($this->chartData);
     }
 
@@ -63,7 +75,211 @@ class AbstractGraph
      */
     protected function getGuides()
     {
-        $out = [];
-        return $out;
+        return [];
+    }
+
+    /**
+     * @param array  $fullRequest
+     * @param string $type
+     *
+     * @return ResultSet
+     *
+     * @throws \Elastica\Exception\InvalidException
+     */
+    protected function doSearch(array $fullRequest, $type = self::DOCUMENT_TYPE_ISSUE) : ResultSet
+    {
+        $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
+        $search->addType($type);
+
+        return $search->search();
+    }
+
+    /**
+     * Get's opened reviews over time.
+     *
+     * @return array
+     *
+     * @throws \Elastica\Exception\InvalidException
+     */
+    protected function getOpenedReviews()
+    {
+        $opened = [];
+        $fullRequest = [
+            'query' => [
+                'match_all' => [],
+            ],
+            'size' => 0,
+            'aggregations' => [
+                'over_time' => [
+                    'date_histogram' => [
+                        'field' => 'created_on',
+                        'interval' => $this->dateInterval,
+                    ],
+                ],
+            ],
+        ];
+        $resultSet = $this->doSearch($fullRequest);
+        $data = $resultSet->getAggregations();
+        $openSum = 0;
+        if (is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $frame) {
+                $openSum += $frame['doc_count'];
+                $date = $this->fixTime($frame['key_as_string']);
+                $opened[$date]['open'] = $openSum;
+            }
+        }
+
+        return $opened;
+    }
+
+    /**
+     * Get's closed reviews over time.
+     *
+     * @return array
+     *
+     * @throws \Elastica\Exception\InvalidException
+     */
+    protected function getClosedReviews()
+    {
+        $closed = [];
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        'terms' => [
+                            'status.name' => [
+                                'Closed',
+                                'Resolved',
+                                'Rejected',
+                            ],
+                        ],
+                    ],
+
+                ],
+            ],
+            'size' => 0,
+            'aggregations' => [
+                'over_time' => [
+                    'date_histogram' => [
+                        'field' => 'updated_on',
+                        'interval' => $this->dateInterval,
+                    ],
+                ],
+            ],
+        ];
+        $resultSet = $this->doSearch($fullRequest);
+        $data = $resultSet->getAggregations();
+        $closeSum = 0;
+        if (is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $frame) {
+                $closeSum += $frame['doc_count'];
+                $date = $this->fixTime($frame['key_as_string']);
+                $closed[$date]['closed'] = $closeSum;
+            }
+        }
+
+        return $closed;
+    }
+
+    /**
+     * Get's opened reviews over time.
+     *
+     * @return array
+     *
+     * @throws \Elastica\Exception\InvalidException
+     */
+    protected function getOpenedReviewsWithoutWIP()
+    {
+        $opened = [];
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must_not' => [
+                        [
+                            'query_string' => [
+                                'default_field' => 'subject',
+                                'query' => 'WIP',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'size' => 0,
+            'aggregations' => [
+                'over_time' => [
+                    'date_histogram' => [
+                        'field' => 'created_on',
+                        'interval' => $this->dateInterval,
+                    ],
+                ],
+            ],
+        ];
+        $resultSet = $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW);
+        $data = $resultSet->getAggregations();
+        $openSum = 0;
+        if (is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $frame) {
+                $openSum += $frame['doc_count'];
+                $date = $this->fixTime($frame['key_as_string']);
+                $opened[$date]['open'] = $openSum;
+            }
+        }
+
+        return $opened;
+    }
+
+    /**
+     * Get's closed reviews over time.
+     *
+     * @return array
+     *
+     * @throws \Elastica\Exception\InvalidException
+     */
+    protected function getClosedReviewsWithoutWIP()
+    {
+        $closed = [];
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        'terms' => [
+                            'reviewstatus' => [
+                                'MERGED',
+                                'ABANDONED',
+                            ],
+                        ],
+                    ],
+                    'must_not' => [
+                        [
+                            'query_string' => [
+                                'default_field' => 'subject',
+                                'query' => 'WIP',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'size' => 0,
+            'aggregations' => [
+                'over_time' => [
+                    'date_histogram' => [
+                        'field' => 'updated_on',
+                        'interval' => $this->dateInterval,
+                    ],
+                ],
+            ],
+        ];
+        $resultSet = $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW);
+        $data = $resultSet->getAggregations();
+        $closeSum = 0;
+        if (is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $frame) {
+                $closeSum += $frame['doc_count'];
+                $date = $this->fixTime($frame['key_as_string']);
+                $closed[$date]['closed'] = $closeSum;
+            }
+        }
+
+        return $closed;
     }
 }

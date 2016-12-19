@@ -1,44 +1,49 @@
-<?php namespace App\Redmine;
+<?php
 
-class Connection {
-	/**
-	 * @var \Illuminate\Config\Repository
-	 */
-	protected $config;
+namespace App\Redmine;
 
-	/**
-	 * @var \Redmine\Client;
-	 */
-	protected $redmineClient;
+class Connection
+{
+    /**
+     * @var \Illuminate\Config\Repository
+     */
+    protected $config;
 
-	/**
-	 * @var \Redmine\Client;
-	 */
-	protected $elevatedRedmineClient;
+    /**
+     * @var \Redmine\Client;
+     */
+    protected $redmineClient;
 
-	/**
-	 * @param \Illuminate\Config\Repository $config
-	 */
-	public function __construct(\Illuminate\Config\Repository $config) {
-		$this->config = $config;
+    /**
+     * @var \Redmine\Client;
+     */
+    protected $elevatedRedmineClient;
 
-		$this->redmineClient = new \Redmine\Client(
-			$this->config->get('app.redmine.url'),
-			$this->config->get('app.redmine.apiKey')
-		);
+    /**
+     * @param \Illuminate\Config\Repository $config
+     */
+    public function __construct(\Illuminate\Config\Repository $config)
+    {
+        $this->config = $config;
 
-		$this->elevatedRedmineClient = new \Redmine\Client(
-			$this->config->get('app.redmine.url'),
-			$this->config->get('app.redmine.elevatedApiKey')
-		);
-	}
+        $this->redmineClient = new \Redmine\Client(
+            $this->config->get('app.redmine.url'),
+            $this->config->get('app.redmine.apiKey')
+        );
 
-	/**
-	 * @return \Redmine\Client
-	 */
-	public function getRedmineClient() {
-		return $this->redmineClient;
-	}
+        $this->elevatedRedmineClient = new \Redmine\Client(
+            $this->config->get('app.redmine.url'),
+            $this->config->get('app.redmine.elevatedApiKey')
+        );
+    }
+
+    /**
+     * @return \Redmine\Client
+     */
+    public function getRedmineClient()
+    {
+        return $this->redmineClient;
+    }
 
     /**
      * @return \Redmine\Client

@@ -1,21 +1,21 @@
 <?php
+
 namespace App\ViewHelpers;
 
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 class AggregationBucketViewHelper extends AbstractViewHelper
 {
-
     public function __construct()
     {
         $this->escapeOutput = false;
     }
 
     /**
-     * Initialize arguments
+     * Initialize arguments.
      *
-     * @return void
      * @throws \TYPO3Fluid\Fluid\Core\ViewHelper\Exception
+     *
      * @api
      */
     public function initializeArguments()
@@ -35,7 +35,7 @@ class AggregationBucketViewHelper extends AbstractViewHelper
         $category = $this->arguments['category'];
         $index = $this->arguments['index'];
         $bucket = $this->arguments['bucket'];
-        $docCount = (int)$this->arguments['docCount'];
+        $docCount = (int) $this->arguments['docCount'];
         $regularBucket = $this->arguments['label'];
         $category = $this->fixWording($category);
         $bucket = $this->fixWording($bucket, false);
@@ -50,9 +50,9 @@ class AggregationBucketViewHelper extends AbstractViewHelper
         }
 
         $content = '
-            <label' . $labelStyle . ' for="' . $category . '-' . $index . '">'
-                . '<input type="checkbox" id="' . $category . '-' . $index . '" name="filters[' . $category . '][' . $bucket . ']"' . $checked . ' value="true" />' . $regularBucket . ' (' . $docCount . ')'
-            . '</label>';
+            <label'.$labelStyle.' for="'.$category.'-'.$index.'">'
+                .'<input type="checkbox" id="'.$category.'-'.$index.'" name="filters['.$category.']['.$bucket.']"'.$checked.' value="true" />'.$regularBucket.' ('.$docCount.')'
+            .'</label>';
 
         return $content;
     }
@@ -69,6 +69,7 @@ class AggregationBucketViewHelper extends AbstractViewHelper
         if ($lowercase) {
             $in = strtolower($in);
         }
+
         return $in;
     }
 }
