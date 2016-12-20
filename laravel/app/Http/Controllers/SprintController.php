@@ -286,7 +286,7 @@ class SprintController extends Controller
                 }
                 $out[$getBoardGroup][] = $ticketInfo;
             } else {
-                $out[$getBoardGroup][] = $this->getReviewCard($ticket->getData()['id']);
+                $out[$getBoardGroup][] = $this->getReviewCard($ticket->getData());
             }
         }
         Debugbar::stopMeasure(__FUNCTION__);
