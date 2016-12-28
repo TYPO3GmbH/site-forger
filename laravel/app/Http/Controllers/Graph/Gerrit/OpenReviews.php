@@ -59,7 +59,7 @@ class OpenReviews extends AbstractGraph
             'aggregations' => [
                 'over_time' => [
                     'date_histogram' => [
-                        'field' => 'created_on',
+                        'field' => 'updated_on',
                         'interval' => 'week',
                     ],
                 ],
