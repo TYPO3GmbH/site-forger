@@ -362,6 +362,7 @@ class AbstractGraph
                         $date = $this->fixTime($frame['key_as_string']);
                 }
                 $this->result[$date][$key] = $openSum;
+                $this->result[$date]['date'] = $date;
             }
         }
     }

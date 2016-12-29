@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Graph\Forge;
 use App\Http\Controllers\Graph\AbstractGraph;
 
 /**
- * Class Full.
+ * Class Redmine Preiod Comparison Graph.
  */
 class Period extends AbstractGraph
 {
@@ -23,21 +23,11 @@ class Period extends AbstractGraph
         $currentPeriodStart = new \DateTime();
         $year = (int)$currentPeriodStart->format('Y');
 
-
-        $rawData = [];
         $this->getCumulativeTicketsToDate($year, 'current');
         $this->getCumulativeTicketsToDate($year-1, 'previous');
         $this->getCumulativeTicketsToDate($year-2, 'previous2');
-        foreach ($this->result as $date => $rows) {
-            $rawData[] = [
-                'date' => $date,
-                'previous' => $rows['previous'],
-                'previous2' => $rows['previous2'],
-                'current' => $rows['current'],
-            ];
-        }
         $this->chartData = [
-            'chartData' => $rawData,
+            'chartData' => array_values($this->result),
             'lines' => [
                 'previous2' => [
                     'color' => '#eeeeee',
