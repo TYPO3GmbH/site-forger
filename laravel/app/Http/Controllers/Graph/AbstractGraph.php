@@ -29,6 +29,13 @@ class AbstractGraph
     protected $connection;
 
     /**
+     * Calculated Chart data from results
+     *
+     * @var array
+     */
+    protected $result = [];
+
+    /**
      * AbstractGraph constructor.
      *
      * @param Connection $connection
@@ -281,5 +288,82 @@ class AbstractGraph
         }
 
         return $closed;
+    }
+
+    /**
+     * Gets the cumulative amount of documents for a given year
+     *
+     * @param int    $year
+     * @param string $key
+     * @param string $type
+     *
+     * @throws \Elastica\Exception\InvalidException
+     */
+    protected function getCumulativeTicketsToDate(int $year, string $key, $type = self::DOCUMENT_TYPE_ISSUE)
+    {
+        $terms = [
+            'status.name' => [
+                'Closed',
+                'Rejected',
+                'Resolved',
+            ],
+        ];
+        if ($type === self::DOCUMENT_TYPE_REVIEW) {
+            $terms = [
+                'reviewstatus' => [
+                    'ABANDONED',
+                    'MERGED',
+                ],
+            ];
+        }
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'terms' => $terms,
+                        ],
+                        [
+                            'range' => [
+                                'updated_on' => [
+                                    'gte' => $year,
+                                    'lt' => $year + 1,
+                                    'format' => 'yyyy'
+                                ],
+                            ],
+                        ]
+                    ],
+                ],
+            ],
+            'size' => 0,
+            'aggregations' => [
+                'over_time' => [
+                    'date_histogram' => [
+                        'field' => 'updated_on',
+                        'interval' => $this->dateInterval,
+                    ],
+                ],
+            ],
+        ];
+        $resultSet = $this->doSearch($fullRequest, $type);
+        $data = $resultSet->getAggregations();
+        $openSum = 0;
+        if (is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $frame) {
+                $openSum += $frame['doc_count'];
+                switch ($key) {
+                    case 'previous':
+                        $date = str_replace($year, $year + 1, $this->fixTime($frame['key_as_string']));
+                        break;
+                    case 'previous2':
+                        $date = str_replace($year, $year + 2, $this->fixTime($frame['key_as_string']));
+                        break;
+                    default:
+                        $date = $this->fixTime($frame['key_as_string']);
+                }
+                $this->result[$date][$key] = $openSum;
+                $this->result[$date]['date'] = $date;
+            }
+        }
     }
 }
