@@ -1,7 +1,8 @@
-<table class="table table-bordered table-striped table-review" xmlns:f="http://www.w3.org/1999/html">
+<table class="table table-bordered table-striped table-review">
     <caption class="bg-danger">
         <f:if condition="{review._source.branch} != 'master'"><span class="label label-danger">{review._source.branch}</span> </f:if>
-        {review._source.subject}</caption>
+        {review._source.subject}
+    </caption>
     <tr>
         <td class="col-md-3">Topic</td>
         <td class="col-md-3"><span class="label label-default">{review._source.topic}</span></td>
