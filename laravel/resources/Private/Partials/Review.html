@@ -1,5 +1,8 @@
 <table class="table table-bordered table-striped table-review">
-    <caption>{review._source.subject}</caption>
+    <caption>
+        <f:if condition="{review._source.branch} != 'master'"><span class="label label-danger">{review._source.branch}</span> </f:if>
+        {review._source.subject}
+    </caption>
     <tr>
         <td class="col-md-3">Topic</td>
         <td class="col-md-3"><span class="label label-default">{review._source.topic}</span></td>
