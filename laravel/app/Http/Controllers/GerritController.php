@@ -679,8 +679,8 @@ class GerritController extends Controller
         if (!array_key_exists('filters', $_GET)) {
             return $filters;
         }
-        $filterPart = new BoolQuery();
         foreach ($_GET['filters'] as $key => $filterValue) {
+            $filterPart = new BoolQuery();
             $filterCatCount = 0;
             foreach ($filterValue as $term => $enabled) {
                 if ($enabled === 'true') {
