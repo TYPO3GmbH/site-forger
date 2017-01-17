@@ -10,6 +10,7 @@
 | and give it the controller to call when that URI is requested.
 |
 */
+Auth::routes();
 
 Route::get('/graphs/{type?}/{graph?}', 'GraphController@index');
 Route::get('/', 'SearchController@getIndex');
