@@ -18,11 +18,30 @@ Route::get('/doctrine', 'SearchController@getDoctrine');
 
 Route::post('/slack/invite', 'SlackController@sendInvite');
 
-Route::controller('/boards/reviews/{boardId?}', 'ReviewController');
-Route::controller('/gerrit', 'GerritController');
-Route::controller('/management', 'ManagementController');
-Route::controller('/sprint', 'SprintController');
-Route::controller('/slack', 'SlackController');
-Route::controller('/utility', 'UtilityController');
+Route::get('/sprint', 'SprintController@getIndex');
+Route::get('/sprint/focus', 'SprintController@getFocus');
+Route::get('/sprint/list', 'SprintController@getList');
+Route::get('/sprint/cig', 'SprintController@getCig');
+Route::get('sprint/reviews', 'ReviewController@getIndex');
+
+Route::get('gerrit/', 'GerritController@getStatus');
+Route::get('gerrit/status', 'GerritController@getStatus');
+Route::get('gerrit/merge-ready', 'GerritController@getMergeReady');
+Route::get('gerrit/misses-verification', 'GerritController@getMissesVerification');
+Route::get('gerrit/misses-review', 'GerritController@getMissesReview');
+Route::get('gerrit/rebase', 'GerritController@getRebase');
+Route::get('gerrit/files', 'GerritController@getFiles');
+Route::get('gerrit/negative-vote-cleanup', 'GerritController@getNegativeVoteCleanup');
+Route::get('gerrit/wip', 'GerritController@getWorkInProgress');
+Route::get('gerrit/core-team-merge', 'GerritController@getCoreteamMerge');
+Route::get('gerrit/stale-issues', 'GerritController@getStaleIssues');
+
+Route::get('slack', 'SlackController@getIndex');
+
+Route::get('management', 'ManagementController@getIndex');
+
+Route::get('utility/rst', 'UtilityController@getRst');
+Route::get('utility/calendar', 'UtilityController@getCalendar');
+Route::get('utility/help', 'UtilityController@getHelp');
 
 Route::get('/api/{type?}/{documentId?}', 'ApiController@index');
