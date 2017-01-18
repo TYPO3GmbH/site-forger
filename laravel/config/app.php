@@ -141,6 +141,11 @@ return [
         Barryvdh\Debugbar\ServiceProvider::class,
         Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class,
 
+        /**
+         * Backpack
+         */
+        Backpack\Base\BaseServiceProvider::class,
+
         /*
          * Application Service Providers...
          */
