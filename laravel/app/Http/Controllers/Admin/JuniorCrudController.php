@@ -3,8 +3,8 @@
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 
 // VALIDATION: change the requests to match your own file names if you need form validation
-use App\Http\Requests\IssueCrudRequest as StoreRequest;
-use App\Http\Requests\IssueCrudRequest as UpdateRequest;
+use App\Http\Requests\JuniorCrudRequest as StoreRequest;
+use App\Http\Requests\JuniorCrudRequest as UpdateRequest;
 
 class JuniorCrudController extends CrudController {
 
