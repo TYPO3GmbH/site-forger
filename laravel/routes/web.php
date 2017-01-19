@@ -52,7 +52,7 @@ Route::get('/api/{type?}/{documentId?}', 'ApiController@index');
  * Backpack routes
  */
 // Admin Interface Routes
-Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function()
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'role:admin|junior_manager']], function()
 {
     // Backpack\CRUD: Define the resources for the entities you want to CRUD.
     CRUD::resource('issue', 'Admin\IssueCrudController');

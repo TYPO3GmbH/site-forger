@@ -20,8 +20,11 @@
           <!-- ==== Recommended place for admin menu items ==== -->
           <!-- ================================================ -->
           <li><a href="{{ url('admin/dashboard') }}"><i class="fa fa-dashboard"></i> <span>{{ trans('backpack::base.dashboard') }}</span></a></li>
-          <li><a href="{{ url('admin/issue') }}"><i class="fa fa-tag"></i> <span>Manage Issues</span></a></li>
-          <li><a href="{{ url('admin/junior') }}"><i class="fa fa-user"></i> <span>Manage Juniors</span></a></li>
+            @if(Auth::user()->hasAnyRole(['junior_manager', 'admin']))
+            <li><a href="{{ url('admin/issue') }}"><i class="fa fa-tag"></i> <span>Manage Issues</span></a></li>
+            <li><a href="{{ url('admin/junior') }}"><i class="fa fa-user"></i> <span>Manage Juniors</span></a></li>
+            @endif
+            @if(Auth::user()->hasAnyRole('admin'))
             <li class="treeview">
                 <a href="#"><i class="fa fa-group"></i> <span>Users, Roles, Permissions</span> <i class="fa fa-angle-left pull-right"></i></a>
                 <ul class="treeview-menu">
@@ -30,6 +33,7 @@
                     <li><a href="{{ url('admin/permission') }}"><i class="fa fa-key"></i> <span>Permissions</span></a></li>
                 </ul>
             </li>
+            @endif
 
 
           <!-- ======================================= -->
