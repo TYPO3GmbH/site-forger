@@ -12,15 +12,9 @@ class JuniorCrudController extends CrudController {
         $this->crud->setModel("App\Junior");
         $this->crud->setRoute("admin/junior");
         $this->crud->setEntityNameStrings('junior', 'juniors');
+        $this->crud->setFromDb();
 
-        $this->crud->setColumns(['name']);
-        $this->crud->addField(
-            [
-                'name' => 'name',
-                'label' => "Junior Name"
-            ]
-        );
-
+        $this->crud->setColumnsDetails(['name'], ['label' => 'Junior name']);
     }
 
     public function store(StoreRequest $request)

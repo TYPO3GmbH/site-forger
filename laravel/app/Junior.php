@@ -16,4 +16,9 @@ class Junior extends Model
     protected $primaryKey = 'id';
 
     protected $fillable = ['name'];
+
+    public function issues()
+    {
+        return $this->hasMany('App\Issue');
+    }
 }

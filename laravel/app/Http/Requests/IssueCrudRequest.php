@@ -25,7 +25,7 @@ class IssueCrudRequest extends \Backpack\CRUD\app\Http\Requests\CrudRequest {
     {
         return [
             'junior_id' => 'required',
-            'issue_id' => 'required|min:4|max:6',
+            'issue_number' => 'required|min:4|max:6',
         ];
     }
 

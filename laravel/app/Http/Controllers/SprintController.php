@@ -480,7 +480,7 @@ class SprintController extends Controller
         foreach ($issues as $index => $issue) {
             $query['bool']['should'][] = [
                 'term' => [
-                    'id' => $issue->issue_id
+                    'id' => $issue->issue_number
                 ]
             ];
         }

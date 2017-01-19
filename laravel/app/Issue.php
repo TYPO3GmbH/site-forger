@@ -15,7 +15,7 @@ class Issue extends Model
 
     protected $primaryKey = 'id';
 
-    protected $fillable = ['issue_id', 'junior_id'];
+    protected $fillable = ['issue_number', 'junior_id'];
 
     public function junior()
     {
