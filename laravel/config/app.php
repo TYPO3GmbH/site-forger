@@ -137,6 +137,7 @@ return [
         'Illuminate\Translation\TranslationServiceProvider',
         'Illuminate\Validation\ValidationServiceProvider',
         'Illuminate\View\ViewServiceProvider',
+        Illuminate\Notifications\NotificationServiceProvider::class,
 
         Barryvdh\Debugbar\ServiceProvider::class,
         Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class,
