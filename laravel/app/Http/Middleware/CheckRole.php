@@ -19,24 +19,9 @@ class CheckRole
      */
     public function handle($request, Closure $next, $roles)
     {
-        $rolesArray = explode('|', $roles);
-        if (!Auth::guest() && $this->checkIfUserHasAtLeastOneRole($rolesArray, Auth::user()->roles)) {
+        if (!Auth::guest() && Auth::user()->hasAnyRole(explode('|', $roles))) {
             return $next($request);
         }
-        if ($request->ajax()) {
-            abort(401);
-        } else {
-            abort(401);
-        }
-    }
-
-    protected function checkIfUserHasAtLeastOneRole(array $allowedRoles, Collection $userRoles)
-    {
-        foreach ($userRoles as $index => $userRole) {
-            if (in_array($userRole->name, $allowedRoles, true)) {
-                return true;
-            }
-        }
-        return false;
+        abort(401);
     }
 }
