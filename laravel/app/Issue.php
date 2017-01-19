@@ -15,5 +15,10 @@ class Issue extends Model
 
     protected $primaryKey = 'id';
 
-    protected $fillable = ['issue_id', 'junior'];
+    protected $fillable = ['issue_id', 'junior_id'];
+
+    public function junior()
+    {
+        return $this->belongsTo('App\Junior');
+    }
 }
