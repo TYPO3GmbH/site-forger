@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Elastic\Connection;
+use App\Issue;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\Yaml\Parser;
 use Debugbar;
 
@@ -448,5 +450,40 @@ class SprintController extends Controller
         Debugbar::stopMeasure('loadYaml');
 
         return $config;
+    }
+
+    public function getJunior($juniorName = '')
+    {
+        $boardMenu = [];
+        $juniors = Issue::groupBy('junior')->get();
+        foreach ($juniors as $index => $junior) {
+            $juniorQuery = $this->getJuniorQuery($junior->junior);
+            $boardMenu[] = [
+                'id' => $junior->junior,
+                'name' => $junior->junior,
+                'count' => $this->getTicketByBoardQuery($juniorQuery),
+                'active' => ($junior->junior === $this->boardId) ? true : false,
+            ];
+            $this->view->assign('boardInfo', ['name' => 'Board for Junior ' . $junior->junior]);
+        }
+        $this->view->assign('boardMenu', $boardMenu);
+//        $this->view->assign('progress', $this->calculateProgressBars($ticketCount));
+//        $this->view->assign('board', $boardData);
+
+        return $this->view->render('junior');
+    }
+
+    protected function getJuniorQuery($juniorName)
+    {
+        $query = [];
+        $issues = Issue::where('junior', $juniorName)->get();
+        foreach ($issues as $index => $issue) {
+            $query['bool']['should'][] = [
+                'term' => [
+                    'id' => $issue->issue_id
+                ]
+            ];
+        }
+        return $query;
     }
 }
