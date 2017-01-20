@@ -23,6 +23,7 @@ Route::get('/sprint', 'SprintController@getIndex');
 Route::get('/sprint/focus', 'SprintController@getFocus');
 Route::get('/sprint/list', 'SprintController@getList');
 Route::get('/sprint/cig', 'SprintController@getCig');
+Route::get('/sprint/junior/{juniorName?}', 'SprintController@getJunior');
 Route::get('/sprint/reviews', 'ReviewController@getIndex');
 
 Route::get('/gerrit', 'GerritController@getStatus');
@@ -46,3 +47,16 @@ Route::get('/utility/calendar', 'UtilityController@getCalendar');
 Route::get('/utility/help', 'UtilityController@getHelp');
 
 Route::get('/api/{type?}/{documentId?}', 'ApiController@index');
+
+/**
+ * Backpack routes
+ */
+// Admin Interface Routes
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'role:admin|junior_manager']], function()
+{
+    // Backpack\CRUD: Define the resources for the entities you want to CRUD.
+    CRUD::resource('issue', 'Admin\IssueCrudController');
+    CRUD::resource('junior', 'Admin\JuniorCrudController');
+
+    // [...] other routes
+});
