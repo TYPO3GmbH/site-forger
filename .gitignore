@@ -29,10 +29,14 @@ node_modules
 .env.php
 .env
 
+/laravel/bootstrap/cache
+/laravel/vendor
+/laravel/node_modules
+!/laravel/resources/views/vendor/
+
 
 ### Composer template
 composer.phar
-vendor/
 
 
 ### Bower components
@@ -40,5 +44,8 @@ bower_components
 
 
 ### Vendor folder
-vendor
 /Web
+
+!laravel/resources/
+
+laravel_backup*

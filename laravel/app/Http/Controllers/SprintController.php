@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Elastic\Connection;
+use App\Issue;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\Yaml\Parser;
 use Debugbar;
 
@@ -448,5 +450,49 @@ class SprintController extends Controller
         Debugbar::stopMeasure('loadYaml');
 
         return $config;
+    }
+
+    public function getJunior()
+    {
+        $boardMenu = [];
+        $queries = [];
+        $juniors = Issue::groupBy('junior_id')->get();
+        foreach ($juniors as $index => $junior) {
+            $juniorQuery = $this->getJuniorQuery($junior->junior);
+            $boardMenu[$junior->junior->id] = [
+                'id' => $junior->junior->id,
+                'name' => $junior->junior->name,
+                'count' => $this->getTicketByBoardQuery($juniorQuery),
+                'active' => ($junior->junior->id === (int)$this->boardId) ? true : false,
+            ];
+            $queries[$junior->junior->id] = $juniorQuery;
+        }
+        if (is_numeric($this->boardId)) {
+            $this->view->assign('boardInfo', ['name' => 'Board for ' . $boardMenu[$this->boardId]['name']]);
+            $boardData = $this->getBoardData($queries[$this->boardId]);
+            $ticketCount = [];
+            foreach ($boardData as $status => $tickets) {
+                $ticketCount[$status] = count($tickets);
+            }
+            $this->view->assign('progress', $this->calculateProgressBars($ticketCount));
+            $this->view->assign('board', $boardData);
+        }
+        $this->view->assign('boardMenu', $boardMenu);
+
+        return $this->view->render('junior');
+    }
+
+    protected function getJuniorQuery($juniorName)
+    {
+        $query = [];
+        $issues = Issue::where('junior_id', $juniorName->id)->get();
+        foreach ($issues as $index => $issue) {
+            $query['bool']['should'][] = [
+                'term' => [
+                    'id' => $issue->issue_number
+                ]
+            ];
+        }
+        return $query;
     }
 }
