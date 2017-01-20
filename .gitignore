@@ -29,6 +29,7 @@ node_modules
 .env.php
 .env
 
+/laravel/bootstrap/cache
 /laravel/vendor
 /laravel/node_modules
 !/laravel/resources/views/vendor/
@@ -46,3 +47,5 @@ bower_components
 /Web
 
 !laravel/resources/
+
+laravel_backup*
