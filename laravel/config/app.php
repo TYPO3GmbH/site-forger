@@ -136,9 +136,17 @@ return [
         'Illuminate\Translation\TranslationServiceProvider',
         'Illuminate\Validation\ValidationServiceProvider',
         'Illuminate\View\ViewServiceProvider',
+        Illuminate\Notifications\NotificationServiceProvider::class,
 
         Barryvdh\Debugbar\ServiceProvider::class,
         Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class,
+
+        /**
+         * Backpack
+         */
+        Backpack\Base\BaseServiceProvider::class,
+        Backpack\CRUD\CrudServiceProvider::class,
+        Backpack\PermissionManager\PermissionManagerServiceProvider::class,
 
         /*
          * Application Service Providers...

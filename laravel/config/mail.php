@@ -54,7 +54,7 @@ return [
     |
     */
 
-    'from' => ['address' => null, 'name' => null],
+    'from' => ['address' => 'forger@typo3.org', 'name' => 'TYPO3 Forger'],
 
     /*
     |--------------------------------------------------------------------------
