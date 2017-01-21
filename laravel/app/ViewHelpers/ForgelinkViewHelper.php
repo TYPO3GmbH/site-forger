@@ -18,7 +18,7 @@ class ForgelinkViewHelper extends AbstractViewHelper
     {
         $this->registerArgument('year', 'string', '');
         $this->registerArgument('month', 'string', '');
-        $this->registerArgument('statusId', 'string', '', true, 'o');
+        $this->registerArgument('statusId', 'string', '', false, 'o');
         $this->registerArgument('trackerFilters', 'TrackerFilters', 'Specifies the name of an anchor');
     }
 
