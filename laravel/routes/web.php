@@ -45,6 +45,7 @@ Route::get('/management', 'ManagementController@getIndex');
 Route::get('/utility/rst', 'UtilityController@getRst');
 Route::get('/utility/calendar', 'UtilityController@getCalendar');
 Route::get('/utility/help', 'UtilityController@getHelp');
+Route::get('/utility/issue', 'UtilityController@getIssue');
 
 Route::get('/api/{type?}/{documentId?}', 'ApiController@index');
 
