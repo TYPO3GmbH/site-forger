@@ -117,7 +117,7 @@ class ForgeFullImport extends Command
                 $res = $this->getReviewBlock(1, 1);
                 break;
             case 'RedmineTest':
-                $res = $this->redmineClient->api('issue')->show(63618, array('include' => array('journals')));
+                $res = $this->redmineClient->api('issue')->show(80800, array('include' => array('journals')));
                 $this->addDocumentToElastic($res['issue']);
                 break;
             case 'RedmineDelta':
@@ -443,10 +443,12 @@ class ForgeFullImport extends Command
                 }
                 $document['updated_on'] = $this->fixDateFormat($document['updated_on']);
                 $document['created_on'] = $this->fixDateFormat($document['created_on']);
+                unset($document['start_date']);
+                unset($document['due_date']);
                 $type = new DocType($this->elasticIndex, 'issue');
                 try {
                     $type->getDocument($document['id']);
-                } catch (\Exception $e) {
+                } catch (\Elastica\Exception\NotFoundException $e) {
                     $this->sendSlackMessage($document);
                 }
                 break;
@@ -470,14 +472,11 @@ class ForgeFullImport extends Command
      */
     protected function fixDateFormat($string)
     {
-        $pattern =
-            '/([0-9]{4}\/[0-9]{2}\/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}|[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})/';
-        preg_match($pattern, $string, $matches);
-        if (isset($matches[1])) {
-            return $matches[1];
-        } else {
-            return 'broken';
+        $dateTime = new \DateTime($string);
+        if (!$dateTime) {
+            throw new \InvalidArgumentException('Date format for "' . $string . '" could not be parsed');
         }
+        return $dateTime->format('Y/m/d H:i:s');
     }
 
     /**
@@ -530,6 +529,7 @@ class ForgeFullImport extends Command
 
     protected function sendSlackMessage(array $issue)
     {
+        $this->output->note('Added issue  '.$issue['id']);
         $slackConfig['Url'] = $this->config->get('app.slack.webhook_url');
         if ($slackConfig['Url'] === 'TEAMURL') {
             return true;
