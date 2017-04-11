@@ -20,13 +20,13 @@
           'bool':
             'must':
               - 'term': {'focus.name': On Location Sprint}
-      'Stab85':
-        'Name': Stabilization 8.5
+      'Stab8LTS':
+        'Name': Stabilization 8 LTS
         'Query':
           'bool':
             'must':
               - 'term': {'focus.name': Stabilization Sprint}
-              - 'term': {'fixed_version.name': 8.5}
+              - 'term': {'fixed_version.name': '8 LTS'}
       'nmr':
         'Name': Next Maintenance Release
         'Query':
