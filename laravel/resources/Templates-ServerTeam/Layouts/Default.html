@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title><f:if condition="{APP_ENV} !== 'L5 Production'">[{APP_ENV}] </f:if><f:render section="Title" /> :: Forger</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="/css/forger.css" />
+        <link rel="stylesheet" href="/css/font-awesome.min.css" />
+		<link rel="apple-touch-icon" sizes="57x57" href="/images/favicon/apple-touch-icon-57x57.png">
+		<link rel="apple-touch-icon" sizes="60x60" href="/images/favicon/apple-touch-icon-60x60.png">
+		<link rel="apple-touch-icon" sizes="72x72" href="/images/favicon/apple-touch-icon-72x72.png">
+		<link rel="apple-touch-icon" sizes="76x76" href="/images/favicon/apple-touch-icon-76x76.png">
+		<link rel="apple-touch-icon" sizes="114x114" href="/images/favicon/apple-touch-icon-114x114.png">
+		<link rel="apple-touch-icon" sizes="120x120" href="/images/favicon/apple-touch-icon-120x120.png">
+		<link rel="apple-touch-icon" sizes="144x144" href="/images/favicon/apple-touch-icon-144x144.png">
+		<link rel="apple-touch-icon" sizes="152x152" href="/images/favicon/apple-touch-icon-152x152.png">
+		<link rel="apple-touch-icon" sizes="180x180" href="/images/favicon/apple-touch-icon-180x180.png">
+		<link rel="icon" type="image/png" href="/images/favicon/favicon-32x32.png" sizes="32x32">
+		<link rel="icon" type="image/png" href="/images/favicon/android-chrome-192x192.png" sizes="192x192">
+		<link rel="icon" type="image/png" href="/images/favicon/favicon-96x96.png" sizes="96x96">
+		<link rel="icon" type="image/png" href="/images/favicon/favicon-16x16.png" sizes="16x16">
+		<link rel="manifest" href="/images/favicon/manifest.json">
+		<meta name="msapplication-TileColor" content="#ffffff">
+		<meta name="msapplication-TileImage" content="/images/favicon/mstile-144x144.png">
+		<meta name="theme-color" content="#ffffff“>
+		<base href="/" />
+	</head>
+	<body>
+
+	<nav class="navbar navbar-default navbar-fixed-top">
+		<div class="container-fluid">
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+					<span class="sr-only">Toggle navigation</span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="navbar-brand" href="/">TYPO3 SERVER TEAM :: <f:render section="Title" /></a>
+			</div>
+			<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+				<f:render partial="Menu" />
+			</div>
+		</div>
+	</nav>
+	<div class="container">
+		<div class="col-sm-12">
+			<fl:flashMessages class="flashmessages" />
+		</div>
+	</div>
+	<div class="container-fluid">
+		<f:render section="Content" />
+	</div>
+	<script type="application/javascript" src="/js/forger.js"></script>
+	<script type="application/javascript" src="/js/register-element.js"></script>
+	<script type="application/javascript" src="/js/time-elements.js"></script>
+	<f:render section="Javascripts" />
+	<script type="application/javascript">
+	</script>
+	<nav class="navbar navbar-default navbar-fixed-bottom">
+		<div class="container-fluid" style="padding: 10px 15px;">
+			<div class="row">
+				<div class="col-xs-6">
+					<a href="https://twitter.com/CodingDave" target="_blank" class="pull-left"><img src="/images/dave.png" style="height:60px" title="banana? @CodingDave"></a>
+					<a href="https://jira.typo3.com/servicedesk/customer/portal/3/group/19" target="_blank">Did you encounter a bug on this website?<br/> Got ideas for an improvement?<br/><strong>Tell me...</strong></a>
+				</div>
+				<div class="col-xs-6">
+					<div class="pull-right">
+						<div>Powered by <a href="https://www.network-publishing.de/" target="_blank"><img src="/images/logo_network.publishing.png" title="Network Publishing" class="pull-right img-responsive" style="max-height: 60px;"></a></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</nav>
+	</body>
+</html>

@@ -1,0 +1,55 @@
+id:
+  type: integer
+change_id:
+  type: string
+  index: not_analyzed
+  store: true
+reviewstatus:
+  type: string
+  index: not_analyzed
+  store: true
+subject:
+  type: string
+branch:
+  type: string
+  index: not_analyzed
+  store: true
+topic:
+  type: string
+  index: not_analyzed
+  store: true
+releases:
+  type: string
+  store: true
+mergeable:
+  type: string
+affected_files:
+  type: integer
+insertions:
+  type: integer
+deletions:
+  type: integer
+positive_reviews:
+  type: integer
+negative_reviews:
+  type: integer
+positive_verifications:
+  type: integer
+negative_verifications:
+  type: integer
+patchsets:
+  type: integer
+created_on:
+  type: date
+  format: yyyy/MM/dd HH:mm:ss
+updated_on:
+  type: date
+  format: yyyy/MM/dd HH:mm:ss
+owner:
+  type: string
+  index: not_analyzed
+  store: true
+files:
+  type: string
+  index: not_analyzed
+  store: true
