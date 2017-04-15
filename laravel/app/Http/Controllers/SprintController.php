@@ -281,14 +281,14 @@ class SprintController extends Controller
                     continue;
                 }
             }
-            if ($getBoardGroup !== 'Review') {
+            if ($getBoardGroup === 'Review' && config('app.app.useGerrit')) {
+                $out[$getBoardGroup][] = $this->getReviewCard($ticket->getData());
+            } else {
                 $ticketInfo = $ticket->getData();
                 if (isset($ticketInfo['assigned_to'], $this->users[$ticketInfo['assigned_to']['id']])) {
                     $ticketInfo['avatar'] = $this->users[$ticketInfo['assigned_to']['id']];
                 }
                 $out[$getBoardGroup][] = $ticketInfo;
-            } else {
-                $out[$getBoardGroup][] = $this->getReviewCard($ticket->getData());
             }
         }
         Debugbar::stopMeasure(__FUNCTION__);
@@ -446,7 +446,7 @@ class SprintController extends Controller
     {
         Debugbar::startMeasure('loadYaml', 'Load YAML Config');
         $yaml = new Parser();
-        $config = $yaml->parse(file_get_contents(config_path().'/Sprints.yaml'));
+        $config = $yaml->parse(file_get_contents(config_path().'/' . config('app.app.sprintConfig')));
         Debugbar::stopMeasure('loadYaml');
 
         return $config;
