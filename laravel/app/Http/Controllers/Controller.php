@@ -24,11 +24,26 @@ abstract class Controller extends BaseController
      */
     public function __construct()
     {
+
+        $rootPaths['templates'] = [
+            base_path().'/resources/Private/Templates/'
+        ];
+        $rootPaths['partials'] = [
+            base_path().'/resources/Private/Partials/'
+        ];
+        $rootPaths['layouts'] = [
+            base_path().'/resources/Private/Layouts/'
+        ];
+        if ((string)config('app.app.templateOverride') !== '') {
+            $rootPaths['templates'][] = base_path().'/resources/' . config('app.app.templateOverride') . '/Templates/';
+            $rootPaths['partials'][] = base_path().'/resources/' . config('app.app.templateOverride') . '/Partials/';
+            $rootPaths['layouts'][] = base_path().'/resources/' . config('app.app.templateOverride') . '/Layouts/';
+        }
         $this->view = new TemplateView();
         $paths = $this->view->getTemplatePaths();
-        $paths->setTemplateRootPaths([base_path().'/resources/Private/Templates/']);
-        $paths->setLayoutRootPaths([base_path().'/resources/Private/Layouts/']);
-        $paths->setPartialRootPaths([base_path().'/resources/Private/Partials/']);
+        $paths->setTemplateRootPaths($rootPaths['templates']);
+        $paths->setLayoutRootPaths($rootPaths['layouts']);
+        $paths->setPartialRootPaths($rootPaths['partials']);
         $fluidCaching = env('FLUID_CACHE');
         if ($fluidCaching) {
             $fluidCache = new SimpleFileCache(base_path().'/storage/app/Cache/Fluid');

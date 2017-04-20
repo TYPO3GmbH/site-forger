@@ -212,6 +212,7 @@ return [
         'url' => env('APP_REDMINE_URL', 'https://forge.typo3.org'),
         'apiKey' => env('APP_REDMINE_APIKEY'),
         'elevatedApiKey' => env('REDMINE_ELEVATED_APIKEY'),
+        'projectId' => env('REDMINE_PROJECT_ID'),
     ],
 
     'elastic' => [
@@ -231,4 +232,10 @@ return [
         'recaptcha_site' => env('SLACK_RECAPTCHA_SITE'),
         'recaptcha_secret' => env('SLACK_RECAPTCHA_SECRET'),
     ],
+
+    'app' => [
+        'templateOverride' => env('APP_TEMPLATE_OVERRIDE'),
+        'useGerrit' => env('APP_USESGERRIT'),
+        'sprintConfig' => env('APP_SPRINTCONFIG')
+    ]
 ];
