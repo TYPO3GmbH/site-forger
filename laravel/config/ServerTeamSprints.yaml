@@ -1,0 +1,23 @@
+'T3G':
+  'Forger':
+    'Boards':
+      'CurrentTasks':
+        'Name': Current Tasks
+        'Query':
+          'bool':
+            'must_not':
+              - 'term': {'status.name': Closed}
+#      'Stab8LTS':
+#        'Name': Stabilization 8 LTS
+#        'Query':
+#          'bool':
+#            'must':
+#              - 'term': {'focus.name': Stabilization Sprint}
+#              - 'term': {'fixed_version.name': '8 LTS'}
+#      'nmr':
+#        'Name': Next Maintenance Release
+#        'Query':
+#          'bool':
+#            'should':
+#              - 'term': {'fixed_version.id': 3285}
+#              - 'term': {'fixed_version.id': 2354}
