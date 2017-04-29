@@ -214,7 +214,7 @@ class ForgeFullImport extends Command
         //@todo implement getIssuesSinceLastRun
         $config = [
             'limit' => 50,
-            'project_id' => 27,
+            'project_id' => $this->config->get('app.redmine.projectId'),
             'status_id' => '*',
             'sort' => 'updated_on:desc',
         ];
