@@ -34,6 +34,12 @@
             'should':
               - 'term': {'fixed_version.id': 3285}
               - 'term': {'fixed_version.id': 2354}
+      'next-patchlevel':
+        'Name': Next patch level
+        'Query':
+          'bool':
+            'should':
+              - 'term': {'fixed_version.id': 2354}
 #      PRC':
 #        Name': PRC
 #        Query':
