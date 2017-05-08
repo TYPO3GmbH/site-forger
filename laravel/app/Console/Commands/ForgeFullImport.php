@@ -293,8 +293,8 @@ class ForgeFullImport extends Command
                     'positive_verifications' => $labels['positive_verifications'],
                     'negative_verifications' => $labels['negative_verifications'],
                     'patchsets' => $change['revisions'][$change['current_revision']]['_number'],
-                    'created_on' => $this->fixDateFormat(str_replace('-', '/', $change['created'])),
-                    'updated_on' => $this->fixDateFormat(str_replace('-', '/', $change['updated'])),
+                    'created_on' => $this->fixDateFormat($change['created'], 'Gerrit'),
+                    'updated_on' => $this->fixDateFormat($change['updated'], 'Gerrit'),
                     'releases' => $this->extractReleases(
                         $change['revisions'][$change['current_revision']]['commit']['message']
                     ),
@@ -309,7 +309,6 @@ class ForgeFullImport extends Command
         if ($moreChanges === false) {
             $this->moreIssuesFromGerrit = false;
         }
-
         return $out;
     }
 
@@ -441,8 +440,8 @@ class ForgeFullImport extends Command
                         }
                     }
                 }
-                $document['updated_on'] = $this->fixDateFormat($document['updated_on']);
-                $document['created_on'] = $this->fixDateFormat($document['created_on']);
+                $document['updated_on'] = $this->fixDateFormat($document['updated_on'], 'Redmine');
+                $document['created_on'] = $this->fixDateFormat($document['created_on'], 'Redmine');
                 unset($document['start_date']);
                 unset($document['due_date']);
                 $type = new DocType($this->elasticIndex, 'issue');
@@ -466,15 +465,26 @@ class ForgeFullImport extends Command
     }
 
     /**
-     * @param string $string
+     * @param string $dateTimeString
+     * @param string $source
      *
      * @return string
      */
-    protected function fixDateFormat($string)
+    protected function fixDateFormat($dateTimeString, $source)
     {
-        $dateTime = new \DateTime($string);
+        switch ($source) {
+            case 'Redmine':
+                break;
+            case 'Gerrit':
+                $dateTimeString = substr($dateTimeString, 0,  19);
+                break;
+            default:
+                throw new \InvalidArgumentException('Value of $source has to be either "Redmine" or "Gerrit"');
+
+        }
+        $dateTime = new \DateTime($dateTimeString);
         if (!$dateTime) {
-            throw new \InvalidArgumentException('Date format for "' . $string . '" could not be parsed');
+            throw new \InvalidArgumentException('Date format for "' . $dateTimeString . '" could not be parsed');
         }
         return $dateTime->format('Y/m/d H:i:s');
     }
