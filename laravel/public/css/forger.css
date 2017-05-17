@@ -5967,35 +5967,40 @@ div.expandable {
   margin-bottom: 9px;
 }
 .progress-bar-open,
-.status_new {
+.status-New,
+.status-Open {
   background-color: #AE4A32;
   color: #f8eae7;
 }
-.status_accepted {
+.status_accepted,
+.status-Accepted {
   background-color: #D1C4B1;
   color: #524531;
 }
 .progress-bar-review,
-.status_review {
+.status-Review {
   background-color: #8DB173;
   color: #ffffff;
 }
-.status_onhold {
-  background-color: #F38725;
-  color: #ffffff;
-}
 .progress-bar-blocked,
-.status_feedback {
+.status-BLOCKED,
+.status-OnHold,
+.status-Feedback {
   background-color: #F38725;
   color: #ffffff;
 }
 .progress-bar-wip,
-.status_wip {
+.status-WIP {
   background-color: #62C0DC;
   color: #ffffff;
 }
+.progress-bar-nextup,
+.status-NextUp {
+  background-color: #4780db;
+  color: #ffffff;
+}
 .progress-bar-done,
-.status_done {
+.status-Done {
   background-color: #696969;
   color: #e9e9e9;
 }

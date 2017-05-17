@@ -244,13 +244,7 @@ class SprintController extends Controller
     {
         Debugbar::startMeasure(__FUNCTION__, __FUNCTION__);
         $this->view->assign('boardConfig', json_encode($query, JSON_PRETTY_PRINT));
-        $out = [
-            'BLOCKED' => [],
-            'Open' => [],
-            'WIP' => [],
-            'Review' => [],
-            'Done' => [],
-        ];
+        $out = $this->sprintConfig['T3G']['Forger']['ColumnOrder'];
         $fullRequest = [
             'query' => $query,
             'filter' => $this->queryFilters(),
@@ -358,32 +352,11 @@ class SprintController extends Controller
      */
     protected function defineBoardGroup($status)
     {
-        switch ($status) {
-            case 'Rejected':
-                $metaStatus = 'Done';
-                break;
-            case 'Closed':
-                $metaStatus = 'Done';
-                break;
-            case 'Resolved':
-                $metaStatus = 'Done';
-                break;
-
-            case 'Under Review':
-                $metaStatus = 'Review';
-                break;
-
-            case 'In Progress':
-                $metaStatus = 'WIP';
-                break;
-
-            case 'Needs Feedback':
-                $metaStatus = 'BLOCKED';
-                break;
-            default:
-                $metaStatus = 'Open';
+        if (array_key_exists($status, $this->sprintConfig['T3G']['Forger']['StatusMapping'])) {
+            $metaStatus = $this->sprintConfig['T3G']['Forger']['StatusMapping'][$status];
+        } else {
+            $metaStatus = $this->sprintConfig['T3G']['Forger']['StatusMapping']['DefaultState'];
         }
-
         return $metaStatus;
     }
 

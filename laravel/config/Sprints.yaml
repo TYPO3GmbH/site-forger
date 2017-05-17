@@ -34,12 +34,6 @@
             'should':
               - 'term': {'fixed_version.id': 3285}
               - 'term': {'fixed_version.id': 2354}
-#      PRC':
-#        Name': PRC
-#        Query':
-#          bool':
-#            must':
-#              - term': {focus.name': PRC}
     'FocusBoards':
       'FormEngine':
         'Name': FormEngine
@@ -92,3 +86,18 @@
           'bool':
             'must':
               - 'term': {'parent.id': 68397}
+    'StatusMapping':
+      'Rejected': 'Done'
+      'Closed': 'Done'
+      'Resolved': 'Done'
+      'Under Review': 'Review'
+      'In Progress': 'WIP'
+      'On Hold': 'BLOCKED'
+      'Needs Feedback': 'BLOCKED'
+      'DefaultState': 'Open'
+    'ColumnOrder':
+      'BLOCKED':
+      'Open':
+      'WIP':
+      'Review':
+      'Done':

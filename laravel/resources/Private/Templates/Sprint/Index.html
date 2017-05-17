@@ -107,23 +107,7 @@
         <div class="row grid-10 board">
             <f:for each="{board}" as="cards" key="metacolname">
                 <div class="col-md-2 col-sm-2 boardcolumn" id="column-{metacolname}">
-	                <f:switch expression="{metacolname}">
-		                <f:case value="Open">
-			                <h3 class="status_new"><strong><f:count subject="{cards}"/></strong> {metacolname}</h3>
-		                </f:case>
-		                <f:case value="WIP">
-			                <h3 class="status_wip"><strong><f:count subject="{cards}"/></strong> {metacolname}</h3>
-		                </f:case>
-		                <f:case value="Review">
-			                <h3 class="status_review"><strong><f:count subject="{cards}"/></strong> {metacolname}</h3>
-		                </f:case>
-		                <f:case value="Done">
-			                <h3 class="status_done"><strong><f:count subject="{cards}"/></strong> {metacolname}</h3>
-		                </f:case>
-		                <f:case value="BLOCKED">
-			                <h3 class="status_feedback"><strong><f:count subject="{cards}"/></strong> {metacolname}</h3>
-		                </f:case>
-	                </f:switch>
+                    <h3 class="status-{metacolname}"><strong><f:count subject="{cards}"/></strong> {metacolname}</h3>
                     <div class="cards">
                     <f:for each="{cards}" as="card">
                         <f:if condition="{metacolname} == 'Review'">
