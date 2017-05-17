@@ -206,6 +206,7 @@ class SprintController extends Controller
         $count = [
             'open' => 0,
             'closed' => 0,
+            'blocked' => 0,
             'review' => 0,
             'total' => 0,
         ];
@@ -214,6 +215,8 @@ class SprintController extends Controller
                 $count['closed'] += $bucket['doc_count'];
             } elseif ($bucket['key'] === 8) {
                 $count['review'] += $bucket['doc_count'];
+            } elseif ($bucket['key'] === 4 || $bucket['key'] === 7) {
+                $count['blocked'] += $bucket['doc_count'];
             } else {
                 $count['open'] += $bucket['doc_count'];
             }
@@ -223,6 +226,10 @@ class SprintController extends Controller
             $count['reviewPercentage'] = round($count['review'] * 100.0 / $count['total']);
             if ($count['reviewPercentage'] < 1) {
                 unset($count['reviewPercentage']);
+            }
+            $count['blockedPercentage'] = round($count['blocked'] * 100.0 / $count['total']);
+            if ($count['blockedPercentage'] < 1) {
+                unset($count['blockedPercentage']);
             }
             $count['percentage'] = round($count['closed'] * 100.0 / $count['total']);
             if ($count['percentage'] < 1 && $count['total'] < 1) {

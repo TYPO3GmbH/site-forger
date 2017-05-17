@@ -69,8 +69,9 @@
 					<f:for each="{boardMenu}" as="boardNav">
 						<h6>{boardNav.name}</h6>
 						<div class="progress">
+							<div class="progress-bar progress-bar-default" role="progressbar" style="width: {boardNav.count.blockedPercentage}%;">{boardNav.count.blockedPercentage}% Blocked</div>
 							<f:if condition="{boardNav.count.reviewPercentage}">
-								<div class="progress-bar progress-bar-default" role="progressbar" style="width: {boardNav.count.reviewPercentage}%;">{boardNav.count.reviewPercentage}% in Review</div>
+								<div class="progress-bar progress-bar-review" role="progressbar" style="width: {boardNav.count.reviewPercentage}%;">{boardNav.count.reviewPercentage}% in Review</div>
 							</f:if>
 							<div class="progress-bar progress-bar-success" role="progressbar" style="width: {boardNav.count.percentage}%;">{boardNav.count.percentage}% done</div>
 						</div>
