@@ -67,22 +67,10 @@ class SprintController extends Controller
     public function getIndex()
     {
         $this->prepareBoardData($this->boardId);
+        $this->view->assign('title', 'Sprints');
+        $this->view->assign('actionName', 'index');
 
         return $this->view->render('index');
-    }
-
-    /**
-     * Show the index screen to the user.
-     *
-     * @return string
-     *
-     * @throws \Exception
-     */
-    public function getList()
-    {
-        $this->prepareBoardData($this->boardId);
-
-        return $this->view->render('list');
     }
 
     /**
@@ -95,8 +83,10 @@ class SprintController extends Controller
     public function getFocus()
     {
         $this->prepareBoardData($this->boardId, 'FocusBoards');
+        $this->view->assign('title', 'Focus Sprint');
+        $this->view->assign('actionName', 'Focus');
 
-        return $this->view->render('focus');
+        return $this->view->render('index');
     }
 
     /**
@@ -109,8 +99,10 @@ class SprintController extends Controller
     public function getCig()
     {
         $this->prepareBoardData($this->boardId, 'CIGBoards');
+        $this->view->assign('title', 'Community Interest Sprint');
+        $this->view->assign('actionName', 'cig');
 
-        return $this->view->render('cig');
+        return $this->view->render('index');
     }
 
     /**
@@ -478,8 +470,10 @@ class SprintController extends Controller
             $this->view->assign('board', $boardData);
         }
         $this->view->assign('boardMenu', $boardMenu);
+        $this->view->assign('title', 'Junior Board');
+        $this->view->assign('actionName', 'junior');
 
-        return $this->view->render('junior');
+        return $this->view->render('index');
     }
 
     protected function getJuniorQuery($juniorName)
