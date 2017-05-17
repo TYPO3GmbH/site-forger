@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Elastic\Connection;
 use App\Issue;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\Yaml\Parser;
 use Debugbar;
 
@@ -46,6 +45,14 @@ class SprintController extends Controller
      */
     private $connection;
 
+    /**
+     * SprintController constructor.
+     *
+     * @param Connection $connection
+     * @param Request $request
+     *
+     * @throws \Symfony\Component\Yaml\Exception\ParseException
+     */
     public function __construct(Connection $connection, Request $request)
     {
         parent::__construct();
@@ -64,7 +71,7 @@ class SprintController extends Controller
      *
      * @throws \Exception
      */
-    public function getIndex()
+    public function getIndex() : string
     {
         $this->prepareBoardData($this->boardId);
         $this->view->assign('title', 'Sprints');
@@ -80,7 +87,7 @@ class SprintController extends Controller
      *
      * @throws \Exception
      */
-    public function getFocus()
+    public function getFocus() : string
     {
         $this->prepareBoardData($this->boardId, 'FocusBoards');
         $this->view->assign('title', 'Focus Sprint');
@@ -96,7 +103,7 @@ class SprintController extends Controller
      *
      * @throws \Exception
      */
-    public function getCig()
+    public function getCig() : string
     {
         $this->prepareBoardData($this->boardId, 'CIGBoards');
         $this->view->assign('title', 'Community Interest Sprint');
@@ -115,7 +122,6 @@ class SprintController extends Controller
     {
         $boardInfo = [];
         $this->getAllUsers();
-        $this->view->assign('boardMenu', $this->makeBoardMenu($boardId, $boardType));
         if (!is_numeric($boardId) && !isset($this->sprintConfig['T3G']['Forger'][$boardType][$boardId])) {
             return;
         }
@@ -136,10 +142,9 @@ class SprintController extends Controller
                     ),
                 ),
             );
+            $boardInfo['Name'] = '';
             if (isset($this->users[$boardId])) {
                 $boardInfo['Name'] = 'Private Board: '.$this->users[$boardId]['fullname'];
-            } else {
-                $boardInfo['Name'] = '';
             }
         }
         $boardData = $this->getBoardData($query);
@@ -147,9 +152,12 @@ class SprintController extends Controller
         foreach ($boardData as $status => $tickets) {
             $ticketCount[$status] = count($tickets);
         }
-        $this->view->assign('progress', $this->calculateProgressBars($ticketCount));
-        $this->view->assign('board', $boardData);
-        $this->view->assign('boardInfo', $boardInfo);
+        $this->view->assignMultiple([
+            'boardMenu' => $this->makeBoardMenu($boardId, $boardType),
+            'progress' => $this->calculateProgressBars($ticketCount),
+            'board' => $boardData,
+            'boardInfo' => $boardInfo
+        ]);
         Debugbar::startMeasure('Fluid', 'Fluid Rendering');
     }
 
@@ -160,18 +168,19 @@ class SprintController extends Controller
      * @param string $boardType
      *
      * @return array
+     * @throws \Elastica\Exception\InvalidException
      */
-    protected function makeBoardMenu($active = '', $boardType = 'Boards')
+    protected function makeBoardMenu($active = '', $boardType = 'Boards') : array
     {
         $out = [];
         if (is_array($this->sprintConfig['T3G']['Forger'][$boardType])) {
-            foreach ($this->sprintConfig['T3G']['Forger'][$boardType] as $boardId => $boardSetup) {
+            foreach ((array)$this->sprintConfig['T3G']['Forger'][$boardType] as $boardId => $boardSetup) {
                 $resultCount = $this->getTicketByBoardQuery($boardSetup['Query']);
                 $out[] = [
                     'id' => $boardId,
                     'name' => $boardSetup['Name'],
                     'count' => $resultCount,
-                    'active' => ($boardId === $active) ? true : false,
+                    'active' => $boardId === $active,
                 ];
             }
         }
@@ -186,7 +195,7 @@ class SprintController extends Controller
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getTicketByBoardQuery(array $query)
+    protected function getTicketByBoardQuery(array $query) : array
     {
         $fullRequest = [
             'query' => $query,
@@ -210,15 +219,23 @@ class SprintController extends Controller
             'review' => 0,
             'total' => 0,
         ];
-        foreach ($resultSet->getAggregation('status')['buckets'] as $bucket) {
-            if ($bucket['key'] === 3 || $bucket['key'] === 5 || $bucket['key'] === 6) {
-                $count['closed'] += $bucket['doc_count'];
-            } elseif ($bucket['key'] === 8) {
-                $count['review'] += $bucket['doc_count'];
-            } elseif ($bucket['key'] === 4 || $bucket['key'] === 7) {
-                $count['blocked'] += $bucket['doc_count'];
-            } else {
-                $count['open'] += $bucket['doc_count'];
+        foreach ((array)$resultSet->getAggregation('status')['buckets'] as $bucket) {
+            switch ($bucket['key']) {
+                case 3:
+                case 5:
+                case 6:
+                    $count['closed'] += $bucket['doc_count'];
+                    break;
+                case 8:
+                    $count['review'] += $bucket['doc_count'];
+                    break;
+                case 4:
+                case 7:
+                    $count['blocked'] += $bucket['doc_count'];
+                    break;
+                default:
+                    $count['open'] += $bucket['doc_count'];
+                    break;
             }
             $count['total'] += $bucket['doc_count'];
         }
@@ -247,7 +264,7 @@ class SprintController extends Controller
      *
      * @throws \Exception
      */
-    protected function getBoardData($query)
+    protected function getBoardData($query) : array
     {
         Debugbar::startMeasure(__FUNCTION__, __FUNCTION__);
         $this->view->assign('boardConfig', json_encode($query, JSON_PRETTY_PRINT));
@@ -298,11 +315,11 @@ class SprintController extends Controller
      *
      * @throws \Exception
      */
-    protected function getReviewCard(array $ticket)
+    protected function getReviewCard(array $ticket) : array
     {
         $notes = '';
         if (isset($ticket['journals'])) {
-            foreach ($ticket['journals'] as $journalEntry) {
+            foreach ((array)$ticket['journals'] as $journalEntry) {
                 if (isset($journalEntry['notes']) && (
                         false !== strpos($journalEntry['notes'], 'It is available at http://review.typo3.org/')
                         ||
@@ -315,10 +332,10 @@ class SprintController extends Controller
             if ($notes === '') {
                 return $ticket;
             }
-            $pattern = '|.*\/\/review.typo3.org\/(?<reviewId>[0-9]{1,6})|';
+            $pattern = '|.*\/\/review.typo3.org\/(?<reviewId>[\d]{1,6})|';
             preg_match($pattern, $notes, $matches);
             if (!isset($matches['reviewId'])) {
-                throw new \Exception('There should be a review id in '.$notes);
+                throw new \InvalidArgumentException('There should be a review id in ' . $notes);
             }
             $reviewType = $this->connection->getElasticIndex()->getType('review');
             try {
@@ -342,7 +359,7 @@ class SprintController extends Controller
     /**
      * @return array
      */
-    protected function queryFilters()
+    protected function queryFilters() : array
     {
         return [
             'bool' => [
@@ -357,14 +374,11 @@ class SprintController extends Controller
      *
      * @return string
      */
-    protected function defineBoardGroup($status)
+    protected function defineBoardGroup($status) : string
     {
-        if (array_key_exists($status, $this->sprintConfig['T3G']['Forger']['StatusMapping'])) {
-            $metaStatus = $this->sprintConfig['T3G']['Forger']['StatusMapping'][$status];
-        } else {
-            $metaStatus = $this->sprintConfig['T3G']['Forger']['StatusMapping']['DefaultState'];
-        }
-        return $metaStatus;
+        return array_key_exists($status, $this->sprintConfig['T3G']['Forger']['StatusMapping'])
+            ? $this->sprintConfig['T3G']['Forger']['StatusMapping'][$status]
+            : $this->sprintConfig['T3G']['Forger']['StatusMapping']['DefaultState'];
     }
 
     /**
@@ -372,7 +386,7 @@ class SprintController extends Controller
      *
      * @return array
      */
-    protected function calculateProgressBars(array $data)
+    protected function calculateProgressBars(array $data) : array
     {
         $out = [];
         $data['Done'] += $this->closedTicketsNotBeingShown;
@@ -417,14 +431,18 @@ class SprintController extends Controller
     protected function getSprintConfig()
     {
         Debugbar::startMeasure('loadYaml', 'Load YAML Config');
-        $yaml = new Parser();
-        $config = $yaml->parse(file_get_contents(config_path().'/' . config('app.app.sprintConfig')));
+        $config = (new Parser())->parse(file_get_contents(config_path() . '/' . config('app.app.sprintConfig')));
         Debugbar::stopMeasure('loadYaml');
 
         return $config;
     }
 
-    public function getJunior()
+    /**
+     * @return string
+     * @throws \Elastica\Exception\InvalidException
+     * @throws \Exception
+     */
+    public function getJunior() : string
     {
         $boardMenu = [];
         $queries = [];
@@ -435,7 +453,7 @@ class SprintController extends Controller
                 'id' => $junior->junior->id,
                 'name' => $junior->junior->name,
                 'count' => $this->getTicketByBoardQuery($juniorQuery),
-                'active' => ($junior->junior->id === (int)$this->boardId) ? true : false,
+                'active' => $junior->junior->id === (int)$this->boardId,
             ];
             $queries[$junior->junior->id] = $juniorQuery;
         }
@@ -456,7 +474,12 @@ class SprintController extends Controller
         return $this->view->render('index');
     }
 
-    protected function getJuniorQuery($juniorName)
+    /**
+     * @param $juniorName
+     *
+     * @return array
+     */
+    protected function getJuniorQuery($juniorName) : array
     {
         $query = [];
         $issues = Issue::where('junior_id', $juniorName->id)->get();
