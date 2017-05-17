@@ -182,7 +182,7 @@ class SprintController extends Controller
     /**
      * @param array $query
      *
-     * @return string
+     * @return array
      *
      * @throws \Elastica\Exception\InvalidException
      */
