@@ -124,7 +124,7 @@ class ForgeFullImport extends Command
                 $this->getIssuesSinceLastRun();
                 break;
             case 'RedmineFull':
-                $fullAmount = 50000;
+                $fullAmount = 90000;
                 $currentSlot = -100;
                 $optionalStartOffset = $this->argument('startAt');
                 if (array_key_exists(0, $optionalStartOffset) && is_numeric($optionalStartOffset[0])) {
@@ -141,6 +141,10 @@ class ForgeFullImport extends Command
                             'sort' => 'updated_on:desc',
                         ]
                     );
+                    // break a soon as the API returns no more issues
+                    if (count($result['issues']) === 0) {
+                        break;
+                    }
                     foreach ($result['issues'] as $doc) {
                         $this->getTicketAndJournal($doc);
                     }
