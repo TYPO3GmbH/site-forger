@@ -3,6 +3,7 @@
 namespace App\ViewHelpers;
 
 use App\Elastic\TrackerFilters;
+use Illuminate\Support\Facades\Config;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 class ForgelinkViewHelper extends AbstractViewHelper
@@ -27,7 +28,14 @@ class ForgelinkViewHelper extends AbstractViewHelper
      */
     public function render()
     {
-        $redmineUrl = 'https://forge.typo3.org/projects/typo3cms-core/issues?set_filter=1';
+        $projectId = Config::get('app.redmine.projectId');
+        switch ($projectId) {
+            case '1862':
+                $redmineUrl = 'https://forge.typo3.org/projects/team-server-public/issues?set_filter=1';
+                break;
+            default:
+                $redmineUrl = 'https://forge.typo3.org/projects/typo3cms-core/issues?set_filter=1';
+        }
         $filtersString = $this->getFiltersString(
             $this->arguments['year'],
             $this->arguments['month'],
@@ -90,10 +98,6 @@ class ForgelinkViewHelper extends AbstractViewHelper
         $end = $this->getLastDayOfMonth($year, $month);
         $string = '';
         $filters = [
-            'subproject_id' => [
-                'type' => '!*',
-                'values' => [],
-            ],
             'status_id' => [
                 'type' => '=',
                 'values' => [
