@@ -5967,12 +5967,14 @@ div.expandable {
   margin-bottom: 9px;
 }
 .progress-bar-open,
+.progress-bar-backlog,
 .status-New,
-.status-Open {
+.status-Open,
+.status-Backlog {
   background-color: #AE4A32;
   color: #f8eae7;
 }
-.status_accepted,
+.progress-bar-accepted,
 .status-Accepted {
   background-color: #D1C4B1;
   color: #524531;
