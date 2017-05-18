@@ -121,6 +121,7 @@ class SprintController extends Controller
     protected function prepareBoardData($boardId = '', $boardType = 'Boards')
     {
         $boardInfo = [];
+        $this->view->assign('boardMenu', $this->makeBoardMenu($boardId, $boardType));
         $this->getAllUsers();
         if (!is_numeric($boardId) && !isset($this->sprintConfig['T3G']['Forger'][$boardType][$boardId])) {
             return;
@@ -153,7 +154,6 @@ class SprintController extends Controller
             $ticketCount[$status] = count($tickets);
         }
         $this->view->assignMultiple([
-            'boardMenu' => $this->makeBoardMenu($boardId, $boardType),
             'progress' => $this->calculateProgressBars($ticketCount),
             'board' => $boardData,
             'boardInfo' => $boardInfo
