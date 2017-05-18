@@ -44,14 +44,11 @@
         <div class="row">
             <div class="col-md-6"><p>Status:<br/>
                 <f:switch expression="{card.status.name}">
-                    <f:case value="New">           <span class="label status_new">{card.status.name}</span></f:case>
-                    <f:case value="Accepted">      <span class="label status_accepted">{card.status.name}</span></f:case>
-                    <f:case value="Under Review">  <span class="label status_review">{card.status.name}</span></f:case>
-                    <f:case value="On Hold">       <span class="label status_onhold">{card.status.name}</span></f:case>
-                    <f:case value="Needs Feedback"><span class="label status_feedback">{card.status.name}</span></f:case>
-                    <f:case value="In Progress">   <span class="label status_wip">{card.status.name}</span></f:case>
-                    <f:case value="Rejected">      <span class="label label-default">{card.status.name}</span></f:case>
-                    <f:defaultCase>                <span class="label label-default">{card.status.name}</span> </f:defaultCase>
+                    <f:case value="Under Review">  <span class="label status-Review">{card.status.name}</span></f:case>
+                    <f:case value="On Hold">       <span class="label status-OnHold">{card.status.name}</span></f:case>
+                    <f:case value="Needs Feedback"><span class="label status-BLOCKED">{card.status.name}</span></f:case>
+                    <f:case value="In Progress">   <span class="label status-WIP">{card.status.name}</span></f:case>
+                    <f:defaultCase>                <span class="label status-{card.status.name}">{card.status.name}</span> </f:defaultCase>
                 </f:switch>
             </p>
             </div>
@@ -60,9 +57,9 @@
                     <f:if condition="{customfield.name} == 'Complexity'">
                         <f:switch expression="{customfield.value}">
                             <f:case value="easy">      Complexity:<br/> <span class="label label-success">{customfield.value}</span></f:case>
-                            <f:case value="no-brainer">Complexity:<br/> <span class="label labe-success">{customfield.value}</span></f:case>
-                            <f:case value="medium">    Complexity:<br/> <span class="label status_accepted">{customfield.value}</span></f:case>
-                            <f:case value="hard">      Complexity:<br/> <span class="label status_new">{customfield.value}</span></f:case>
+                            <f:case value="no-brainer">Complexity:<br/> <span class="label label-success">{customfield.value}</span></f:case>
+                            <f:case value="medium">    Complexity:<br/> <span class="label status-Accepted">{customfield.value}</span></f:case>
+                            <f:case value="hard">      Complexity:<br/> <span class="label status-New">{customfield.value}</span></f:case>
                             <f:case value="nightmare"> Complexity:<br/> <span class="label label-danger">{customfield.value}</span></f:case>
                             <f:defaultCase></f:defaultCase>
                         </f:switch>

@@ -1,6 +1,6 @@
 <f:layout name="Default"/>
 
-<f:section name="Title">Sprint View</f:section>
+<f:section name="Title">{title}</f:section>
 <f:section name="Javascripts">
 <script type="application/javascript">
 	$(function () {
@@ -42,7 +42,7 @@
 							data="{toggle:'tooltip', placement:'top', container:'body'}"
 							title="{boardNav.count.open} open, {boardNav.count.closed} closed,  {boardNav.count.total} total"
 							controller="Sprint"
-							action="Index"
+							action="{actionName}"
 							arguments="{boardId:boardNav.id}"
 							>{boardNav.name} ({boardNav.count.percentage}%)</fl:link.action>
 				</f:for>
@@ -69,8 +69,9 @@
 					<f:for each="{boardMenu}" as="boardNav">
 						<h6>{boardNav.name}</h6>
 						<div class="progress">
+							<div class="progress-bar progress-bar-default" role="progressbar" style="width: {boardNav.count.blockedPercentage}%;">{boardNav.count.blockedPercentage}% Blocked</div>
 							<f:if condition="{boardNav.count.reviewPercentage}">
-								<div class="progress-bar progress-bar-default" role="progressbar" style="width: {boardNav.count.reviewPercentage}%;">{boardNav.count.reviewPercentage}% in Review</div>
+								<div class="progress-bar progress-bar-review" role="progressbar" style="width: {boardNav.count.reviewPercentage}%;">{boardNav.count.reviewPercentage}% in Review</div>
 							</f:if>
 							<div class="progress-bar progress-bar-success" role="progressbar" style="width: {boardNav.count.percentage}%;">{boardNav.count.percentage}% done</div>
 						</div>
@@ -104,26 +105,10 @@
                 </f:if>
             </div>
         </div>
-        <div class="row grid-10 board">
+        <div class="row board">
             <f:for each="{board}" as="cards" key="metacolname">
                 <div class="col-md-2 col-sm-2 boardcolumn" id="column-{metacolname}">
-	                <f:switch expression="{metacolname}">
-		                <f:case value="Open">
-			                <h3 class="status_new"><strong><f:count subject="{cards}"/></strong> {metacolname}</h3>
-		                </f:case>
-		                <f:case value="WIP">
-			                <h3 class="status_wip"><strong><f:count subject="{cards}"/></strong> {metacolname}</h3>
-		                </f:case>
-		                <f:case value="Review">
-			                <h3 class="status_review"><strong><f:count subject="{cards}"/></strong> {metacolname}</h3>
-		                </f:case>
-		                <f:case value="Done">
-			                <h3 class="status_done"><strong><f:count subject="{cards}"/></strong> {metacolname}</h3>
-		                </f:case>
-		                <f:case value="BLOCKED">
-			                <h3 class="status_feedback"><strong><f:count subject="{cards}"/></strong> {metacolname}</h3>
-		                </f:case>
-	                </f:switch>
+                    <h3 class="status-{metacolname}"><strong><f:count subject="{cards}"/></strong> {metacolname}</h3>
                     <div class="cards">
                     <f:for each="{cards}" as="card">
                         <f:render partial="BoardCard" arguments="{card: card, coltype: metacolname}"/>
