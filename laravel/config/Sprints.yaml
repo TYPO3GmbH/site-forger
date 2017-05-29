@@ -20,6 +20,7 @@
           'bool':
             'must':
               - 'term': {'focus.name': On Location Sprint}
+              - 'term': {'category.id': 972}
       'Stab8LTS':
         'Name': Stabilization 8 LTS
         'Query':
