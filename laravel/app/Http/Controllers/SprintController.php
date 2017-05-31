@@ -280,17 +280,6 @@ class SprintController extends Controller
         foreach ($resultSet->getResults() as $ticket) {
             $status = $ticket->status;
             $getBoardGroup = $this->defineBoardGroup($status['name']);
-            if ($getBoardGroup === 'Done') {
-                //@todo yes, this is butt-ugly, but either like this or with two queries.
-                $ticketTime = new \DateTime($ticket->updated_on);
-                $now = new \DateTime();
-                $ageDiff = $now->diff($ticketTime);
-                $age = (int) $ageDiff->format('%a');
-                if ($age > 30) {
-                    ++$this->closedTicketsNotBeingShown;
-                    continue;
-                }
-            }
             if ($getBoardGroup === 'Review' && config('app.app.useGerrit')) {
                 $out[$getBoardGroup][] = $this->getReviewCard($ticket->getData());
             } else {
