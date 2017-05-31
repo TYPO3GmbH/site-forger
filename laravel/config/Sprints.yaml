@@ -1,19 +1,6 @@
 'T3G':
   'Forger':
     'Boards':
-#      'SS_6215':
-#        'Name': 6.2.16 Stabilisation
-#        'Query':
-#          'bool':
-#            'must':
-#              - 'term': {'focus.name': Stabilization Sprint}
-#              - 'term': {'fixed_version.name': 6.2.16}
-#      'SS_761':
-#        'Name': 7.6.1 Stabilization
-#        'Query':
-#          'bool':
-#            'must':
-#              - 'term': {fixed_version.name': 7.6.1}
       'CodeSprint':
         'Name': Code Sprints
         'Query':
@@ -21,6 +8,13 @@
             'must':
               - 'term': {'focus.name': On Location Sprint}
               - 'term': {'category.id': 972}
+            'must_not':
+              'and':
+                - range: {'updated_on': {'lte': 'now-30d'}}
+                - 'or':
+                  - 'term': {'status.name': Closed}
+                  - 'term': {'status.name': Resolved}
+                  - 'term': {'status.name': Rejected}
       'Stab8LTS':
         'Name': Stabilization 8 LTS
         'Query':
@@ -28,6 +22,13 @@
             'must':
               - 'term': {'focus.name': Stabilization Sprint}
               - 'term': {'fixed_version.name': '8 LTS'}
+            'must_not':
+              'and':
+                - range: {'updated_on': {'lte': 'now-30d'}}
+                - 'or':
+                  - 'term': {'status.name': Closed}
+                  - 'term': {'status.name': Resolved}
+                  - 'term': {'status.name': Rejected}
       'nmr':
         'Name': Next Maintenance Release
         'Query':
@@ -35,12 +36,26 @@
             'should':
               - 'term': {'fixed_version.id': 3285}
               - 'term': {'fixed_version.id': 2354}
+            'must_not':
+              'and':
+                - range: {'updated_on': {'lte': 'now-30d'}}
+                - 'or':
+                  - 'term': {'status.name': Closed}
+                  - 'term': {'status.name': Resolved}
+                  - 'term': {'status.name': Rejected}
       'next-patchlevel':
         'Name': Next patch level
         'Query':
           'bool':
             'should':
               - 'term': {'fixed_version.id': 2354}
+            'must_not':
+              'and':
+                - range: {'updated_on': {'lte': 'now-30d'}}
+                - 'or':
+                  - 'term': {'status.name': Closed}
+                  - 'term': {'status.name': Resolved}
+                  - 'term': {'status.name': Rejected}
     'FocusBoards':
       'FormEngine':
         'Name': FormEngine
@@ -53,6 +68,13 @@
                 'should':
                   - 'term': {'category.id': 983}
                   - 'term': {'category.id': 978}
+                'must_not':
+                  'and':
+                    - range: {'updated_on': {'lte': 'now-30d'}}
+                    - 'or':
+                      - 'term': {'status.name': Closed}
+                      - 'term': {'status.name': Resolved}
+                      - 'term': {'status.name': Rejected}
       'Installation':
         'Name': Installation
         'Query':
@@ -60,6 +82,13 @@
             'must':
               - 'term': {'category.id': 1601}
               - 'term': {'fixed_version.name': 7 LTS}
+            'must_not':
+              'and':
+                - range: {'updated_on': {'lte': 'now-30d'}}
+                - 'or':
+                  - 'term': {'status.name': Closed}
+                  - 'term': {'status.name': Resolved}
+                  - 'term': {'status.name': Rejected}
       'BackendUI':
         'Name': Backend UI
         'Query':
@@ -67,6 +96,13 @@
             'must':
               - 'term': {'category.id': 972}
               - 'term': {'fixed_version.name': 7 LTS}
+            'must_not':
+              'and':
+                - range: {'updated_on': {'lte': 'now-30d'}}
+                - 'or':
+                  - 'term': {'status.name': Closed}
+                  - 'term': {'status.name': Resolved}
+                  - 'term': {'status.name': Rejected}
       'Localization':
         'Name': Localization
         'Query':
@@ -80,6 +116,13 @@
               - 'term': {'fixed_version.id': 3287}
               - 'term': {'fixed_version.id': 3285}
               - 'term': {'fixed_version.id': 2354}
+            'must_not':
+              'and':
+                - range: {'updated_on': {'lte': 'now-30d'}}
+                - 'or':
+                  - 'term': {'status.name': Closed}
+                  - 'term': {'status.name': Resolved}
+                  - 'term': {'status.name': Rejected}
     'CIGBoards':
       'FormsNG':
         'Name': Forms Next generation
@@ -87,12 +130,26 @@
           'bool':
             'must':
               - 'term': {'category.id': 1107}
+            'must_not':
+              'and':
+                - range: {'updated_on': {'lte': 'now-30d'}}
+                - 'or':
+                  - 'term': {'status.name': Closed}
+                  - 'term': {'status.name': Resolved}
+                  - 'term': {'status.name': Rejected}
       'MySQLStrict':
         'Name': MySQL Strict
         'Query':
           'bool':
             'must':
               - 'term': {'parent.id': 68397}
+            'must_not':
+              'and':
+                - range: {'updated_on': {'lte': 'now-30d'}}
+                - 'or':
+                  - 'term': {'status.name': Closed}
+                  - 'term': {'status.name': Resolved}
+                  - 'term': {'status.name': Rejected}
     'StatusMapping':
       'Rejected': 'Done'
       'Closed': 'Done'
