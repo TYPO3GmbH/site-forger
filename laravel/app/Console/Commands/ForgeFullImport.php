@@ -423,6 +423,9 @@ class ForgeFullImport extends Command
                 if (isset($document['custom_fields'])) {
                     foreach ($document['custom_fields'] as $customField) {
                         switch ($customField['id']) {
+                            case 3:
+                                $document['tags'] = array_map('trim', explode(',', $customField['value']));
+                                break;
                             case 4:
                                 $document['typo3_version'] =
                                     (isset($customField['value']) ? $customField['value'] : '-');
