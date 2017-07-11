@@ -7,7 +7,6 @@
           'bool':
             'must':
               - 'term': {'focus.name': On Location Sprint}
-              - 'term': {'category.id': 972}
             'must_not':
               'and':
                 - range: {'updated_on': {'lte': 'now-30d'}}
