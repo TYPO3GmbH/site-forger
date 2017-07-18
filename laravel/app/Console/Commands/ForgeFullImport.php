@@ -424,11 +424,12 @@ class ForgeFullImport extends Command
                     foreach ($document['custom_fields'] as $customField) {
                         switch ($customField['id']) {
                             case 3:
-                                $document['tags'] = array_map('trim', explode(',', $customField['value']));
+                                if (!empty($customField['value'])) {
+                                    $document['tags'] = array_map('trim', explode(',', $customField['value']));
+                                }
                                 break;
                             case 4:
-                                $document['typo3_version'] =
-                                    (isset($customField['value']) ? $customField['value'] : '-');
+                                $document['typo3_version'] = (isset($customField['value']) ? $customField['value'] : '-');
                                 break;
                             case 5:
                                 $document['php_version'] = (isset($customField['value']) ? $customField['value'] : '-');
@@ -440,8 +441,7 @@ class ForgeFullImport extends Command
                                 $document['isregression'] = (isset($customField['value']) ? true : false);
                                 break;
                             case 18:
-                                $document['focus']['name'] =
-                                    (isset($customField['value']) ? $customField['value'] : '-');
+                                $document['focus']['name'] = (isset($customField['value']) ? $customField['value'] : '-');
                                 break;
                             default:
                         }

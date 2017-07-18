@@ -66,13 +66,15 @@
                     </f:if>
                 </f:for>
             </div>
-            <div class="col-md-12">
-                <p>Tags:<br/>
-                <f:for each="{card.tags}" as="tag">
-                    <span class="label label-default">{tag}</span>
-                </f:for>
-                </p>
-            </div>
+            <f:if condition="{card.tags}">
+                <div class="col-md-12">
+                    <p>Tags:<br/>
+                    <f:for each="{card.tags}" as="tag">
+                        <span class="label label-default">{tag}</span>
+                    </f:for>
+                    </p>
+                </div>
+            </f:if>
         </div>
     </div>
     </f:if>
