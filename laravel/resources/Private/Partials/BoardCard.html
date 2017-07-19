@@ -50,7 +50,7 @@
                     <f:case value="In Progress">   <span class="label status-WIP">{card.status.name}</span></f:case>
                     <f:defaultCase>                <span class="label status-{card.status.name}">{card.status.name}</span> </f:defaultCase>
                 </f:switch>
-            </p>
+                </p>
             </div>
             <div class="col-md-6">
                 <f:for each="{card.custom_fields}" as="customfield">
@@ -66,6 +66,15 @@
                     </f:if>
                 </f:for>
             </div>
+            <f:if condition="{card.tags}">
+                <div class="col-md-12">
+                    <p>Tags:<br/>
+                    <f:for each="{card.tags}" as="tag">
+                        <span class="label label-default">{tag}</span>
+                    </f:for>
+                    </p>
+                </div>
+            </f:if>
         </div>
     </div>
     </f:if>
