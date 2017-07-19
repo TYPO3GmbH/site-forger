@@ -1,14 +1,22 @@
 <?php namespace App\Http\Controllers\Admin;
 
-use Backpack\CRUD\app\Http\Controllers\CrudController;
+use App\Http\Requests\IssueCrudRequest as StoreRequest;
 
 // VALIDATION: change the requests to match your own file names if you need form validation
-use App\Http\Requests\IssueCrudRequest as StoreRequest;
 use App\Http\Requests\IssueCrudRequest as UpdateRequest;
+use Backpack\CRUD\app\Http\Controllers\CrudController;
+use Illuminate\Http\RedirectResponse;
 
-class IssueCrudController extends CrudController {
-
-    public function setup() {
+/**
+ * Class IssueCrudController
+ */
+class IssueCrudController extends CrudController
+{
+    /**
+     *
+     */
+    public function setup()
+    {
         $this->crud->setModel('App\Issue');
         $this->crud->setRoute('admin/issue');
         $this->crud->setEntityNameStrings('issue', 'issues');
@@ -31,12 +39,22 @@ class IssueCrudController extends CrudController {
         ]);
     }
 
-    public function store(StoreRequest $request)
+    /**
+     * @param UpdateRequest $request
+     *
+     * @return RedirectResponse
+     */
+    public function store(StoreRequest $request) : RedirectResponse
     {
         return parent::storeCrud();
     }
 
-    public function update(UpdateRequest $request)
+    /**
+     * @param UpdateRequest $request
+     *
+     * @return RedirectResponse
+     */
+    public function update(UpdateRequest $request) : RedirectResponse
     {
         return parent::updateCrud();
     }

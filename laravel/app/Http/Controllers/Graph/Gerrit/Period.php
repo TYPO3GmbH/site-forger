@@ -21,7 +21,7 @@ class Period extends AbstractGraph
         /** @var \DateTime $currentPeriodStart */
         $currentPeriodStart = new \DateTime();
         $year = (int)$currentPeriodStart->format('Y');
-        
+
         $this->getCumulativeTicketsToDate($year, 'current', self::DOCUMENT_TYPE_REVIEW);
         $this->getCumulativeTicketsToDate($year-1, 'previous', self::DOCUMENT_TYPE_REVIEW);
         $this->getCumulativeTicketsToDate($year-2, 'previous2', self::DOCUMENT_TYPE_REVIEW);

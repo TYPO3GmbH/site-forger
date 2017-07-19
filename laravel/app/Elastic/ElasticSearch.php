@@ -56,7 +56,7 @@ class ElasticSearch
         $aggs = $elasticaResultSet->getAggregations();
         $this->totalHits = $elasticaResultSet->getTotalHits();
 
-        $out = array(
+        $out = [
             'pagesToLinkTo' => $this->getPages(),
             'currentPage' => $this->currentPage,
             'prev' => $this->currentPage - 1,
@@ -67,7 +67,7 @@ class ElasticSearch
             'results' => $results,
             'maxScore' => $maxScore,
             'aggs' => $aggs,
-        );
+        ];
         if ((int) $this->totalHits <= (int) $out['endingAtItem']) {
             $out['endingAtItem'] = (int) $this->totalHits;
         }
@@ -103,7 +103,7 @@ class ElasticSearch
                         || $key === 'priority'
                         || $key === 'fixed_version'
                     ) {
-                        $filter->setTerm($key.'.name', $term);
+                        $filter->setTerm($key . '.name', $term);
                     } else {
                         $filter->setTerm($key, $term);
                     }
@@ -192,7 +192,7 @@ class ElasticSearch
             $i = 0;
         }
 
-        $out = array();
+        $out = [];
         while ($i < $numPages) {
             $out[(int) $i] = ($i + 1);
             ++$i;

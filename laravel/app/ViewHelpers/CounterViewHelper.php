@@ -29,7 +29,7 @@ class CounterViewHelper extends AbstractViewHelper
     {
         $counterId = 'CounterViewHelper_counter';
         if (array_key_exists('id', $this->arguments) && $this->arguments['id'] !== null) {
-            $counterId .= ':'.$this->arguments['id'];
+            $counterId .= ':' . $this->arguments['id'];
         }
         if (empty($GLOBALS[$counterId])) {
             $GLOBALS[$counterId] = 0;

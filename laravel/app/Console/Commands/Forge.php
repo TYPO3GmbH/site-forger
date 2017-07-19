@@ -78,14 +78,14 @@ class Forge extends Command
         $this->comment('Testing Redmine...');
         $json = $this->redmineClient->get('/issues.json');
         if (is_array($json)) {
-            $this->info('Connected to Redmine successful!, found: '.$json['total_count'].' issues');
+            $this->info('Connected to Redmine successful!, found: ' . $json['total_count'] . ' issues');
         } else {
             $this->error('Connection to Redmine not possible!');
         }
         $this->comment('Testing Elastic...');
         $result = $this->elasticIndex->search('index');
         if ($result->count()) {
-            $this->info('Connected to Elastic successful!, found: '.$result->count().' documents');
+            $this->info('Connected to Elastic successful!, found: ' . $result->count() . ' documents');
         } else {
             $this->error('Connection to Elastic not possible!');
         }

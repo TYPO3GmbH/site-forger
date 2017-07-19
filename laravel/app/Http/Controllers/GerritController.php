@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Elastic\Connection;
-use Elastica\Query\BoolQuery;
-use Elastica;
 use Debugbar;
+use Elastica;
+use Elastica\Query\BoolQuery;
 
 /**
  * Class GerritController.
@@ -64,7 +64,7 @@ class GerritController extends Controller
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    public function getStatus()
+    public function getStatus() : string
     {
         Debugbar::startMeasure(__FUNCTION__, __FUNCTION__);
         $fullRequest = [
@@ -116,7 +116,7 @@ class GerritController extends Controller
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    public function getFiles()
+    public function getFiles() : string
     {
         Debugbar::startMeasure(__FUNCTION__, __FUNCTION__);
         if (array_key_exists('query', $_GET)) {
@@ -173,7 +173,7 @@ class GerritController extends Controller
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    public function getMergeReady()
+    public function getMergeReady() : string
     {
         $fullRequest = [
             'query' => [
@@ -229,7 +229,7 @@ class GerritController extends Controller
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    public function getCoreteamMerge()
+    public function getCoreteamMerge() : string
     {
         $aggregations = $this->queryAggregations();
         unset(
@@ -310,7 +310,7 @@ class GerritController extends Controller
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    public function getMissesVerification()
+    public function getMissesVerification() : string
     {
         $fullRequest = [
             'query' => [
@@ -366,7 +366,7 @@ class GerritController extends Controller
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    public function getMissesReview()
+    public function getMissesReview() : string
     {
         $fullRequest = [
             'query' => [
@@ -422,7 +422,7 @@ class GerritController extends Controller
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    public function getRebase()
+    public function getRebase() : string
     {
         $aggs = $this->queryAggregations();
         unset($aggs['Mergeable'], $aggs['Patchsets'], $aggs['Releases'], $aggs['Topic']);
@@ -469,7 +469,7 @@ class GerritController extends Controller
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    public function getNegativeVoteCleanup()
+    public function getNegativeVoteCleanup() : string
     {
         $aggregations = $this->queryAggregations();
         unset(
@@ -531,7 +531,7 @@ class GerritController extends Controller
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    public function getWorkInProgress()
+    public function getWorkInProgress() : string
     {
         $fullRequest = [
             'query' => [
@@ -590,7 +590,7 @@ class GerritController extends Controller
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    public function getStaleIssues()
+    public function getStaleIssues() : string
     {
         $re = '/http[s]*:\/\/review\.typo3\.org\/([\d]*)/';
         $staleIssues = [];
@@ -661,11 +661,9 @@ class GerritController extends Controller
      *
      * @return string
      */
-    protected function fixTime($in)
+    protected function fixTime($in) : string
     {
-        $date = substr($in, 0, 10);
-
-        return str_replace('/', '-', $date);
+        return str_replace('/', '-', substr($in, 0, 10));
     }
 
     /**
@@ -706,7 +704,7 @@ class GerritController extends Controller
                             || $key === 'priority'
                             || $key === 'fixed_version'
                         ) {
-                            $filter->setTerm($key.'.name', $term);
+                            $filter->setTerm($key . '.name', $term);
                         } else {
                             $filter->setTerm($key, $term);
                         }
@@ -728,7 +726,7 @@ class GerritController extends Controller
     /**
      * @return array
      */
-    protected function queryAggregations()
+    protected function queryAggregations() : array
     {
         return [
             'Releases' => [
@@ -782,7 +780,7 @@ class GerritController extends Controller
      *
      * @return array
      */
-    protected function querySort()
+    protected function querySort() : array
     {
         return [
             'updated_on' => 'desc',
@@ -797,7 +795,7 @@ class GerritController extends Controller
      *
      * @return array
      */
-    protected function getPages()
+    protected function getPages() : array
     {
         $numPages = ceil($this->totalHits / $this->perPage);
         $i = 0;
@@ -821,7 +819,7 @@ class GerritController extends Controller
             $i = 0;
         }
 
-        $out = array();
+        $out = [];
         while ($i < $numPages) {
             $out[(int) $i] = ($i + 1);
             ++$i;

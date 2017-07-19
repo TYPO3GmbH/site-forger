@@ -42,7 +42,7 @@ class ForgelinkViewHelper extends AbstractViewHelper
             $this->arguments['statusId'],
             $this->arguments['trackerFilters']
         );
-        $content = $redmineUrl.$filtersString.'&f[]='.$this->getColumnsString().'&group_by=';
+        $content = $redmineUrl . $filtersString . '&f[]=' . $this->getColumnsString() . '&group_by=';
 
         return $content;
     }
@@ -55,7 +55,7 @@ class ForgelinkViewHelper extends AbstractViewHelper
      */
     protected function getLastDayOfMonth($year = '', $month = '')
     {
-        $dateString = $year.'-'.$month.'-16';
+        $dateString = $year . '-' . $month . '-16';
 
         return date('Y-m-t', strtotime($dateString));
     }
@@ -76,7 +76,7 @@ class ForgelinkViewHelper extends AbstractViewHelper
             'fixed_version',
         ];
         foreach ($columns as $columnName) {
-            $string .= '&c[]='.$columnName;
+            $string .= '&c[]=' . $columnName;
         }
 
         return $string;
@@ -111,7 +111,7 @@ class ForgelinkViewHelper extends AbstractViewHelper
             'updated_on' => [
                 'type' => '><',
                 'values' => [
-                    $year.'-'.$month.'-01',
+                    $year . '-' . $month . '-01',
                     $end,
                 ],
             ],
@@ -140,10 +140,10 @@ class ForgelinkViewHelper extends AbstractViewHelper
             $filters['status_id']['values'] = [];
         }
         foreach ($filters as $fieldName => $config) {
-            $string .= '&f[]='.$fieldName;
-            $string .= '&op['.$fieldName.']='.$config['type'];
+            $string .= '&f[]=' . $fieldName;
+            $string .= '&op[' . $fieldName . ']=' . $config['type'];
             foreach ($config['values'] as $value) {
-                $string .= '&v['.$fieldName.'][]='.$value;
+                $string .= '&v[' . $fieldName . '][]=' . $value;
             }
         }
 

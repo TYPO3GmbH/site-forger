@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use Auth;
 use Closure;
-use Illuminate\Database\Eloquent\Collection;
 
 class CheckRole
 {

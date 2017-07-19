@@ -45,7 +45,7 @@ class BucketCounterViewHelper extends AbstractViewHelper
             return '';
         }
 
-        return '<span class="label label-default pull-right">'.$activeCount.' / '.count($buckets).'</span>';
+        return '<span class="label label-default pull-right">' . $activeCount . ' / ' . count($buckets) . '</span>';
     }
 
     /**

@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Elastic\Connection;
 use App\Issue;
+use Debugbar;
 use Illuminate\Http\Request;
 use Symfony\Component\Yaml\Parser;
-use Debugbar;
 
 /**
  * Class SprintController.
@@ -132,20 +132,20 @@ class SprintController extends Controller
             $boardInfo = $this->sprintConfig['T3G']['Forger'][$boardType][$boardId];
         }
         if (is_numeric($boardId)) {
-            $query = array(
-                'bool' => array(
-                    'must' => array(
-                        array(
-                            'term' => array(
+            $query = [
+                'bool' => [
+                    'must' => [
+                        [
+                            'term' => [
                                 'assigned_to.id' => (int) $boardId,
-                            ),
-                        ),
-                    ),
-                ),
-            );
+                            ],
+                        ],
+                    ],
+                ],
+            ];
             $boardInfo['Name'] = '';
             if (isset($this->users[$boardId])) {
-                $boardInfo['Name'] = 'Private Board: '.$this->users[$boardId]['fullname'];
+                $boardInfo['Name'] = 'Private Board: ' . $this->users[$boardId]['fullname'];
             }
         }
         $boardData = $this->getBoardData($query);

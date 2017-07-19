@@ -33,7 +33,7 @@ class CheckboxViewHelper extends AbstractViewHelper
         if ($trackerFilters->$property === true) {
             $checked = ' checked="checked';
         }
-        $content = '<input type="checkbox" name="trackerFilters['.$property.']"'.$checked.' value="true" />';
+        $content = '<input type="checkbox" name="trackerFilters[' . $property . ']"' . $checked . ' value="true" />';
 
         return $content;
     }

@@ -1,9 +1,8 @@
 <?php
 namespace App\Http\Requests;
 
-use App\Http\Requests\Request;
-
-class IssueCrudRequest extends \Backpack\CRUD\app\Http\Requests\CrudRequest {
+class IssueCrudRequest extends \Backpack\CRUD\app\Http\Requests\CrudRequest
+{
 
     /**
      * Determine if the user is authorized to make this request.
@@ -28,5 +27,4 @@ class IssueCrudRequest extends \Backpack\CRUD\app\Http\Requests\CrudRequest {
             'issue_number' => 'required|min:4|max:6',
         ];
     }
-
 }
