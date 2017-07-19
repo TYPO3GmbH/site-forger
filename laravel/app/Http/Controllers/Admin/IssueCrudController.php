@@ -6,6 +6,8 @@ use App\Http\Requests\IssueCrudRequest as StoreRequest;
 use App\Http\Requests\IssueCrudRequest as UpdateRequest;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Illuminate\Http\RedirectResponse;
+use App\Issue;
+use App\Junior;
 
 /**
  * Class IssueCrudController
@@ -17,7 +19,7 @@ class IssueCrudController extends CrudController
      */
     public function setup()
     {
-        $this->crud->setModel('App\Issue');
+        $this->crud->setModel(Issue::class);
         $this->crud->setRoute('admin/issue');
         $this->crud->setEntityNameStrings('issue', 'issues');
         $this->crud->setFromDb();
@@ -35,7 +37,7 @@ class IssueCrudController extends CrudController
             'name' => 'junior_id',
             'entity' => 'junior',
             'attribute' => 'name',
-            'model' => 'App\Junior'
+            'model' => Junior::class
         ]);
     }
 
