@@ -75,3 +75,7 @@ isregression:
   type: boolean
   index: not_analyzed
   store: true
+tags:
+  type: string
+  index: not_analyzed
+  store: true
