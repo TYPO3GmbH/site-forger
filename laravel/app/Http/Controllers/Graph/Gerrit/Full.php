@@ -10,9 +10,10 @@ use App\Http\Controllers\Graph\AbstractGraph;
 class Full extends AbstractGraph
 {
     /**
+     * @return array
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getData()
+    protected function getData() : array
     {
         $fullRequest = [
             'query' => [

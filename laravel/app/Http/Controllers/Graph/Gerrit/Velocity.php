@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Graph\Gerrit;
 use App\Elastic\Connection;
 use App\Http\Controllers\Graph\AbstractGraph;
 
+/**
+ * Class Velocity
+ */
 class Velocity extends AbstractGraph
 {
     /**
@@ -23,7 +26,7 @@ class Velocity extends AbstractGraph
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getData()
+    protected function getData() : array
     {
         $lastRow = [
             'closed' => 1,

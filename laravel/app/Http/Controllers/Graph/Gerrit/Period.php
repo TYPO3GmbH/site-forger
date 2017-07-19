@@ -10,11 +10,11 @@ use App\Http\Controllers\Graph\AbstractGraph;
 class Period extends AbstractGraph
 {
     /**
-     * @return int
+     * @return array
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getData()
+    protected function getData() : array
     {
         $this->dateInterval = 'month';
 

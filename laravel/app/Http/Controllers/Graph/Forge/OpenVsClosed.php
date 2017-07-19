@@ -14,7 +14,7 @@ class OpenVsClosed extends AbstractGraph
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getData()
+    protected function getData() : array
     {
         $this->chartData = [
             'guides' => $this->getGuides(),
@@ -35,11 +35,11 @@ class OpenVsClosed extends AbstractGraph
     }
 
     /**
-     * @return string
+     * @return array
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getClosed()
+    protected function getClosed() : array
     {
         $chartData = [];
         $fullRequest = [
@@ -100,7 +100,7 @@ class OpenVsClosed extends AbstractGraph
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getOpened()
+    protected function getOpened() : array
     {
         $chartData = [];
         $fullRequest = [

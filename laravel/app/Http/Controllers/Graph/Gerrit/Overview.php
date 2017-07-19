@@ -17,7 +17,7 @@ class Overview extends AbstractGraph
     /**
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getData()
+    protected function getData() : array
     {
         $this->weirdTimeThingy = strftime('%Y/%m/%d 00:00:00', time() - (((365 / 2) - 31) * 24 * 60 * 60));
         $this->chartData = [
@@ -34,7 +34,7 @@ class Overview extends AbstractGraph
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function gerritOpenVsClosedAction()
+    protected function gerritOpenVsClosedAction() : array
     {
         $row = [];
         $opened = $this->gerritGetOpened();
@@ -113,7 +113,7 @@ class Overview extends AbstractGraph
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function gerritGetOpened()
+    protected function gerritGetOpened() : array
     {
         $row = [];
 
