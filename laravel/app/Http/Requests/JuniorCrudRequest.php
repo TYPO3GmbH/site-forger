@@ -1,26 +1,19 @@
 <?php
 namespace App\Http\Requests;
 
-class JuniorCrudRequest extends \Backpack\CRUD\app\Http\Requests\CrudRequest
+use Backpack\CRUD\app\Http\Requests\CrudRequest;
+
+/**
+ * Class JuniorCrudRequest
+ */
+class JuniorCrudRequest extends CrudRequest
 {
-
-    /**
-     * Determine if the user is authorized to make this request.
-     *
-     * @return bool
-     */
-    public function authorize()
-    {
-        // only allow updates if the user is logged in
-        return \Auth::check();
-    }
-
     /**
      * Get the validation rules that apply to the request.
      *
      * @return array
      */
-    public function rules()
+    public function rules() : array
     {
         return [
             'name' => 'required|min:3|max:255',
