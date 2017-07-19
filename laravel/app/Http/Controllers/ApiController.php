@@ -24,7 +24,6 @@ class ApiController extends BaseController
      */
     public function __construct(Connection $connection, Request $request)
     {
-        date_default_timezone_set('UTC');
         $this->connection = $connection;
     }
 

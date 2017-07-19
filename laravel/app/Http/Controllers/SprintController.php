@@ -56,7 +56,6 @@ class SprintController extends Controller
     public function __construct(Connection $connection, Request $request)
     {
         parent::__construct();
-        date_default_timezone_set('UTC');
         $this->connection = $connection;
         $this->sprintConfig = $this->getSprintConfig();
         if ($request->has('boardId')) {

@@ -50,7 +50,6 @@ class GerritController extends Controller
     public function __construct(Connection $connection)
     {
         parent::__construct();
-        date_default_timezone_set('UTC');
         $this->connection = $connection;
         if (array_key_exists('page', $_GET)) {
             $this->currentPage = (int) $_GET['page'];
