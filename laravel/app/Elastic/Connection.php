@@ -2,27 +2,31 @@
 
 namespace App\Elastic;
 
+use Elastica\Client;
+use Elastica\Index;
+use Illuminate\Config\Repository;
+
 class Connection
 {
     /**
-     * @var \Illuminate\Config\Repository
+     * @var Repository
      */
     protected $config;
 
     /**
-     * @var \Elastica\Client
+     * @var Client
      */
     protected $elasticClient;
 
     /**
-     * @var \Elastica\Index;
+     * @var Index;
      */
     protected $elasticIndex;
 
     /**
-     * @param \Illuminate\Config\Repository $config
+     * @param Repository $config
      */
-    public function __construct(\Illuminate\Config\Repository $config)
+    public function __construct(Repository $config)
     {
         $this->config = $config;
 
@@ -34,22 +38,22 @@ class Connection
             ];
         }
 
-        $this->elasticClient = new \Elastica\Client($elasticConfig);
+        $this->elasticClient = new Client($elasticConfig);
         $this->elasticIndex = $this->elasticClient->getIndex($this->config->get('app.elastic.index'));
     }
 
     /**
-     * @return \Elastica\Client
+     * @return Client
      */
-    public function getElasticClient()
+    public function getElasticClient() : Client
     {
         return $this->elasticClient;
     }
 
     /**
-     * @return \Elastica\Index
+     * @return Index
      */
-    public function getElasticIndex()
+    public function getElasticIndex() : Index
     {
         return $this->elasticIndex;
     }

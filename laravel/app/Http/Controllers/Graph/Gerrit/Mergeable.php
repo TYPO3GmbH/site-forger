@@ -64,5 +64,6 @@ class Mergeable extends AbstractGraph
                 'title' => 'Can be merged',
             ],
         ];
+        return $this->chartData;
     }
 }

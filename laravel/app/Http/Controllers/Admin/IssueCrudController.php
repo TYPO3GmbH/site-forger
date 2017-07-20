@@ -4,10 +4,10 @@ use App\Http\Requests\IssueCrudRequest as StoreRequest;
 
 // VALIDATION: change the requests to match your own file names if you need form validation
 use App\Http\Requests\IssueCrudRequest as UpdateRequest;
-use Backpack\CRUD\app\Http\Controllers\CrudController;
-use Illuminate\Http\RedirectResponse;
 use App\Issue;
 use App\Junior;
+use Backpack\CRUD\app\Http\Controllers\CrudController;
+use Illuminate\Http\RedirectResponse;
 
 /**
  * Class IssueCrudController

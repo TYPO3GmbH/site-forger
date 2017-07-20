@@ -29,11 +29,11 @@ class ElasticSearch
     /**
      * @param array $query
      *
-     * @return \Elastica\ResultSet
+     * @return array
      *
      * @throws \Exception
      */
-    public function doSearch(array $query)
+    public function doSearch(array $query) : array
     {
         if (array_key_exists('page', $_GET)) {
             $this->currentPage = (int) $_GET['page'];
@@ -78,7 +78,7 @@ class ElasticSearch
     /**
      * Adds filters based on get parameters.
      *
-     * @return array
+     * @return Query|Query\BoolQuery
      */
     private function addFilters()
     {
@@ -168,7 +168,7 @@ class ElasticSearch
     /**
      * @return array
      */
-    protected function getPages()
+    protected function getPages() : array
     {
         $numPages = ceil($this->totalHits / $this->perPage);
         $i = 0;

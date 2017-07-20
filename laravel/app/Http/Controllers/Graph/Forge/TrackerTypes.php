@@ -59,6 +59,7 @@ class TrackerTypes extends AbstractGraph
                 }
             }
         }
+        return $this->chartData;
     }
 
     /**
@@ -80,12 +81,12 @@ class TrackerTypes extends AbstractGraph
             'inprogress' => '#A9E2FF',
             'onhold' => '#D1F412',
             'underreview' => '#aeff91',
-
+            'readyfordeployment' => '#ff9900'
         ];
         $this->chartData['lookup'][$fixedString] = [
             'lookup' => $fixedString,
             'title' => $in,
-            'color' => $colors[$fixedString],
+            'color' => $colors[$fixedString] ?? '#f2f2f2',
         ];
 
         return $fixedString;

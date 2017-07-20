@@ -27,7 +27,7 @@ class Full extends AbstractGraph
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getAllOpenIssues()
+    protected function getAllOpenIssues() : int
     {
         $fullRequest = [
             'query' => [

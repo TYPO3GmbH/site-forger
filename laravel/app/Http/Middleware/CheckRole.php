@@ -18,9 +18,9 @@ class CheckRole
      */
     public function handle($request, Closure $next, $roles)
     {
-        if (!Auth::guest() && Auth::user()->hasAnyRole(explode('|', $roles))) {
+        if (!Auth::guest() && Auth::user() !== null && Auth::user()->hasAnyRole(explode('|', $roles))) {
             return $next($request);
         }
-        abort(401);
+        return abort(401);
     }
 }

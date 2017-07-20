@@ -6,7 +6,6 @@ use App\Elastic\Connection;
 use App\Redmine\Connection as RedmineConnection;
 use Elastica\Document;
 use Elastica\Exception\NotFoundException;
-use Elastica\Type;
 use Elastica\Type as DocType;
 use GuzzleHttp\Client;
 use Illuminate\Config\Repository;
@@ -107,8 +106,6 @@ class ForgeFullImport extends Command
     /**
      * Execute the console command.
      *
-     * @return mixed
-     *
      * @throws \Exception
      */
     public function fire()
@@ -118,7 +115,7 @@ class ForgeFullImport extends Command
         $this->startUp();
         switch ($mode) {
             case 'GerritTest':
-                $res = $this->getReviewBlock(1, 1);
+                $this->getReviewBlock(1, 1);
                 break;
             case 'RedmineTest':
                 $res = $this->redmineClient->api('issue')->show(80800, ['include' => ['journals']]);
@@ -306,7 +303,7 @@ class ForgeFullImport extends Command
                     'releases' => $this->extractReleases(
                         $change['revisions'][$change['current_revision']]['commit']['message']
                     ),
-                    'owner' => isset($author) ? $author : 'no one',
+                    'owner' => $author ?? 'no one',
                     'files' => $filesInPatchset,
                 ];
                 if (array_key_exists('_more_changes', $change)) {
@@ -490,7 +487,8 @@ class ForgeFullImport extends Command
             case 'Redmine':
                 break;
             case 'Gerrit':
-                $dateTimeString = substr($dateTimeString, 0, 19);
+                $subString = substr($dateTimeString, 0, 19);
+                $dateTimeString = is_string($subString) ? $subString : $dateTimeString;
                 break;
             default:
                 throw new \InvalidArgumentException('Value of $source has to be either "Redmine" or "Gerrit"');
@@ -532,7 +530,7 @@ class ForgeFullImport extends Command
 
      * @return array Exploded values
      */
-    public function trimExplode($delim, $string, $removeEmptyValues = false)
+    public function trimExplode($delim, $string, $removeEmptyValues = false) : array
     {
         $explodedValues = explode($delim, $string);
 
@@ -556,17 +554,16 @@ class ForgeFullImport extends Command
      *
      * @return bool
      */
-    protected function sendSlackMessage(array $issue)
+    protected function sendSlackMessage(array $issue) : bool
     {
         $this->output->note('Added issue  ' . $issue['id']);
         $slackConfig['Url'] = $this->config->get('app.slack.webhook_url');
         if ($slackConfig['Url'] === 'TEAMURL') {
             return true;
         }
+        $color = 'good';
         if ($issue['tracker']['name'] === 'Bug') {
             $color = 'danger';
-        } else {
-            $color = 'good';
         }
         $jsonString = json_encode([
             'channel' => '#typo3-cms-issues',

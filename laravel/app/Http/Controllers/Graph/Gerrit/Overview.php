@@ -24,6 +24,7 @@ class Overview extends AbstractGraph
             'chartData' => $this->gerritOpenVsClosedAction(),
             'guides' => $this->getGuides(),
         ];
+        return $this->chartData;
     }
 
     /**********************************************

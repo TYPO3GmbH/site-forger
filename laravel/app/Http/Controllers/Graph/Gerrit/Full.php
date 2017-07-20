@@ -39,5 +39,6 @@ class Full extends AbstractGraph
             'size' => 0,
         ];
         $this->chartData = $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW)->getTotalHits();
+        return [$this->chartData];
     }
 }

@@ -11,14 +11,10 @@ class Issue extends Model
 
     protected $table = 'issues';
 
-    public $timestamps = true;
-
-    protected $primaryKey = 'id';
-
     protected $fillable = ['issue_number', 'junior_id'];
 
     public function junior()
     {
-        return $this->belongsTo('App\Junior');
+        return $this->belongsTo(Junior::class);
     }
 }

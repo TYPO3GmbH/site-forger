@@ -625,7 +625,7 @@ class GerritController extends Controller
     protected function search(array $fullRequest)
     {
         $usedFilters = $this->addFilters();
-        if (count($usedFilters) > 0) {
+        if (count($usedFilters->toArray()) > 0) {
             $fullRequest['post_filter'] = $usedFilters;
         }
         $query = $this->connection->getElasticIndex()->createSearch($fullRequest);

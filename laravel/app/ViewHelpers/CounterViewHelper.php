@@ -23,7 +23,7 @@ class CounterViewHelper extends AbstractViewHelper
     }
 
     /**
-     * @return int
+     * @return int|null
      */
     public function render()
     {
@@ -38,7 +38,6 @@ class CounterViewHelper extends AbstractViewHelper
         if ($this->arguments['output']) {
             return $GLOBALS[$counterId];
         }
-
-        return;
+        return null;
     }
 }

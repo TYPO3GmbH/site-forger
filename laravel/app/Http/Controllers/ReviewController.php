@@ -157,7 +157,7 @@ class ReviewController extends Controller
     }
 
     /**
-     * @param string $query
+     * @param mixed $query
      *
      * @return array
      *

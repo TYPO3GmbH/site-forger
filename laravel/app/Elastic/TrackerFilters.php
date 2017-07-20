@@ -61,7 +61,7 @@ class TrackerFilters
     /**
      * @return bool
      */
-    public function isBug()
+    public function isBug() : bool
     {
         return $this->bug;
     }
@@ -77,7 +77,7 @@ class TrackerFilters
     /**
      * @return bool
      */
-    public function isFeature()
+    public function isFeature() : bool
     {
         return $this->feature;
     }
@@ -93,7 +93,7 @@ class TrackerFilters
     /**
      * @return bool
      */
-    public function isTask()
+    public function isTask() : bool
     {
         return $this->task;
     }
@@ -109,7 +109,7 @@ class TrackerFilters
     /**
      * @return bool
      */
-    public function isStory()
+    public function isStory() : bool
     {
         return $this->story;
     }
@@ -125,7 +125,7 @@ class TrackerFilters
     /**
      * @return bool
      */
-    public function isEpic()
+    public function isEpic() : bool
     {
         return $this->epic;
     }

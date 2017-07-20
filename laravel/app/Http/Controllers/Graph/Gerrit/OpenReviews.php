@@ -23,6 +23,7 @@ class OpenReviews extends AbstractGraph
                 ],
             ],
         ];
+        return $this->chartData;
     }
 
     /**

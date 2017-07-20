@@ -30,7 +30,7 @@ class AggregationBucketViewHelper extends AbstractViewHelper
     /**
      * @return string
      */
-    public function render()
+    public function render() : string
     {
         $category = $this->arguments['category'];
         $index = $this->arguments['index'];

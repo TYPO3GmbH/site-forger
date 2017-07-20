@@ -6,7 +6,6 @@ use App\Elastic\Connection;
 use App\Elastic\ElasticSearch;
 use App\Http\Controllers\Graph\Forge\Full as FullForge;
 use App\Http\Controllers\Graph\Gerrit\Full;
-use Elastica\ResultSet;
 use Illuminate\Http\Request;
 
 /**
@@ -114,11 +113,11 @@ class SearchController extends Controller
      * @param int  $issueId
      * @param bool $searchInClosedIssues
      *
-     * @return ResultSet
+     * @return array
      *
      * @throws \Exception
      */
-    private function findDupes($issueId, $searchInClosedIssues = false) : ResultSet
+    private function findDupes($issueId, $searchInClosedIssues = false) : array
     {
         $search = new ElasticSearch($this->connection);
         $query = [
@@ -194,11 +193,11 @@ class SearchController extends Controller
      * @param string $searchTerms
      * @param bool   $searchInClosedIssues
      *
-     * @return ResultSet
+     * @return array
      *
      * @throws \Exception
      */
-    private function findByQuery($searchTerms, $searchInClosedIssues = false) : \Elastica\ResultSet
+    private function findByQuery($searchTerms, $searchInClosedIssues = false) : array
     {
         $searchTerms = $this->escape($searchTerms);
         $search = new ElasticSearch($this->connection);

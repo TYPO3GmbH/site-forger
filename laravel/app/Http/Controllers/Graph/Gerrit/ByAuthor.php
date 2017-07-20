@@ -41,5 +41,6 @@ class ByAuthor extends AbstractGraph
             ],
         ];
         $this->chartData = $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW)->getTotalHits();
+        return [$this->chartData];
     }
 }

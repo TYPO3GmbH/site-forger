@@ -79,10 +79,9 @@ class OpenVsClosed extends AbstractGraph
         if (is_array($data['over_time']['buckets'])) {
             foreach ($data['over_time']['buckets'] as $frame) {
                 $time = $this->fixTime($frame['key_as_string']);
+                $open = 0;
                 if (isset($openedTickets[$time])) {
                     $open = $openedTickets[$time];
-                } else {
-                    $open = 0;
                 }
                 $chartData[] = [
                     'date' => $time,
