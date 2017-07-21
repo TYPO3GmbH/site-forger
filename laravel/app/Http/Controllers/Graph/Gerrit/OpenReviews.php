@@ -12,7 +12,7 @@ class OpenReviews extends AbstractGraph
     /**
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getData()
+    protected function getData() : array
     {
         $this->chartData = [
             'chartData' => $this->getReviewsOverTime(),
@@ -23,14 +23,15 @@ class OpenReviews extends AbstractGraph
                 ],
             ],
         ];
+        return $this->chartData;
     }
 
     /**
-     * @return string
+     * @return array
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getReviewsOverTime()
+    protected function getReviewsOverTime() : array
     {
         $chartData = [];
         $fullRequest = [

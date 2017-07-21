@@ -35,7 +35,7 @@ class ReviewController extends Controller
      *
      * @throws \Exception
      */
-    public function getIndex(Request $request)
+    public function getIndex(Request $request) : string
     {
         $boardId = '';
         if ($request->has('boardId')) {
@@ -68,7 +68,7 @@ class ReviewController extends Controller
      *
      * @return array
      */
-    protected function getBoardQuery($boardId)
+    protected function getBoardQuery($boardId) : array
     {
         $query = [
             'bool' => [
@@ -110,7 +110,7 @@ class ReviewController extends Controller
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function makeBoardMenu($active = '')
+    protected function makeBoardMenu($active = '') : array
     {
         $out = [
             [
@@ -143,7 +143,7 @@ class ReviewController extends Controller
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getTicketByBoardQuery(array $query)
+    protected function getTicketByBoardQuery(array $query) : string
     {
         $fullRequest = [
             'query' => $query,
@@ -157,13 +157,13 @@ class ReviewController extends Controller
     }
 
     /**
-     * @param string $query
+     * @param mixed $query
      *
      * @return array
      *
      * @throws \Exception
      */
-    protected function getBoardData($query)
+    protected function getBoardData($query) : array
     {
         $this->view->assign('boardConfig', json_encode($query, JSON_PRETTY_PRINT));
         $out = [
@@ -197,47 +197,42 @@ class ReviewController extends Controller
      *
      * @return string
      */
-    protected function defineBoardGroup(array $review)
+    protected function defineBoardGroup(array $review) : string
     {
         switch (true) {
             case
                 $review['positive_reviews'] === 0
                 && $review['positive_verifications'] === 0
                 && $review['negative_reviews'] === 0
-                && $review['negative_verifications'] === 0
-            :
+                && $review['negative_verifications'] === 0:
                 $metaStatus = 'missesBoth';
                 break;
             case
                 $review['positive_reviews'] === 1
                 && $review['positive_verifications'] === 0
                 && $review['negative_reviews'] === 0
-                && $review['negative_verifications'] === 0
-            :
+                && $review['negative_verifications'] === 0:
                 $metaStatus = 'missesTesting';
                 break;
             case
                 $review['positive_reviews'] === 0
                 && $review['positive_verifications'] === 1
                 && $review['negative_reviews'] === 0
-                && $review['negative_verifications'] === 0
-            :
+                && $review['negative_verifications'] === 0:
                 $metaStatus = 'missesCodeReview';
                 break;
             case
                 $review['positive_reviews'] === 1
                 && $review['positive_verifications'] === 1
                 && $review['negative_reviews'] === 0
-                && $review['negative_verifications'] === 0
-            :
+                && $review['negative_verifications'] === 0:
                 $metaStatus = 'hasPlusOne';
                 break;
             case
                 $review['positive_reviews'] === 2
                 && $review['positive_verifications'] === 2
                 && $review['negative_reviews'] === 0
-                && $review['negative_verifications'] === 0
-            :
+                && $review['negative_verifications'] === 0:
                 $metaStatus = 'hasPlusTwo';
                 break;
             default:

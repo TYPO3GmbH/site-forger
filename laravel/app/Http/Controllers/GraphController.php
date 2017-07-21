@@ -44,10 +44,9 @@ class GraphController extends Controller
      *
      * @return \App\Http\Controllers\Graph\AbstractGraph
      */
-    protected function getGraphName($graph, $docType)
+    protected function getGraphName($graph, $docType) : Graph\AbstractGraph
     {
-        $graphName = '\\App\\Http\\Controllers\\Graph\\'.$docType.'\\'.$graph;
-
+        $graphName = '\\App\\Http\\Controllers\\Graph\\' . $docType . '\\' . $graph;
         return new $graphName($this->connection);
     }
 }

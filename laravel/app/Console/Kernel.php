@@ -13,9 +13,9 @@ class Kernel extends ConsoleKernel
      * @var array
      */
     protected $commands = [
-        'App\Console\Commands\Inspire',
-        'App\Console\Commands\Forge',
-        'App\Console\Commands\ForgeFullImport',
+        Commands\Inspire::class,
+        Commands\Forge::class,
+        Commands\ForgeFullImport::class,
     ];
 
     /**

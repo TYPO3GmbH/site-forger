@@ -10,11 +10,10 @@ use App\Http\Controllers\Graph\AbstractGraph;
 class TrackerTypes extends AbstractGraph
 {
     /**
-     * Does stuff.
-     *
+     * @return array
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getData()
+    protected function getData() : array
     {
         $fullRequest = [
             'query' => [
@@ -60,6 +59,7 @@ class TrackerTypes extends AbstractGraph
                 }
             }
         }
+        return $this->chartData;
     }
 
     /**
@@ -69,7 +69,7 @@ class TrackerTypes extends AbstractGraph
      *
      * @return string
      */
-    protected function fixKey($in)
+    protected function fixKey($in) : string
     {
         $fixedString = strtolower(str_replace(' ', '', $in));
 
@@ -81,12 +81,12 @@ class TrackerTypes extends AbstractGraph
             'inprogress' => '#A9E2FF',
             'onhold' => '#D1F412',
             'underreview' => '#aeff91',
-
+            'readyfordeployment' => '#ff9900'
         ];
         $this->chartData['lookup'][$fixedString] = [
             'lookup' => $fixedString,
             'title' => $in,
-            'color' => $colors[$fixedString],
+            'color' => $colors[$fixedString] ?? '#f2f2f2',
         ];
 
         return $fixedString;

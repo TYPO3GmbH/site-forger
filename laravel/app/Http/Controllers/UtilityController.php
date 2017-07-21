@@ -20,7 +20,7 @@ class UtilityController extends Controller
      *
      * @return string
      */
-    public function getRst()
+    public function getRst() : string
     {
         $tags = [
             'Backend', 'CLI', 'Database', 'FAL', 'FlexForm', 'Fluid', 'Frontend', 'LocalConfiguration', 'JavaScript',
@@ -31,21 +31,23 @@ class UtilityController extends Controller
 
         return $this->view->render('rst');
     }
+
     /**
      * Show the index screen to the user.
      *
      * @return string
      */
-    public function getHelp()
+    public function getHelp() : string
     {
         return $this->view->render('help');
     }
+
     /**
      * Show the index screen to the user.
      *
      * @return string
      */
-    public function getCalendar()
+    public function getCalendar() : string
     {
         return $this->view->render('calendar');
     }
@@ -56,7 +58,7 @@ class UtilityController extends Controller
      *
      * @return string
      */
-    public function getIssue(Connection $connection, Request $request)
+    public function getIssue(Connection $connection, Request $request) : string
     {
         $this->connection = $connection;
         $issueId = 0;
@@ -73,7 +75,7 @@ class UtilityController extends Controller
      *
      * @return array
      */
-    protected function findIssue($issueId)
+    protected function findIssue($issueId) : array
     {
         $index = $this->connection->getElasticIndex();
         $forger = $index->getType('issue');
@@ -81,9 +83,9 @@ class UtilityController extends Controller
             $res = $forger->getDocument($issueId);
             $data = $res->getData();
         } catch (\Exception $e) {
-            $data = array(
-                'error' => 'Issue #'.$issueId.' was not found.'.$e->getMessage(),
-            );
+            $data = [
+                'error' => 'Issue #' . $issueId . ' was not found.' . $e->getMessage(),
+            ];
         }
 
         return $data;

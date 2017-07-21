@@ -33,7 +33,7 @@ class ManagementController extends Controller
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    public function getIndex()
+    public function getIndex() : string
     {
         $trackerFilters = new TrackerFilters();
         $this->view->assign('trackerFilters', $trackerFilters);
@@ -110,7 +110,7 @@ class ManagementController extends Controller
                 $dateParts = explode('/', $bucket['key_as_string']);
                 $yearName = $dateParts[0];
                 // prefill array with 12 index, for 12 month
-                $months = array_fill(0, 12, array());
+                $months = array_fill(0, 12, []);
                 foreach ($bucket['month']['buckets'] as $month) {
                     $dateParts = explode('/', $month['key_as_string']);
                     $monthName = $dateParts[1];
@@ -143,7 +143,7 @@ class ManagementController extends Controller
     /**
      * @return array
      */
-    protected function queryFilters()
+    protected function queryFilters() : array
     {
         $filters = [
             'bool' => [

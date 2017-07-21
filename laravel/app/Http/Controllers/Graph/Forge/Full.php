@@ -10,15 +10,13 @@ use App\Http\Controllers\Graph\AbstractGraph;
 class Full extends AbstractGraph
 {
     /**
-     * @return int
-     *
+     * @return array
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getData()
+    protected function getData() : array
     {
         $this->chartData = $this->getAllOpenIssues();
-
-        return $this->chartData;
+        return [$this->chartData];
     }
 
     /**********************************************
@@ -29,7 +27,7 @@ class Full extends AbstractGraph
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getAllOpenIssues()
+    protected function getAllOpenIssues() : int
     {
         $fullRequest = [
             'query' => [

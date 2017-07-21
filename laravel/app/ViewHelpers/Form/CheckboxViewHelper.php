@@ -11,10 +11,12 @@ class CheckboxViewHelper extends AbstractViewHelper
     {
         $this->escapeOutput = false;
     }
+
     /**
      * Initialize arguments.
      *
      * @api
+     * @throws \TYPO3Fluid\Fluid\Core\ViewHelper\Exception
      */
     public function initializeArguments()
     {
@@ -25,7 +27,7 @@ class CheckboxViewHelper extends AbstractViewHelper
     /**
      * @return string
      */
-    public function render()
+    public function render() : string
     {
         $property = $this->arguments['property'];
         $checked = '';
@@ -33,7 +35,7 @@ class CheckboxViewHelper extends AbstractViewHelper
         if ($trackerFilters->$property === true) {
             $checked = ' checked="checked';
         }
-        $content = '<input type="checkbox" name="trackerFilters['.$property.']"'.$checked.' value="true" />';
+        $content = '<input type="checkbox" name="trackerFilters[' . $property . ']"' . $checked . ' value="true" />';
 
         return $content;
     }

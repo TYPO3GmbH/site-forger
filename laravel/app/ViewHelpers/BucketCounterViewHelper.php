@@ -30,7 +30,7 @@ class BucketCounterViewHelper extends AbstractViewHelper
     /**
      * @return string
      */
-    public function render()
+    public function render() : string
     {
         $buckets = $this->arguments['buckets'];
         $category = $this->fixWording($this->arguments['category']);
@@ -45,7 +45,7 @@ class BucketCounterViewHelper extends AbstractViewHelper
             return '';
         }
 
-        return '<span class="label label-default pull-right">'.$activeCount.' / '.count($buckets).'</span>';
+        return '<span class="label label-default pull-right">' . $activeCount . ' / ' . count($buckets) . '</span>';
     }
 
     /**

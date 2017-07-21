@@ -23,13 +23,13 @@ class CounterViewHelper extends AbstractViewHelper
     }
 
     /**
-     * @return int
+     * @return int|null
      */
     public function render()
     {
         $counterId = 'CounterViewHelper_counter';
         if (array_key_exists('id', $this->arguments) && $this->arguments['id'] !== null) {
-            $counterId .= ':'.$this->arguments['id'];
+            $counterId .= ':' . $this->arguments['id'];
         }
         if (empty($GLOBALS[$counterId])) {
             $GLOBALS[$counterId] = 0;
@@ -38,7 +38,6 @@ class CounterViewHelper extends AbstractViewHelper
         if ($this->arguments['output']) {
             return $GLOBALS[$counterId];
         }
-
-        return;
+        return null;
     }
 }

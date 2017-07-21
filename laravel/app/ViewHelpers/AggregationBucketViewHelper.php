@@ -30,7 +30,7 @@ class AggregationBucketViewHelper extends AbstractViewHelper
     /**
      * @return string
      */
-    public function render()
+    public function render() : string
     {
         $category = $this->arguments['category'];
         $index = $this->arguments['index'];
@@ -50,9 +50,9 @@ class AggregationBucketViewHelper extends AbstractViewHelper
         }
 
         $content = '
-            <label'.$labelStyle.' for="'.$category.'-'.$index.'">'
-                .'<input type="checkbox" id="'.$category.'-'.$index.'" name="filters['.$category.']['.$bucket.']"'.$checked.' value="true" />'.$regularBucket.' ('.$docCount.')'
-            .'</label>';
+            <label' . $labelStyle . ' for="' . $category . '-' . $index . '">'
+                . '<input type="checkbox" id="' . $category . '-' . $index . '" name="filters[' . $category . '][' . $bucket . ']"' . $checked . ' value="true" />' . $regularBucket . ' (' . $docCount . ')'
+            . '</label>';
 
         return $content;
     }

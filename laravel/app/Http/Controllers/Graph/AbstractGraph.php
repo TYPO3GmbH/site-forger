@@ -8,7 +8,7 @@ use Elastica\ResultSet;
 /**
  * Class AbstractGraph.
  */
-class AbstractGraph
+abstract class AbstractGraph
 {
     const DOCUMENT_TYPE_ISSUE = 'issue';
     const DOCUMENT_TYPE_REVIEW = 'review';
@@ -52,7 +52,7 @@ class AbstractGraph
      *
      * @return string
      */
-    protected function fixTime($in)
+    protected function fixTime($in) : string
     {
         $date = substr($in, 0, 10);
 
@@ -62,7 +62,7 @@ class AbstractGraph
     /**
      * @return string
      */
-    public function render()
+    public function render() : string
     {
         $this->getData();
 
@@ -72,15 +72,12 @@ class AbstractGraph
     /**
      * @return array
      */
-    protected function getData()
-    {
-        return [];
-    }
+    abstract protected function getData() : array;
 
     /**
      * @return array
      */
-    protected function getGuides()
+    protected function getGuides() : array
     {
         return [];
     }
@@ -108,7 +105,7 @@ class AbstractGraph
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getOpenedReviews()
+    protected function getOpenedReviews() : array
     {
         $opened = [];
         $fullRequest = [
@@ -146,7 +143,7 @@ class AbstractGraph
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getClosedReviews()
+    protected function getClosedReviews() : array
     {
         $closed = [];
         $fullRequest = [
@@ -195,7 +192,7 @@ class AbstractGraph
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getOpenedReviewsWithoutWIP()
+    protected function getOpenedReviewsWithoutWIP() : array
     {
         $opened = [];
         $fullRequest = [
@@ -242,7 +239,7 @@ class AbstractGraph
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getClosedReviewsWithoutWIP()
+    protected function getClosedReviewsWithoutWIP() : array
     {
         $closed = [];
         $fullRequest = [

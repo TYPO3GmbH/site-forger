@@ -2,6 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Elastic\Connection as ElasticConnection;
+use App\Redmine\Connection as RedmineConnection;
+use Illuminate\Config\Repository;
 use Illuminate\Console\Command;
 
 class Forge extends Command
@@ -21,7 +24,7 @@ class Forge extends Command
     protected $description = 'Forge Command';
 
     /**
-     * @var \Illuminate\Config\Repository
+     * @var Repository
      */
     protected $config;
 
@@ -55,7 +58,7 @@ class Forge extends Command
      */
     protected $settings;
 
-    public function __construct(\Illuminate\Config\Repository $config, \App\Elastic\Connection $elasticConnection, \App\Redmine\Connection $redmineConnection)
+    public function __construct(Repository $config, ElasticConnection $elasticConnection, RedmineConnection $redmineConnection)
     {
         parent::__construct();
         $this->config = $config;
@@ -78,14 +81,14 @@ class Forge extends Command
         $this->comment('Testing Redmine...');
         $json = $this->redmineClient->get('/issues.json');
         if (is_array($json)) {
-            $this->info('Connected to Redmine successful!, found: '.$json['total_count'].' issues');
+            $this->info('Connected to Redmine successful!, found: ' . $json['total_count'] . ' issues');
         } else {
             $this->error('Connection to Redmine not possible!');
         }
         $this->comment('Testing Elastic...');
         $result = $this->elasticIndex->search('index');
         if ($result->count()) {
-            $this->info('Connected to Elastic successful!, found: '.$result->count().' documents');
+            $this->info('Connected to Elastic successful!, found: ' . $result->count() . ' documents');
         } else {
             $this->error('Connection to Elastic not possible!');
         }

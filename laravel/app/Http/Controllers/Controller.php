@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Foundation\Validation\ValidatesRequests;
+use Illuminate\Routing\Controller as BaseController;
 use TYPO3Fluid\Fluid\Core\Cache\SimpleFileCache;
 use TYPO3Fluid\Fluid\View\TemplateView;
 
@@ -24,20 +24,19 @@ abstract class Controller extends BaseController
      */
     public function __construct()
     {
-
         $rootPaths['templates'] = [
-            base_path().'/resources/Private/Templates/'
+            base_path() . '/resources/Private/Templates/'
         ];
         $rootPaths['partials'] = [
-            base_path().'/resources/Private/Partials/'
+            base_path() . '/resources/Private/Partials/'
         ];
         $rootPaths['layouts'] = [
-            base_path().'/resources/Private/Layouts/'
+            base_path() . '/resources/Private/Layouts/'
         ];
         if ((string)config('app.app.templateOverride') !== '') {
-            $rootPaths['templates'][] = base_path().'/resources/' . config('app.app.templateOverride') . '/Templates/';
-            $rootPaths['partials'][] = base_path().'/resources/' . config('app.app.templateOverride') . '/Partials/';
-            $rootPaths['layouts'][] = base_path().'/resources/' . config('app.app.templateOverride') . '/Layouts/';
+            $rootPaths['templates'][] = base_path() . '/resources/' . config('app.app.templateOverride') . '/Templates/';
+            $rootPaths['partials'][] = base_path() . '/resources/' . config('app.app.templateOverride') . '/Partials/';
+            $rootPaths['layouts'][] = base_path() . '/resources/' . config('app.app.templateOverride') . '/Layouts/';
         }
         $this->view = new TemplateView();
         $paths = $this->view->getTemplatePaths();
@@ -46,10 +45,10 @@ abstract class Controller extends BaseController
         $paths->setPartialRootPaths($rootPaths['partials']);
         $fluidCaching = env('FLUID_CACHE');
         if ($fluidCaching) {
-            $fluidCache = new SimpleFileCache(base_path().'/storage/app/Cache/Fluid');
+            $fluidCache = new SimpleFileCache(base_path() . '/storage/app/Cache/Fluid');
             $this->view->setCache($fluidCache);
         }
-        $this->view->assign('APP_ENV', 'L5 '.env('APP_ENV'));
+        $this->view->assign('APP_ENV', 'L5 ' . env('APP_ENV'));
 
         $context = $this->view->getRenderingContext();
         $context->setControllerName($this->determineControllerName());

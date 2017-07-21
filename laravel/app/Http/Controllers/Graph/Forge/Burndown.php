@@ -14,7 +14,7 @@ class Burndown extends AbstractGraph
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getData()
+    protected function getData() : array
     {
         $rawData = [];
         $lastRow = [

@@ -33,7 +33,7 @@ class SearchController extends Controller
      *
      * @return string
      */
-    public function getIndex()
+    public function getIndex() : string
     {
         $reviewGraph = new Full($this->connection);
         $issueGraph = new FullForge($this->connection);
@@ -50,7 +50,7 @@ class SearchController extends Controller
      *
      * @throws \Exception
      */
-    public function getSearch(Request $request)
+    public function getSearch(Request $request) : string
     {
         $query = $request->input('query');
         $searchClosed = false;
@@ -86,7 +86,7 @@ class SearchController extends Controller
      *
      * @return bool
      */
-    protected function checkIfQueryIsIssue($query)
+    protected function checkIfQueryIsIssue($query) : bool
     {
         $result = false;
         $pattern = '(^[0-9]{4,6}$)';
@@ -104,7 +104,7 @@ class SearchController extends Controller
      *
      * @return string
      */
-    protected function calculateScoring($singleScore, $maxScore)
+    protected function calculateScoring($singleScore, $maxScore) : string
     {
         return number_format(($singleScore * 100) / $maxScore);
     }
@@ -113,11 +113,11 @@ class SearchController extends Controller
      * @param int  $issueId
      * @param bool $searchInClosedIssues
      *
-     * @return \Elastica\ResultSet
+     * @return array
      *
      * @throws \Exception
      */
-    private function findDupes($issueId, $searchInClosedIssues = false)
+    private function findDupes($issueId, $searchInClosedIssues = false) : array
     {
         $search = new ElasticSearch($this->connection);
         $query = [
@@ -181,9 +181,9 @@ class SearchController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            $data = array(
-                'error' => 'Issue #'.$issueId.' was not found.',
-            );
+            $data = [
+                'error' => 'Issue #' . $issueId . ' was not found.',
+            ];
         }
 
         return $data;
@@ -193,11 +193,11 @@ class SearchController extends Controller
      * @param string $searchTerms
      * @param bool   $searchInClosedIssues
      *
-     * @return \Elastica\ResultSet
+     * @return array
      *
      * @throws \Exception
      */
-    private function findByQuery($searchTerms, $searchInClosedIssues = false)
+    private function findByQuery($searchTerms, $searchInClosedIssues = false) : array
     {
         $searchTerms = $this->escape($searchTerms);
         $search = new ElasticSearch($this->connection);
@@ -240,7 +240,7 @@ class SearchController extends Controller
      *
      * @return string
      */
-    public function escape($value)
+    public function escape($value) : string
     {
         //list taken from http://lucene.apache.org/java/docs/queryparsersyntax.html#Escaping%20Special%20Characters
         $pattern = '/(\+|-|&&|\|\||!|\(|\)|\{|}|\[|]|\^|"|~|\*|\?|:|\\\)/';
