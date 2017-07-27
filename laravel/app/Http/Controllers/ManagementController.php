@@ -62,7 +62,6 @@ class ManagementController extends Controller
                 ],
             ],
             'size' => 0,
-            'filter' => $this->queryFilters(),
             'aggregations' => [
                 'year' => [
                     'date_histogram' => [
@@ -138,28 +137,5 @@ class ManagementController extends Controller
         $this->view->assign('aggs', $out);
 
         return $this->view->render('index');
-    }
-
-    /**
-     * @return array
-     */
-    protected function queryFilters() : array
-    {
-        $filters = [
-            'bool' => [
-                'must' => [
-                    'type' => [
-                        'value' => 'issue',
-                    ],
-                ],
-                'must_not' => [
-                    //'term' => [
-                    //    'subject' => 'wip'
-                    //]
-                ],
-            ],
-        ];
-
-        return $filters;
     }
 }

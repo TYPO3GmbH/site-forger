@@ -10,7 +10,7 @@
 	"require": {
 		"laravel/framework": "5.3.*",
 		"kbsali/redmine-api": "^1.5",
-		"ruflin/elastica": "^2.1",
+		"ruflin/elastica": "^5.3",
 		"typo3fluid/fluid": "dev-master",
 		"wmdbsystems/fluidlaravel": "dev-master",
 		"netcarver/textile": "3.5.*",
