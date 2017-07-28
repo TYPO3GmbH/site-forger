@@ -15,7 +15,7 @@ class SlackController extends Controller
      *
      * @return string
      */
-    public function getIndex()
+    public function getIndex() : string
     {
         $this->view->assign('sitekey', config('app.slack.recaptcha_site'));
         $this->view->assign('csrf_token', csrf_token());
@@ -61,7 +61,7 @@ class SlackController extends Controller
             'base_uri' => config('app.slack.teamUrl'),
         ]);
 
-        $client->request('POST', '/api/users.admin.invite?t='.time(), [
+        $client->request('POST', '/api/users.admin.invite?t=' . time(), [
             'form_params' => [
                 'email' => $email,
                 'first_name' => $firstName,
@@ -77,7 +77,7 @@ class SlackController extends Controller
      *
      * @return bool
      */
-    protected function checkReCaptcha($reCaptcha)
+    protected function checkReCaptcha($reCaptcha) : bool
     {
         $client = new Client([
             'base_uri' => 'https://www.google.com/',

@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Elastic\Connection;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
-use Debugbar;
 
 /**
  * Class SprintController.
@@ -17,9 +16,14 @@ class ApiController extends BaseController
      */
     private $connection;
 
+    /**
+     * ApiController constructor.
+     *
+     * @param Connection $connection
+     * @param Request $request
+     */
     public function __construct(Connection $connection, Request $request)
     {
-        date_default_timezone_set('UTC');
         $this->connection = $connection;
     }
 
@@ -32,7 +36,7 @@ class ApiController extends BaseController
      * @return string
      * @throws \Elastica\Exception\NotFoundException
      */
-    public function index(string $type = 'Issue', int $id = 0)
+    public function index(string $type = 'Issue', int $id = 0) : string
     {
         try {
             $output = $this->connection->getElasticIndex()->getType($type)->getDocument($id);

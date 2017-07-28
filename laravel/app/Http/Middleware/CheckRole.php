@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use Auth;
 use Closure;
-use Illuminate\Database\Eloquent\Collection;
 
 class CheckRole
 {
@@ -19,9 +18,9 @@ class CheckRole
      */
     public function handle($request, Closure $next, $roles)
     {
-        if (!Auth::guest() && Auth::user()->hasAnyRole(explode('|', $roles))) {
+        if (!Auth::guest() && Auth::user() !== null && Auth::user()->hasAnyRole(explode('|', $roles))) {
             return $next($request);
         }
-        abort(401);
+        return abort(401);
     }
 }

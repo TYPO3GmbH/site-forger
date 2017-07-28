@@ -10,9 +10,10 @@ use App\Http\Controllers\Graph\AbstractGraph;
 class ByAuthor extends AbstractGraph
 {
     /**
+     * @return array
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getData()
+    protected function getData() : array
     {
         $fullRequest = [
             'query' => [
@@ -40,5 +41,6 @@ class ByAuthor extends AbstractGraph
             ],
         ];
         $this->chartData = $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW)->getTotalHits();
+        return [$this->chartData];
     }
 }

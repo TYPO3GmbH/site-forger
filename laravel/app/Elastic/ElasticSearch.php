@@ -29,11 +29,11 @@ class ElasticSearch
     /**
      * @param array $query
      *
-     * @return \Elastica\ResultSet
+     * @return array
      *
      * @throws \Exception
      */
-    public function doSearch(array $query)
+    public function doSearch(array $query) : array
     {
         if (array_key_exists('page', $_GET)) {
             $this->currentPage = (int) $_GET['page'];
@@ -56,7 +56,7 @@ class ElasticSearch
         $aggs = $elasticaResultSet->getAggregations();
         $this->totalHits = $elasticaResultSet->getTotalHits();
 
-        $out = array(
+        $out = [
             'pagesToLinkTo' => $this->getPages(),
             'currentPage' => $this->currentPage,
             'prev' => $this->currentPage - 1,
@@ -67,7 +67,7 @@ class ElasticSearch
             'results' => $results,
             'maxScore' => $maxScore,
             'aggs' => $aggs,
-        );
+        ];
         if ((int) $this->totalHits <= (int) $out['endingAtItem']) {
             $out['endingAtItem'] = (int) $this->totalHits;
         }
@@ -78,7 +78,7 @@ class ElasticSearch
     /**
      * Adds filters based on get parameters.
      *
-     * @return array
+     * @return Query|Query\BoolQuery
      */
     private function addFilters()
     {
@@ -103,7 +103,7 @@ class ElasticSearch
                         || $key === 'priority'
                         || $key === 'fixed_version'
                     ) {
-                        $filter->setTerm($key.'.name', $term);
+                        $filter->setTerm($key . '.name', $term);
                     } else {
                         $filter->setTerm($key, $term);
                     }
@@ -168,7 +168,7 @@ class ElasticSearch
     /**
      * @return array
      */
-    protected function getPages()
+    protected function getPages() : array
     {
         $numPages = ceil($this->totalHits / $this->perPage);
         $i = 0;
@@ -192,7 +192,7 @@ class ElasticSearch
             $i = 0;
         }
 
-        $out = array();
+        $out = [];
         while ($i < $numPages) {
             $out[(int) $i] = ($i + 1);
             ++$i;

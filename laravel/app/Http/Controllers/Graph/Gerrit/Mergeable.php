@@ -10,9 +10,10 @@ use App\Http\Controllers\Graph\AbstractGraph;
 class Mergeable extends AbstractGraph
 {
     /**
+     * @return array
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getData()
+    protected function getData() : array
     {
         $fullRequest = [
             'query' => [
@@ -63,5 +64,6 @@ class Mergeable extends AbstractGraph
                 'title' => 'Can be merged',
             ],
         ];
+        return $this->chartData;
     }
 }

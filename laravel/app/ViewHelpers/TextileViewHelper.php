@@ -13,7 +13,7 @@ class TextileViewHelper extends AbstractViewHelper
      *
      * @throws \InvalidArgumentException
      */
-    public function render()
+    public function render() : string
     {
         $sanitizer = new SanitizationService();
 

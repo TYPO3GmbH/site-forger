@@ -14,7 +14,7 @@ class Velocity extends AbstractGraph
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getData()
+    protected function getData() : array
     {
         $lastRow = [
             'closed' => 1,

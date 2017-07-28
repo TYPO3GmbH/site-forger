@@ -26,15 +26,12 @@ class ForgelinkViewHelper extends AbstractViewHelper
     /**
      * @return string
      */
-    public function render()
+    public function render() : string
     {
+        $redmineUrl = 'https://forge.typo3.org/projects/typo3cms-core/issues?set_filter=1';
         $projectId = Config::get('app.redmine.projectId');
-        switch ($projectId) {
-            case '1862':
-                $redmineUrl = 'https://forge.typo3.org/projects/team-server-public/issues?set_filter=1';
-                break;
-            default:
-                $redmineUrl = 'https://forge.typo3.org/projects/typo3cms-core/issues?set_filter=1';
+        if ($projectId === '1862') {
+            $redmineUrl = 'https://forge.typo3.org/projects/team-server-public/issues?set_filter=1';
         }
         $filtersString = $this->getFiltersString(
             $this->arguments['year'],
@@ -42,7 +39,7 @@ class ForgelinkViewHelper extends AbstractViewHelper
             $this->arguments['statusId'],
             $this->arguments['trackerFilters']
         );
-        $content = $redmineUrl.$filtersString.'&f[]='.$this->getColumnsString().'&group_by=';
+        $content = $redmineUrl . $filtersString . '&f[]=' . $this->getColumnsString() . '&group_by=';
 
         return $content;
     }
@@ -53,9 +50,9 @@ class ForgelinkViewHelper extends AbstractViewHelper
      *
      * @return string
      */
-    protected function getLastDayOfMonth($year = '', $month = '')
+    protected function getLastDayOfMonth($year = '', $month = '') : string
     {
-        $dateString = $year.'-'.$month.'-16';
+        $dateString = $year . '-' . $month . '-16';
 
         return date('Y-m-t', strtotime($dateString));
     }
@@ -63,7 +60,7 @@ class ForgelinkViewHelper extends AbstractViewHelper
     /**
      * @return string
      */
-    protected function getColumnsString()
+    protected function getColumnsString() : string
     {
         $string = '';
         $columns = [
@@ -76,7 +73,7 @@ class ForgelinkViewHelper extends AbstractViewHelper
             'fixed_version',
         ];
         foreach ($columns as $columnName) {
-            $string .= '&c[]='.$columnName;
+            $string .= '&c[]=' . $columnName;
         }
 
         return $string;
@@ -90,7 +87,7 @@ class ForgelinkViewHelper extends AbstractViewHelper
      *
      * @return string
      */
-    protected function getFiltersString($year, $month, $statusId, TrackerFilters $trackerFilters = null)
+    protected function getFiltersString($year, $month, $statusId, TrackerFilters $trackerFilters = null) : string
     {
         if (!$trackerFilters) {
             $trackerFilters = new TrackerFilters();
@@ -111,7 +108,7 @@ class ForgelinkViewHelper extends AbstractViewHelper
             'updated_on' => [
                 'type' => '><',
                 'values' => [
-                    $year.'-'.$month.'-01',
+                    $year . '-' . $month . '-01',
                     $end,
                 ],
             ],
@@ -140,10 +137,10 @@ class ForgelinkViewHelper extends AbstractViewHelper
             $filters['status_id']['values'] = [];
         }
         foreach ($filters as $fieldName => $config) {
-            $string .= '&f[]='.$fieldName;
-            $string .= '&op['.$fieldName.']='.$config['type'];
+            $string .= '&f[]=' . $fieldName;
+            $string .= '&op[' . $fieldName . ']=' . $config['type'];
             foreach ($config['values'] as $value) {
-                $string .= '&v['.$fieldName.'][]='.$value;
+                $string .= '&v[' . $fieldName . '][]=' . $value;
             }
         }
 

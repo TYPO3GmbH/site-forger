@@ -2,8 +2,8 @@
 
 namespace App;
 
-use Illuminate\Database\Eloquent\Model;
 use Backpack\CRUD\CrudTrait;
+use Illuminate\Database\Eloquent\Model;
 
 class Junior extends Model
 {
@@ -11,14 +11,10 @@ class Junior extends Model
 
     protected $table = 'juniors';
 
-    public $timestamps = true;
-
-    protected $primaryKey = 'id';
-
     protected $fillable = ['name'];
 
     public function issues()
     {
-        return $this->hasMany('App\Issue');
+        return $this->hasMany(Issue::class);
     }
 }

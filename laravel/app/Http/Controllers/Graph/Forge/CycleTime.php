@@ -12,7 +12,7 @@ class CycleTime extends AbstractGraph
     /**
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getData()
+    protected function getData() : array
     {
         $this->chartData = [
             'chartData' => $this->getCycleTime(),
@@ -28,11 +28,11 @@ class CycleTime extends AbstractGraph
     }
 
     /**
-     * @return string
+     * @return array
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getCycleTime()
+    protected function getCycleTime() : array
     {
         $chartData = [];
         $fullRequest = [

@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use App\Elastic\Connection;
 use App\Redmine\Connection as RedmineConnection;
 use Elastica\Document;
-use Elastica\Type;
+use Elastica\Exception\NotFoundException;
 use Elastica\Type as DocType;
 use GuzzleHttp\Client;
 use Illuminate\Config\Repository;
@@ -13,6 +13,9 @@ use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 
+/**
+ * Class ForgeFullImport
+ */
 class ForgeFullImport extends Command
 {
     const BAMBOO_USER_ID = 49454;
@@ -103,21 +106,19 @@ class ForgeFullImport extends Command
     /**
      * Execute the console command.
      *
-     * @return mixed
-     *
      * @throws \Exception
      */
     public function fire()
     {
         $mode = $this->argument('mode');
-        $this->info('Trying to run mode: "'.$mode.'"');
+        $this->info('Trying to run mode: "' . $mode . '"');
         $this->startUp();
         switch ($mode) {
             case 'GerritTest':
-                $res = $this->getReviewBlock(1, 1);
+                $this->getReviewBlock(1, 1);
                 break;
             case 'RedmineTest':
-                $res = $this->redmineClient->api('issue')->show(80800, array('include' => array('journals')));
+                $res = $this->redmineClient->api('issue')->show(80800, ['include' => ['journals']]);
                 $this->addDocumentToElastic($res['issue']);
                 break;
             case 'RedmineDelta':
@@ -163,7 +164,7 @@ class ForgeFullImport extends Command
                 $currentSlot = 0;
                 $perRun = 100;
                 while ($currentSlot <= $fullAmount) {
-                    $this->info('Importing Gerrit Changes starting at '.$currentSlot);
+                    $this->info('Importing Gerrit Changes starting at ' . $currentSlot);
                     if ($this->moreIssuesFromGerrit) {
                         $result = $this->getReviewBlock($currentSlot, $perRun);
                         foreach ($result as $review) {
@@ -175,7 +176,7 @@ class ForgeFullImport extends Command
                 }
                 break;
             case 'Users':
-                $memberships = $this->elevatedRedmineClient->api('membership')->all('typo3cms-core', array('limit' => 1000));
+                $memberships = $this->elevatedRedmineClient->api('membership')->all('typo3cms-core', ['limit' => 1000]);
                 if (isset($memberships['memberships'])) {
                     foreach ($memberships['memberships'] as $userData) {
                         $this->insertUser($userData['user']['id'], $userData['user']['login']);
@@ -185,7 +186,7 @@ class ForgeFullImport extends Command
                 }
                 break;
             case 'SlackTest':
-                $doc = $this->redmineClient->api('issue')->show(63618, array('include' => array('journals')));
+                $doc = $this->redmineClient->api('issue')->show(63618, ['include' => ['journals']]);
                 $this->sendSlackMessage($doc['issue']);
                 break;
             default:
@@ -198,7 +199,7 @@ class ForgeFullImport extends Command
      *
      * @return array
      */
-    protected function getArguments()
+    protected function getArguments() : array
     {
         return [
             ['mode', InputArgument::REQUIRED, 'Import mode; Allowed values are: AddMapping, GerritTest, RedmineTest, RedmineDelta, RedmineFull, GerritDelta, GerritFull, Users'],
@@ -241,7 +242,7 @@ class ForgeFullImport extends Command
     {
         //import journals only if issue status is "Under review" (ID: 8)
         if (isset($issue['status']['id']) && (int) $issue['status']['id'] === 8) {
-            $issueWithJournals = $this->redmineClient->api('issue')->show($issue['id'], array('include' => array('journals')));
+            $issueWithJournals = $this->redmineClient->api('issue')->show($issue['id'], ['include' => ['journals']]);
             if (is_array($issueWithJournals)) {
                 $this->addDocumentToElastic($issueWithJournals['issue']);
             }
@@ -258,12 +259,12 @@ class ForgeFullImport extends Command
      *
      * @throws \Exception
      */
-    protected function getReviewBlock($current, $perRun)
+    protected function getReviewBlock($current, $perRun) : array
     {
         $moreChanges = false;
         $out = [];
-        $json = file_get_contents('https://review.typo3.org/changes/?q=project:Packages/TYPO3.CMS&n='.$perRun.
-            '&start='.$current.'&o=DETAILED_LABELS&o=CURRENT_REVISION&o=ALL_FILES&o=CURRENT_COMMIT');
+        $json = file_get_contents('https://review.typo3.org/changes/?q=project:Packages/TYPO3.CMS&n=' . $perRun .
+            '&start=' . $current . '&o=DETAILED_LABELS&o=CURRENT_REVISION&o=ALL_FILES&o=CURRENT_COMMIT');
         $data = json_decode(str_replace(")]}'", '', $json), true);
         if (!is_array($data)) {
             $this->line('no array from result');
@@ -302,7 +303,7 @@ class ForgeFullImport extends Command
                     'releases' => $this->extractReleases(
                         $change['revisions'][$change['current_revision']]['commit']['message']
                     ),
-                    'owner' => isset($author) ? $author : 'no one',
+                    'owner' => $author ?? 'no one',
                     'files' => $filesInPatchset,
                 ];
                 if (array_key_exists('_more_changes', $change)) {
@@ -323,7 +324,7 @@ class ForgeFullImport extends Command
      *
      * @return array
      */
-    protected function extractReleases($message)
+    protected function extractReleases($message) : array
     {
         $pattern = '/Releases:\s*(.*)/';
         preg_match($pattern, $message, $matches);
@@ -333,19 +334,19 @@ class ForgeFullImport extends Command
         /*
          * fix Stuff
          */
-        if (strstr($matches[1], 'master.')) {
+        if (false !== strpos($matches[1], 'master.')) {
             $matches[1] = str_replace('master.', 'master,', $matches[1]);
         }
-        if (strstr($matches[1], '4.7.')) {
+        if (false !== strpos($matches[1], '4.7.')) {
             $matches[1] = str_replace('4.7.', '4.7,', $matches[1]);
         }
-        if (strstr($matches[1], '4.5 LTS')) {
+        if (false !== strpos($matches[1], '4.5 LTS')) {
             $matches[1] = str_replace('4.5 LTS', '4.5', $matches[1]);
         }
         $releaseArray = $this->trimExplode(',', $matches[1]);
         foreach ($releaseArray as $key => $release) {
-            if (strstr($release, ' ')) {
-                throw new \InvalidArgumentException('Release contains space? '.$message);
+            if (false !== strpos($release, ' ')) {
+                throw new \InvalidArgumentException('Release contains space? ' . $message);
             }
             $releaseArray[$key] = $release;
         }
@@ -360,7 +361,7 @@ class ForgeFullImport extends Command
      *
      * @return array
      */
-    protected function extractLabels(array $labels)
+    protected function extractLabels(array $labels) : array
     {
         $out = [
             'positive_reviews' => 0,
@@ -378,23 +379,23 @@ class ForgeFullImport extends Command
                     $key = '_reviews';
                     break;
                 default:
-                    throw new \InvalidArgumentException('Unknown Label type '.$labelType);
+                    throw new \InvalidArgumentException('Unknown Label type ' . $labelType);
             }
             if (array_key_exists('all', $subRow)) {
                 foreach ($subRow['all'] as $vote) {
                     if ($vote['_account_id'] !== self::BAMBOO_USER_ID) {
                         switch ($vote['value']) {
                             case 1:
-                                ++$out['positive'.$key];
+                                ++$out['positive' . $key];
                                 break;
                             case 2:
-                                $out['positive'.$key] += 2;
+                                $out['positive' . $key] += 2;
                                 break;
                             case -1:
-                                ++$out['negative'.$key];
+                                ++$out['negative' . $key];
                                 break;
                             case -2:
-                                $out['negative'.$key] += 2;
+                                $out['negative' . $key] += 2;
                                 break;
                             case 0:
                                 // nothing to do here
@@ -418,27 +419,31 @@ class ForgeFullImport extends Command
      */
     protected function addDocumentToElastic(array $document, $type = 'issue')
     {
+        $elasticType = null;
         switch ($type) {
             case 'issue':
                 if (isset($document['custom_fields'])) {
                     foreach ($document['custom_fields'] as $customField) {
                         switch ($customField['id']) {
+                            case 3:
+                                if (!empty($customField['value'])) {
+                                    $document['tags'] = array_map('trim', explode(',', $customField['value']));
+                                }
+                                break;
                             case 4:
-                                $document['typo3_version'] =
-                                    (isset($customField['value']) ? $customField['value'] : '-');
+                                $document['typo3_version'] = $customField['value'] ?? '-';
                                 break;
                             case 5:
-                                $document['php_version'] = (isset($customField['value']) ? $customField['value'] : '-');
+                                $document['php_version'] = $customField['value'] ?? '-';
                                 break;
                             case 8:
-                                $document['complexity'] = (isset($customField['value']) ? $customField['value'] : '-');
+                                $document['complexity'] = $customField['value'] ?? '-';
                                 break;
                             case 15:
-                                $document['isregression'] = (isset($customField['value']) ? true : false);
+                                $document['isregression'] = isset($customField['value']);
                                 break;
                             case 18:
-                                $document['focus']['name'] =
-                                    (isset($customField['value']) ? $customField['value'] : '-');
+                                $document['focus']['name'] = $customField['value'] ?? '-';
                                 break;
                             default:
                         }
@@ -446,26 +451,27 @@ class ForgeFullImport extends Command
                 }
                 $document['updated_on'] = $this->fixDateFormat($document['updated_on'], 'Redmine');
                 $document['created_on'] = $this->fixDateFormat($document['created_on'], 'Redmine');
-                unset($document['start_date']);
-                unset($document['due_date']);
-                $type = new DocType($this->elasticIndex, 'issue');
+                unset($document['start_date'], $document['due_date']);
+                $elasticType = new DocType($this->elasticIndex, 'issue');
                 try {
-                    $type->getDocument($document['id']);
-                } catch (\Elastica\Exception\NotFoundException $e) {
+                    $elasticType->getDocument($document['id']);
+                } catch (NotFoundException $e) {
                     $this->sendSlackMessage($document);
                 }
                 break;
             case 'review':
-                $type = new DocType($this->elasticIndex, 'review');
+                $elasticType = new DocType($this->elasticIndex, 'review');
                 break;
             case 'user':
-                $type = new DocType($this->elasticIndex, 'user');
+                $elasticType = new DocType($this->elasticIndex, 'user');
                 break;
             default:
         }
-        $doc = new Document($document['id'], $document);
-        $type->addDocument($doc);
-        $this->output->write('+');
+        if ($elasticType !== null) {
+            $doc = new Document($document['id'], $document);
+            $elasticType->addDocument($doc);
+            $this->output->write('+');
+        }
     }
 
     /**
@@ -473,14 +479,16 @@ class ForgeFullImport extends Command
      * @param string $source
      *
      * @return string
+     * @throws \InvalidArgumentException
      */
-    protected function fixDateFormat($dateTimeString, $source)
+    protected function fixDateFormat(string $dateTimeString, string $source) : string
     {
         switch ($source) {
             case 'Redmine':
                 break;
             case 'Gerrit':
-                $dateTimeString = substr($dateTimeString, 0,  19);
+                $subString = substr($dateTimeString, 0, 19);
+                $dateTimeString = is_string($subString) ? $subString : $dateTimeString;
                 break;
             default:
                 throw new \InvalidArgumentException('Value of $source has to be either "Redmine" or "Gerrit"');
@@ -506,8 +514,8 @@ class ForgeFullImport extends Command
         $compiledData = [
             'id' => $userId,
             'username' => $username,
-            'email' => (isset($userData['user']['mail']) ? $userData['user']['mail'] : null),
-            'fullname' => $userData['user']['firstname'].' '.$userData['user']['lastname'],
+            'email' => $userData['user']['mail'] ?? null,
+            'fullname' => $userData['user']['firstname'] . ' ' . $userData['user']['lastname'],
         ];
         $this->addDocumentToElastic($compiledData, 'user');
     }
@@ -519,17 +527,17 @@ class ForgeFullImport extends Command
      * @param string $delim             Delimiter string to explode with
      * @param string $string            The string to explode
      * @param bool   $removeEmptyValues If set, all empty values will be removed in output
-     
+
      * @return array Exploded values
      */
-    public function trimExplode($delim, $string, $removeEmptyValues = false)
+    public function trimExplode($delim, $string, $removeEmptyValues = false) : array
     {
         $explodedValues = explode($delim, $string);
 
         $result = array_map('trim', $explodedValues);
 
         if ($removeEmptyValues) {
-            $temp = array();
+            $temp = [];
             foreach ($result as $value) {
                 if ($value !== '') {
                     $temp[] = $value;
@@ -541,17 +549,21 @@ class ForgeFullImport extends Command
         return $result;
     }
 
-    protected function sendSlackMessage(array $issue)
+    /**
+     * @param array $issue
+     *
+     * @return bool
+     */
+    protected function sendSlackMessage(array $issue) : bool
     {
-        $this->output->note('Added issue  '.$issue['id']);
+        $this->output->note('Added issue  ' . $issue['id']);
         $slackConfig['Url'] = $this->config->get('app.slack.webhook_url');
         if ($slackConfig['Url'] === 'TEAMURL') {
             return true;
         }
+        $color = 'good';
         if ($issue['tracker']['name'] === 'Bug') {
             $color = 'danger';
-        } else {
-            $color = 'good';
         }
         $jsonString = json_encode([
             'channel' => '#typo3-cms-issues',
@@ -560,7 +572,7 @@ class ForgeFullImport extends Command
             'attachments' => [
                 [
                     'title' => $issue['subject'],
-                    'title_link' => 'https://forge.typo3.org/issues/'.$issue['id'],
+                    'title_link' => 'https://forge.typo3.org/issues/' . $issue['id'],
                     'text' => $issue['description'],
                     'fallback' => $issue['subject'],
                     'author_name' => $issue['author']['name'],
