@@ -151,7 +151,6 @@ $(document).ready(function () {
         var checkedTags = $('input[name="tag[]"]:checked');
         if (checkedTags.length > 0) {
             var tags = $.map(checkedTags, function (x) {
-                console.log(ticketType);
                 if (ticketType === 'Feature' || ticketType === 'Important') {
                     if (x.value === 'NotScanned' || x.value === 'PartiallyScanned' || x.value === 'FullyScanned') {
                         return null;
