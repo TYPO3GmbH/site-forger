@@ -8,9 +8,10 @@
             'must':
               - 'term': {'focus.name': On Location Sprint}
             'must_not':
-              'and':
-                - range: {'updated_on': {'lte': 'now-30d'}}
-                - 'or':
+              'bool':
+                must:
+                  - range: {'updated_on': {'lte': 'now-30d'}}
+                'should':
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}
@@ -22,9 +23,10 @@
               - 'term': {'focus.name': Stabilization Sprint}
               - 'term': {'fixed_version.name': '8 LTS'}
             'must_not':
-              'and':
-                - range: {'updated_on': {'lte': 'now-30d'}}
-                - 'or':
+              'bool':
+                must:
+                  - range: {'updated_on': {'lte': 'now-30d'}}
+                'should':
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}
@@ -36,9 +38,10 @@
               - 'term': {'fixed_version.id': 3285}
               - 'term': {'fixed_version.id': 2354}
             'must_not':
-              'and':
-                - range: {'updated_on': {'lte': 'now-30d'}}
-                - 'or':
+              'bool':
+                must:
+                  - range: {'updated_on': {'lte': 'now-30d'}}
+                'should':
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}
@@ -49,9 +52,25 @@
             'should':
               - 'term': {'fixed_version.id': 2354}
             'must_not':
-              'and':
-                - range: {'updated_on': {'lte': 'now-30d'}}
-                - 'or':
+              'bool':
+                must:
+                  - range: {'updated_on': {'lte': 'now-30d'}}
+                'should':
+                  - 'term': {'status.name': Closed}
+                  - 'term': {'status.name': Resolved}
+                  - 'term': {'status.name': Rejected}
+      'FormSprint':
+        'Name': Form Sprint
+        'Query':
+          'bool':
+            'must':
+              - 'term': {'category.id': 1107}
+              - 'term': {'focus.name': Remote Sprint}
+            'must_not':
+              'bool':
+                'must':
+                  - range: {'updated_on': {'lte': 'now-30d'}}
+                'should':
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}
@@ -68,9 +87,10 @@
                   - 'term': {'category.id': 983}
                   - 'term': {'category.id': 978}
                 'must_not':
-                  'and':
-                    - range: {'updated_on': {'lte': 'now-30d'}}
-                    - 'or':
+                  'bool':
+                    must:
+                      - range: {'updated_on': {'lte': 'now-30d'}}
+                    'should':
                       - 'term': {'status.name': Closed}
                       - 'term': {'status.name': Resolved}
                       - 'term': {'status.name': Rejected}
@@ -82,9 +102,10 @@
               - 'term': {'category.id': 1601}
               - 'term': {'fixed_version.name': 7 LTS}
             'must_not':
-              'and':
-                - range: {'updated_on': {'lte': 'now-30d'}}
-                - 'or':
+              'bool':
+                must:
+                  - range: {'updated_on': {'lte': 'now-30d'}}
+                'should':
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}
@@ -96,9 +117,10 @@
               - 'term': {'category.id': 972}
               - 'term': {'fixed_version.name': 7 LTS}
             'must_not':
-              'and':
-                - range: {'updated_on': {'lte': 'now-30d'}}
-                - 'or':
+              'bool':
+                must:
+                  - range: {'updated_on': {'lte': 'now-30d'}}
+                'should':
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}
@@ -116,9 +138,10 @@
               - 'term': {'fixed_version.id': 3285}
               - 'term': {'fixed_version.id': 2354}
             'must_not':
-              'and':
-                - range: {'updated_on': {'lte': 'now-30d'}}
-                - 'or':
+              'bool':
+                must:
+                  - range: {'updated_on': {'lte': 'now-30d'}}
+                'should':
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}
@@ -130,9 +153,10 @@
             'must':
               - 'term': {'category.id': 1107}
             'must_not':
-              'and':
-                - range: {'updated_on': {'lte': 'now-30d'}}
-                - 'or':
+              'bool':
+                must:
+                  - range: {'updated_on': {'lte': 'now-30d'}}
+                'should':
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}
@@ -143,9 +167,10 @@
             'must':
               - 'term': {'parent.id': 68397}
             'must_not':
-              'and':
-                - range: {'updated_on': {'lte': 'now-30d'}}
-                - 'or':
+              'bool':
+                must:
+                  - range: {'updated_on': {'lte': 'now-30d'}}
+                'should':
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}

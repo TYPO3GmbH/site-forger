@@ -86,6 +86,16 @@
 							</div>
 						</div>
 					</div>
+					<div class="form-group hidden" data-tickettypes="breaking deprecation">
+						<label class="col-sm-2 control-label">ExtensionScanner-Tags <br/> <small><a href="https://docs.typo3.org/typo3cms/CoreApiReference/ExtensionScanner/Index.html#connection-to-changelog-rst-files" target="_blank" rel="noopener">More information about this tags</a> </small></label>
+						<div class="col-sm-10">
+							<div class="btn-group" data-toggle="buttons">
+								<label class="btn btn-primary active"><input type="radio" name="tag[]" value="NotScanned" autocomplete="off" checked> NotScanned</label>
+								<label class="btn btn-primary"><input type="radio" name="tag[]" value="PartiallyScanned" autocomplete="off"> PartiallyScanned</label>
+								<label class="btn btn-primary"><input type="radio" name="tag[]" value="FullyScanned" autocomplete="off"> FullyScanned</label>
+							</div>
+						</div>
+					</div>
                     <div class="form-group" data-tickettypes="breaking deprecation feature important">
                         <div class="col-sm-offset-2 col-sm-10">
                             <input id="generate" type="button" class="btn btn-block btn-success hidden" value="Create ReST manual">
