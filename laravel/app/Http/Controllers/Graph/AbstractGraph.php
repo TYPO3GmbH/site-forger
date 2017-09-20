@@ -110,7 +110,7 @@ abstract class AbstractGraph
         $opened = [];
         $fullRequest = [
             'query' => [
-                'match_all' => [],
+                'match_all' => new \stdClass(),
             ],
             'size' => 0,
             'aggregations' => [

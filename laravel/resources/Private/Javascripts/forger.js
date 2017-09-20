@@ -399,6 +399,10 @@ $(document).ready(function () {
 				"graphs": graphs,
 				"chartCursor": chartCursor,
 				"dataDateFormat": "YYYY-MM-DD",
+				"chartScrollbar": {
+					"graph": "fromGraph",
+					"scrollbarHeight": 30
+				},
 				"categoryField": "date",
 				"categoryAxis": {
 					"parseDates": true,
