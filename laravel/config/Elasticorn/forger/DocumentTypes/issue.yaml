@@ -1,51 +1,35 @@
 project:
   properties:
     name:
-      type: string
-      index: not_analyzed
-      store: true
+      type: keyword
 tracker:
   properties:
     name:
-      type: string
-      index: not_analyzed
-      store: true
+      type: keyword
 status:
   properties:
     name:
-      type: string
-      index: not_analyzed
-      store: true
+      type: keyword
 priority:
   properties:
     name:
-      type: string
-      index: not_analyzed
-      store: true
+      type: keyword
 fixed_version:
   properties:
     name:
-      type: string
-      index: not_analyzed
-      store: true
+      type: keyword
 author:
   properties:
     name:
-      type: string
-      index: not_analyzed
-      store: true
+      type: keyword
 category:
   properties:
     name:
-      type: string
-      index: not_analyzed
-      store: true
+      type: keyword
 focus:
   properties:
     name:
-      type: string
-      index: not_analyzed
-      store: true
+      type: keyword
 start_date:
   type: date
   format: yyyy/MM/dd
@@ -56,26 +40,16 @@ updated_on:
   type: date
   format: yyyy/MM/dd HH:mm:ss
 complexity:
-  type: string
-  index: not_analyzed
-  store: true
+  type: keyword
 typo3_version:
-  type: string
-  index: not_analyzed
-  store: true
+  type: keyword
 php_version:
-  type: string
-  index: not_analyzed
-  store: true
+  type: keyword
 target_version:
-  type: string
-  index: not_analyzed
-  store: true
+  type: keyword
 isregression:
   type: boolean
   index: not_analyzed
   store: true
 tags:
-  type: string
-  index: not_analyzed
-  store: true
+  type: keyword
