@@ -1,0 +1,159 @@
+<f:layout name="Default"/>
+
+<f:section name="Title">Review Activity</f:section>
+<f:section name="Javascripts"></f:section>
+
+<f:section name="Content">
+	<style>
+		.coreteam-table td:first-child {
+			text-align: left;
+			white-space: nowrap;
+		}
+		.coreteam-table td {
+			/*padding-left : 0 !important;*/
+			/*padding-right : 0 !important;*/
+			text-align : right;
+			min-width : 30px;
+		}
+		
+		.btn-blocked {
+			width: 56px;
+		}
+
+		.btn-blocked[disabled] {
+			opacity: 0.3;
+		}
+	</style>
+	<h3>Coreteam Review Activity
+		<span class="btn btn-info"><i class="fa fa-code" aria-hidden="true"></i> Added Patchset</span>
+		<span class="btn btn-default"><i class="fa fa-eye" aria-hidden="true"></i> Code Review</span>
+		<span class="btn btn-default"><i class="fa fa-thumbs-o-up" aria-hidden="true"></i> Verification</span>
+		<span class="btn btn-success"><i class="fa fa-code-fork" aria-hidden="true"></i> Merge</span>
+		<span class="btn btn-danger"><i class="fa fa-trash-o" aria-hidden="true"></i> Abandon</span>
+		<span class="btn btn-default"><i class="fa fa-comment-o" aria-hidden="true"></i> Comment</span>
+	</h3>
+	<div class="container-fluid">
+		<div class="row">
+			<f:for each="{aggs}" as="month" key="monthKey">
+				<div class="col-sm-12 col-md-3 col-lg-2 padding-5">
+					<table class="table coreteam-table table-striped">
+						<tr>
+							<th colspan="7" class="text-center">{monthKey}</th>
+						</tr>
+						<f:for each="{month}" as="reviewtypes" key="committer">
+							<tr>
+								<td><frg:shortenName name="{committer}" /></td>
+								<td colspan="6">
+									<div class="btn-group btn-group-xs" role="group">
+										<f:if condition="{reviewtypes.Added_Patchset}">
+											<f:then>
+												<span class="btn btn-blocked btn-info"><i class="fa fa-code" aria-hidden="true"></i> {reviewtypes.Added_Patchset}</span>
+											</f:then>
+											<f:else>
+												<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-code" aria-hidden="true"></i> </span>
+											</f:else>
+										</f:if>
+										<f:if condition="{reviewtypes.Code_Review}">
+											<f:then>
+												<span class="btn btn-blocked btn-default"><i class="fa fa-eye" aria-hidden="true"></i> {reviewtypes.Code_Review}</span>
+											</f:then>
+											<f:else>
+												<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-eye" aria-hidden="true"></i> </span>
+											</f:else>
+										</f:if>
+										<f:if condition="{reviewtypes.Verification}">
+											<f:then>
+												<span class="btn btn-blocked btn-default"><i class="fa fa-thumbs-o-up" aria-hidden="true"></i> {reviewtypes.Verification}</span>
+											</f:then>
+											<f:else>
+												<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-thumbs-o-up" aria-hidden="true"></i> </span>
+											</f:else>
+										</f:if>
+										<f:if condition="{reviewtypes.Merge}">
+											<f:then>
+												<span class="btn btn-blocked btn-success"><i class="fa fa-code-fork" aria-hidden="true"></i> {reviewtypes.Merge}</span>
+											</f:then>
+											<f:else>
+												<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-code-fork" aria-hidden="true"></i> </span>
+											</f:else>
+										</f:if>
+										<f:if condition="{reviewtypes.Abandoned_Patch}">
+											<f:then>
+												<span class="btn btn-blocked btn-danger"><i class="fa fa-trash-o" aria-hidden="true"></i> {reviewtypes.Abandoned_Patch}</span>
+											</f:then>
+											<f:else>
+												<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-trash-o" aria-hidden="true"></i></span>
+											</f:else>
+										</f:if>
+										<f:if condition="{reviewtypes.Comment}">
+											<f:then>
+												<span class="btn btn-blocked btn-default"><i class="fa fa-comment-o" aria-hidden="true"></i> {reviewtypes.Comment}</span>
+											</f:then>
+											<f:else>
+												<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-comment-o" aria-hidden="true"></i></span>
+											</f:else>
+										</f:if>
+									</div>
+								</td>
+							</tr>
+							<!--<tr>-->
+								<!--<td colspan="7">-->
+									<!--<div class="btn-group btn-group-xs" role="group">-->
+										<!--<f:if condition="{reviewtypes.Added_Patchset}">-->
+											<!--<f:then>-->
+												<!--<span class="btn btn-blocked btn-info"><i class="fa fa-code" aria-hidden="true"></i> {reviewtypes.Added_Patchset}</span>-->
+											<!--</f:then>-->
+											<!--<f:else>-->
+												<!--<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-code" aria-hidden="true"></i> </span>-->
+											<!--</f:else>-->
+										<!--</f:if>-->
+										<!--<f:if condition="{reviewtypes.Code_Review}">-->
+											<!--<f:then>-->
+												<!--<span class="btn btn-blocked btn-default"><i class="fa fa-eye" aria-hidden="true"></i> {reviewtypes.Code_Review}</span>-->
+											<!--</f:then>-->
+											<!--<f:else>-->
+												<!--<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-eye" aria-hidden="true"></i> </span>-->
+											<!--</f:else>-->
+										<!--</f:if>-->
+										<!--<f:if condition="{reviewtypes.Verification}">-->
+											<!--<f:then>-->
+												<!--<span class="btn btn-blocked btn-default"><i class="fa fa-thumbs-o-up" aria-hidden="true"></i> {reviewtypes.Verification}</span>-->
+											<!--</f:then>-->
+											<!--<f:else>-->
+												<!--<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-thumbs-o-up" aria-hidden="true"></i> </span>-->
+											<!--</f:else>-->
+										<!--</f:if>-->
+										<!--<f:if condition="{reviewtypes.Merge}">-->
+											<!--<f:then>-->
+												<!--<span class="btn btn-blocked btn-success"><i class="fa fa-code-fork" aria-hidden="true"></i> {reviewtypes.Merge}</span>-->
+											<!--</f:then>-->
+											<!--<f:else>-->
+												<!--<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-code-fork" aria-hidden="true"></i> </span>-->
+											<!--</f:else>-->
+										<!--</f:if>-->
+										<!--<f:if condition="{reviewtypes.Abandoned_Patch}">-->
+											<!--<f:then>-->
+												<!--<span class="btn btn-blocked btn-danger"><i class="fa fa-trash-o" aria-hidden="true"></i> {reviewtypes.Abandoned_Patch}</span>-->
+											<!--</f:then>-->
+											<!--<f:else>-->
+												<!--<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-trash-o" aria-hidden="true"></i></span>-->
+											<!--</f:else>-->
+										<!--</f:if>-->
+										<!--<f:if condition="{reviewtypes.Comment}">-->
+											<!--<f:then>-->
+												<!--<span class="btn btn-blocked btn-default"><i class="fa fa-comment-o" aria-hidden="true"></i> {reviewtypes.Comment}</span>-->
+											<!--</f:then>-->
+											<!--<f:else>-->
+												<!--<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-comment-o" aria-hidden="true"></i></span>-->
+											<!--</f:else>-->
+										<!--</f:if>-->
+									<!--</div>-->
+								<!--</td>-->
+							<!--</tr>-->
+						</f:for>
+					</table>
+				</div>
+			</f:for>
+		</div>
+	</div>
+</f:section>

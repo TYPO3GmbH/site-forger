@@ -41,6 +41,7 @@ Route::get('/gerrit/stale-issues', 'GerritController@getStaleIssues');
 Route::get('/slack', 'SlackController@getIndex');
 
 Route::get('/management', 'ManagementController@getIndex');
+Route::get('/management/interactions', 'ManagementController@getInteractions');
 
 Route::get('/utility/rst', 'UtilityController@getRst');
 Route::get('/utility/calendar', 'UtilityController@getCalendar');
