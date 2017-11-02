@@ -218,7 +218,7 @@ return [
     'elastic' => [
         'host' => env('ELASTIC_HOST', 'localhost'),
         'port' => env('ELASTIC_PORT', '9200'),
-        'path' => env('ELASTIC_PATH', '/'),
+        'path' => env('ELASTIC_PATH', ''),
         'transport' => env('ELASTIC_TRANSPORT', 'Http'),
         'index' => env('ELASTIC_INDEX', 'forger'),
         'username' => env('ELASTIC_AUTH_USERNAME'),

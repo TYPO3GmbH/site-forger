@@ -567,7 +567,6 @@ class GerritController extends Controller
                 'Releases' => [
                     'terms' => [
                         'field' => 'releases',
-                        'size' => 0,
                     ],
                 ],
                 'Updated on' => [
@@ -670,7 +669,6 @@ class GerritController extends Controller
      */
     protected function addFilters()
     {
-        $query = new Elastica\Query();
         $filters = new BoolQuery();
 
         if (!array_key_exists('filters', $_GET)) {
@@ -717,9 +715,8 @@ class GerritController extends Controller
                 $filters->addMust($filterPart);
             }
         }
-        $query->setQuery($filters);
 
-        return $query;
+        return $filters;
     }
 
     /**
@@ -731,7 +728,6 @@ class GerritController extends Controller
             'Releases' => [
                 'terms' => [
                     'field' => 'releases',
-                    'size' => 0,
                 ],
             ],
             'Affected Files' => [
@@ -742,7 +738,6 @@ class GerritController extends Controller
             'Topic' => [
                 'terms' => [
                     'field' => 'topic',
-                    'size' => 0,
                     'order' => [
                         '_term' => 'asc',
                     ],
@@ -857,10 +852,8 @@ class GerritController extends Controller
                             ],
                         ],
                     ],
+                    'should' => $filter
                 ],
-            ],
-            'filter' => [
-                'or' => $filter,
             ],
             'sort' => [
                 'updated_on' => 'asc',
@@ -908,7 +901,6 @@ class GerritController extends Controller
                 'Releases' => [
                     'terms' => [
                         'field' => 'releases',
-                        'size' => 0,
                     ],
                 ],
                 'Updated on' => [

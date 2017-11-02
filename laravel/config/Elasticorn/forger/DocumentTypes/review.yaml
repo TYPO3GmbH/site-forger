@@ -1,28 +1,19 @@
 id:
   type: integer
 change_id:
-  type: string
-  index: not_analyzed
-  store: true
+  type: keyword
 reviewstatus:
-  type: string
-  index: not_analyzed
-  store: true
+  type: keyword
 subject:
-  type: string
+  type: text
 branch:
-  type: string
-  index: not_analyzed
-  store: true
+  type: keyword
 topic:
-  type: string
-  index: not_analyzed
-  store: true
+  type: keyword
 releases:
-  type: string
-  store: true
+  type: keyword
 mergeable:
-  type: string
+  type: keyword
 affected_files:
   type: integer
 insertions:
@@ -46,10 +37,6 @@ updated_on:
   type: date
   format: yyyy/MM/dd HH:mm:ss
 owner:
-  type: string
-  index: not_analyzed
-  store: true
+  type: keyword
 files:
-  type: string
-  index: not_analyzed
-  store: true
+  type: keyword

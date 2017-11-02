@@ -198,7 +198,6 @@ class SprintController extends Controller
     {
         $fullRequest = [
             'query' => $query,
-            'filter' => $this->queryFilters(),
             'size' => 0,
             'aggregations' => [
                 'status' => [
@@ -270,7 +269,6 @@ class SprintController extends Controller
         $out = $this->sprintConfig['T3G']['Forger']['ColumnOrder'];
         $fullRequest = [
             'query' => $query,
-            'filter' => $this->queryFilters(),
             'size' => 10000,
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
@@ -342,19 +340,6 @@ class SprintController extends Controller
         $returnValue['_redmine_issue_id'] = $ticket['id'];
 
         return $returnValue;
-    }
-
-    /**
-     * @return array
-     */
-    protected function queryFilters() : array
-    {
-        return [
-            'bool' => [
-                'must' => [],
-                'must_not' => [],
-            ],
-        ];
     }
 
     /**

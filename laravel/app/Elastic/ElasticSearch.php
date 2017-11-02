@@ -82,7 +82,6 @@ class ElasticSearch
      */
     private function addFilters()
     {
-        $query = new Query();
         $filters = new Query\BoolQuery();
 
         if (!array_key_exists('filters', $_GET)) {
@@ -115,9 +114,8 @@ class ElasticSearch
                 $filters->addMust($filterPart);
             }
         }
-        $query->setQuery($filters);
 
-        return $query;
+        return $filters;
     }
 
     /**
