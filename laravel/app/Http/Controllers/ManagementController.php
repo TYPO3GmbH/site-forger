@@ -15,6 +15,32 @@ class ManagementController extends Controller
      */
     private $connection;
 
+    private $coreMembers = [
+        'Benni Mack',
+        'Oliver Hader',
+        'Susanne Moog',
+        'Alexander Opitz',
+        'Andreas Fernandez',
+        'Andreas Wolf',
+        'Benjamin Kott',
+        'Christian Kuhn',
+        'Frank Naegler',
+        'Frans Saris',
+        'Georg Ringer',
+        'Helmut Hummel',
+        'Jan Helke',
+        'Jigal van Hemert',
+        'Markus Klein',
+        'Nicole Cordes',
+        'Riccardo De Contardi',
+        'Stefan Neufeind',
+        'Tymoteusz Motylewski',
+        'Wouter Wolters',
+        'Xavier Perseguers',
+    ];
+
+    private $timeFrame = '2017/01/01 00:00:00';
+
     /**
      * ManagementController constructor.
      *
@@ -24,7 +50,9 @@ class ManagementController extends Controller
     {
         parent::__construct();
         $this->connection = $connection;
+        sort($this->coreMembers);
     }
+
 
     /**
      * Show the index screen to the user.
@@ -137,5 +165,106 @@ class ManagementController extends Controller
         $this->view->assign('aggs', $out);
 
         return $this->view->render('index');
+    }
+
+    /**
+     * Show the index screen to the user.
+     *
+     * @return string
+     *
+     * @throws \Elastica\Exception\InvalidException
+     */
+    public function getInteractions() : string
+    {
+        $out = [];
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'range' => [
+                                'interacted_on' => [
+                                    'gte' => $this->timeFrame
+                                ]
+                            ]
+                        ],
+                        [
+                            'terms' => [
+                                'fullname' => $this->coreMembers,
+                            ]
+                        ]
+                    ],
+                ],
+            ],
+            'size' => 0,
+            'aggregations' => [
+                'month' => [
+                    'date_histogram' => [
+                        'field' => 'interacted_on',
+                        'interval' => 'month',
+                    ],
+                    'aggregations' => [
+                        'member' => [
+                            'terms' => [
+                                'field' => 'fullname',
+                                'size' => 30,
+                            ],
+                            'aggregations' => [
+                                'interaction_type' => [
+                                    'terms' => [
+                                        'field' => 'interaction_type',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ]
+                ],
+            ],
+        ];
+        $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
+        $search->addType('interactions');
+        $resultSet = $search->search();
+        $aggregations = $resultSet->getAggregations();
+        foreach ($aggregations as $aggregation) {
+            foreach ($aggregation['buckets'] as $bucket) {
+                $monthParts = explode('/', $bucket['key_as_string']);
+                $dateIdent = $monthParts[0] . '/' . $monthParts[1];
+                foreach ($this->coreMembers as $coreMember) {
+                    $out[$dateIdent][$coreMember] = [];
+                }
+                foreach ($bucket['member']['buckets'] as $member) {
+                    foreach ($member['interaction_type']['buckets'] as $interactionType) {
+                        $out[$dateIdent][$member['key']][$interactionType['key']] = $interactionType['doc_count'];
+                    }
+                }
+            }
+        }
+        krsort($out);
+        $this->view->assign('aggs', $out);
+
+        return $this->view->render('interactions');
+    }
+
+    /**
+     * @return array
+     */
+    protected function queryFilters() : array
+    {
+        $filters = [
+            'bool' => [
+                'must' => [
+                    'type' => [
+                        'value' => 'issue',
+                    ],
+                ],
+                'must_not' => [
+                    //'term' => [
+                    //    'subject' => 'wip'
+                    //]
+                ],
+            ],
+        ];
+
+        return $filters;
     }
 }

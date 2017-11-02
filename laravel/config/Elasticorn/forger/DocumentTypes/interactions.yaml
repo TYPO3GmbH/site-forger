@@ -1,0 +1,17 @@
+interaction_id:
+  type: string
+account:
+  type: keyword
+fullname:
+  type: keyword
+email:
+  type: keyword
+interacted_on:
+  type: date
+  format: yyyy/MM/dd HH:mm:ss
+interaction_type:
+  type: keyword
+interaction_source:
+  type: keyword
+interaction_source_id:
+  type: integer

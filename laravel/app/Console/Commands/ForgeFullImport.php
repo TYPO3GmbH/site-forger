@@ -74,6 +74,18 @@ class ForgeFullImport extends Command
      */
     protected $moreIssuesFromGerrit = true;
 
+    private $totalStart;
+
+    private $totalEnd;
+
+    private $blockStart;
+
+    private $blockEnd;
+
+    private $interactionCount = 0;
+
+    private $reviewCount = 0;
+
     /**
      * ForgeFullImport constructor.
      *
@@ -113,6 +125,7 @@ class ForgeFullImport extends Command
         $mode = $this->argument('mode');
         $this->info('Trying to run mode: "' . $mode . '"');
         $this->startUp();
+        $this->totalStart = time();
         switch ($mode) {
             case 'GerritTest':
                 $this->getReviewBlock(1, 1);
@@ -127,9 +140,9 @@ class ForgeFullImport extends Command
             case 'RedmineFull':
                 $fullAmount = 90000;
                 $currentSlot = -100;
-                $optionalStartOffset = $this->argument('startAt');
-                if (array_key_exists(0, $optionalStartOffset) && is_numeric($optionalStartOffset[0])) {
-                    $currentSlot = (int) $this->argument('startAt')[0];
+                $optionalStartOffset = $this->option('startAt');
+                if (is_numeric($optionalStartOffset)) {
+                    $currentSlot = (int) $optionalStartOffset;
                 }
                 $perRun = 100;
                 while ($currentSlot < $fullAmount) {
@@ -154,17 +167,27 @@ class ForgeFullImport extends Command
                 }
                 break;
             case 'GerritDelta':
-                $result = $this->getReviewBlock(0, 35);
+                $result = $this->getReviewBlock(0, 100);
                 foreach ($result as $review) {
                     $this->addDocumentToElastic($review, 'review');
                 }
+                $this->output->writeln('Finished in ' .
+                    gmdate('H:i:s', ($this->blockEnd - $this->blockStart)) . '. Added ' . $this->reviewCount .
+                    ' reviews with ' . $this->interactionCount . ' interactions.');
                 break;
             case 'GerritFull':
                 $fullAmount = 30000;
                 $currentSlot = 0;
+                $optionalStartOffset = $this->option('startAt');
+                if (is_numeric($optionalStartOffset)) {
+                    $currentSlot = (int) $optionalStartOffset;
+                }
                 $perRun = 100;
+                $this->output->note('Starting Gerrit Run at '.$currentSlot);
                 while ($currentSlot <= $fullAmount) {
-                    $this->info('Importing Gerrit Changes starting at ' . $currentSlot);
+                    $this->blockStart = time();
+                    $this->interactionCount = 0;
+                    $this->reviewCount = 0;
                     if ($this->moreIssuesFromGerrit) {
                         $result = $this->getReviewBlock($currentSlot, $perRun);
                         foreach ($result as $review) {
@@ -172,7 +195,12 @@ class ForgeFullImport extends Command
                         }
                     }
                     $currentSlot += $perRun;
-                    $this->output->writeln('');
+                    $this->blockEnd = time();
+                    if ($this->reviewCount > 0) {
+                        $this->output->writeln('Finished block ' . $currentSlot . ' in ' .
+                            gmdate('H:i:s', ($this->blockEnd - $this->blockStart)) . '. Added ' . $this->reviewCount .
+                            ' reviews with ' . $this->interactionCount . ' interactions.');
+                    }
                 }
                 break;
             case 'Users':
@@ -192,6 +220,8 @@ class ForgeFullImport extends Command
             default:
                 $this->error('The provided import-mode has not yet been implemented');
         }
+        $this->totalEnd = time();
+        $this->output->success('Finished job in ' . gmdate("H:i:s", ($this->totalEnd - $this->totalStart)));
     }
 
     /**
@@ -264,7 +294,7 @@ class ForgeFullImport extends Command
         $moreChanges = false;
         $out = [];
         $json = file_get_contents('https://review.typo3.org/changes/?q=project:Packages/TYPO3.CMS&n=' . $perRun .
-            '&start=' . $current . '&o=DETAILED_LABELS&o=CURRENT_REVISION&o=ALL_FILES&o=CURRENT_COMMIT');
+            '&start=' . $current . '&o=DETAILED_LABELS&o=CURRENT_REVISION&o=ALL_FILES&o=CURRENT_COMMIT&o=MESSAGES&o=DETAILED_ACCOUNTS');
         $data = json_decode(str_replace(")]}'", '', $json), true);
         if (!is_array($data)) {
             $this->line('no array from result');
@@ -277,6 +307,78 @@ class ForgeFullImport extends Command
 
                 if (!array_key_exists('current_revision', $change)) {
                     continue;
+                }
+
+                $patchSetNumber = 0;
+                $interaction = [];
+                foreach ($change['messages'] as $message) {
+                    try {
+                        $interaction['interaction_id'] = $message['id'];
+                        $interaction['interaction_source'] = 'Gerrit';
+                        $interaction['interaction_source_id'] = $change['_number'];
+                        $interaction['interacted_on'] = $this->fixDateFormat($message['date'], 'Gerrit');
+
+                        if (!isset($message['_revision_number'])) {
+                            $message['_revision_number'] = $patchSetNumber;
+                        }
+
+                        // Check if is merge
+                        if ($this->checkIfMessageIsMerge($message['message'])) {
+                            // set author of interaction
+                            $interaction['interaction_type'] = 'Merge';
+                            $interaction['account'] =
+                                $change['revisions'][$change['current_revision']]['uploader']['username'];
+                            $interaction['fullname'] =
+                                $change['revisions'][$change['current_revision']]['uploader']['name'];
+                            $this->addDocumentToElastic($interaction, 'interactions');
+                        } elseif ($this->checkIfMessageIsBackport($message['message'])) {
+                            // code intentionally left blank
+                        } else {
+                            $interaction['account'] = $message['author']['username'];
+                            $interaction['fullname'] = $message['author']['name'];
+                            // Is patchset, add as event
+                            if ($patchSetNumber < $message['_revision_number']) {
+                                $patchSetNumber = $message['_revision_number'];
+                                $interaction['interaction_type'] = 'Added_Patchset';
+                                $this->addDocumentToElastic($interaction, 'interactions');
+                            }
+                            // Check if message is "just" a new patchset
+                            if ($this->checkIfMessageIsComment($message['message'])) {
+                                $interaction['interaction_type'] = 'Comment';
+                                $this->addDocumentToElastic($interaction, 'interactions');
+                            }
+                            // Check if message is a code review
+                            if ($this->checkIfMessageIsCodeReview($message['message'])) {
+                                $interaction['interaction_type'] = 'Code_Review';
+                                $this->addDocumentToElastic($interaction, 'interactions');
+                            }
+                            // Check if message is a verification
+                            if ($this->checkIfMessageIsVerification($message['message'])) {
+                                $interaction['interaction_type'] = 'Verification';
+                                $this->addDocumentToElastic($interaction, 'interactions');
+                            }
+                            // Check if message is abandoning
+                            if ($this->checkIfMessageIsAbandoning($message['message'])) {
+                                $interaction['interaction_type'] = 'Abandoned_Patch';
+                                $this->addDocumentToElastic($interaction, 'interactions');
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        if (
+                            strpos($message['message'], 'Change could not be merged due to a path conflict') === false
+                            &&
+                            strpos($message['message'], 'The change could not be merged due to a path conflict') === false
+                            &&
+                            strpos($message['message'], 'Your change could not be merged due to a path conflict') === false
+                            &&
+                            strpos($message['message'], 'Change has been successfully pushed into branch sandbox') === false
+                            &&
+                            strpos($message['message'], 'Change could not be merged because of a missing dependency') === false
+                        ) {
+                            var_dump($message);
+                            throw new \Exception($e->getMessage());
+                        }
+                    }
                 }
 
                 $author = $change['revisions'][$change['current_revision']]['commit']['author']['name'];
@@ -314,6 +416,8 @@ class ForgeFullImport extends Command
         if ($moreChanges === false) {
             $this->moreIssuesFromGerrit = false;
         }
+        #$this->output->warning(implode(chr(10), array_keys($this->messages)));
+        $this->messages = [];
         return $out;
     }
 
@@ -465,12 +569,33 @@ class ForgeFullImport extends Command
             case 'user':
                 $elasticType = new DocType($this->elasticIndex, 'user');
                 break;
+            case 'interactions':
+                $elasticType = new DocType($this->elasticIndex, 'interactions');
+                break;
             default:
         }
         if ($elasticType !== null) {
-            $doc = new Document($document['id'], $document);
+            if (isset($document['interaction_id'])) {
+                $doc = new Document($document['interaction_id'] . '-' . $document['interaction_type'], $document);
+            } else {
+                $doc = new Document($document['id'], $document);
+            }
+
             $elasticType->addDocument($doc);
-            $this->output->write('+');
+            switch ($type) {
+                case 'review':
+                    $this->reviewCount++;
+                    break;
+                case 'issue':
+                    $this->output->write('F');
+                    break;
+                case 'interactions':
+                    $this->interactionCount++;
+                    break;
+                default:
+                    $this->output->write('?');
+            }
+
         }
     }
 
@@ -596,5 +721,73 @@ class ForgeFullImport extends Command
         $client->request('POST', $slackConfig['Url'], ['body' => $jsonString]);
 
         return true;
+    }
+
+    private function checkIfMessageIsComment(string $message)
+    {
+        // Is just a Code Review
+        $pattern = '^Patch\sSet\s\d{1,4}:\s.*(Code-Review)(-|\+)(1|2)$';
+        $isCodeReview = $this->checkRegex($message, $pattern, '');
+        // Is just a Verification
+        $pattern = '^Patch\sSet\s\d{1,4}:\s.*(Verified)(-|\+)(1|2)$';
+        $isVerification = $this->checkRegex($message, $pattern, '');
+        // Is just a Verification
+        $pattern = '^Uploaded\spatch\sset\s\d{1,4}.$';
+        $isPatchset = $this->checkRegex($message, $pattern, '');
+
+        $pattern = '^Patch\sSet\s\d{1,4}:\sCommit message was updated\.$';
+        $isCommitMessageChange = $this->checkRegex($message, $pattern, '');
+
+        // Check all booleans and if one hits, return false
+        if ($isCodeReview || $isVerification || $isPatchset ||$isCommitMessageChange || $this->checkIfMessageIsBackport($message) ||$this->checkIfMessageIsMerge($message)) {
+            return false;
+        }
+        return true;
+    }
+
+    private function checkIfMessageIsCodeReview(string $message)
+    {
+        $pattern = '^Patch\sSet\s\d{1,4}:\s.*(Code-Review)(-|\+)(1|2)';
+        return $this->checkRegex($message, $pattern);
+    }
+
+    private function checkIfMessageIsVerification(string $message)
+    {
+        $pattern = '^Patch\sSet\s\d{1,4}:\s.*(Verified)(-|\+)(1|2)';
+        return $this->checkRegex($message, $pattern);
+    }
+
+    private function checkIfMessageIsAbandoning(string $message)
+    {
+        $pattern = '^Abandoned';
+        return $this->checkRegex($message, $pattern);
+    }
+
+    private function checkIfMessageIsMerge(string $message)
+    {
+        $pattern = 'Change has been successfully cherry-picked as \b[0-9a-f]{40}\b';
+        return $this->checkRegex($message, $pattern);
+    }
+
+    private function checkIfMessageIsBackport(string $message)
+    {
+        $pattern = 'This patchset was cherry picked to branch.*? as commit \b[0-9a-f]{40}\b';
+        return $this->checkRegex($message, $pattern);
+    }
+
+    private function checkRegex(string $string, string $pattern, $modifier = 'm')
+    {
+        preg_match('/' . $pattern . '/'. $modifier, $string, $matches);
+        if (isset($matches[0])) {
+            return true;
+        }
+        return false;
+    }
+
+    protected function getOptions()
+    {
+        return [
+            ['startAt', null, InputOption::VALUE_OPTIONAL, 'When to start', null]
+        ];
     }
 }
