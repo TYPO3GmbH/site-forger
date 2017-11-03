@@ -1,7 +1,14 @@
 <f:layout name="Default"/>
 
 <f:section name="Title">Review Activity</f:section>
-<f:section name="Javascripts"></f:section>
+<f:section name="Javascripts">
+	<script type="application/javascript" src="/js/bootstrap.tags.js"></script>
+	<script type="application/javascript">
+        $('#contributors').tagsinput({
+            tagClass: 'label label-default label-bigger'
+        });
+	</script>
+</f:section>
 
 <f:section name="Content">
 	<style>
@@ -10,18 +17,84 @@
 			white-space: nowrap;
 		}
 		.coreteam-table td {
-			/*padding-left : 0 !important;*/
-			/*padding-right : 0 !important;*/
 			text-align : right;
 			min-width : 30px;
 		}
 		
 		.btn-blocked {
-			width: 56px;
+			width: 49px;
 		}
 
 		.btn-blocked[disabled] {
 			opacity: 0.3;
+		}
+
+		.interaction-month-block {
+			float: left;
+			width: 420px;
+			margin-right : 10px;
+		}
+
+		.bootstrap-tagsinput {
+			background-color: #fff;
+			border: 1px solid #ccc;
+			box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+			display: inline-block;
+			padding: 4px 6px;
+			color: #555;
+			vertical-align: middle;
+			border-radius: 4px;
+			max-width: 100%;
+			line-height: 22px;
+			cursor: text;
+		}
+		.bootstrap-tagsinput input {
+			border: none;
+			box-shadow: none;
+			outline: none;
+			background-color: transparent;
+			padding: 0 6px;
+			margin: 0;
+			width: auto;
+			max-width: inherit;
+		}
+		.bootstrap-tagsinput.form-control input::-moz-placeholder {
+			color: #777;
+			opacity: 1;
+		}
+		.bootstrap-tagsinput.form-control input:-ms-input-placeholder {
+			color: #777;
+		}
+		.bootstrap-tagsinput.form-control input::-webkit-input-placeholder {
+			color: #777;
+		}
+		.bootstrap-tagsinput input:focus {
+			border: none;
+			box-shadow: none;
+		}
+		.bootstrap-tagsinput .tag {
+			margin-right: 2px;
+			color: white;
+		}
+		.bootstrap-tagsinput .tag [data-role="remove"] {
+			margin-left: 8px;
+			cursor: pointer;
+		}
+		.bootstrap-tagsinput .tag [data-role="remove"]:after {
+			content: "x";
+			padding: 0px 2px;
+		}
+		.bootstrap-tagsinput .tag [data-role="remove"]:hover {
+			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05);
+		}
+		.bootstrap-tagsinput .tag [data-role="remove"]:hover:active {
+			box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+		}
+
+		.label-bigger {
+			font-size: 14px;
+			font-weight: normal;
+			line-height : 2;
 		}
 	</style>
 	<h3>Coreteam Review Activity
@@ -35,14 +108,16 @@
 	<div class="container-fluid">
 		<div class="row">
 			<f:for each="{aggs}" as="month" key="monthKey">
-				<div class="col-sm-12 col-md-3 col-lg-2 padding-5">
-					<table class="table coreteam-table table-striped">
+				<div class="interaction-month-block">
+					<table class="table coreteam-table table-striped table-condensed">
 						<tr>
 							<th colspan="7" class="text-center">{monthKey}</th>
 						</tr>
 						<f:for each="{month}" as="reviewtypes" key="committer">
 							<tr>
-								<td><frg:shortenName name="{committer}" /></td>
+								<td>
+									<frg:shortenName name="{committer}" />
+								</td>
 								<td colspan="6">
 									<div class="btn-group btn-group-xs" role="group">
 										<f:if condition="{reviewtypes.Added_Patchset}">
@@ -96,64 +171,33 @@
 									</div>
 								</td>
 							</tr>
-							<!--<tr>-->
-								<!--<td colspan="7">-->
-									<!--<div class="btn-group btn-group-xs" role="group">-->
-										<!--<f:if condition="{reviewtypes.Added_Patchset}">-->
-											<!--<f:then>-->
-												<!--<span class="btn btn-blocked btn-info"><i class="fa fa-code" aria-hidden="true"></i> {reviewtypes.Added_Patchset}</span>-->
-											<!--</f:then>-->
-											<!--<f:else>-->
-												<!--<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-code" aria-hidden="true"></i> </span>-->
-											<!--</f:else>-->
-										<!--</f:if>-->
-										<!--<f:if condition="{reviewtypes.Code_Review}">-->
-											<!--<f:then>-->
-												<!--<span class="btn btn-blocked btn-default"><i class="fa fa-eye" aria-hidden="true"></i> {reviewtypes.Code_Review}</span>-->
-											<!--</f:then>-->
-											<!--<f:else>-->
-												<!--<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-eye" aria-hidden="true"></i> </span>-->
-											<!--</f:else>-->
-										<!--</f:if>-->
-										<!--<f:if condition="{reviewtypes.Verification}">-->
-											<!--<f:then>-->
-												<!--<span class="btn btn-blocked btn-default"><i class="fa fa-thumbs-o-up" aria-hidden="true"></i> {reviewtypes.Verification}</span>-->
-											<!--</f:then>-->
-											<!--<f:else>-->
-												<!--<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-thumbs-o-up" aria-hidden="true"></i> </span>-->
-											<!--</f:else>-->
-										<!--</f:if>-->
-										<!--<f:if condition="{reviewtypes.Merge}">-->
-											<!--<f:then>-->
-												<!--<span class="btn btn-blocked btn-success"><i class="fa fa-code-fork" aria-hidden="true"></i> {reviewtypes.Merge}</span>-->
-											<!--</f:then>-->
-											<!--<f:else>-->
-												<!--<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-code-fork" aria-hidden="true"></i> </span>-->
-											<!--</f:else>-->
-										<!--</f:if>-->
-										<!--<f:if condition="{reviewtypes.Abandoned_Patch}">-->
-											<!--<f:then>-->
-												<!--<span class="btn btn-blocked btn-danger"><i class="fa fa-trash-o" aria-hidden="true"></i> {reviewtypes.Abandoned_Patch}</span>-->
-											<!--</f:then>-->
-											<!--<f:else>-->
-												<!--<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-trash-o" aria-hidden="true"></i></span>-->
-											<!--</f:else>-->
-										<!--</f:if>-->
-										<!--<f:if condition="{reviewtypes.Comment}">-->
-											<!--<f:then>-->
-												<!--<span class="btn btn-blocked btn-default"><i class="fa fa-comment-o" aria-hidden="true"></i> {reviewtypes.Comment}</span>-->
-											<!--</f:then>-->
-											<!--<f:else>-->
-												<!--<span class="btn btn-blocked btn-default" disabled="disabled"><i class="fa fa-comment-o" aria-hidden="true"></i></span>-->
-											<!--</f:else>-->
-										<!--</f:if>-->
-									<!--</div>-->
-								<!--</td>-->
-							<!--</tr>-->
 						</f:for>
 					</table>
 				</div>
 			</f:for>
+		</div>
+		<div class="row">
+			<div class="sm-12">
+				<div class="panel panel-default">
+					<div class="panel-heading">
+						<h3 class="panel-title">Contributors</h3>
+					</div>
+					<div class="panel-body">
+						<form action="/management/interactions" method="get" id="contributorList">
+							<div>
+								<select multiple name="taggles[]" id="contributors" data-role="tagsinput">
+									<f:for each="{coreTeamMembers}" as="member">
+										<option value="{member}">{member}</option>
+									</f:for>
+								</select>
+							</div>
+							<div style="margin-top:10px;">
+								<input type="submit" class="btn btn-success" value="Show"> <a class="btn btn-warning" href="/management/interactions/">Reset</a>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
 		</div>
 	</div>
 </f:section>

@@ -40,7 +40,7 @@ elixir(function (mix) {
 			'../../Private/Javascripts/forger.js'
 		],
 		'public/js/forger.js'
-	)
+	);
 		//.scripts(['forum.js', 'threads.js'], 'public/js/forum.js');
 
 	// Copy amcharts
@@ -59,6 +59,7 @@ elixir(function (mix) {
 	// Copy single JS files which don't work on their own
 	mix.copy(
 		[
+			'resources/Private/Javascripts/boostrap.tags.js',
 			'resources/Private/Javascripts/forger.Rst.js',
 			'resources/Private/Javascripts/sprintf.min.js',
 			'resources/Private/Javascripts/register-element.js',
