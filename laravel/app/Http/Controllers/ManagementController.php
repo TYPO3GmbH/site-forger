@@ -176,6 +176,10 @@ class ManagementController extends Controller
      */
     public function getInteractions() : string
     {
+        if (isset($_GET['taggles'])) {
+            $this->coreMembers = $this->sanitizeTaggles($_GET['taggles']);
+            sort($this->coreMembers);
+        }
         $out = [];
         $fullRequest = [
             'query' => [
@@ -241,30 +245,23 @@ class ManagementController extends Controller
         }
         krsort($out);
         $this->view->assign('aggs', $out);
+        $this->view->assign('coreTeamMembers', $this->coreMembers);
 
         return $this->view->render('interactions');
     }
 
-    /**
-     * @return array
-     */
-    protected function queryFilters() : array
+    private function sanitizeTaggles(array $taggles)
     {
-        $filters = [
-            'bool' => [
-                'must' => [
-                    'type' => [
-                        'value' => 'issue',
-                    ],
-                ],
-                'must_not' => [
-                    //'term' => [
-                    //    'subject' => 'wip'
-                    //]
-                ],
-            ],
-        ];
-
-        return $filters;
+        $sanitizedArray = [];
+        foreach ($taggles as $index => $taggle) {
+            if (!is_string($taggle)) {
+                throw new \InvalidArgumentException('Taggles need to be strings');
+            }
+            $result = preg_replace("/[^[:alnum:][:space:]-\.']/u", '', html_entity_decode($taggle));
+            if (trim($result) !== '') {
+                $sanitizedArray[$index] = $result;
+            }
+        }
+        return $sanitizedArray;
     }
 }
