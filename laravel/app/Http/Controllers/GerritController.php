@@ -120,7 +120,7 @@ class GerritController extends Controller
         Debugbar::startMeasure(__FUNCTION__, __FUNCTION__);
         if (array_key_exists('query', $_GET)) {
             $searchClosed = false;
-            if (array_key_exists('searchClosed', $_GET) && $_GET['searchClosed'] === 'true') {
+            if (array_key_exists('searchClosed', $_GET) && $_GET['searchClosed'] === '1') {
                 $searchClosed = true;
             }
             $fullRequest = [
