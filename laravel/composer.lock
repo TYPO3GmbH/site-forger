@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "9d500f8ea0f3110a62e9c4f1bdb8b409",
+    "content-hash": "dd8c22f8d1758d8383367b83759d23e3",
     "packages": [
         {
             "name": "almasaeed2010/adminlte",
@@ -3967,16 +3967,16 @@
         },
         {
             "name": "typo3fluid/fluid",
-            "version": "dev-master",
+            "version": "2.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/TYPO3/Fluid.git",
-                "reference": "055303e18659978ac991885d9c8f6407fa4c6e63"
+                "reference": "f583badd3b2a90f046fe5c1e0459300325a3e0ce"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/TYPO3/Fluid/zipball/055303e18659978ac991885d9c8f6407fa4c6e63",
-                "reference": "055303e18659978ac991885d9c8f6407fa4c6e63",
+                "url": "https://api.github.com/repos/TYPO3/Fluid/zipball/f583badd3b2a90f046fe5c1e0459300325a3e0ce",
+                "reference": "f583badd3b2a90f046fe5c1e0459300325a3e0ce",
                 "shasum": ""
             },
             "require": {
@@ -4002,7 +4002,7 @@
                 "LGPL-3.0"
             ],
             "description": "The TYPO3 Fluid template rendering engine",
-            "time": "2016-12-30T13:51:45+00:00"
+            "time": "2017-08-25T10:10:42+00:00"
         },
         {
             "name": "venturecraft/revisionable",
@@ -4108,17 +4108,17 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/wmdbsystems/FluidLaravel.git",
-                "reference": "83ef72bb92d520c616e69ddeeb4e03e623ef4a21"
+                "reference": "552fbc074d84d55163db21cf1bf8baa1fa55337a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/wmdbsystems/FluidLaravel/zipball/83ef72bb92d520c616e69ddeeb4e03e623ef4a21",
-                "reference": "83ef72bb92d520c616e69ddeeb4e03e623ef4a21",
+                "url": "https://api.github.com/repos/wmdbsystems/FluidLaravel/zipball/552fbc074d84d55163db21cf1bf8baa1fa55337a",
+                "reference": "552fbc074d84d55163db21cf1bf8baa1fa55337a",
                 "shasum": ""
             },
             "require": {
                 "php": ">=5.4.0",
-                "typo3fluid/fluid": "dev-master"
+                "typo3fluid/fluid": "^2.4.0"
             },
             "require-dev": {
                 "laravel/framework": "5.1.*"
@@ -4147,7 +4147,7 @@
                 "source": "https://github.com/wmdbsystems/FluidLaravel/tree/master",
                 "issues": "https://github.com/wmdbsystems/FluidLaravel/issues"
             },
-            "time": "2016-08-08T16:23:21+00:00"
+            "time": "2017-11-05T18:01:59+00:00"
         }
     ],
     "packages-dev": [
@@ -5424,7 +5424,6 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "typo3fluid/fluid": 20,
         "wmdbsystems/fluidlaravel": 20
     },
     "prefer-stable": false,
