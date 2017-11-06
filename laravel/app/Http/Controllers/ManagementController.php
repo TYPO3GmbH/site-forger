@@ -36,7 +36,6 @@ class ManagementController extends Controller
         'Stefan Neufeind',
         'Tymoteusz Motylewski',
         'Wouter Wolters',
-        'Xavier Perseguers',
     ];
 
     private $timeFrame = '2017/01/01 00:00:00';
