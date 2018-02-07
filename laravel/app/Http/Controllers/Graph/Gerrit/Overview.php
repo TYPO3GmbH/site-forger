@@ -101,6 +101,15 @@ class Overview extends AbstractGraph
                     if (isset($opened[$date])) {
                         $row[$i]['NEW'] = $opened[$date];
                     }
+                    if (!array_key_exists('ABANDONED', $row[$i])) {
+                        $row[$i]['ABANDONED'] = 0;
+                    }
+                    if (!array_key_exists('NEW', $row[$i])) {
+                        $row[$i]['NEW'] = 0;
+                    }
+                    if (!array_key_exists('MERGED', $row[$i])) {
+                        $row[$i]['MERGED'] = 0;
+                    }
                     ++$i;
                 }
             }
