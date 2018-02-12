@@ -151,6 +151,10 @@ $(document).ready(function () {
 				}
 				return x.value;
 			});
+			var extTag = $('select[name="tag[]"]').val();
+			if (extTag.length > 0) {
+				tags.push(extTag);
+			}
 			restBody += sprintf('\n\n.. index:: %s', tags.join(', '));
 		}
 		restContent += restBody.replace('\n', '');
