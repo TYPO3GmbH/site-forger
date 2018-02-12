@@ -20,14 +20,71 @@ class UtilityController extends Controller
      *
      * @return string
      */
-    public function getRst() : string
+    public function getRst(): string
     {
         $tags = [
-            'Backend', 'CLI', 'Database', 'FAL', 'FlexForm', 'Fluid', 'Frontend', 'LocalConfiguration', 'JavaScript',
-            'PHP-API', 'RTE', 'TCA', 'TSConfig', 'TypoScript',
+            'Backend',
+            'CLI',
+            'Database',
+            'FAL',
+            'FlexForm',
+            'Fluid',
+            'Frontend',
+            'LocalConfiguration',
+            'JavaScript',
+            'PHP-API',
+            'RTE',
+            'TCA',
+            'TSConfig',
+            'TypoScript',
         ];
         sort($tags);
+
+        $extensionKeys = [
+            'documentation',
+            'form',
+            'opendocs',
+            'setup',
+            'extbase',
+            'frontend',
+            'recordlist',
+            'sys_action',
+            'extensionmanager',
+            'impexp',
+            'recycler',
+            'sys_note',
+            'feedit',
+            'indexed_search',
+            'redirects',
+            't3editor',
+            'about',
+            'felogin',
+            'info',
+            'reports',
+            'taskcenter',
+            'backend',
+            'filelist',
+            'install',
+            'rsaauth',
+            'tstemplate',
+            'belog',
+            'filemetadata',
+            'lang',
+            'rte_ckeditor',
+            'viewpage',
+            'beuser',
+            'fluid',
+            'linkvalidator',
+            'saltedpasswords',
+            'workspaces',
+            'core',
+            'fluid_styled_content',
+            'lowlevel',
+            'scheduler'
+        ];
+        sort($extensionKeys);
         $this->view->assign('tags', $tags);
+        $this->view->assign('extensionKeys', $extensionKeys);
 
         return $this->view->render('rst');
     }
@@ -37,7 +94,7 @@ class UtilityController extends Controller
      *
      * @return string
      */
-    public function getHelp() : string
+    public function getHelp(): string
     {
         return $this->view->render('help');
     }
@@ -47,18 +104,18 @@ class UtilityController extends Controller
      *
      * @return string
      */
-    public function getCalendar() : string
+    public function getCalendar(): string
     {
         return $this->view->render('calendar');
     }
 
     /**
      * @param Connection $connection
-     * @param Request    $request
+     * @param Request $request
      *
      * @return string
      */
-    public function getIssue(Connection $connection, Request $request) : string
+    public function getIssue(Connection $connection, Request $request): string
     {
         $this->connection = $connection;
         $issueId = 0;
@@ -75,7 +132,7 @@ class UtilityController extends Controller
      *
      * @return array
      */
-    protected function findIssue($issueId) : array
+    protected function findIssue($issueId): array
     {
         $index = $this->connection->getElasticIndex();
         $forger = $index->getType('issue');

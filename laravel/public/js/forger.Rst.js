@@ -143,8 +143,18 @@ $(document).ready(function () {
 		var checkedTags = $('input[name="tag[]"]:checked');
 		if (checkedTags.length > 0) {
 			var tags = $.map(checkedTags, function(x) {
+				if (
+					$.inArray(ticketType, ['Feature', 'Important']) !== -1
+					&& $.inArray(x.value, ['NotScanned', 'PartiallyScanned', 'FullyScanned']) !== -1
+				) {
+					return null;
+				}
 				return x.value;
 			});
+			var extTag = $('select[name="tag[]"]').val();
+			if (extTag.length > 0) {
+				tags.push(extTag);
+			}
 			restBody += sprintf('\n\n.. index:: %s', tags.join(', '));
 		}
 		restContent += restBody.replace('\n', '');
