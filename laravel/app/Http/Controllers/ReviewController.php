@@ -208,7 +208,7 @@ class ReviewController extends Controller
                 $metaStatus = 'missesBoth';
                 break;
             case
-                $review['positive_reviews'] === 1
+                $review['positive_reviews'] > 0
                 && $review['positive_verifications'] === 0
                 && $review['negative_reviews'] === 0
                 && $review['negative_verifications'] === 0:
@@ -216,21 +216,21 @@ class ReviewController extends Controller
                 break;
             case
                 $review['positive_reviews'] === 0
-                && $review['positive_verifications'] === 1
+                && $review['positive_verifications'] > 0
                 && $review['negative_reviews'] === 0
                 && $review['negative_verifications'] === 0:
                 $metaStatus = 'missesCodeReview';
                 break;
             case
-                $review['positive_reviews'] === 1
-                && $review['positive_verifications'] === 1
+                $review['positive_reviews'] > 0
+                && $review['positive_verifications'] > 0
                 && $review['negative_reviews'] === 0
                 && $review['negative_verifications'] === 0:
                 $metaStatus = 'hasPlusOne';
                 break;
             case
-                $review['positive_reviews'] === 2
-                && $review['positive_verifications'] === 2
+                $review['positive_reviews'] > 1
+                && $review['positive_verifications'] > 1
                 && $review['negative_reviews'] === 0
                 && $review['negative_verifications'] === 0:
                 $metaStatus = 'hasPlusTwo';
