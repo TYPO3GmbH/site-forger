@@ -45,16 +45,6 @@ class Burndown extends AbstractGraph
                 ];
             }
         }
-        $this->chartData = [
-            'chartData' => $final,
-            'lines' => [
-                'diff' => [
-                    'color' => '#C2274A',
-                    'title' => 'Days',
-                ],
-            ],
-        ];
-
-        return $this->chartData;
+        return $this->chartData = $final;
     }
 }

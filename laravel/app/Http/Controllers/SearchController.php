@@ -37,8 +37,8 @@ class SearchController extends Controller
     {
         $reviewGraph = new Full($this->connection);
         $issueGraph = new FullForge($this->connection);
-        $this->view->assign('openReviews', $reviewGraph->render());
-        $this->view->assign('openIssues', $issueGraph->render());
+        #$this->view->assign('openReviews', $reviewGraph->render());
+        #$this->view->assign('openIssues', $issueGraph->render());
 
         return $this->view->render('index');
     }

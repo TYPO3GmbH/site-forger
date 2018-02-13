@@ -60,13 +60,13 @@ abstract class AbstractGraph
     }
 
     /**
-     * @return string
+     * @return array
      */
-    public function render() : string
+    public function render() : array
     {
         $this->getData();
-
-        return json_encode($this->chartData);
+        return $this->chartData;
+        #return json_encode($this->chartData);
     }
 
     /**

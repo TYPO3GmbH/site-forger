@@ -20,11 +20,7 @@ class Overview extends AbstractGraph
     protected function getData() : array
     {
         $this->weirdTimeThingy = strftime('%Y/%m/%d 00:00:00', time() - (((365 / 2) - 31) * 24 * 60 * 60));
-        $this->chartData = [
-            'chartData' => $this->gerritOpenVsClosedAction(),
-            'guides' => $this->getGuides(),
-        ];
-        return $this->chartData;
+        return $this->chartData = $this->gerritOpenVsClosedAction();
     }
 
     /**********************************************
@@ -161,12 +157,11 @@ class Overview extends AbstractGraph
         ];
         $resultSet = $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW);
         $data = $resultSet->getAggregations();
-        if (is_array($data['over_time']['buckets'])) {
+        if (\is_array($data['over_time']['buckets'])) {
             foreach ($data['over_time']['buckets'] as $frame) {
                 $row[$this->fixTime($frame['key_as_string'])] = $frame['doc_count'];
             }
         }
-
         return $row;
     }
 }

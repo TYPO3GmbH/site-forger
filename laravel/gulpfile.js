@@ -59,7 +59,7 @@ elixir(function (mix) {
 	// Copy single JS files which don't work on their own
 	mix.copy(
 		[
-			'resources/Private/Javascripts/boostrap.tags.js',
+			'resources/Private/Javascripts/bootstrap.tags.js',
 			'resources/Private/Javascripts/forger.Rst.js',
 			'resources/Private/Javascripts/sprintf.min.js',
 			'resources/Private/Javascripts/register-element.js',
