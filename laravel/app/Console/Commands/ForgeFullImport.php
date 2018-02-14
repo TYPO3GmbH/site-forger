@@ -395,6 +395,7 @@ class ForgeFullImport extends Command
                     'affected_files' => count($change['revisions'][$change['current_revision']]['files']),
                     'insertions' => $change['insertions'],
                     'deletions' => $change['deletions'],
+                    'reviewtags' => $this->extractReviewTags($change['subject']),
                     'positive_reviews' => $labels['positive_reviews'],
                     'negative_reviews' => $labels['negative_reviews'],
                     'positive_verifications' => $labels['positive_verifications'],
@@ -513,6 +514,19 @@ class ForgeFullImport extends Command
         }
 
         return $out;
+    }
+
+    protected function extractReviewTags(string $message): array
+    {
+        $patchTags = [];
+        $pattern = '/\[([a-zA-Z0-9]*)\]/';
+        preg_match_all($pattern, $message, $matches, PREG_SET_ORDER, 0);
+        if (\is_array($matches)) {
+            foreach ($matches as $index => $match) {
+                $patchTags[] = $match[1];
+            }
+        }
+        return $patchTags;
     }
 
     /**

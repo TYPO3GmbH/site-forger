@@ -27,9 +27,10 @@ class Mergeable extends AbstractGraph
                     ],
                     'must_not' => [
                         [
-                            'query_string' => [
-                                'default_field' => 'subject',
-                                'query' => 'WIP',
+                            'terms' => [
+                                'reviewtags' => [
+                                    'WIP'
+                                ]
                             ],
                         ],
                     ],
@@ -67,9 +68,10 @@ class Mergeable extends AbstractGraph
                             ],
                         ],
                         [
-                            'query_string' => [
-                                'default_field' => 'subject',
-                                'query' => 'WIP',
+                            'terms' => [
+                                'reviewtags' => [
+                                    'WIP'
+                                ]
                             ],
                         ]
                     ],
