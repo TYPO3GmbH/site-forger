@@ -28,9 +28,10 @@ class Full extends AbstractGraph
                             ],
                         ],
                         [
-                            'query_string' => [
-                                'default_field' => 'subject',
-                                'query' => 'WIP',
+                            'terms' => [
+                                'reviewtags' => [
+                                    'WIP'
+                                ]
                             ],
                         ],
                     ],

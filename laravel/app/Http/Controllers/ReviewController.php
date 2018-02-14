@@ -74,9 +74,10 @@ class ReviewController extends Controller
             'bool' => [
                 'must' => [
                     [
-                        'query_string' => [
-                            'default_field' => 'subject',
-                            'query' => strtoupper($boardId),
+                        'terms' => [
+                            'reviewtags' => [
+                                strtoupper($boardId)
+                            ]
                         ],
                     ],
                     [
@@ -88,9 +89,10 @@ class ReviewController extends Controller
                 ],
                 'must_not' => [
                     [
-                        'query_string' => [
-                            'default_field' => 'review.subject',
-                            'query' => 'WIP',
+                        'terms' => [
+                            'reviewtags' => [
+                                'WIP'
+                            ]
                         ],
                     ],
                 ],
@@ -171,7 +173,7 @@ class ReviewController extends Controller
             'missesCodeReview' => [],
             'missesTesting' => [],
             'hasPlusOne' => [],
-            'hasPlusTwo' => [],
+            'mergeConflict' => [],
             'blocked' => [],
             'unclear' => [],
         ];
@@ -200,6 +202,10 @@ class ReviewController extends Controller
     protected function defineBoardGroup(array $review) : string
     {
         switch (true) {
+            // Blocked or merge conflict
+            case $review['mergeable'] === 'no':
+                $metaStatus = 'mergeConflict';
+                break;
             case
                 $review['positive_reviews'] === 0
                 && $review['positive_verifications'] === 0
@@ -227,13 +233,6 @@ class ReviewController extends Controller
                 && $review['negative_reviews'] === 0
                 && $review['negative_verifications'] === 0:
                 $metaStatus = 'hasPlusOne';
-                break;
-            case
-                $review['positive_reviews'] > 1
-                && $review['positive_verifications'] > 1
-                && $review['negative_reviews'] === 0
-                && $review['negative_verifications'] === 0:
-                $metaStatus = 'hasPlusTwo';
                 break;
             default:
                 $metaStatus = 'blocked';

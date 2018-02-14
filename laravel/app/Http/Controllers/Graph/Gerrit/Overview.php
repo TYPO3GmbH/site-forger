@@ -57,9 +57,10 @@ class Overview extends AbstractGraph
                     ],
                     'must_not' => [
                         [
-                            'query_string' => [
-                                'default_field' => 'subject',
-                                'query' => 'WIP',
+                            'terms' => [
+                                'reviewtags' => [
+                                    'WIP'
+                                ]
                             ],
                         ],
                     ],
@@ -137,9 +138,10 @@ class Overview extends AbstractGraph
                     ],
                     'must_not' => [
                         [
-                            'query_string' => [
-                                'default_field' => 'subject',
-                                'query' => 'WIP',
+                            'terms' => [
+                                'reviewtags' => [
+                                    'WIP'
+                                ]
                             ],
                         ],
                     ],

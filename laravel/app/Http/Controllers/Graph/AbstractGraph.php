@@ -199,9 +199,10 @@ abstract class AbstractGraph
                 'bool' => [
                     'must_not' => [
                         [
-                            'query_string' => [
-                                'default_field' => 'subject',
-                                'query' => 'WIP',
+                            'terms' => [
+                                'reviewtags' => [
+                                    'WIP'
+                                ]
                             ],
                         ],
                     ],
@@ -254,9 +255,10 @@ abstract class AbstractGraph
                     ],
                     'must_not' => [
                         [
-                            'query_string' => [
-                                'default_field' => 'subject',
-                                'query' => 'WIP',
+                            'terms' => [
+                                'reviewtags' => [
+                                    'WIP'
+                                ]
                             ],
                         ],
                     ],
