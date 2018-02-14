@@ -14,16 +14,7 @@ class OpenReviews extends AbstractGraph
      */
     protected function getData() : array
     {
-        $this->chartData = [
-            'chartData' => $this->getReviewsOverTime(),
-            'lines' => [
-                'open' => [
-                    'color' => '#CB00E6',
-                    'title' => 'Reviews',
-                ],
-            ],
-        ];
-        return $this->chartData;
+        return $this->chartData = $this->getReviewsOverTime();
     }
 
     /**

@@ -39,6 +39,207 @@ class SearchController extends Controller
         $issueGraph = new FullForge($this->connection);
         $this->view->assign('openReviews', $reviewGraph->render());
         $this->view->assign('openIssues', $issueGraph->render());
+        $graphConfig = [
+            'Forge' => [
+                'OpenVsClosed' => [
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#5abc55',
+                        'lineThickness' => 2,
+                        'showBallon' => true,
+                        'valueField' => 'closed',
+                        'title' => 'Closed Tickes',
+                        'fillAlphas' => 1,
+                        'bullet' => 'round',
+                        'bulletSize' => 6
+                    ],
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#dd123d',
+                        'lineThickness' => 2,
+                        'showBallon' => true,
+                        'valueField' => 'open',
+                        'title' => 'Opened Tickes',
+                        'fillAlphas' => 0.5,
+                        'bullet' => 'round',
+                        'bulletSize' => 6
+                    ],
+                ],
+                'Burndown' => [
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#f49800',
+                        'lineThickness' => 2,
+                        'showBallon' => true,
+                        'valueField' => 'diff',
+                        'title' => 'Reviews',
+                        'fillAlphas' => 0.5,
+                        'bullet' => 'round',
+                        'bulletSize' => 6
+                    ]
+                ],
+                'TrackerTypes' => [
+                    [
+                        'balloonText' => '<b>[[title]]</b><br><span style=\'font-size:14px\'>[[category]]: <b>[[value]]</b></span>',
+                        'fillAlphas' => 0.8,
+                        'labelText' => '[[value]]',
+                        'lineAlpha' => 0.3,
+                        'title' => 'New',
+                        'type' => 'column',
+                        'lineColor' => '#fb7e7e',
+                        'valueField' => 'New'
+                    ],
+                    [
+                        'balloonText' => '<b>[[title]]</b><br><span style=\'font-size:14px\'>[[category]]: <b>[[value]]</b></span>',
+                        'fillAlphas' => 0.8,
+                        'labelText' => '[[value]]',
+                        'lineAlpha' => 0.3,
+                        'title' => 'Accepted',
+                        'type' => 'column',
+                        'lineColor' => '#fbee99',
+                        'valueField' => 'Accepted'
+                    ],
+                    [
+                        'balloonText' => '<b>[[title]]</b><br><span style=\'font-size:14px\'>[[category]]: <b>[[value]]</b></span>',
+                        'fillAlphas' => 0.8,
+                        'labelText' => '[[value]]',
+                        'lineAlpha' => 0.3,
+                        'title' => 'Needs Feedback',
+                        'type' => 'column',
+                        'lineColor' => '#FBC3C3',
+                        'valueField' => 'NeedsFeedback'
+                    ],
+                    [
+                        'balloonText' => '<b>[[title]]</b><br><span style=\'font-size:14px\'>[[category]]: <b>[[value]]</b></span>',
+                        'fillAlphas' => 0.8,
+                        'labelText' => '[[value]]',
+                        'lineAlpha' => 0.3,
+                        'title' => 'In Progress',
+                        'type' => 'column',
+                        'lineColor' => '#A9E2FF',
+                        'valueField' => 'InProgress'
+                    ],
+                    [
+                        'balloonText' => '<b>[[title]]</b><br><span style=\'font-size:14px\'>[[category]]: <b>[[value]]</b></span>',
+                        'fillAlphas' => 0.8,
+                        'labelText' => '[[value]]',
+                        'lineAlpha' => 0.3,
+                        'title' => 'On Hold',
+                        'type' => 'column',
+                        'lineColor' => '#D1F412',
+                        'valueField' => 'OnHold'
+                    ],
+                    [
+                        'balloonText' => '<b>[[title]]</b><br><span style=\'font-size:14px\'>[[category]]: <b>[[value]]</b></span>',
+                        'fillAlphas' => 0.8,
+                        'labelText' => '[[value]]',
+                        'lineAlpha' => 0.3,
+                        'title' => 'Under Review',
+                        'type' => 'column',
+                        'lineColor' => '#aeff91',
+                        'valueField' => 'UnderReview'
+                    ],
+                    [
+                        'balloonText' => '<b>[[title]]</b><br><span style=\'font-size:14px\'>[[category]]: <b>[[value]]</b></span>',
+                        'fillAlphas' => 0.8,
+                        'labelText' => '[[value]]',
+                        'lineAlpha' => 0.3,
+                        'title' => 'ReadyForDeployment',
+                        'type' => 'column',
+                        'lineColor' => '#ff9900',
+                        'valueField' => 'ReadyForDeployment'
+                    ],
+                ]
+            ],
+            'Gerrit' => [
+                'OpenReviews' => [
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#538bb3',
+                        'lineThickness' => 2,
+                        'showBallon' => true,
+                        'valueField' => 'open',
+                        'title' => 'Reviews',
+                        'fillAlphas' => 0.5,
+                        'bullet' => 'round',
+                        'bulletSize' => 6
+                    ]
+                ],
+                'Burndown' => [
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#538bb3',
+                        'lineThickness' => 2,
+                        'showBallon' => true,
+                        'valueField' => 'diff',
+                        'title' => 'Reviews',
+                        'fillAlphas' => 0.5,
+                        'bullet' => 'round',
+                        'bulletSize' => 6
+                    ]
+                ],
+            ],
+            'Generic' => [
+                'Velocity' => [
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#dd123d',
+                        'lineThickness' => 2,
+                        'showBallon' => true,
+                        'valueField' => 'open',
+                        'title' => 'Opened Tickes',
+                        'fillAlphas' => 0,
+                        'id' => 'fromGraph'
+                    ],
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#5abc55',
+                        'lineThickness' => 2,
+                        'showBallon' => true,
+                        'valueField' => 'closed',
+                        'title' => 'Closed Tickes',
+                        'fillAlphas' => 0.2,
+                        'fillToGraph' => 'fromGraph'
+                    ],
+                ],
+                'Period' => [
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#eeeeee',
+                        'lineThickness' => 2,
+                        'showBallon' => true,
+                        'valueField' => 'previous2',
+                        'title' => '2 years ago',
+                        'fillAlphas' => 1,
+                        'bullet' => 'round',
+                        'bulletSize' => 6
+                    ],
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#dddddd',
+                        'lineThickness' => 2,
+                        'showBallon' => true,
+                        'valueField' => 'previous',
+                        'title' => 'Opened Tickes',
+                        'fillAlphas' => 0.5,
+                        'bullet' => 'round',
+                        'bulletSize' => 6
+                    ],
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#f49800',
+                        'lineThickness' => 2,
+                        'showBallon' => true,
+                        'valueField' => 'current',
+                        'title' => 'This year',
+                        'fillAlphas' => 0.5,
+                        'bullet' => 'round',
+                        'bulletSize' => 6
+                    ],
+                ]
+            ]
+        ];
+        $this->view->assign('graphConfig', $graphConfig);
 
         return $this->view->render('index');
     }

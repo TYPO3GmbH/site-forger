@@ -13,7 +13,7 @@ class Mergeable extends AbstractGraph
      * @return array
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getData() : array
+    protected function getData(): array
     {
         $fullRequest = [
             'query' => [
@@ -48,21 +48,39 @@ class Mergeable extends AbstractGraph
         $data = $resultSet->getAggregations();
         if (isset($data['Mergeable']['buckets'])) {
             foreach ($data['Mergeable']['buckets'] as $bucket) {
-                $this->chartData['chartData'][] = [
+                $this->chartData[] = [
                     'name' => $bucket['key'],
                     'value' => $bucket['doc_count'],
                 ];
             }
         }
-        $this->chartData['lines'] = [
-            'no' => [
-                'color' => '#f04124',
-                'title' => 'Cannot be merged',
+        // and once for WIP
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'NEW',
+                                ],
+                            ],
+                        ],
+                        [
+                            'query_string' => [
+                                'default_field' => 'subject',
+                                'query' => 'WIP',
+                            ],
+                        ]
+                    ],
+                ],
             ],
-            'yes' => [
-                'color' => '#43ac6a',
-                'title' => 'Can be merged',
-            ],
+            'size' => 0,
+        ];
+        $resultSet = $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW);
+        $this->chartData[] = [
+            'name' => 'WIP',
+            'value' => $resultSet->getTotalHits()
         ];
         return $this->chartData;
     }

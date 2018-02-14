@@ -23,11 +23,11 @@ class Full extends AbstractGraph
      * REDMINE RELATED THINGS
      ***********************************************/
     /**
-     * @return int
+     * @return array
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getAllOpenIssues() : int
+    protected function getAllOpenIssues() : array
     {
         $fullRequest = [
             'query' => [
@@ -49,6 +49,6 @@ class Full extends AbstractGraph
         ];
         $resultSet = $this->doSearch($fullRequest);
 
-        return $resultSet->getTotalHits();
+        return ['total' => $resultSet->getTotalHits()];
     }
 }
