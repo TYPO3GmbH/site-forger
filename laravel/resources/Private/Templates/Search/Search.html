@@ -18,27 +18,40 @@
 				<f:else>
 					<f:if condition="{0: mode} == {0: 'query'}">
 						<f:then>
-							<div class="col-sm-3">
-								<h4>Aggregations</h4>
-								<button type="submit" class="btn btn-success"><i class="fa fa-filter"></i> Filter
-								</button>
-								<f:render partial="Accordion" arguments="{aggregations: result.aggs}"/>
-								<button type="submit" class="btn btn-success"><i class="fa fa-filter"></i> Filter
-								</button>
-							</div>
-							<div class="col-sm-9">
-								<h4>Showing hits <strong>{result.startingAtItem} </strong>to <strong>{result.endingAtItem}</strong>
-									of <strong>{result.totalResults}</strong></h4>
-								<f:if condition="{result.results}">
-									<f:render section="paginator" arguments="{_all}"/>
-								</f:if>
-								<f:for each="{result.results}" as="results">
-									<f:render partial="Issue" arguments="{issue: results}"/>
-								</f:for>
-								<f:if condition="{result.results}">
-									<f:render section="paginator" arguments="{_all}"/>
-								</f:if>
-							</div>
+							<f:if condition="{result.totalResults}">
+								<f:then>
+									<div class="col-sm-3">
+										<h4>Aggregations</h4>
+										<button type="submit" class="btn btn-success"><i class="fa fa-filter"></i> Filter
+										</button>
+										<f:render partial="Accordion" arguments="{aggregations: result.aggs}"/>
+										<button type="submit" class="btn btn-success"><i class="fa fa-filter"></i> Filter
+										</button>
+									</div>
+									<div class="col-sm-9">
+										<h4>Showing hits <strong>{result.startingAtItem} </strong>to <strong>{result.endingAtItem}</strong>
+											of <strong>{result.totalResults}</strong></h4>
+										<f:if condition="{result.results}">
+											<f:render section="paginator" arguments="{_all}"/>
+										</f:if>
+										<f:for each="{result.results}" as="results">
+											<f:render partial="Issue" arguments="{issue: results}"/>
+										</f:for>
+										<f:if condition="{result.results}">
+											<f:render section="paginator" arguments="{_all}"/>
+										</f:if>
+									</div>
+								</f:then>
+								<f:else>
+									<div class="col-sm-12" style="margin-top: 20px;">
+										<div class="alert alert-danger" role="alert">
+											<h3><strong>Oh Snap!</strong> No results were found for <code>{query}</code>.</h3>
+											<p>Try another term or set the checkbox "Search closed tickets".</p>
+										</div>
+									</div>
+								</f:else>
+							</f:if>
+
 						</f:then>
 						<f:else>
 							<div class="col-sm-12 col-md-6">
