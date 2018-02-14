@@ -209,7 +209,7 @@ class SearchController extends Controller
                         'lineThickness' => 2,
                         'showBallon' => true,
                         'valueField' => 'previous2',
-                        'title' => '2 years ago',
+                        'title' => date('Y', mktime(10, 0, 0, 2, 1, (int)date('Y')-2)),
                         'fillAlphas' => 1,
                         'bullet' => 'round',
                         'bulletSize' => 6
@@ -220,7 +220,7 @@ class SearchController extends Controller
                         'lineThickness' => 2,
                         'showBallon' => true,
                         'valueField' => 'previous',
-                        'title' => 'Opened Tickes',
+                        'title' => date('Y', mktime(10, 0, 0, 2, 1, (int)date('Y')-1)),
                         'fillAlphas' => 0.5,
                         'bullet' => 'round',
                         'bulletSize' => 6
@@ -231,7 +231,7 @@ class SearchController extends Controller
                         'lineThickness' => 2,
                         'showBallon' => true,
                         'valueField' => 'current',
-                        'title' => 'This year',
+                        'title' => date('Y'),
                         'fillAlphas' => 0.5,
                         'bullet' => 'round',
                         'bulletSize' => 6
