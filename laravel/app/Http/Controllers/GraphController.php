@@ -36,7 +36,7 @@ class GraphController extends Controller
      */
     public function index(string $type = 'Gerrit', string $graph = 'Velocity') : string
     {
-        Config::set('debugbar.enabled', false);
+        app('debugbar')->disable();
         return json_encode($this->getGraphName($graph, $type)->render());
     }
 
