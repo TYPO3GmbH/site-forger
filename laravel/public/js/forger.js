@@ -12755,30 +12755,31 @@ $(document).ready(function () {
 		var docType = $(this).data('type');
 		var view = $(this).data('graph');
 		var chartType = $(this).data('chart');
-		var charttitle = $(this).data('charttitle');
+		var chartTitle = $(this).data('charttitle');
+		var graphConfig = $(this).data('graphs');
 		var divId = $(this).attr('id');
 		switch(chartType) {
 			case 'Velocity':
-				drawVelocityChart(docType, view, divId, charttitle);
+				drawVelocityChart(docType, view, divId, chartTitle, graphConfig);
 				break;
 			case 'Overview':
-				drawOverviewChart(docType, view, divId, charttitle);
+				drawOverviewChart(docType, view, divId, chartTitle, graphConfig);
 				break;
 			case 'BarHorizontal':
-				drawBarHorizontalChart(docType, view, divId, charttitle);
+				drawBarHorizontalChart(docType, view, divId, chartTitle, graphConfig);
 				break;
 			case 'Line':
-				drawLineChart(docType, view, divId, charttitle);
+				drawLineChart(docType, view, divId, chartTitle, graphConfig);
 				break;
 			case 'Pie':
-				drawPieChart(docType, view, divId, charttitle);
+				drawPieChart(docType, view, divId, chartTitle, graphConfig);
 				break;
 			default:
 				$(divId).html('Chart of type '+chartType+ 'is not implemented yet');
 		}
 	});
 
-	function drawVelocityChart(docType, view, divId, chartTitle) {
+	function drawVelocityChart(docType, view, divId, chartTitle, graphConfig) {
     var legend = {
       "horizontalGap": 5,
       "maxColumns": 3,
@@ -12829,26 +12830,7 @@ $(document).ready(function () {
         "dashLength": 4,
         "position": "left"
       }],
-      "graphs": [{
-        "id": "fromGraph",
-        "lineAlpha": 1,
-        "lineColor": '#f04124',
-        "lineThickness": 2,
-        "showBalloon": true,
-        "valueField": "open",
-        "title": "Sum Opened",
-        "fillAlphas": 0
-      }, {
-        "fillAlphas": 0.2,
-        "fillToGraph": "fromGraph",
-        "fillColor": '#f04124',
-        "lineAlpha": 1,
-        "lineColor": '#43ac6a',
-        "lineThickness": 2,
-        "showBalloon": true,
-        "valueField": "closed",
-        "title": "Sum Closed"
-      }],
+      "graphs": graphConfig,
       "chartCursor": chartCursor,
       "dataDateFormat": "YYYY-MM-DD",
       "categoryField": "date",
@@ -12866,19 +12848,6 @@ $(document).ready(function () {
 	}
 
 	function drawOverviewChart(docType, view, divId, chartTitle) {
-    var legend = {
-      "horizontalGap": 5,
-      "maxColumns": 3,
-      "position": "absolute",
-      "align": "center",
-      "top": 20,
-      "left": 0,
-      "backgroundAlpha": 0.5,
-      "useGraphSettings": true,
-      "markerSize": 10,
-      "markerBorderThickness": 10,
-      "marginTop": 0
-    };
     var settings = {
       marginTop: 40,
       marginLeft: 20,
@@ -12931,11 +12900,11 @@ $(document).ready(function () {
           "id": "g1",
           "bullet": "round",
           "bulletBorderAlpha": 1,
-          "bulletColor": "#FFFFFF",
+          "bulletColor": "#538bb3",
           "bulletSize": 5,
           "hideBulletsCount": 50,
           "lineThickness": 2,
-          "lineColor": '#008cba',
+          "lineColor": '#538bb3',
           "title": "New",
           "useLineColorForBulletBorder": true,
           "valueField": "NEW"
@@ -12944,11 +12913,11 @@ $(document).ready(function () {
           "id": "g2",
           "bullet": "round",
           "bulletBorderAlpha": 1,
-          "bulletColor": "#FFFFFF",
+          "bulletColor": "#5abc55",
           "bulletSize": 5,
           "hideBulletsCount": 50,
           "lineThickness": 2,
-          "lineColor": '#43ac6a',
+          "lineColor": '#5abc55',
           "title": "Merged",
           "useLineColorForBulletBorder": true,
           "valueField": "MERGED"
@@ -12957,11 +12926,11 @@ $(document).ready(function () {
           "id": "g3",
           "bullet": "round",
           "bulletBorderAlpha": 1,
-          "bulletColor": "#FFFFFF",
+          "bulletColor": "#dd123d",
           "bulletSize": 5,
           "hideBulletsCount": 50,
           "lineThickness": 1,
-          "lineColor": '#f04124',
+          "lineColor": '#dd123d',
           "title": "Abandoned",
           "useLineColorForBulletBorder": true,
           "valueField": "ABANDONED"
@@ -12979,52 +12948,14 @@ $(document).ready(function () {
         "position": "top"
       }
     });
-    chart2.addListener("rendered", zoomChart(chart2));
 	}
 
-	function drawBarHorizontalChart(docType, view, divId, charttitle) {
-		getData(docType, view, function(chartData) {
-			var legend = {
-				"horizontalGap": 5,
-				"maxColumns": 3,
-				"position": "absolute",
-				"align": "center",
-				"top": 20,
-				"left": 0,
-				"backgroundAlpha": 0.5,
-				"useGraphSettings": true,
-				"markerSize": 10,
-				"markerBorderThickness": 10,
-				"marginTop": 0
-			};
-			var settings = {
-				marginTop: 40,
-				marginLeft: 20,
-				marginBottom: 20,
-				marginRight: 20
-			};
+	function drawBarHorizontalChart(docType, view, divId, chartTitle, graphConfig) {
 			var imagePath = '/js/amcharts/images/';
-			var chartCursor = {
-				"cursorPosition": "mouse",
-				"pan": true,
-				"valueLineEnabled":true,
-				"valueLineBalloonEnabled":true
-			};
-			var graphs = [];
-			$.each(chartData.lookup, function(index, data) {
-				var singleBar = {
-					"balloonText": "<b>[[title]]</b><br><span style='font-size:14px'>[[category]]: <b>[[value]]</b></span>",
-					"fillAlphas": 0.8,
-					"labelText": "[[value]]",
-					"lineAlpha": 0.3,
-					"title": data.title,
-					"type": "column",
-					"lineColor": data.color,
-					"valueField": data.lookup
-				};
-				graphs.push(singleBar);
-			});
 			return AmCharts.makeChart(divId, {
+        "dataLoader": {
+          "url": "/graphs/" + docType + "/" + view
+        },
 				"type": "serial",
 				"theme": "none",
 				"autoMargins": true,
@@ -13032,10 +12963,9 @@ $(document).ready(function () {
 				"marginBottom": 40,
 				"rotate": true,
 				"pathToImages": imagePath,
-				"dataProvider": chartData.bars,
 				"titles": [
 					{
-						"text": charttitle,
+						"text": chartTitle,
 						"size": 15
 					}
 				],
@@ -13049,7 +12979,7 @@ $(document).ready(function () {
 					"labelRotation": 45,
 					"gridCount": 25
 				}],
-				"graphs": graphs,
+				"graphs": graphConfig,
 				"categoryField": "panel",
 				"categoryAxis": {
 					"gridPosition": "start",
@@ -13059,10 +12989,9 @@ $(document).ready(function () {
 					"dashLength": 1
 				}
 			});
-		});
 	}
 
-	function drawLineChart(docType, view, divId, chartTitle) {
+	function drawLineChart(docType, view, divId, chartTitle, graphConfig) {
 			var legend = {
 				"horizontalGap": 5,
 				"maxColumns": 3,
@@ -13091,10 +13020,7 @@ $(document).ready(function () {
 			};
 			var chart = AmCharts.makeChart(divId, {
       "dataLoader": {
-        "url": "/graphs/" + docType + "/" + view,
-        "complete": function ( chart ) {
-          console.log(chart);
-        }
+        "url": "/graphs/" + docType + "/" + view
       },
       "type": "serial",
       "theme": "none",
@@ -13116,18 +13042,7 @@ $(document).ready(function () {
         "dashLength": 4,
         "position": "left"
       }],
-      "graphs": [
-          {
-          "id": "fromGraph",
-          "lineAlpha": 1,
-          "lineColor": '#f04124',
-          "lineThickness": 2,
-          "showBalloon": true,
-          "valueField": "diff",
-          "title": "Foo",
-          "fillAlphas": 0
-        }
-      ],
+      "graphs": graphConfig,
       "chartCursor": chartCursor,
       "dataDateFormat": "YYYY-MM-DD",
       "chartScrollbar": {
@@ -13170,10 +13085,10 @@ $(document).ready(function () {
       }
     });
     chart.addListener("clickGraphItem", function(clickedItem) {
-      if(clickedItem.target.bulletColorR == '#ff0000') {
+      if(clickedItem.target.bulletColorR === '#dd123d') {
         //new tickets
         window.open("https://forge.typo3.org/projects/typo3cms-core/issues?set_filter=1&f[]=status_id&op[status_id]=*&f[]=created_on&op[created_on]==&v[created_on][]="+clickedItem.item.dataContext.date, "_blank");
-      } else if(clickedItem.target.bulletColorR == '#43ac6a') {
+      } else if(clickedItem.target.bulletColorR === '#5abc55') {
         //closed tickets
         window.open("https://forge.typo3.org/projects/typo3cms-core/issues?set_filter=1&f[]=status_id&op[status_id]=c&f[]=updated_on&op[updated_on]==&v[updated_on][]="+clickedItem.item.dataContext.date, "_blank")
       }
@@ -13204,8 +13119,9 @@ $(document).ready(function () {
       //"innerRadius": "60%",
       "pullOutRadius": 0,
       "colors": [
-        '#43ac6a',
-        '#f04124'
+        '#5abc55',
+        '#dd123d',
+        '#538bb3'
       ],
       "labelText": "[[title]] [[percents]]% "
     });
@@ -13213,11 +13129,7 @@ $(document).ready(function () {
 
 	/**
 	 * UTILITY
-	 * @param chart2
 	 */
-	function zoomChart(chart2){
-		chart2.zoomToIndexes(chart2.dataProvider.length - 30, chart2.dataProvider.length - 1);
-	}
 
 	$('.expandable').each(function(index, expandContainer) {
 		$(expandContainer).attr('data-origheight', $(expandContainer).height());

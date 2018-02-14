@@ -66,7 +66,6 @@ abstract class AbstractGraph
     {
         $this->getData();
         return $this->chartData;
-        #return json_encode($this->chartData);
     }
 
     /**
@@ -125,7 +124,7 @@ abstract class AbstractGraph
         $resultSet = $this->doSearch($fullRequest);
         $data = $resultSet->getAggregations();
         $openSum = 0;
-        if (is_array($data['over_time']['buckets'])) {
+        if (\is_array($data['over_time']['buckets'])) {
             foreach ($data['over_time']['buckets'] as $frame) {
                 $openSum += $frame['doc_count'];
                 $date = $this->fixTime($frame['key_as_string']);
