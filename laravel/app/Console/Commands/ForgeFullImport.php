@@ -714,7 +714,7 @@ class ForgeFullImport extends Command
                     'title_link' => 'https://forge.typo3.org/issues/' . $issue['id'],
                     'text' => $issue['description'],
                     'fallback' => $issue['subject'],
-                    'author_name' => $issue['author']['name'],
+                    'author_name' => $issue['author']['name'] ?? 'no one',
                     'color' => $color,
                     'fields' => [
                         [
