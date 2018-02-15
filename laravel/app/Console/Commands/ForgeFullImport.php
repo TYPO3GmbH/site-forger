@@ -406,7 +406,7 @@ class ForgeFullImport extends Command
                     'releases' => $this->extractReleases(
                         $change['revisions'][$change['current_revision']]['commit']['message']
                     ),
-                    'owner' => $author ?? 'no one',
+                    'owner' => $author ?? 'Unknown',
                     'files' => $filesInPatchset,
                 ];
                 if (array_key_exists('_more_changes', $change)) {
@@ -714,7 +714,7 @@ class ForgeFullImport extends Command
                     'title_link' => 'https://forge.typo3.org/issues/' . $issue['id'],
                     'text' => $issue['description'],
                     'fallback' => $issue['subject'],
-                    'author_name' => $issue['author']['name'],
+                    'author_name' => $issue['author']['name'] ?? 'Unknown',
                     'color' => $color,
                     'fields' => [
                         [
