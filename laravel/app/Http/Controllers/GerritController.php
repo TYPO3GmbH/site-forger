@@ -532,13 +532,18 @@ class GerritController extends Controller
      */
     public function getWorkInProgress() : string
     {
+        $aggregations = $this->queryAggregations();
+        unset(
+            $aggregations['Patchsets'],
+            $aggregations['Affected Files']
+        );
         $fullRequest = [
             'query' => [
                 'bool' => [
                     'must' => [
                         [
                             'term' => [
-                                'subject' => 'wip',
+                                'reviewtags' => 'WIP',
                             ],
                         ],
                     ],
@@ -563,20 +568,7 @@ class GerritController extends Controller
             ],
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => [
-                'Releases' => [
-                    'terms' => [
-                        'field' => 'releases',
-                    ],
-                ],
-                'Updated on' => [
-                    'date_histogram' => [
-                        'field' => 'updated_on',
-                        'interval' => $this->dateInterval,
-                        'format' => 'MMMM yyyy',
-                    ],
-                ],
-            ],
+            'aggregations' => $aggregations
         ];
         $this->search($fullRequest);
 
