@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Elastic\Connection;
+use Illuminate\Support\Facades\Config;
 
 /**
  * Class GraphController.
@@ -35,7 +36,8 @@ class GraphController extends Controller
      */
     public function index(string $type = 'Gerrit', string $graph = 'Velocity') : string
     {
-        return $this->getGraphName($graph, $type)->render();
+        app('debugbar')->disable();
+        return json_encode($this->getGraphName($graph, $type)->render());
     }
 
     /**

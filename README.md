@@ -31,11 +31,8 @@ cd laravel
 # yeah, composer install all the stuff you need
 composer install
 
-# yeah, npm install all the stuff you need
-npm install
-
-# yeah, bower install all the stuff you need
-bower install
+# yeah, yarn install all the stuff you need
+yarn install
 
 # now you are ready, be happy ;)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -45,7 +42,7 @@ bower install
 Within the project we use gulp.js for building JavaScript and CSS.
 The project contains a ``gulpfile.js`` within the ``laraval`` folder.
 
-A ``package.json`` is also available, so you can simple call ``npm install`` to get all packages.
+A ``package.json`` is also available, so you can simple call ``yarn install`` to get all packages.
 
 *Do not edit the JavaScript or CSS files in public folder directly* All changes has to be done in the less files.
 
@@ -57,7 +54,7 @@ script.engine.groovy.inline.aggs: on in elasticsearch.yml
 
 ### Use Elasticorn to set up the indices
 
-Config files are located in `laravel/config/Elasticorn/t3_forger`
+Config files are located in `laravel/config/Elasticorn/forger`
 
 ## Imports
 

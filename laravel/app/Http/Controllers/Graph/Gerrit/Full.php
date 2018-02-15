@@ -13,7 +13,7 @@ class Full extends AbstractGraph
      * @return array
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getData() : array
+    protected function getData(): array
     {
         $fullRequest = [
             'query' => [
@@ -28,9 +28,10 @@ class Full extends AbstractGraph
                             ],
                         ],
                         [
-                            'query_string' => [
-                                'default_field' => 'subject',
-                                'query' => 'WIP',
+                            'terms' => [
+                                'reviewtags' => [
+                                    'WIP'
+                                ]
                             ],
                         ],
                     ],
@@ -38,7 +39,8 @@ class Full extends AbstractGraph
             ],
             'size' => 0,
         ];
-        $this->chartData = $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW)->getTotalHits();
-        return [$this->chartData];
+        $result =  ['total' => $this->doSearch($fullRequest, self::DOCUMENT_TYPE_REVIEW)->getTotalHits()];
+        $this->chartData = $result;
+        return $result;
     }
 }

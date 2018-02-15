@@ -31,7 +31,7 @@ class OpenVsClosed extends AbstractGraph
             ],
         ];
 
-        return $this->chartData;
+        return $this->chartData = $this->getClosed();
     }
 
     /**

@@ -31,7 +31,7 @@ class TrackerTypes extends AbstractGraph
             ],
             'size' => 0,
             'aggregations' => [
-                'trackertype' => [
+                'trackerType' => [
                     'terms' => [
                         'field' => 'tracker.name',
                     ],
@@ -48,13 +48,13 @@ class TrackerTypes extends AbstractGraph
         $resultSet = $this->doSearch($fullRequest);
         $data = $resultSet->getAggregations();
         $i = 0;
-        if (is_array($data['trackertype']['buckets'])) {
-            foreach ($data['trackertype']['buckets'] as $frame) {
-                if (is_array($frame['status']['buckets'])) {
+        if (\is_array($data['trackerType']['buckets'])) {
+            foreach ($data['trackerType']['buckets'] as $frame) {
+                if (\is_array($frame['status']['buckets'])) {
                     foreach ($frame['status']['buckets'] as $issueType) {
-                        $this->chartData['bars'][$i][$this->fixKey($issueType['key'])] = $issueType['doc_count'];
+                        $this->chartData[$i][$this->fixKey($issueType['key'])] = $issueType['doc_count'];
                     }
-                    $this->chartData['bars'][$i]['panel'] = $frame['key'];
+                    $this->chartData[$i]['panel'] = $frame['key'];
                     ++$i;
                 }
             }
@@ -71,24 +71,6 @@ class TrackerTypes extends AbstractGraph
      */
     protected function fixKey($in) : string
     {
-        $fixedString = strtolower(str_replace(' ', '', $in));
-
-        // Fixed Lookup colors
-        $colors = [
-            'new' => '#fb7e7e',
-            'accepted' => '#fbee99',
-            'needsfeedback' => '#FBC3C3',
-            'inprogress' => '#A9E2FF',
-            'onhold' => '#D1F412',
-            'underreview' => '#aeff91',
-            'readyfordeployment' => '#ff9900'
-        ];
-        $this->chartData['lookup'][$fixedString] = [
-            'lookup' => $fixedString,
-            'title' => $in,
-            'color' => $colors[$fixedString] ?? '#f2f2f2',
-        ];
-
-        return $fixedString;
+        return str_replace(' ', '', ucwords($in));
     }
 }

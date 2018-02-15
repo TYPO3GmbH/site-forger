@@ -60,13 +60,12 @@ abstract class AbstractGraph
     }
 
     /**
-     * @return string
+     * @return array
      */
-    public function render() : string
+    public function render() : array
     {
         $this->getData();
-
-        return json_encode($this->chartData);
+        return $this->chartData;
     }
 
     /**
@@ -125,7 +124,7 @@ abstract class AbstractGraph
         $resultSet = $this->doSearch($fullRequest);
         $data = $resultSet->getAggregations();
         $openSum = 0;
-        if (is_array($data['over_time']['buckets'])) {
+        if (\is_array($data['over_time']['buckets'])) {
             foreach ($data['over_time']['buckets'] as $frame) {
                 $openSum += $frame['doc_count'];
                 $date = $this->fixTime($frame['key_as_string']);
@@ -200,9 +199,10 @@ abstract class AbstractGraph
                 'bool' => [
                     'must_not' => [
                         [
-                            'query_string' => [
-                                'default_field' => 'subject',
-                                'query' => 'WIP',
+                            'terms' => [
+                                'reviewtags' => [
+                                    'WIP'
+                                ]
                             ],
                         ],
                     ],
@@ -255,9 +255,10 @@ abstract class AbstractGraph
                     ],
                     'must_not' => [
                         [
-                            'query_string' => [
-                                'default_field' => 'subject',
-                                'query' => 'WIP',
+                            'terms' => [
+                                'reviewtags' => [
+                                    'WIP'
+                                ]
                             ],
                         ],
                     ],
