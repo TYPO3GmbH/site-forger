@@ -406,7 +406,7 @@ class ForgeFullImport extends Command
                     'releases' => $this->extractReleases(
                         $change['revisions'][$change['current_revision']]['commit']['message']
                     ),
-                    'owner' => $author ?? 'no one',
+                    'owner' => $author ?? 'Unknown',
                     'files' => $filesInPatchset,
                 ];
                 if (array_key_exists('_more_changes', $change)) {
