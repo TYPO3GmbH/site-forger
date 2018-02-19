@@ -178,6 +178,50 @@ class SearchController extends Controller
                         'bulletSize' => 6
                     ]
                 ],
+                'Activity' => [
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#f4f4f4',
+                        'valueField' => 'Comment',
+                        'title' => 'Comments',
+                        'fillAlphas' => 1,
+                    ],
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#b9b9b9',
+                        'valueField' => 'Verification',
+                        'title' => 'Verification',
+                        'fillAlphas' => 1,
+                    ],
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#b9b9b9',
+                        'valueField' => 'Code_Review',
+                        'title' => 'Code Review',
+                        'fillAlphas' => 1,
+                    ],
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#538bb3',
+                        'valueField' => 'Added_Patchset',
+                        'title' => 'Added Patchset',
+                        'fillAlphas' => 1,
+                    ],
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#dd123d',
+                        'valueField' => 'Abandoned_Patch',
+                        'title' => 'Abandoned Patch',
+                        'fillAlphas' => 1,
+                    ],
+                    [
+                        'lineAlpha' => 1,
+                        'lineColor' => '#75a75a',
+                        'valueField' => 'Merge',
+                        'title' => 'Merge',
+                        'fillAlphas' => 1,
+                    ],
+                ]
             ],
             'Generic' => [
                 'Velocity' => [

@@ -12774,6 +12774,9 @@ $(document).ready(function () {
 			case 'Pie':
 				drawPieChart(docType, view, divId, chartTitle, graphConfig);
 				break;
+			case 'StackedArea':
+				drawStackedAreaChart(docType, view, divId, chartTitle, graphConfig);
+				break;
 			default:
 				$(divId).html('Chart of type '+chartType+ 'is not implemented yet');
 		}
@@ -13124,6 +13127,80 @@ $(document).ready(function () {
         '#538bb3'
       ],
       "labelText": "[[title]] [[percents]]% "
+    });
+	}
+
+	function drawStackedAreaChart(docType, view, divId, chartTitle, graphConfig) {
+    return AmCharts.makeChart(divId, {
+      "dataLoader": {
+        "url": "/graphs/" + docType + "/" + view
+      },
+      "type": "serial",
+      "theme": "light",
+      "marginRight":30,
+      "legend": {
+        "equalWidths": false,
+        "periodValueText": "total: [[value.sum]]",
+        "position": "top",
+        "valueAlign": "left",
+        "valueWidth": 100
+      },
+      "valueAxes": [{
+        "stackType": "regular",
+        "gridAlpha": 0.07,
+        "position": "left",
+        "title": "Activity"
+      }],
+      "titles": [
+        {
+          "text": chartTitle,
+          "size": 15
+        }
+      ],
+      "graphs": graphConfig,
+      "plotAreaBorderAlpha": 0,
+      "marginTop": 10,
+      "marginLeft": 0,
+      "marginBottom": 0,
+      "chartScrollbar": {},
+      "chartCursor": {
+        "cursorAlpha": 0
+      },
+      "categoryField": "date",
+      "categoryAxis": {
+        "startOnAxis": true,
+        "axisColor": "#DADADA",
+        "gridAlpha": 0.07,
+        "title": "Year",
+        "dateFormats":[{
+          period: 'fff',
+          format: 'JJ:NN:SS'
+        }, {
+          period: 'ss',
+          format: 'JJ:NN:SS'
+        }, {
+          period: 'mm',
+          format: 'JJ:NN'
+        }, {
+          period: 'hh',
+          format: 'JJ:NN'
+        }, {
+          period: 'DD',
+          format: 'DD'
+        }, {
+          period: 'WW',
+          format: 'DD'
+        }, {
+          period: 'MM',
+          format: 'MMM'
+        }, {
+          period: 'YYYY',
+          format: 'YYYY'
+        }]
+      },
+      "export": {
+        "enabled": true
+      }
     });
 	}
 

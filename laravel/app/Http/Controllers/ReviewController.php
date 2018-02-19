@@ -56,7 +56,7 @@ class ReviewController extends Controller
         $this->view->assignMultiple([
             'boardMenu' => $this->makeBoardMenu($boardId),
         ]);
-        if (in_array($boardId, ['bugfix', 'feature', 'task'], true)) {
+        if (\in_array($boardId, ['bugfix', 'feature', 'task'], true)) {
             $query = $this->getBoardQuery($boardId);
             $boardData = $this->getBoardData($query);
             $this->view->assign('board', $boardData);
@@ -180,6 +180,13 @@ class ReviewController extends Controller
         $fullRequest = [
             'query' => $query,
             'size' => 500,
+            'sort' => [
+                [
+                    'updated_on' => [
+                        'order' => 'asc'
+                    ]
+                ]
+            ]
         ];
         $search = $this->connection->getElasticIndex()->createSearch($fullRequest);
         $search->addType('review');
