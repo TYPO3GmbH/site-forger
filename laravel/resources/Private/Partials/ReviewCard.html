@@ -1,4 +1,8 @@
 <div class="card card-status-{card.negative_reviews}" id="review-{card.id}" data-issuenumber="{card._redmine_issue_id}">
+    <f:switch expression="{card.branch}">
+        <f:case value="TYPO3_7-6"><div class="ribbon ribbon76" data-ribbon="7.6"></div></f:case>
+        <f:case value="TYPO3_8-7"><div class="ribbon ribbon87" data-ribbon="8.7"></div></f:case>
+    </f:switch>
     <div class="card-heading">
         <div class="media">
             <div class="media-body">
