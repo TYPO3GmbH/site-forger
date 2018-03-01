@@ -150,7 +150,7 @@ class SprintController extends Controller
         $boardData = $this->getBoardData($query);
         $ticketCount = [];
         foreach ($boardData as $status => $tickets) {
-            $ticketCount[$status] = count($tickets);
+            $ticketCount[$status] = ($tickets ? \count($tickets) : 0);
         }
         $this->view->assignMultiple([
             'progress' => $this->calculateProgressBars($ticketCount),
