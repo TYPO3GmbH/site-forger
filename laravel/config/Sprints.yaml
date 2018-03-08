@@ -15,21 +15,6 @@
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}
-      'Stab8LTS':
-        'Name': Stabilization 8 LTS
-        'Query':
-          'bool':
-            'must':
-              - 'term': {'focus.name': Stabilization Sprint}
-              - 'term': {'fixed_version.name': '8 LTS'}
-            'must_not':
-              'bool':
-                must:
-                  - range: {'updated_on': {'lte': 'now-30d'}}
-                'should':
-                  - 'term': {'status.name': Closed}
-                  - 'term': {'status.name': Resolved}
-                  - 'term': {'status.name': Rejected}
       'nmr':
         'Name': Next Maintenance Release
         'Query':
@@ -59,16 +44,29 @@
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}
-      'FormSprint':
-        'Name': Form Sprint
+      'next-minor-release':
+        'Name': Next 8.7 Release
         'Query':
           'bool':
-            'must':
-              - 'term': {'category.id': 1107}
-              - 'term': {'focus.name': Remote Sprint}
+            'should':
+              - 'term': {'fixed_version.id': 3527}
             'must_not':
               'bool':
-                'must':
+                must:
+                  - range: {'updated_on': {'lte': 'now-30d'}}
+                'should':
+                  - 'term': {'status.name': Closed}
+                  - 'term': {'status.name': Resolved}
+                  - 'term': {'status.name': Rejected}
+      'next-major-release':
+        'Name': Next 9 Release
+        'Query':
+          'bool':
+            'should':
+              - 'term': {'fixed_version.id': 3523}
+            'must_not':
+              'bool':
+                must:
                   - range: {'updated_on': {'lte': 'now-30d'}}
                 'should':
                   - 'term': {'status.name': Closed}
@@ -80,40 +78,9 @@
         'Query':
           'bool':
             'must':
-              - 'term': {'fixed_version.name': 7 LTS}
             'should':
               - 'term': {'category.id': 983}
               - 'term': {'category.id': 978}
-            'must_not':
-              'bool':
-                must:
-                  - range: {'updated_on': {'lte': 'now-30d'}}
-                'should':
-                  - 'term': {'status.name': Closed}
-                  - 'term': {'status.name': Resolved}
-                  - 'term': {'status.name': Rejected}
-      'Installation':
-        'Name': Installation
-        'Query':
-          'bool':
-            'must':
-              - 'term': {'category.id': 1601}
-              - 'term': {'fixed_version.name': 7 LTS}
-            'must_not':
-              'bool':
-                must:
-                  - range: {'updated_on': {'lte': 'now-30d'}}
-                'should':
-                  - 'term': {'status.name': Closed}
-                  - 'term': {'status.name': Resolved}
-                  - 'term': {'status.name': Rejected}
-      'BackendUI':
-        'Name': Backend UI
-        'Query':
-          'bool':
-            'must':
-              - 'term': {'category.id': 972}
-              - 'term': {'fixed_version.name': 7 LTS}
             'must_not':
               'bool':
                 must:
@@ -158,12 +125,12 @@
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}
-      'MySQLStrict':
-        'Name': MySQL Strict
+      'DataHandler':
+        'Name': DataHandler
         'Query':
           'bool':
             'must':
-              - 'term': {'parent.id': 68397}
+              - 'term': {'category.id': 1094}
             'must_not':
               'bool':
                 must:
