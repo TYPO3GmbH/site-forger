@@ -89,7 +89,7 @@ class Backports extends Command
 
             ];
             foreach ($releases as $release) {
-                $workingArray[$changeId]['releases'][str_replace('.', '-', strtolower($release))] = $this->compareReleaseAndRelatedChanges($release, $relatedChanges, $changeId);
+                $workingArray[$changeId]['releases'][str_replace('.', '-', strtolower($release))] = $this->compareReleaseAndRelatedChanges($release, $relatedChanges);
             }
             // Remove entry completely if all branches have backports
             $hasAllBackports = true;
@@ -267,7 +267,7 @@ class Backports extends Command
         return $resultSet->getResults();
     }
 
-    protected function compareReleaseAndRelatedChanges(string $release, array $relatedChanges, $changeId)
+    protected function compareReleaseAndRelatedChanges(string $release, array $relatedChanges)
     {
         $returnValue = 'missing';
         foreach ($relatedChanges as $relatedChange) {
