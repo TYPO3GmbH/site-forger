@@ -1,0 +1,50 @@
+<f:layout name="Default" />
+
+<f:section name="Title">Backports</f:section>
+<f:section name="Javascripts">
+</f:section>
+
+<f:section name="Content">
+	<h1>{sum} backports to do</h1>
+	<table class="table table-striped boardcolumn">
+		<tr>
+			<th>master</th>
+			<th>8.7</th>
+			<th>7.6</th>
+		</tr>
+		<f:for each="{backports}" as="backport">
+			<tr>
+				<td>
+					<f:if condition="{backport.releases.master} == 'missing'">
+						<div class="alert alert-danger">Backport Missing</div>
+					</f:if>
+					<f:if condition="{backport.releases.master.id}">
+						<div class="cards">
+							<f:render partial="ReviewCard" arguments="{card: backport.releases.master, mode: 'backport'}" />
+						</div>
+					</f:if>
+				</td>
+				<td>
+					<f:if condition="{backport.releases.8-7} == 'missing'">
+						<div class="alert alert-danger">8.7 Backport Missing</div>
+					</f:if>
+					<f:if condition="{backport.releases.8-7.id}">
+						<div class="cards">
+							<f:render partial="ReviewCard" arguments="{card: backport.releases.8-7, mode: 'backport'}" />
+						</div>
+					</f:if>
+				</td>
+				<td>
+					<f:if condition="{backport.releases.7-6} == 'missing'">
+						<div class="alert alert-danger">7.6 Backport Missing</div>
+					</f:if>
+					<f:if condition="{backport.releases.7-6.id}">
+						<div class="cards">
+							<f:render partial="ReviewCard" arguments="{card: backport.releases.7-6, mode: 'backport'}" />
+						</div>
+					</f:if>
+				</td>
+			</tr>
+		</f:for>
+	</table>
+</f:section>

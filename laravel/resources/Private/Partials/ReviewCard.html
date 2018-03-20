@@ -1,8 +1,20 @@
 <div class="card card-status-{card.negative_reviews}" id="review-{card.id}" data-issuenumber="{card._redmine_issue_id}">
-    <f:switch expression="{card.branch}">
-        <f:case value="TYPO3_7-6"><div class="ribbon ribbon76" data-ribbon="7.6"></div></f:case>
-        <f:case value="TYPO3_8-7"><div class="ribbon ribbon87" data-ribbon="8.7"></div></f:case>
-    </f:switch>
+    <f:if condition="{mode} == 'backport'">
+        <f:then>
+            <f:switch expression="{card.reviewstatus}">
+                <f:case value="NEW"><div class="ribbon ribbon87" data-ribbon="NEW"></div></f:case>
+                <f:case value="MERGED"><div class="ribbon ribbon76" data-ribbon="MERGED"></div></f:case>
+                <f:case value="ABANDONED"><div class="ribbon ribbon87" data-ribbon="ABANDONED"></div></f:case>
+            </f:switch>
+        </f:then>
+        <f:else>
+            <f:switch expression="{card.branch}">
+                <f:case value="TYPO3_6-2"><div class="ribbon ribbon62" data-ribbon="6.2"></div></f:case>
+                <f:case value="TYPO3_7-6"><div class="ribbon ribbon76" data-ribbon="7.6"></div></f:case>
+                <f:case value="TYPO3_8-7"><div class="ribbon ribbon87" data-ribbon="8.7"></div></f:case>
+            </f:switch>
+        </f:else>
+    </f:if>
     <div class="card-heading">
         <div class="media">
             <div class="media-body">
