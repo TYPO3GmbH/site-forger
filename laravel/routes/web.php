@@ -38,6 +38,8 @@ Route::get('/gerrit/wip', 'GerritController@getWorkInProgress');
 Route::get('/gerrit/core-team-merge', 'GerritController@getCoreteamMerge');
 Route::get('/gerrit/stale-issues', 'GerritController@getStaleIssues');
 
+Route::get('/backport/', 'BackportController@getStatus');
+
 Route::get('/slack', 'SlackController@getIndex');
 
 Route::get('/management', 'ManagementController@getIndex');
