@@ -291,6 +291,7 @@ class ForgeFullImport extends Command
      */
     protected function getReviewBlock($current, $perRun) : array
     {
+        $createInteractions = $this->option('noInteractions');
         $moreChanges = false;
         $out = [];
         $json = file_get_contents('https://review.typo3.org/changes/?q=project:Packages/TYPO3.CMS&n=' . $perRun .
@@ -311,72 +312,74 @@ class ForgeFullImport extends Command
 
                 $patchSetNumber = 0;
                 $interaction = [];
-                foreach ($change['messages'] as $message) {
-                    try {
-                        $interaction['interaction_id'] = $message['id'];
-                        $interaction['interaction_source'] = 'Gerrit';
-                        $interaction['interaction_source_id'] = $change['_number'];
-                        $interaction['interacted_on'] = $this->fixDateFormat($message['date'], 'Gerrit');
+                if ($createInteractions !== 'no') {
+                    foreach ($change['messages'] as $message) {
+                        try {
+                            $interaction['interaction_id'] = $message['id'];
+                            $interaction['interaction_source'] = 'Gerrit';
+                            $interaction['interaction_source_id'] = $change['_number'];
+                            $interaction['interacted_on'] = $this->fixDateFormat($message['date'], 'Gerrit');
 
-                        if (!isset($message['_revision_number'])) {
-                            $message['_revision_number'] = $patchSetNumber;
-                        }
+                            if (!isset($message['_revision_number'])) {
+                                $message['_revision_number'] = $patchSetNumber;
+                            }
 
-                        // Check if is merge
-                        if ($this->checkIfMessageIsMerge($message['message'])) {
-                            // set author of interaction
-                            $interaction['interaction_type'] = 'Merge';
-                            $interaction['account'] =
-                                $change['revisions'][$change['current_revision']]['uploader']['username'];
-                            $interaction['fullname'] =
-                                $change['revisions'][$change['current_revision']]['uploader']['name'];
-                            $this->addDocumentToElastic($interaction, 'interactions');
-                        } elseif ($this->checkIfMessageIsBackport($message['message'])) {
-                            // code intentionally left blank
-                        } else {
-                            $interaction['account'] = $message['author']['username'];
-                            $interaction['fullname'] = $message['author']['name'];
-                            // Is patchset, add as event
-                            if ($patchSetNumber < $message['_revision_number']) {
-                                $patchSetNumber = $message['_revision_number'];
-                                $interaction['interaction_type'] = 'Added_Patchset';
+                            // Check if is merge
+                            if ($this->checkIfMessageIsMerge($message['message'])) {
+                                // set author of interaction
+                                $interaction['interaction_type'] = 'Merge';
+                                $interaction['account'] =
+                                    $change['revisions'][$change['current_revision']]['uploader']['username'];
+                                $interaction['fullname'] =
+                                    $change['revisions'][$change['current_revision']]['uploader']['name'];
                                 $this->addDocumentToElastic($interaction, 'interactions');
+                            } elseif ($this->checkIfMessageIsBackport($message['message'])) {
+                                // code intentionally left blank
+                            } else {
+                                $interaction['account'] = $message['author']['username'];
+                                $interaction['fullname'] = $message['author']['name'];
+                                // Is patchset, add as event
+                                if ($patchSetNumber < $message['_revision_number']) {
+                                    $patchSetNumber = $message['_revision_number'];
+                                    $interaction['interaction_type'] = 'Added_Patchset';
+                                    $this->addDocumentToElastic($interaction, 'interactions');
+                                }
+                                // Check if message is "just" a new patchset
+                                if ($this->checkIfMessageIsComment($message['message'])) {
+                                    $interaction['interaction_type'] = 'Comment';
+                                    $this->addDocumentToElastic($interaction, 'interactions');
+                                }
+                                // Check if message is a code review
+                                if ($this->checkIfMessageIsCodeReview($message['message'])) {
+                                    $interaction['interaction_type'] = 'Code_Review';
+                                    $this->addDocumentToElastic($interaction, 'interactions');
+                                }
+                                // Check if message is a verification
+                                if ($this->checkIfMessageIsVerification($message['message'])) {
+                                    $interaction['interaction_type'] = 'Verification';
+                                    $this->addDocumentToElastic($interaction, 'interactions');
+                                }
+                                // Check if message is abandoning
+                                if ($this->checkIfMessageIsAbandoning($message['message'])) {
+                                    $interaction['interaction_type'] = 'Abandoned_Patch';
+                                    $this->addDocumentToElastic($interaction, 'interactions');
+                                }
                             }
-                            // Check if message is "just" a new patchset
-                            if ($this->checkIfMessageIsComment($message['message'])) {
-                                $interaction['interaction_type'] = 'Comment';
-                                $this->addDocumentToElastic($interaction, 'interactions');
+                        } catch (\Exception $e) {
+                            if (
+                                strpos($message['message'], 'Change could not be merged due to a path conflict') === false
+                                &&
+                                strpos($message['message'], 'The change could not be merged due to a path conflict') === false
+                                &&
+                                strpos($message['message'], 'Your change could not be merged due to a path conflict') === false
+                                &&
+                                strpos($message['message'], 'Change has been successfully pushed into branch sandbox') === false
+                                &&
+                                strpos($message['message'], 'Change could not be merged because of a missing dependency') === false
+                            ) {
+                                var_dump($message);
+                                throw new \Exception($e->getMessage());
                             }
-                            // Check if message is a code review
-                            if ($this->checkIfMessageIsCodeReview($message['message'])) {
-                                $interaction['interaction_type'] = 'Code_Review';
-                                $this->addDocumentToElastic($interaction, 'interactions');
-                            }
-                            // Check if message is a verification
-                            if ($this->checkIfMessageIsVerification($message['message'])) {
-                                $interaction['interaction_type'] = 'Verification';
-                                $this->addDocumentToElastic($interaction, 'interactions');
-                            }
-                            // Check if message is abandoning
-                            if ($this->checkIfMessageIsAbandoning($message['message'])) {
-                                $interaction['interaction_type'] = 'Abandoned_Patch';
-                                $this->addDocumentToElastic($interaction, 'interactions');
-                            }
-                        }
-                    } catch (\Exception $e) {
-                        if (
-                            strpos($message['message'], 'Change could not be merged due to a path conflict') === false
-                            &&
-                            strpos($message['message'], 'The change could not be merged due to a path conflict') === false
-                            &&
-                            strpos($message['message'], 'Your change could not be merged due to a path conflict') === false
-                            &&
-                            strpos($message['message'], 'Change has been successfully pushed into branch sandbox') === false
-                            &&
-                            strpos($message['message'], 'Change could not be merged because of a missing dependency') === false
-                        ) {
-                            var_dump($message);
-                            throw new \Exception($e->getMessage());
                         }
                     }
                 }
@@ -431,6 +434,10 @@ class ForgeFullImport extends Command
      */
     protected function extractReleases($message) : array
     {
+        // Fix fucked up lines in message
+        $searches = ['Release: ',  '7,6'];
+        $replaces = ['Releases: ', '7.6'];
+        $message = str_replace($searches, $replaces, $message);
         $pattern = '/Releases:\s*(.*)/';
         preg_match($pattern, $message, $matches);
         if (!isset($matches[1])) {
@@ -453,7 +460,7 @@ class ForgeFullImport extends Command
             if (false !== strpos($release, ' ')) {
                 throw new \InvalidArgumentException('Release contains space? ' . $message);
             }
-            $releaseArray[$key] = $release;
+            $releaseArray[$key] = strtolower($release);
         }
 
         return $releaseArray;
@@ -801,7 +808,8 @@ class ForgeFullImport extends Command
     protected function getOptions()
     {
         return [
-            ['startAt', null, InputOption::VALUE_OPTIONAL, 'When to start', null]
+            ['startAt', null, InputOption::VALUE_OPTIONAL, 'When to start', null],
+            ['noInteractions', null, InputOption::VALUE_OPTIONAL, 'without interactions', null],
         ];
     }
 }
