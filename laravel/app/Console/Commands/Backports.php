@@ -188,8 +188,8 @@ class Backports extends Command
                                     'Iaa3697b04c123bba61a426fdf39ee3959f68b705', // too old
                                     'I177a52c17d5f40ce0a25418721d47ea9daa21881', // Revert
                                     'I43d0c5add037679ee7c99b6cf16efcd2079353fc', // Seems that valuePicker is not available in v7.6, so no backport here
-                                    'Icd1e2c2cff3f37ce6763bc4f64d4011443226a68', // lets skip the 7.6 here - the issue is not *that* critical imho and it's quite some work to prepare the backport in this case.
-                                    'I94aab84fce72e8b852783820b34065ab1e051ea5', // i'd skip the backport and only patch 7.6 if anyone really needs it.
+                                    'Icd1e2c2cff3f37ce6763bc4f64d4011443226a68', // let's skip the 7.6 here - the issue is not *that* critical imho and it's quite some work to prepare the backport in this case.
+                                    'I94aab84fce72e8b852783820b34065ab1e051ea5', // I'd skip the backport and only patch 7.6 if anyone really needs it.
                                     'Ida24b5adf747dc7c259a966fcddfdb7feb9f0951', // followup
                                     'I321c7bba03ee597adc29a2f8429b8fc9ac3b709d', // Cherrypicked with different change id
                                     'I5a9267b1d4ab53a6a39efdbd411e610dc9233ead', // Cherrypicked with different change id
@@ -200,12 +200,12 @@ class Backports extends Command
                                     'I519641eadd3342369b66252da2d50ca54726aacb', // Using correct releases helps... (7,6)
                                     'I2077e9e0b0119e6b064b0a6d4ebb9c3dc1d848a4', // Meh, patch is not valid for 7.6, the </td> is correct there.
                                     'I1ec0f2369ae714f2e8d0190a5bf412151405687f', // The whole class was removed again in https://review.typo3.org/#/c/53014/ when reverting https://review.typo3.org/#/c/50803/ - so no backport to 8.7 here.
-                                    'I3e04559c05381c49ab390dc3ad0d3eebddc5a57f', // backport wont be done
-                                    'I18b1964b860e51256a6d0a5f39fd4c40544bac85', // backport not needed as code differnt in 8-7
+                                    'I3e04559c05381c49ab390dc3ad0d3eebddc5a57f', // backport won't be done
+                                    'I18b1964b860e51256a6d0a5f39fd4c40544bac85', // backport not needed as code different in 8-7
                                     'Ibae4a276ea814f0ce3d453cffef1d22afeff1eb9', // Backport seems too hard. Will be skipped.
                                     'I43586802a9838faa2723fdcaa2e9e15492003830', // Revert
                                     'I67680820b0e139fea49cfcc0818cd97af3f6b9b9', // Revert
-                                    'I9cdfbcd5e0f25b832ea546f1b8c70a9f544b31aa', // No backport to 8.7 needed. All is correct there. Wrongly commit was https://github.com/TYPO3/TYPO3.CMS/commit/84be5e616b5373ac7ba57edf2d3cd61251dc6f97#diff-0e18d8480b13f2c85c499b9dfaf5a8e6
+                                    'I9cdfbcd5e0f25b832ea546f1b8c70a9f544b31aa', // No backport to 8.7 needed. All is correct there. Wrong commit was https://review.typo3.org/#/c/51151/
                                     'I422f920187186fe83b6043f806fc1be9a16c8a25', // Skip the backport. This was a mistake of mine!
                                     'Ibd8eb7c4023d1b9f0e0de8b75d66193d66b89147', // Revert
                                     'I32f7c8e257f65da4a2fce1d7ee515d7954564387', // Due to the fact that we do not have the cached reflection data available in 8.7 like we do in master
