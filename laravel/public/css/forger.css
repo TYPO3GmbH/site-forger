@@ -6197,16 +6197,23 @@ CUSTOM GRID
   box-sizing: content-box;
   transform: rotate(45deg);
 }
-.ribbon76:before {
+.ribbonOrange:before {
   content: "";
   background-color: #f49800;
   pointer-events: auto;
   top: auto;
   bottom: 3.23em;
 }
-.ribbon87:before {
+.ribbonBlue:before {
   content: "";
   background-color: #538bb3;
+  pointer-events: auto;
+  top: auto;
+  bottom: 3.23em;
+}
+.ribbonGreen:before {
+  content: "";
+  background-color: #5cb85c;
   pointer-events: auto;
   top: auto;
   bottom: 3.23em;
