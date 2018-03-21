@@ -13117,16 +13117,17 @@ $(document).ready(function () {
       ],
       "titleField": "name",
       "valueField": "value",
-      "labelRadius": -40,
-      //"radius": "42%",
-      //"innerRadius": "60%",
+      "labelRadius": 5,
+      "innerRadius": "70%",
       "pullOutRadius": 0,
+      "startDuration": 0,
       "colors": [
         '#5abc55',
         '#dd123d',
         '#538bb3'
       ],
-      "labelText": "[[title]] [[percents]]% "
+      "percentPrecision": 1,
+      "labelText": "[[title]]<br> [[percents]]% "
     });
 	}
 
