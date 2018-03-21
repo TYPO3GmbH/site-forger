@@ -16,6 +16,7 @@ class Kernel extends ConsoleKernel
         Commands\Inspire::class,
         Commands\Forge::class,
         Commands\ForgeFullImport::class,
+        Commands\Backports::class,
     ];
 
     /**
