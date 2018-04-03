@@ -139,6 +139,20 @@
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}
+      'LinkValidator':
+        'Name': LinkValidator
+        'Query':
+          'bool':
+            'must':
+              - 'term': {'category.id': 1493}
+            'must_not':
+              'bool':
+                must:
+                  - range: {'updated_on': {'lte': 'now-30d'}}
+                'should':
+                  - 'term': {'status.name': Closed}
+                  - 'term': {'status.name': Resolved}
+                  - 'term': {'status.name': Rejected}
     'StatusMapping':
       'Rejected': 'Done'
       'Closed': 'Done'
