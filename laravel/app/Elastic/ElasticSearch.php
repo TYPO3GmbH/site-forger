@@ -125,6 +125,8 @@ class ElasticSearch
     {
         $catAggregation = new Terms('Category');
         $catAggregation->setField('category.name');
+        $catAggregation->setSize(100);
+        $catAggregation->setOrder('_term', 'ASC');
         $elasticaQuery->addAggregation($catAggregation);
 
         $trackerAggregation = new Terms('Tracker');
