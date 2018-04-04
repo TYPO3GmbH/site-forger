@@ -114,6 +114,50 @@ class Backports extends Command
 
     /**
      *
+     * @param int $changeId
+     * @return array
+     * @throws \RuntimeException
+     * @throws \Elastica\Exception\InvalidException
+     */
+    protected function getPersonWhoMergedTheChange(int $changeId): array
+    {
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'terms' => [
+                                'interaction_source_id' => [
+                                    $changeId,
+                                ],
+                            ],
+                        ],
+                        [
+                            'terms' => [
+                                'interaction_type' => [
+                                    'Merge',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $query = $this->elasticIndex->createSearch($fullRequest);
+        $query->addType('interactions');
+        $resultSet = $query->search();
+        $results = $resultSet->getResults();
+        if (\count($results) > 1) {
+            throw new \RuntimeException('More than one merger found?');
+        }
+        if (\count($results) > 0) {
+            return $results[0]->getSource();
+        }
+        return [];
+    }
+
+    /**
+     *
      * @throws \Elastica\Exception\InvalidException
      */
     protected function getPotentialBackports()
@@ -267,11 +311,23 @@ class Backports extends Command
         return $resultSet->getResults();
     }
 
+    /**
+     * @param string $release
+     * @param array $relatedChanges
+     * @return mixed|string
+     * @throws \Elastica\Exception\InvalidException
+     */
     protected function compareReleaseAndRelatedChanges(string $release, array $relatedChanges)
     {
         $returnValue = 'missing';
         foreach ($relatedChanges as $relatedChange) {
             $relatedChange = $relatedChange->getSource();
+            $mergingPerson = $this->getPersonWhoMergedTheChange($relatedChange['id']);
+            if (isset($mergingPerson['fullname'])) {
+                $relatedChange['owner'] = $mergingPerson['fullname'];
+            } else {
+                $relatedChange['owner'] = '';
+            }
             unset($relatedChange['mergeable']);
             switch($release) {
                 case '7.6':
