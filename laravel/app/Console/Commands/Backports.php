@@ -259,6 +259,7 @@ class Backports extends Command
                                     'If7e3893baa73c1392f3317d5b871be51eeab41b5', // Oh, afair our decision at the codesprint was to not backport the new settings to 8.7 as that in turn would cause a lot of cascading changes for the changed typescript
                                     'I9989d17890c381a12f17a0806b46ce269ab1ca5d', // As the code completely changed, I'd prefer not to backport this one to 7.6
                                     'I3b86758495f9481a21691feaddd6000d484e2a5e', // No backport
+                                    'Ie9b92b5ee656f5d5bfe1e5bdac52afa6c61eff03', // no backport needed, it is fine in 8.7
                                 ]
                             ]
                         ],
