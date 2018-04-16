@@ -28,11 +28,11 @@
     <div class="card-body">
         <div class="row">
             <div class="col-sm-12">
-                <i class="fa fa-bullhorn fa-fw" title="Added by"></i> {card.author.name} <span class="pull-right"> <time is="time-ago" datetime="{card.created_on->fl:format.date(format: 'c')}">{card.created_on}</time></span>
+                <i class="fa fa-bullhorn fa-fw" title="Added by"></i> {card.author.name} <span class="pull-right"> <time is="time-ago" datetime="{card.created_on}">{card.created_on}</time></span>
             </div>
             <f:if condition="{card.lastComment}">
                 <div class="col-sm-12">
-                    <i class="fa fa-comment fa-fw" title="Last Updated by"></i> {card.lastComment.user.name} <span class="pull-right"><time is="time-ago" datetime="{card.lastComment.created_on->fl:format.date(format: 'c')}">{card.lastComment.created_on}</time></span>
+                    <i class="fa fa-comment fa-fw" title="Last Updated by"></i> {card.lastComment.user.name} <span class="pull-right"><time is="time-ago" datetime="{card.lastComment.created_on}">{card.lastComment.created_on}</time></span>
                 </div>
             </f:if>
             <f:if condition="{card.assigned_to.name}">

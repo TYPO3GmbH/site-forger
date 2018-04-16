@@ -1,3 +1,4 @@
+<f:debug>{issue}</f:debug>
 <table class="table table-bordered table-striped table-review">
     <caption>
         <f:if condition="{review._source.branch} != 'master'"><span class="label label-danger">{review._source.branch}</span> </f:if>
@@ -26,9 +27,9 @@
     </tr>
     <tr>
         <td class="col-md-3">Created:</td>
-        <td class="col-md-3"><strong><time is="time-ago" datetime="{review._source.created_on->fl:format.date(format: 'c')}">{issue.hit._source.created_on}</time></strong></td>
+        <td class="col-md-3"><strong><time is="time-ago" datetime="{review._source.created_on}">{review.hit._source.created_on}</time></strong></td>
         <td class="col-md-3">Updated:</td>
-        <td class="col-md-3"><strong><time is="time-ago" datetime="{review._source.updated_on->fl:format.date(format: 'c')}">{issue.hit._source.updated_on}</time></strong></td>
+        <td class="col-md-3"><strong><time is="time-ago" datetime="{review._source.updated_on}">{review.hit._source.updated_on}</time></strong></td>
     </tr>
     <tr>
         <td class="col-md-3">
