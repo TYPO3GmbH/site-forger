@@ -260,6 +260,9 @@ class Backports extends Command
                                     'I9989d17890c381a12f17a0806b46ce269ab1ca5d', // As the code completely changed, I'd prefer not to backport this one to 7.6
                                     'I3b86758495f9481a21691feaddd6000d484e2a5e', // No backport
                                     'Ie9b92b5ee656f5d5bfe1e5bdac52afa6c61eff03', // no backport needed, it is fine in 8.7
+                                    'I54e60cd3fbd2ab36e945cd2e2ed9c6fc02a5bf5a', // no backport needed, it is fine in 8.7
+                                    'Iad9af42a5ba88324da1f23fc354847bc96d9331d', // no backport needed - this was removed in 9.0 but already built the same way in v8!
+                                    'I46ba22bf4141c37db6530912b9e34252d1fb462c', // No backport
                                 ]
                             ]
                         ],
