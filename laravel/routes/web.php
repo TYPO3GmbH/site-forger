@@ -40,7 +40,9 @@ Route::get('/gerrit/stale-issues', 'GerritController@getStaleIssues');
 
 Route::get('/backport/', 'BackportController@getStatus');
 
-Route::get('/slack', 'SlackController@getIndex');
+Route::get('/slack', function() {
+    return redirect('https://my.typo3.org/index.php?id=35');
+});
 
 Route::get('/management', 'ManagementController@getIndex');
 Route::get('/management/interactions', 'ManagementController@getInteractions');
