@@ -112,11 +112,26 @@
                   - 'term': {'status.name': Rejected}
     'CIGBoards':
       'FormsNG':
-        'Name': Forms Next generation
+        'Name': EXT:form
         'Query':
           'bool':
             'must':
               - 'term': {'category.id': 1107}
+            'must_not':
+              'bool':
+                must:
+                  - range: {'updated_on': {'lte': 'now-30d'}}
+                'should':
+                  - 'term': {'status.name': Closed}
+                  - 'term': {'status.name': Resolved}
+                  - 'term': {'status.name': Rejected}
+      'FormsSprint':
+        'Name': EXT:form Sprint
+        'Query':
+          'bool':
+            'must':
+              - 'term': {'category.id': 1107}
+              - 'term': {'focus.name': Remote Sprint}
             'must_not':
               'bool':
                 must:
