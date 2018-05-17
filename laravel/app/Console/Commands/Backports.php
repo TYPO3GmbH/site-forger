@@ -67,7 +67,7 @@ class Backports extends Command
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    public function fire()
+    public function handle()
     {
         $blockStart = time();
         $this->startUp();
