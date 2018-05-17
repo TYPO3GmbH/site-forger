@@ -14,12 +14,12 @@
         }
     ],
     "require": {
-        "laravel/framework": "5.3.*",
+        "laravel/framework": "^5.5",
         "kbsali/redmine-api": "^1.5",
         "ruflin/elastica": "^6.0",
         "typo3fluid/fluid": "^2.4.0",
         "wmdbsystems/fluidlaravel": "dev-master",
-        "netcarver/textile": "3.5.*",
+        "netcarver/textile": "dev-master as 3.7",
         "symfony/yaml": "^3.0",
         "barryvdh/laravel-debugbar": "^2.0",
         "barryvdh/laravel-ide-helper": "^2.1",
