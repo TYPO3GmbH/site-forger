@@ -120,7 +120,7 @@ class ForgeFullImport extends Command
      *
      * @throws \Exception
      */
-    public function fire()
+    public function handle()
     {
         $mode = $this->argument('mode');
         $this->info('Trying to run mode: "' . $mode . '"');
