@@ -19,6 +19,7 @@ class ManagementController extends Controller
         'Alexander Opitz',
         'Andreas Fernandez',
         'Andreas Wolf',
+        'Anja Leichsenring',
         'Benjamin Kott',
         'Benni Mack',
         'Christian Kuhn',
