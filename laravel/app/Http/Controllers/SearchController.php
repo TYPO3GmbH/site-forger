@@ -299,7 +299,7 @@ class SearchController extends Controller
     {
         $query = $request->input('query');
         $searchClosed = false;
-        if ($request->has('searchClosed')) {
+        if ($request->has('searchClosed') && (int)$request->input('searchClosed') === 1) {
             $searchClosed = true;
         }
         $results = [];
