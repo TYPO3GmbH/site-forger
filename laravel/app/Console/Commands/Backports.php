@@ -148,7 +148,11 @@ class Backports extends Command
         $resultSet = $query->search();
         $results = $resultSet->getResults();
         if (\count($results) > 1) {
-            throw new \RuntimeException('More than one merger found?');
+            // Special handling for Gerrit fucking things up
+            $fuckedUpMerges[] = 57284;
+            if (!in_array($changeId, $fuckedUpMerges)) {
+                throw new \RuntimeException('More than one merger found?');
+            }
         }
         if (\count($results) > 0) {
             return $results[0]->getSource();
@@ -335,6 +339,9 @@ class Backports extends Command
             }
             unset($relatedChange['mergeable']);
             switch($release) {
+                case '9.2':
+                    return 'notTargeted';
+                    break;
                 case '7.6':
                     if ($relatedChange['branch'] === 'TYPO3_7-6') {
                         return $relatedChange;
