@@ -386,6 +386,9 @@ class ForgeFullImport extends Command
 
                 $author = $change['revisions'][$change['current_revision']]['commit']['author']['name'];
                 $filesInPatchset = array_keys($change['revisions'][$change['current_revision']]['files']);
+                if ($change['_number'] == 11918) {
+                    $change['revisions'][$change['current_revision']]['commit']['message'] = '6.0';
+                }
 
                 $out[$change['_number']] = [
                     'id' => $change['_number'],
