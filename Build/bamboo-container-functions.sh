@@ -9,7 +9,7 @@ function runLint() {
         --name ${BAMBOO_COMPOSE_PROJECT_NAME}sib_adhoc \
         --rm \
         typo3gmbh/php72:latest \
-        bin/bash -c "cd ${PWD}; find . -name \*.php -print0 | xargs -0 -n1 -P2 php -n -c /etc/php/cli-no-xdebug/php.ini -d display_errors=stderr -l >/dev/null"
+        bin/bash -c "cd ${PWD}; find . -path ./vendor -prune -o -name \*.php -print0 | xargs -0 -n1 -P2 php -n -c /etc/php/cli-no-xdebug/php.ini -d display_errors=stderr -l >/dev/null"
 }
 
 function runComposer() {
