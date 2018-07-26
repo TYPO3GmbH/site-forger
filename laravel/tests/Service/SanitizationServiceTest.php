@@ -16,8 +16,9 @@ namespace Tests\Service;
 
 
 use App\Service\SanitizationService;
+use Tests\TestCase;
 
-class SanitizationServiceTest extends \PHPUnit_Framework_TestCase
+class SanitizationServiceTest extends TestCase
 {
     /**
      * @test
