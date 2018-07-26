@@ -12,6 +12,7 @@ logs
 
 /laravel/bootstrap/cache/*
 !/laravel/bootstrap/cache/.gitkeep
+/laravel/bin
 /laravel/vendor
 /laravel/node_modules
 !/laravel/resources

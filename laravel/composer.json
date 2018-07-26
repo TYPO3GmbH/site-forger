@@ -85,6 +85,7 @@
     "config": {
         "preferred-install": "dist",
         "sort-packages": true,
+        "bin-dir": "bin",
         "optimize-autoloader": true,
         "platform": {
             "php": "7.2.4"
