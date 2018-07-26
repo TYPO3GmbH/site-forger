@@ -18,6 +18,9 @@ source Build/bamboo-container-functions.sh
 # Check for PHP Errors
 runLint
 
+# Change into laravel folder
+cd laravel
+
 # Composer install dependencies using docker function
 runComposer install --no-interaction --no-progress
 
