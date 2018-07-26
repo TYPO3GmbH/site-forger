@@ -9,9 +9,6 @@ set -e
 # output all commands
 set -x
 
-# Create log directory
-mkdir -p logs
-
 # lint, phpunit, composer in docker helper functions
 source Build/bamboo-container-functions.sh
 
@@ -20,6 +17,9 @@ runLint
 
 # Change into laravel folder
 cd laravel
+
+# Create log directory
+mkdir -p logs
 
 # Composer install dependencies using docker function
 runComposer install --no-interaction --no-progress
