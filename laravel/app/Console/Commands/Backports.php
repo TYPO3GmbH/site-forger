@@ -273,12 +273,15 @@ class Backports extends Command
                                     'I46ba22bf4141c37db6530912b9e34252d1fb462c', // No backport
                                     'I29d444da96d9d2038a4940896fd848bf42e43f47', // No backport
                                     'I9fbd60905eb37470fa3661225b681476ff9df3c3', // 9.3 backport, all regular backports have been merged
+                                    'I04dba093dc8e423adbf75e2198c31e5c013864cb', // 9.2 backport, all regular backports have been merged
+                                    'I907e24b19d87d94a3fb1b3cbee9947d68358e5cc', // No backport
+                                    'I9c5c65d52462a82047324390bc3e6b970a8f8840', // Revert
                                 ]
                             ]
                         ],
                         [
                             'range' => [
-                                'updated_on' => ['lte' =>  'now-1000d']
+                                'updated_on' => ['lte' =>  'now-1y']
                             ]
                         ]
                     ],
