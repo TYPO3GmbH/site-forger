@@ -1,5 +1,12 @@
 <?php
 
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
+
 namespace App\Console\Commands;
 
 use App\Elastic\Connection;
@@ -183,7 +190,7 @@ class ForgeFullImport extends Command
                     $currentSlot = (int) $optionalStartOffset;
                 }
                 $perRun = 100;
-                $this->output->note('Starting Gerrit Run at '.$currentSlot);
+                $this->output->note('Starting Gerrit Run at ' . $currentSlot);
                 while ($currentSlot <= $fullAmount) {
                     $this->blockStart = time();
                     $this->interactionCount = 0;
@@ -221,7 +228,7 @@ class ForgeFullImport extends Command
                 $this->error('The provided import-mode has not yet been implemented');
         }
         $this->totalEnd = time();
-        $this->output->success('Finished job in ' . gmdate("H:i:s", ($this->totalEnd - $this->totalStart)));
+        $this->output->success('Finished job in ' . gmdate('H:i:s', ($this->totalEnd - $this->totalStart)));
     }
 
     /**
@@ -423,7 +430,7 @@ class ForgeFullImport extends Command
         if ($moreChanges === false) {
             $this->moreIssuesFromGerrit = false;
         }
-        #$this->output->warning(implode(chr(10), array_keys($this->messages)));
+        //$this->output->warning(implode(chr(10), array_keys($this->messages)));
         $this->messages = [];
         return $out;
     }
@@ -619,7 +626,6 @@ class ForgeFullImport extends Command
                 default:
                     $this->output->write('?');
             }
-
         }
     }
 
@@ -801,7 +807,7 @@ class ForgeFullImport extends Command
 
     private function checkRegex(string $string, string $pattern, $modifier = 'm')
     {
-        preg_match('/' . $pattern . '/'. $modifier, $string, $matches);
+        preg_match('/' . $pattern . '/' . $modifier, $string, $matches);
         if (isset($matches[0])) {
             return true;
         }

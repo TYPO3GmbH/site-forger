@@ -1,5 +1,12 @@
 <?php
 
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
+
 namespace App\Http\Controllers\Graph\Gerrit;
 
 use App\Elastic\Connection;
@@ -72,22 +79,22 @@ class Activity extends AbstractGraph
                     'Abandoned_Patch' => 0,
                 ];
                 foreach ($frame['interaction_type']['buckets'] as $interactionType) {
-                    if($interactionType['key'] === 'Comment') {
+                    if ($interactionType['key'] === 'Comment') {
                         $aggregations['Comment'] = $interactionType['doc_count'];
                     }
-                    if($interactionType['key'] === 'Verification') {
+                    if ($interactionType['key'] === 'Verification') {
                         $aggregations['Verification'] = $interactionType['doc_count'] * 2;
                     }
-                    if($interactionType['key'] === 'Added_Patchset') {
+                    if ($interactionType['key'] === 'Added_Patchset') {
                         $aggregations['Added_Patchset'] = $interactionType['doc_count'] * 5;
                     }
-                    if($interactionType['key'] === 'Code_Review') {
+                    if ($interactionType['key'] === 'Code_Review') {
                         $aggregations['Code_Review'] = $interactionType['doc_count'] * 2;
                     }
-                    if($interactionType['key'] === 'Merge') {
+                    if ($interactionType['key'] === 'Merge') {
                         $aggregations['Merge'] = $interactionType['doc_count'] * 20;
                     }
-                    if($interactionType['key'] === 'Abandoned_Patch') {
+                    if ($interactionType['key'] === 'Abandoned_Patch') {
                         $aggregations['Abandoned_Patch'] = $interactionType['doc_count'] * 3;
                     }
                 }

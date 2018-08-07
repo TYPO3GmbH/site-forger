@@ -1,4 +1,12 @@
 <?php
+
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
+
 namespace App\Console\Commands;
 
 use App\Elastic\Connection;
@@ -147,12 +155,8 @@ class Backports extends Command
         $query->addType('interactions');
         $resultSet = $query->search();
         $results = $resultSet->getResults();
-        if (\count($results) > 1) {
-            // Special handling for Gerrit fucking things up
-            $fuckedUpMerges[] = 57284;
-            if (!in_array($changeId, $fuckedUpMerges)) {
-                throw new \RuntimeException('More than one merger found?');
-            }
+        if (\count($results) > 1 && $results[0]->getData()['interaction_source_id'] !== 57284) {
+            throw new \RuntimeException('More than one merger found?');
         }
         if (\count($results) > 0) {
             return $results[0]->getSource();
@@ -164,7 +168,7 @@ class Backports extends Command
      *
      * @throws \Elastica\Exception\InvalidException
      */
-    protected function getPotentialBackports()
+    protected function getPotentialBackports(): array
     {
         $fullRequest = [
             'query' => [
@@ -268,6 +272,7 @@ class Backports extends Command
                                     'Iad9af42a5ba88324da1f23fc354847bc96d9331d', // no backport needed - this was removed in 9.0 but already built the same way in v8!
                                     'I46ba22bf4141c37db6530912b9e34252d1fb462c', // No backport
                                     'I29d444da96d9d2038a4940896fd848bf42e43f47', // No backport
+                                    'I9fbd60905eb37470fa3661225b681476ff9df3c3', // 9.3 backport, all regular backports have been merged
                                 ]
                             ]
                         ],
@@ -338,10 +343,7 @@ class Backports extends Command
                 $relatedChange['owner'] = '';
             }
             unset($relatedChange['mergeable']);
-            switch($release) {
-                case '9.2':
-                    return 'notTargeted';
-                    break;
+            switch ($release) {
                 case '7.6':
                     if ($relatedChange['branch'] === 'TYPO3_7-6') {
                         return $relatedChange;
