@@ -276,6 +276,7 @@ class Backports extends Command
                                     'I04dba093dc8e423adbf75e2198c31e5c013864cb', // 9.2 backport, all regular backports have been merged
                                     'I907e24b19d87d94a3fb1b3cbee9947d68358e5cc', // No backport
                                     'I9c5c65d52462a82047324390bc3e6b970a8f8840', // Revert
+                                    'Iecc69676cd019060f2bd9e86f97d6adc0e9b6c2b', // No backport needed, it is fine in 8.7
                                 ]
                             ]
                         ],
