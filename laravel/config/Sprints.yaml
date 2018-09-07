@@ -63,7 +63,7 @@
         'Query':
           'bool':
             'should':
-              - 'term': {'fixed_version.id': 3539}
+              - 'term': {'fixed_version.id': 3459}
             'must_not':
               'bool':
                 must:
