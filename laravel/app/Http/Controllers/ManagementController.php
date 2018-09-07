@@ -23,7 +23,6 @@ class ManagementController extends Controller
     private $connection;
 
     private $coreMembers = [
-        'Alexander Opitz',
         'Andreas Fernandez',
         'Andreas Wolf',
         'Anja Leichsenring',
@@ -33,7 +32,6 @@ class ManagementController extends Controller
         'Frank Naegler',
         'Frans Saris',
         'Georg Ringer',
-        'Helmut Hummel',
         'Jan Helke',
         'Jigal van Hemert',
         'Markus Klein',
