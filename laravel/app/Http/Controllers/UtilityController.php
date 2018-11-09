@@ -87,7 +87,9 @@ class UtilityController extends Controller
             'core',
             'fluid_styled_content',
             'lowlevel',
-            'scheduler'
+            'scheduler',
+            'seo',
+            'adminpanel',
         ];
         sort($extensionKeys);
         $this->view->assign('tags', $tags);
