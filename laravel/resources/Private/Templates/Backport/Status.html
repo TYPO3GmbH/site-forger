@@ -9,6 +9,7 @@
 	<table class="table table-striped boardcolumn">
 		<tr>
 			<th>master</th>
+			<th>9.5</th>
 			<th>8.7</th>
 			<th>7.6</th>
 		</tr>
@@ -19,6 +20,18 @@
 						<f:render partial="ReviewCard" arguments="{card: backport.releases.master, mode: 'backport'}" />
 					</div>
 				</td>
+        <td>
+          <f:if condition="{backport.releases.9-5} == 'missing'">
+            <div class="cards">
+              <f:render partial="ReviewCard" arguments="{mode: 'backport'}"/>
+            </div>
+          </f:if>
+          <f:if condition="{backport.releases.9-5.id}">
+            <div class="cards">
+              <f:render partial="ReviewCard" arguments="{card: backport.releases.8-7, mode: 'backport'}"/>
+            </div>
+          </f:if>
+        </td>
 				<td>
 					<f:if condition="{backport.releases.8-7} == 'missing'">
 						<div class="cards">
