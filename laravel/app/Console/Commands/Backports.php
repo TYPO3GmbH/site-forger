@@ -194,7 +194,6 @@ class Backports extends Command
                         [
                             'terms' => [
                                 'releases' => [
-                                    '7.6',
                                     '8.7',
                                     '9.5'
                                 ],

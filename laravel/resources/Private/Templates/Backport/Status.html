@@ -1,25 +1,24 @@
-<f:layout name="Default" />
+<f:layout name="Default"/>
 
 <f:section name="Title">Backports</f:section>
 <f:section name="Javascripts">
 </f:section>
 
 <f:section name="Content">
-	<h1>{sum} backports to do</h1>
-	<table class="table table-striped boardcolumn">
-		<tr>
-			<th>master</th>
-			<th>9.5</th>
-			<th>8.7</th>
-			<th>7.6</th>
-		</tr>
-		<f:for each="{backports}" as="backport">
-			<tr>
-				<td>
-					<div class="cards">
-						<f:render partial="ReviewCard" arguments="{card: backport.releases.master, mode: 'backport'}" />
-					</div>
-				</td>
+  <h1>{sum} backports to do</h1>
+  <table class="table table-striped boardcolumn">
+    <tr>
+      <th>master</th>
+      <th>9.5</th>
+      <th>8.7</th>
+    </tr>
+    <f:for each="{backports}" as="backport">
+      <tr>
+        <td>
+          <div class="cards">
+            <f:render partial="ReviewCard" arguments="{card: backport.releases.master, mode: 'backport'}"/>
+          </div>
+        </td>
         <td>
           <f:if condition="{backport.releases.9-5} == 'missing'">
             <div class="cards">
@@ -32,31 +31,19 @@
             </div>
           </f:if>
         </td>
-				<td>
-					<f:if condition="{backport.releases.8-7} == 'missing'">
-						<div class="cards">
-							<f:render partial="ReviewCard" arguments="{mode: 'backport'}" />
-						</div>
-					</f:if>
-					<f:if condition="{backport.releases.8-7.id}">
-						<div class="cards">
-							<f:render partial="ReviewCard" arguments="{card: backport.releases.8-7, mode: 'backport'}" />
-						</div>
-					</f:if>
-				</td>
-				<td>
-					<f:if condition="{backport.releases.7-6} == 'missing'">
-						<div class="cards">
-							<f:render partial="ReviewCard" arguments="{mode: 'backport'}" />
-						</div>
-					</f:if>
-					<f:if condition="{backport.releases.7-6.id}">
-						<div class="cards">
-							<f:render partial="ReviewCard" arguments="{card: backport.releases.7-6, mode: 'backport'}" />
-						</div>
-					</f:if>
-				</td>
-			</tr>
-		</f:for>
-	</table>
+        <td>
+          <f:if condition="{backport.releases.8-7} == 'missing'">
+            <div class="cards">
+              <f:render partial="ReviewCard" arguments="{mode: 'backport'}"/>
+            </div>
+          </f:if>
+          <f:if condition="{backport.releases.8-7.id}">
+            <div class="cards">
+              <f:render partial="ReviewCard" arguments="{card: backport.releases.8-7, mode: 'backport'}"/>
+            </div>
+          </f:if>
+        </td>
+      </tr>
+    </f:for>
+  </table>
 </f:section>
