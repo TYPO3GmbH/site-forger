@@ -93,6 +93,7 @@ class Backports extends Command
                     '6-2' => 'notTargeted',
                     '7-6' => 'notTargeted',
                     '8-7' => 'notTargeted',
+                    '9-5' => 'notTargeted',
                 ]
 
             ];
@@ -193,8 +194,8 @@ class Backports extends Command
                         [
                             'terms' => [
                                 'releases' => [
-                                    '7.6',
-                                    '8.7'
+                                    '8.7',
+                                    '9.5'
                                 ],
                             ],
                         ],
@@ -349,6 +350,11 @@ class Backports extends Command
             }
             unset($relatedChange['mergeable']);
             switch ($release) {
+                case '6.2':
+                    if ($relatedChange['branch'] === 'TYPO3_6-2') {
+                        return $relatedChange;
+                    }
+                    break;
                 case '7.6':
                     if ($relatedChange['branch'] === 'TYPO3_7-6') {
                         return $relatedChange;
@@ -359,8 +365,8 @@ class Backports extends Command
                         return $relatedChange;
                     }
                     break;
-                case '6.2':
-                    if ($relatedChange['branch'] === 'TYPO3_6-2') {
+                case '9.5':
+                    if ($relatedChange['branch'] === 'TYPO3_9-5') {
                         return $relatedChange;
                     }
                     break;
