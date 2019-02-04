@@ -6,7 +6,13 @@
         'Query':
           'bool':
             'must_not':
-              - 'term': {'status.name': Closed}
+              'bool':
+                must:
+                  - range: {'updated_on': {'lte': 'now-30d'}}
+                'should':
+                  - 'term': {'status.name': Closed}
+                  - 'term': {'status.name': Resolved}
+                  - 'term': {'status.name': Rejected}
     'StatusMapping':
       'Rejected': 'Done'
       'Closed': 'Done'
