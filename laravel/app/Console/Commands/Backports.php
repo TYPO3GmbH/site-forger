@@ -172,7 +172,7 @@ class Backports extends Command
      */
     protected function getPotentialBackports(): array
     {
-        $config = $this->getConfig();
+        $config = $this->getBackportConfig();
         $fullRequest = [
             'query' => [
                 'bool' => [
@@ -320,7 +320,7 @@ class Backports extends Command
      *
      * @throws \Symfony\Component\Yaml\Exception\ParseException
      */
-    protected function getConfig()
+    protected function getBackportConfig()
     {
         $config = (new Parser())->parse(file_get_contents(config_path() . '/BackportBlacklist.yaml'));
         return $config;
