@@ -279,6 +279,9 @@ class Backports extends Command
                                     'I907e24b19d87d94a3fb1b3cbee9947d68358e5cc', // No backport
                                     'I9c5c65d52462a82047324390bc3e6b970a8f8840', // Revert
                                     'Iecc69676cd019060f2bd9e86f97d6adc0e9b6c2b', // No backport needed, it is fine in 8.7
+                                    'I243589ee7e619f26e99e27d34c626e848a1ee80a', // Falsely targetted 9.5 before 9.5 got branched
+                                    'I5f1b12bcd8a63daf7eaa9bc9c065b96c343f6ab6', // Got reverted
+                                    'Ia640ed3eda1619b0a34b5cd6afd07a665e372792', // got reverted
                                 ]
                             ]
                         ],
@@ -366,7 +369,7 @@ class Backports extends Command
                     }
                     break;
                 case '9.5':
-                    if ($relatedChange['branch'] === 'TYPO3_9-5') {
+                    if ($relatedChange['branch'] === '9.5') {
                         return $relatedChange;
                     }
                     break;
