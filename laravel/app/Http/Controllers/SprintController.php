@@ -325,7 +325,7 @@ class SprintController extends Controller
             if ($notes === '') {
                 return $ticket;
             }
-            $pattern = '|.*\/\/review.typo3.org\/(?<reviewId>[\d]{1,6})|';
+            $pattern = '|.*https:\/\/review\.typo3\.org\/(?>(c\/)?)(?>Packages\/TYPO3\.CMS\/\+\/)?(?<reviewId>[\d]{2,6})|';
             preg_match($pattern, $notes, $matches);
             if (!isset($matches['reviewId'])) {
                 throw new \InvalidArgumentException('There should be a review id in ' . $notes);
