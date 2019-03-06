@@ -68,3 +68,5 @@ BackportBlacklist:
   'I243589ee7e619f26e99e27d34c626e848a1ee80a': 'Falsely targetted 9.5 before 9.5 got branched'
   'I5f1b12bcd8a63daf7eaa9bc9c065b96c343f6ab6': 'Got reverted'
   'Ia640ed3eda1619b0a34b5cd6afd07a665e372792': 'got reverted'
+  'Ia6a6abeb88b1d9a590e76b50890ebcbac16f7472': 'merged to 9.5 and 8.7 with different changeId'
+  'I7167b42cb26538e676256c9d2e36d1ec18f2bd40': 'merged to 9.5 with different changeId'
