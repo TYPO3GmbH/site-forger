@@ -140,6 +140,7 @@
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}
+                  - 'term': {'tracker.name': Epic}
       'DataHandler':
         'Name': DataHandler
         'Query':
