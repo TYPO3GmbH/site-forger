@@ -125,6 +125,7 @@
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}
+                  - 'term': {'tracker.name': Epic}
       'FormsSprint':
         'Name': EXT:form Sprint
         'Query':
@@ -140,7 +141,6 @@
                   - 'term': {'status.name': Closed}
                   - 'term': {'status.name': Resolved}
                   - 'term': {'status.name': Rejected}
-                  - 'term': {'tracker.name': Epic}
       'DataHandler':
         'Name': DataHandler
         'Query':
