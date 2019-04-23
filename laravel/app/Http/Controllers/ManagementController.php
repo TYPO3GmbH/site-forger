@@ -23,27 +23,26 @@ class ManagementController extends Controller
     private $connection;
 
     private $coreMembers = [
+        'Alexander Schnitzler',
         'Andreas Fernandez',
-        'Andreas Wolf',
         'Anja Leichsenring',
-        'Benjamin Kott',
+        'Arno Schoon',
+        'Benjamin Franzke',
         'Benni Mack',
-        'Christian Kuhn',
+        'Claus Due',
+        'Daniel Goerz',
+        'Daniel Sattler',
         'Frank Naegler',
-        'Frans Saris',
         'Georg Ringer',
-        'Jan Helke',
-        'Jigal van Hemert',
-        'Markus Klein',
-        'Mathias Brodala',
-        'Nicole Cordes',
+        'Josef Glatz',
+        'Manuel Selbach',
         'Oliver Hader',
         'Ralf Zimmermann',
         'Riccardo De Contardi',
-        'Stefan Neufeind',
+        'Richard Haeser',
         'Susanne Moog',
+        'Tobias Kretschmann',
         'Tymoteusz Motylewski',
-        'Wouter Wolters',
     ];
 
     private $timeFrame = '2017/01/01 00:00:00';
