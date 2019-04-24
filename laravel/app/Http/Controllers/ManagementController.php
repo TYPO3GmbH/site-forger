@@ -41,7 +41,7 @@ class ManagementController extends Controller
         'Riccardo De Contardi',
         'Richard Haeser',
         'Susanne Moog',
-        'Tobias Kretschmann',
+        'Tobi Kretschmann',
         'Tymoteusz Motylewski',
     ];
 
