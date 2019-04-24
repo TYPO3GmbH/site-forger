@@ -45,7 +45,11 @@ class ManagementController extends Controller
         'Tymoteusz Motylewski',
     ];
 
-  // framework / component merger structure in place since
+    /**
+     * @var string
+     *
+     * framework / component merger structure in place since
+     */
     private $timeFrame = '2019/03/01 00:00:00';
 
     /**
