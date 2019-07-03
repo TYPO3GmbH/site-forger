@@ -108,6 +108,16 @@ class UtilityController extends Controller
         return $this->view->render('help');
     }
 
+    public function getPrivacy(): string
+    {
+        return $this->view->render('privacy');
+    }
+
+    public function getLegal(): string
+    {
+        return $this->view->render('legal');
+    }
+
     /**
      * Show the index screen to the user.
      *
