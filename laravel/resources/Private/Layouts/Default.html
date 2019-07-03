@@ -57,9 +57,13 @@
 	<f:render section="Javascripts" />
 	<script type="application/javascript">
 	</script>
-	<nav class="navbar navbar-default navbar-fixed-bottom">
+  <nav class="navbar navbar-default navbar-fixed-bottom">
 		<div class="container-fluid" style="padding: 10px 15px;">
-			<div class="row">
+      <p>
+        <fl:link.action controller="utility" action="privacy">Privacy Policy</fl:link.action> |
+        <fl:link.action controller="utility" action="legal">Legal Information</fl:link.action>
+      </p>
+      <div class="row">
 				<div class="col-xs-6">
 					<a href="https://twitter.com/CodingDave" target="_blank" class="pull-left"><img src="/images/dave.png" style="height:60px" title="banana? @CodingDave"></a>
 					<a href="https://jira.typo3.com/servicedesk/customer/portal/3/group/19" target="_blank">Did you encounter a bug on this website?<br/> Got ideas for an improvement?<br/><strong>Tell me...</strong></a>
@@ -80,7 +84,12 @@
 
 		ga('create', 'UA-82394720-3', 'auto');
 		ga('send', 'pageview');
-
+    // Opt-out function
+    var disableStr = 'ga-disable-UA-82394720-3';
+    function gaOptout() {
+      document.cookie = disableStr + '=true; expires=Thu, 31 Dec 2099 23:59:59 UTC; path=/';
+      window[disableStr] = true;
+    }
     </script>
 	</body>
 </html>
