@@ -1,24 +1,22 @@
-# Created by .ignore support plugin (hsz.mobi)
-### IDE
-.idea
 
-### Node template
-# Logs
-logs
-*.log
+###> symfony/framework-bundle ###
+/.env.local
+/.env.local.php
+/.env.*.local
+/public/bundles/
+/var/
+/vendor/
+.idea/
+###< symfony/framework-bundle ###
 
-### Laravel template
-.env
-
-/laravel/bootstrap/cache/*
-!/laravel/bootstrap/cache/.gitkeep
-/laravel/bin
-/laravel/vendor
-/laravel/node_modules
-!/laravel/resources
-
-### Vendor folder
+### @todo OLD-FORGER-RELATED
+### These can be removed, once laravel is killed off
+/laravel/
 /Web
 
-laravel_backup*
-laravel/.php_cs.cache
+###> symfony/webpack-encore-bundle ###
+/node_modules/
+/public/build/
+npm-debug.log
+yarn-error.log
+###< symfony/webpack-encore-bundle ###

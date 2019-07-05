@@ -1,0 +1,91 @@
+version: '3.6'
+services:
+  elasticsearch-node-1:
+    container_name: ddev-${DDEV_SITENAME}-elasticsearch-node-1
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.6.14
+    command:
+      - sh
+      - -c
+      - "./bin/elasticsearch-plugin list | grep -q analysis-stempel || ./bin/elasticsearch-plugin install analysis-stempel;
+        ./bin/es-docker"
+    ports:
+      - 9200
+    labels:
+      com.ddev.site-name: ${DDEV_SITENAME}
+      com.ddev.approot: $DDEV_APPROOT
+      com.ddev.app-url: $DDEV_URL
+    environment:
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - http.cors.enabled=true
+      - http.cors.allow-origin=*
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "discovery.zen.minimum_master_nodes=1"
+      - "discovery.zen.ping.unicast.hosts=elasticsearch-node-2"
+      - "node.master=false"
+      - "network.publish_host=_eth0:ipv4_"
+      - "network.bind_host=0.0.0.0"
+      - VIRTUAL_HOST=${DDEV_HOSTNAME}
+      - HTTP_EXPOSE=9200
+      - "xpack.security.enabled=false"
+    volumes:
+      - esplugins1:/usr/share/elasticsearch/plugins
+      - esdata1:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    networks:
+      - esnet
+      - default
+
+  elasticsearch-node-2:
+    container_name: ddev-${DDEV_SITENAME}-elasticsearch-node-2
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.6.14
+    command:
+      - sh
+      - -c
+      - "./bin/elasticsearch-plugin list | grep -q analysis-stempel || ./bin/elasticsearch-plugin install analysis-stempel;
+        ./bin/es-docker"
+    environment:
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - http.cors.enabled=true
+      - http.cors.allow-origin=*
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "discovery.zen.minimum_master_nodes=1"
+      - "discovery.zen.ping.unicast.hosts=elasticsearch-node-1"
+      - "node.master=true"
+      - "xpack.security.enabled=false"
+      - "network.publish_host=_eth0:ipv4_"
+      - "network.bind_host=0.0.0.0"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esplugins2:/usr/share/elasticsearch/plugins
+      - esdata2:/usr/share/elasticsearch/data
+    networks:
+      - esnet
+    labels:
+      com.ddev.site-name: ${DDEV_SITENAME}
+  web:
+    links:
+      - elasticsearch-node-1:$DDEV_HOSTNAME
+
+volumes:
+  esdata1:
+    driver: local
+  esplugins1:
+    driver: local
+  esdata2:
+    driver: local
+  esplugins2:
+    driver: local
+
+networks:
+  esnet:
+  default:
+    external:
+      name: ddev_default

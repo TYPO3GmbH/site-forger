@@ -40,5 +40,7 @@ updated_on:
   format: yyyy/MM/dd HH:mm:ss
 owner:
   type: keyword
+ownerEmail:
+  type: keyword
 files:
   type: keyword

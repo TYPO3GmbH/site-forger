@@ -1,0 +1,17 @@
+//
+// Form
+//
+.form-headline {
+    margin-bottom: $spacer * 1.5;
+}
+.form-buttons {
+    margin-top: $spacer * 2.5;
+    .btn + .btn {
+        margin-left: 0.25rem;
+    }
+}
+.form-buttons-text {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 1rem;
+}

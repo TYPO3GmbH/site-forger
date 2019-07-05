@@ -1,0 +1,24 @@
+// Variables
+@import 'variables';
+
+// Include Dependencies
+@import '~bootstrap/scss/bootstrap';
+
+// Modules
+@import 'module/page';
+@import 'module/text';
+@import 'module/content';
+@import 'module/navbar';
+@import 'module/alert';
+@import 'module/card';
+@import 'module/form';
+@import 'module/btn';
+@import "module/avatar";
+
+.expander {
+  display: none;
+}
+
+.expander:target {
+  display: table-row;
+}

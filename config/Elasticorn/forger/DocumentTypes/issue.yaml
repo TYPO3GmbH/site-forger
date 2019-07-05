@@ -22,6 +22,8 @@ author:
   properties:
     name:
       type: keyword
+    email:
+      type: keyword
 category:
   properties:
     name:
