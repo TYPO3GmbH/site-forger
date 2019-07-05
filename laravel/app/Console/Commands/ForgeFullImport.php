@@ -25,7 +25,7 @@ use Symfony\Component\Console\Input\InputOption;
  */
 class ForgeFullImport extends Command
 {
-    const BAMBOO_USER_ID = 49454;
+    const BAMBOO_USER_ID = [49454, 51735];
 
     /**
      * The console command name.
@@ -505,7 +505,7 @@ class ForgeFullImport extends Command
             }
             if (array_key_exists('all', $subRow)) {
                 foreach ($subRow['all'] as $vote) {
-                    if ($vote['_account_id'] !== self::BAMBOO_USER_ID) {
+                    if (!in_array($vote['_account_id'], self::BAMBOO_USER_ID, true)) {
                         switch ($vote['value']) {
                             case 1:
                                 ++$out['positive' . $key];
