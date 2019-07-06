@@ -438,7 +438,7 @@ class ImportCommand extends Command
             }
             if (array_key_exists('all', $subRow)) {
                 foreach ($subRow['all'] as $vote) {
-                    if ($vote['_account_id'] !== self::BAMBOO_USER_ID) {
+                    if (isset($vote['value']) && !in_array($vote['_account_id'], self::BAMBOO_USER_ID, true)) {
                         switch ($vote['value']) {
                             case 1:
                                 ++$out['positive' . $key];
