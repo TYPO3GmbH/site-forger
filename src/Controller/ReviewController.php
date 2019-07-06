@@ -57,7 +57,7 @@ class ReviewController extends AbstractController
     /**
      * @Route("/gerrit/status", name="gerrit_index")
      */
-    public function index(): Response
+    public function status(): Response
     {
         $fullRequest = [
             'query' => [
@@ -97,8 +97,9 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_index';
-        return $this->render('review/index.html.twig', $viewData);
+        return $this->render('review/status.html.twig', $viewData);
     }
+
     /**
      * @Route("/gerrit/merge-ready", name="gerrit_hasverifications")
      */
@@ -148,7 +149,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_hasverifications';
-        return $this->render('review/index.html.twig', $viewData);
+        return $this->render('review/hasVerifications.html.twig', $viewData);
     }
 
     /**
