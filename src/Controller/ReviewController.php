@@ -16,11 +16,6 @@ use Symfony\Component\Routing\Annotation\Route;
 class ReviewController extends AbstractController
 {
     /**
-     * @var string
-     */
-    private $context;
-
-    /**
      * @var int
      */
     private $perPage = 25;
@@ -54,10 +49,13 @@ class ReviewController extends AbstractController
     {
         $this->elasticClient = $elasticClient;
         $this->parameters = $parameters;
+        if (array_key_exists('page', $_GET)) {
+            $this->currentPage = (int) $_GET['page'];
+        }
     }
 
     /**
-     * @Route("/gerrit", name="gerrit_index")
+     * @Route("/gerrit/status", name="gerrit_index")
      */
     public function index(): Response
     {
@@ -98,6 +96,7 @@ class ReviewController extends AbstractController
             'aggregations' => $this->queryAggregations(),
         ];
         $viewData = $this->search($fullRequest);
+        $viewData['routeName'] = 'gerrit_index';
         return $this->render('review/index.html.twig', $viewData);
     }
 
@@ -131,9 +130,15 @@ class ReviewController extends AbstractController
         $viewData['totalResults'] = $this->totalHits;
         $viewData['startingAtItem'] = ($this->currentPage * $this->perPage) - ($this->perPage - 1);
         $viewData['aggregations'] = $resultSet->getAggregations();
-        $viewData['context'] = $this->context;
         if (array_key_exists('filters', $_GET)) {
             $viewData['filters'] = $_GET['filters'];
+        } else {
+            $viewData['filters'] = [];
+        }
+        if (array_key_exists('query', $_GET)) {
+            $viewData['query'] = $_GET['query'];
+        } else {
+            $viewData['query'] = '';
         }
         return $viewData;
     }

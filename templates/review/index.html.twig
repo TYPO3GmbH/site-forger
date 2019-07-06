@@ -6,7 +6,9 @@
 
 <div class="content-section bg-transparent">
     <div class="container">
-        {% include '/_partials/ReviewView.html.twig' %}
+        <form action="{{ path('gerrit_index') }}" method="get">
+            {% include '/_partials/ReviewView.html.twig' %}
+        </form>
     </div>
 </div>
 {% endblock %}

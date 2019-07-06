@@ -1,0 +1,25 @@
+<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true" style="margin-top: 20px;">
+    {% for title, buckets in aggregations %}
+        {{ idCounter(1) }}
+        <div class="card">
+            <div class="card-header" role="tab" id="heading{{ idCounter(0, true) }}">
+                <h5 class="card-title" >
+                    <a data-toggle="collapse" data-parent="#accordion" href="#collapse{{ idCounter(0, true) }}" aria-expanded="true" aria-controls="collapse{{ idCounter(0, true) }}" style="display:block;">
+                        {{title}} {{ bucketCounter(title, buckets.buckets)|raw }}
+                    </a>
+                </h5>
+            </div>
+            <div id="collapse{{ idCounter(0, true) }}" class="collapse show" role="tabpanel" aria-labelledby="heading{{ idCounter(0, true) }}">
+                <div class="card-body">
+                    {% for index, bucket in buckets.buckets %}
+                        {% if bucket.doc_count > 0 %}
+                            <div class="form-check">
+                                {{ aggregationBucket(title, index, bucket)|raw }}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
