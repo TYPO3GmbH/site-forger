@@ -7,3 +7,5 @@ require('../css/app.scss');
 // Load the JS stuff
 let $ = require('jquery');
 require('bootstrap');
+
+require('./libs/navbar.js');

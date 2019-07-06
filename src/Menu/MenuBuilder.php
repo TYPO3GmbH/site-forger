@@ -84,71 +84,99 @@ class MenuBuilder
                 ],
             ]
         );
-//        if ($this->authorizationChecker->isGranted('ROLE_OAUTH_USER')) {
+        $menu->addChild(
+            'gerrit',
+            [
+                'label' => 'Reviews',
+                'route' => 'gerrit_index',
+                'extras' => [
+                    'icon' => 'code-merge',
+                ],
+            ]
+        );
+        $menu['gerrit']->addChild(
+            'gerrit_status',
+            [
+                'label' => 'All (excl. WIP)',
+                'route' => 'page_index',
+                'extras' => [
+                    'icon' => 'home',
+                ],
+            ]
+        );
+        $menu->addChild(
+            'sprint',
+            [
+                'label' => 'Sprints',
+                'route' => 'page_index',
+                'extras' => [
+                    'icon' => 'rabbit-fast',
+                ],
+            ]
+        );
+        $menu->addChild(
+            'utility',
+            [
+                'label' => 'Utility',
+                'route' => 'page_index',
+                'extras' => [
+                    'icon' => 'home',
+                ],
+            ]
+        );
+        $menu->addChild(
+            'help',
+            [
+                'label' => 'Help',
+                'route' => 'page_index',
+                'extras' => [
+                    'icon' => 'question-circle',
+                ],
+            ]
+        );
+//        if ($this->authorizationChecker->isGranted('ROLE_USER')) {
 //            $menu->addChild(
-//                'tokens',
+//                'select',
 //                [
-//                    'label' => 'Access tokens',
-//                    'route' => 'productlist',
+//                    'label' => 'Select File to edit',
+//                    'route' => 'select_translation',
 //                    'extras' => [
-//                        'icon' => 'key',
+//                        'icon' => 'file-excel',
+//                    ],
+//                ]
+//            );
+//            $menu->addChild(
+//                'git',
+//                [
+//                    'label' => 'Commit to git',
+//                    'route' => 'git_list',
+//                    'extras' => [
+//                        'icon' => 'code-merge',
+//                    ],
+//                ]
+//            );
+//            $menu->addChild(
+//                'logout',
+//                [
+//                    'label' => 'Logout',
+//                    'route' => 'logout',
+//                    'extras' => [
+//                        'icon' => 'sign-out',
+//                    ],
+//                ]
+//            );
+//        } else {
+//            $menu->addChild(
+//                'logout',
+//                [
+//                    'label' => 'Login',
+//                    'route' => 'login',
+//                    'extras' => [
+//                        'icon' => 'sign-in',
 //                    ],
 //                ]
 //            );
 //        }
-//        $menu->addChild(
-//            'manual',
-//            [
-//                'label' => 'Manual',
-//                'route' => 'page_manual',
-//                'extras' => [
-//                    'icon' => 'info-square',
-//                ],
-//            ]
-//        );
-        if ($this->authorizationChecker->isGranted('ROLE_USER')) {
-            $menu->addChild(
-                'select',
-                [
-                    'label' => 'Select File to edit',
-                    'route' => 'select_translation',
-                    'extras' => [
-                        'icon' => 'file-excel',
-                    ],
-                ]
-            );
-            $menu->addChild(
-                'git',
-                [
-                    'label' => 'Commit to git',
-                    'route' => 'git_list',
-                    'extras' => [
-                        'icon' => 'code-merge',
-                    ],
-                ]
-            );
-            $menu->addChild(
-                'logout',
-                [
-                    'label' => 'Logout',
-                    'route' => 'logout',
-                    'extras' => [
-                        'icon' => 'sign-out',
-                    ],
-                ]
-            );
-        } else {
-            $menu->addChild(
-                'logout',
-                [
-                    'label' => 'Login',
-                    'route' => 'login',
-                    'extras' => [
-                        'icon' => 'sign-in',
-                    ],
-                ]
-            );
-        }
         return $menu;
     }
 
@@ -166,26 +194,26 @@ class MenuBuilder
     public function mainFooter(): MenuItem
     {
         $menu = $this->factory->createItem('root');
-        $menu->addChild(
-            'privacy',
-            [
-                'label' => 'Privacy Policy',
-                'route' => 'page_privacy',
-                'extras' => [
-                    'icon' => 'shield-alt',
-                ],
-            ]
-        );
-        $menu->addChild(
-            'legal',
-            [
-                'label' => 'Imprint / Legal Information',
-                'route' => 'page_legal',
-                'extras' => [
-                    'icon' => 'balance-scale',
-                ],
-            ]
-        );
+//        $menu->addChild(
+//            'privacy',
+//            [
+//                'label' => 'Privacy Policy',
+//                'route' => 'page_privacy',
+//                'extras' => [
+//                    'icon' => 'shield-alt',
+//                ],
+//            ]
+//        );
+//        $menu->addChild(
+//            'legal',
+//            [
+//                'label' => 'Imprint / Legal Information',
+//                'route' => 'page_legal',
+//                'extras' => [
+//                    'icon' => 'balance-scale',
+//                ],
+//            ]
+//        );
         return $menu;
     }
 }

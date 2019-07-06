@@ -35,15 +35,26 @@ services:
         public: true
         arguments:
             $config:
-                host: '%env(ELASTIC_HOST)%'
-                port: '%env(ELASTIC_PORT)%'
-                path: '%env(ELASTIC_PATH)%'
-                transport: '%env(ELASTIC_TRANSPORT)%'
-                index: '%env(ELASTIC_INDEX)%'
-                username: '%env(ELASTIC_AUTH_USERNAME)%'
-                password: '%env(ELASTIC_AUTH_PASSWORD)%'
-#        tags:
-#            - testDouble
+                  host: '%env(ELASTIC_HOST)%'
+                  port: '%env(ELASTIC_PORT)%'
+                  path: '%env(ELASTIC_PATH)%'
+                  transport: '%env(ELASTIC_TRANSPORT)%'
+                  index: '%env(ELASTIC_INDEX)%'
+                  username: '%env(ELASTIC_AUTH_USERNAME)%'
+                  password: '%env(ELASTIC_AUTH_PASSWORD)%'
+    #        tags:
+    #            - testDouble
+    App\Menu\MenuBuilder:
+        tags:
+            - name: 'knp_menu.menu_builder'
+              method: 'mainDefault'
+              alias: 'main-default'
+            - name: 'knp_menu.menu_builder'
+              method: 'mainProfile'
+              alias: 'main-profile'
+            - name: 'knp_menu.menu_builder'
+              method: 'mainFooter'
+              alias: 'main-footer'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

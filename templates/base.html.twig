@@ -1,12 +1,68 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        {% block stylesheets %}{% endblock %}
-    </head>
-    <body>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Welcome!{% endblock %} - TYPO3 GmbH Forger</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600">
+    {{ encore_entry_link_tags('app') }}
+</head>
+<body>
+
+<div class="page-wrapper">
+    <header class="page-header">
+        <nav class="navbar navbar-mainnavigation navbar-dark bg-darkest navbar-expand-md" role="banner">
+            <div class="container">
+                <a class="navbar-brand" href="/"><strong>TYPO3 Forger</strong></a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mainnavigation" aria-controls="mainnavigation" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="mainnavigation">
+                    {{ knp_menu_render('main-default', {'template':'menu/navbar.html.twig'}) }}
+                    {{ knp_menu_render('main-profile', {'template':'menu/navbar.html.twig'}) }}
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    {% if app.request.hasPreviousSession %}
+        {% for key, flashMassages in app.session.flashBag.all %}
+            <div class="content-section content-section-none">
+                <div class="alert-pagegroup">
+                    {% for flashMassage in flashMassages %}
+                        <div class="alert alert-{{ key }} alert-dismissible fade show" role="alert">
+                            <div class="alert-inner">
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                                {{ flashMassage | raw }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <main class="page-main">
         {% block body %}{% endblock %}
-        {% block javascripts %}{% endblock %}
-    </body>
+    </main>
+
+    <footer class="page-footer">
+        <div class="content-section content-section-smallest bg-darkest text-white">
+            <div class="container">
+                <div class="page-footer-copyright">
+                    <span>© {{ "now"|date("Y") }} <a href="https://typo3.com" target="_blank">TYPO3 GmbH</a>.</span>
+                </div>
+                <div class="page-footer-menu">
+                    {{ knp_menu_render('main-footer', {'template':'menu/navbar.html.twig'}) }}
+                </div>
+            </div>
+        </div>
+    </footer>
+</div>
+
+{{ encore_entry_script_tags('app') }}
+</body>
 </html>

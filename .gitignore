@@ -11,9 +11,10 @@
 
 ### @todo OLD-FORGER-RELATED
 ### These can be removed, once laravel is killed off
-/laravel/
+/laravel/node_modules/
+/laravel/storage/
+/laravel/.env
 /Web
-
 ###> symfony/webpack-encore-bundle ###
 /node_modules/
 /public/build/
