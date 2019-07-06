@@ -114,6 +114,16 @@ class MenuBuilder
                 ],
             ]
         );
+        $menu['gerrit']->addChild(
+            'gerrit_missesverifications',
+            [
+                'label' => 'Needs verification',
+                'route' => 'gerrit_missesverifications',
+                'extras' => [
+                    'icon' => 'plus-square',
+                ],
+            ]
+        );
         $menu->addChild(
             'sprint',
             [

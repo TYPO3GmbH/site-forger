@@ -153,6 +153,58 @@ class ReviewController extends AbstractController
     }
 
     /**
+     * @Route("/gerrit/misses-verification", name="gerrit_missesverifications")
+     */
+    public function missesVerifications(): Response
+    {
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'range' => [
+                                'positive_reviews' => [
+                                    'gte' => 1,
+                                ],
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'positive_verifications' => [
+                                    'lt' => 1,
+                                ],
+                            ],
+                        ],
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED',
+                                ],
+                            ],
+
+                        ],
+                        [
+                            'term' => [
+                                'subject' => 'wip',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'sort' => $this->querySort(),
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => $this->queryAggregations(),
+        ];
+        $viewData = $this->search($fullRequest);
+        $viewData['routeName'] = 'gerrit_missesverifications';
+        return $this->render('review/missesVerifications.html.twig', $viewData);
+    }
+
+    /**
      * @param array $fullRequest
      *
      * @return array
