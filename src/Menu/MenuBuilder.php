@@ -98,9 +98,19 @@ class MenuBuilder
             'gerrit_status',
             [
                 'label' => 'All (excl. WIP)',
-                'route' => 'page_index',
+                'route' => 'gerrit_index',
                 'extras' => [
                     'icon' => 'home',
+                ],
+            ]
+        );
+        $menu['gerrit']->addChild(
+            'gerrit_hasverifications',
+            [
+                'label' => 'Has verifications',
+                'route' => 'gerrit_hasverifications',
+                'extras' => [
+                    'icon' => 'check-square',
                 ],
             ]
         );

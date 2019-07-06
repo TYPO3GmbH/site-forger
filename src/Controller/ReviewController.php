@@ -99,6 +99,57 @@ class ReviewController extends AbstractController
         $viewData['routeName'] = 'gerrit_index';
         return $this->render('review/index.html.twig', $viewData);
     }
+    /**
+     * @Route("/gerrit/merge-ready", name="gerrit_hasverifications")
+     */
+    public function hasVerifications(): Response
+    {
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'range' => [
+                                'positive_reviews' => [
+                                    'gte' => 1,
+                                ],
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'positive_verifications' => [
+                                    'gte' => 1,
+                                ],
+                            ],
+                        ],
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED',
+                                ],
+                            ],
+
+                        ],
+                        [
+                            'term' => [
+                                'subject' => 'wip',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'sort' => $this->querySort(),
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => $this->queryAggregations(),
+        ];
+        $viewData = $this->search($fullRequest);
+        $viewData['routeName'] = 'gerrit_hasverifications';
+        return $this->render('review/index.html.twig', $viewData);
+    }
 
     /**
      * @param array $fullRequest
