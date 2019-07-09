@@ -124,6 +124,76 @@ class MenuBuilder
                 ],
             ]
         );
+        $menu['gerrit']->addChild(
+            'gerrit_missesreview',
+            [
+                'label' => 'Needs review',
+                'route' => 'gerrit_missesreview',
+                'extras' => [
+                    'icon' => 'plus-square',
+                ],
+            ]
+        );
+        $menu['gerrit']->addChild(
+            'gerrit_rebase',
+            [
+                'label' => 'Rebase',
+                'route' => 'gerrit_rebase',
+                'extras' => [
+                    'icon' => 'sync',
+                ],
+            ]
+        );
+        $menu['gerrit']->addChild(
+            'gerrit_files',
+            [
+                'label' => 'Find Review by filename',
+                'route' => 'gerrit_files',
+                'extras' => [
+                    'icon' => 'file',
+                ],
+            ]
+        );
+        $menu['gerrit']->addChild(
+            'gerrit_negative_vote_cleanup',
+            [
+                'label' => 'Has negative votes',
+                'route' => 'gerrit_negative_vote_cleanup',
+                'extras' => [
+                    'icon' => 'thumbs-down',
+                ],
+            ]
+        );
+        $menu['gerrit']->addChild(
+            'gerrit_wip',
+            [
+                'label' => 'Work In Progress',
+                'route' => 'gerrit_wip',
+                'extras' => [
+                    'icon' => 'bolt',
+                ],
+            ]
+        );
+        $menu['gerrit']->addChild(
+            'gerrit_coreteam_merge',
+            [
+                'label' => 'Coreteam action required',
+                'route' => 'gerrit_coreteam_merge',
+                'extras' => [
+                    'icon' => 'users',
+                ],
+            ]
+        );
+        $menu['gerrit']->addChild(
+            'gerrit_stale_issues',
+            [
+                'label' => 'Stale Issues',
+                'route' => 'gerrit_stale_issues',
+                'extras' => [
+                    'icon' => 'ban',
+                ],
+            ]
+        );
         $menu->addChild(
             'sprint',
             [
@@ -141,16 +211,6 @@ class MenuBuilder
                 'route' => 'page_index',
                 'extras' => [
                     'icon' => 'home',
-                ],
-            ]
-        );
-        $menu->addChild(
-            'help',
-            [
-                'label' => 'Help',
-                'route' => 'page_index',
-                'extras' => [
-                    'icon' => 'question-circle',
                 ],
             ]
         );
@@ -205,7 +265,28 @@ class MenuBuilder
      */
     public function mainProfile(): MenuItem
     {
-        return $this->factory->createItem('root');
+        $menu = $this->factory->createItem('root');
+        $menu->addChild(
+            'help',
+            [
+                'label' => 'Help',
+                'route' => 'page_index',
+                'extras' => [
+                    'icon' => 'question-circle',
+                ],
+            ]
+        );
+//        $menu->addChild(
+//            'legal',
+//            [
+//                'label' => 'Imprint / Legal Information',
+//                'route' => 'page_legal',
+//                'extras' => [
+//                    'icon' => 'balance-scale',
+//                ],
+//            ]
+//        );
+        return $menu;
     }
 
     /**

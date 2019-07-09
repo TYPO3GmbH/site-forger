@@ -1,5 +1,5 @@
 <div class="row">
-    {% if results %}
+    {% if results is defined %}
         <div class="col-sm-3">
             <h4>Aggregations</h4>
 
@@ -9,7 +9,6 @@
 
             <button type="submit" class="btn btn-success"><i class="fal fa-filter"></i> Filter</button>
         </div>
-    {% endif %}
     <div class="{{ aggregations ? 'col-sm-9' : 'col-sm-12' }}">
         <h4>Showing hits <strong>{{ startingAtItem }} </strong>to <strong>{{ endingAtItem }}</strong> of <strong>{{ totalResults }}</strong></h4>
         {% if results %}
@@ -18,23 +17,21 @@
         {% for result in results %}
             {% include '_partials/Review.html.twig' with {'review': result.hit} %}
         {% endfor %}
-        {% if results %}
-            {{ block('paginator') }}
-        {% endif %}
+        {% block paginator %}
+            <nav aria-label="Page navigation example">
+                <ul class="pagination">
+                    {% for pageDesc, page in pagesToLinkTo %}
+                        {% if currentPage == page %}
+                            <li class="page-item active"><a class="page-link" href="{{ path(routeName, {'query':query, 'page': page, 'filters': filters}) }}">{{ page }}</a></li>
+                        {% else %}
+                            <li class="page-item"><a class="page-link" href="{{ path(routeName, {'query':query, 'page': page, 'filters': filters}) }}">{{ page }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    {#    <li><fl:link.action action="{action}" arguments="{query: query, page: page, filters: filters}">{page}</fl:link.action></li>#}
+                </ul>
+            </nav>
+        {% endblock %}
     </div>
+    {% endif %}
 </div>
 
-{% block paginator %}
-<nav aria-label="Page navigation example">
-    <ul class="pagination">
-        {% for pageDesc, page in pagesToLinkTo %}
-            {% if currentPage == page %}
-                <li class="page-item active"><a class="page-link" href="{{ path(routeName, {'query':query, 'page': page, 'filters': filters}) }}">{{ page }}</a></li>
-            {% else %}
-                <li class="page-item"><a class="page-link" href="{{ path(routeName, {'query':query, 'page': page, 'filters': filters}) }}">{{ page }}</a></li>
-            {% endif %}
-        {% endfor %}
-    {#    <li><fl:link.action action="{action}" arguments="{query: query, page: page, filters: filters}">{page}</fl:link.action></li>#}
-    </ul>
-</nav>
-{% endblock %}

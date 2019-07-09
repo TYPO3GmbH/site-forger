@@ -1,12 +1,12 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Hello ReviewController!{% endblock %}
+{% block title %}{{ routeName }}!{% endblock %}
 
 {% block body %}
 
 <div class="content-section bg-transparent">
     <div class="container">
-        <form action="{{ path('gerrit_missesverifications') }}" method="get">
+        <form action="{{ path(routeName) }}" method="get">
             {% include '/_partials/ReviewView.html.twig' %}
         </form>
     </div>

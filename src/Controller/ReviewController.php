@@ -8,6 +8,7 @@ use Elastica\Exception\InvalidException;
 use Elastica\Query\BoolQuery;
 use Elastica\Query\Range;
 use Elastica\Query\Term;
+use Elastica\ResultSet;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -97,7 +98,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_index';
-        return $this->render('review/status.html.twig', $viewData);
+        return $this->render('review/genericReviewView.html.twig', $viewData);
     }
 
     /**
@@ -149,7 +150,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_hasverifications';
-        return $this->render('review/hasVerifications.html.twig', $viewData);
+        return $this->render('review/genericReviewView.html.twig', $viewData);
     }
 
     /**
@@ -201,7 +202,375 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_missesverifications';
-        return $this->render('review/missesVerifications.html.twig', $viewData);
+        return $this->render('review/genericReviewView.html.twig', $viewData);
+    }
+
+    /**
+     * @Route("/gerrit/misses-review", name="gerrit_missesreview")
+     */
+    public function missesReview(): Response
+    {
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'range' => [
+                                'positive_reviews' => [
+                                    'lt' => 1,
+                                ],
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'positive_verifications' => [
+                                    'gte' => 1,
+                                ],
+                            ],
+                        ],
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED',
+                                ],
+                            ],
+
+                        ],
+                        [
+                            'term' => [
+                                'subject' => 'wip',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'sort' => $this->querySort(),
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => $this->queryAggregations(),
+        ];
+        $viewData = $this->search($fullRequest);
+        $viewData['routeName'] = 'gerrit_missesreview';
+        return $this->render('review/genericReviewView.html.twig', $viewData);
+    }
+
+    /**
+     * @Route("/gerrit/rebase", name="gerrit_rebase")
+     */
+    public function rebase(): Response
+    {
+        $aggs = $this->queryAggregations();
+        unset($aggs['Mergeable'], $aggs['Patchsets'], $aggs['Releases'], $aggs['Topic']);
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'term' => [
+                                'mergeable' => 'no',
+                            ],
+                        ],
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED',
+                                ],
+                            ],
+
+                        ],
+                        [
+                            'term' => [
+                                'subject' => 'wip',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'sort' => $this->querySort(),
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => $aggs,
+        ];
+        $viewData = $this->search($fullRequest);
+        $viewData['routeName'] = 'gerrit_rebase';
+        return $this->render('review/genericReviewView.html.twig', $viewData);
+    }
+
+    /**
+     * @Route("/gerrit/files", name="gerrit_files")
+     */
+    public function getFiles() : Response
+    {
+        $viewData['routeName'] = 'gerrit_files';
+        if (array_key_exists('query', $_GET)) {
+            $searchClosed = false;
+            if (array_key_exists('searchClosed', $_GET) && $_GET['searchClosed'] === '1') {
+                $searchClosed = true;
+            }
+            $fullRequest = [
+                'query' => [
+                    'bool' => [
+                        'must' => [
+                            [
+                                'terms' => [
+                                    'files' => [
+                                        htmlspecialchars($_GET['query']),
+                                    ],
+                                ],
+
+                            ],
+                        ],
+                        'must_not' => [
+                            [
+                                'terms' => [
+                                    'reviewstatus' => [
+                                        'MERGED',
+                                        'ABANDONED',
+                                    ],
+                                ],
+
+                            ],
+                        ],
+                    ],
+                ],
+                'sort' => $this->querySort(),
+                'size' => $this->perPage,
+                'from' => $this->currentPage * $this->perPage - $this->perPage,
+                'aggregations' => $this->queryAggregations(),
+            ];
+            if ($searchClosed) {
+                unset($fullRequest['query']['bool']['must_not']);
+            }
+            $viewData = $this->search($fullRequest);
+            $viewData['routeName'] = 'gerrit_files';
+            if ($searchClosed) {
+                $viewData['searchClosed'] = '1';
+            }
+            $viewData['query'] = htmlspecialchars($_GET['query']);
+        }
+        return $this->render('review/files.html.twig', $viewData);
+    }
+
+    /**
+     * @Route("/gerrit/negative-vote-cleanup", name="gerrit_negative_vote_cleanup")
+     */
+    public function negativeVoteCleanup(): Response
+    {
+        $aggregations = $this->queryAggregations();
+        unset(
+            $aggregations['Mergeable'],
+            $aggregations['Patchsets'],
+            $aggregations['Affected Files'],
+            $aggregations['Topic'],
+            $aggregations['Owner']
+        );
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'should' => [
+                        [
+                            'range' => [
+                                'negative_reviews' => [
+                                    'gte' => 1,
+                                ],
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'negative_verifications' => [
+                                    'gte' => 1,
+                                ],
+                            ],
+                        ],
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED',
+                                ],
+                            ],
+
+                        ],
+                        [
+                            'term' => [
+                                'subject' => 'wip',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'sort' => $this->querySort(),
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => $aggregations,
+        ];
+        $viewData = $this->search($fullRequest);
+        $viewData['routeName'] = 'gerrit_negative_vote_cleanup';
+        return $this->render('review/genericReviewView.html.twig', $viewData);
+    }
+
+    /**
+     * @Route("/gerrit/wip", name="gerrit_wip")
+     */
+    public function wip(): Response
+    {
+        $aggregations = $this->queryAggregations();
+        unset(
+            $aggregations['Patchsets'],
+            $aggregations['Affected Files']
+        );
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'term' => [
+                                'reviewtags' => 'WIP',
+                            ],
+                        ],
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED',
+                                ],
+                            ],
+
+                        ],
+                    ],
+                ],
+            ],
+            'sort' => [
+                'updated_on' => 'asc',
+                'insertions' => 'asc',
+                'deletions' => 'asc',
+                'patchsets' => 'desc',
+            ],
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => $aggregations
+        ];
+        $viewData = $this->search($fullRequest);
+        $viewData['routeName'] = 'gerrit_wip';
+        return $this->render('review/genericReviewView.html.twig', $viewData);
+    }
+
+    /**
+     * @Route("/gerrit/core-team-merge", name="gerrit_coreteam_merge")
+     */
+    public function coreTeamActionRequired(): Response
+    {
+        $aggregations = $this->queryAggregations();
+        unset(
+            $aggregations['Mergeable'],
+            $aggregations['Patchsets'],
+            $aggregations['Affected Files']
+        );
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'range' => [
+                                'positive_reviews' => [
+                                    'gte' => 1,
+                                ],
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'positive_verifications' => [
+                                    'gte' => 1,
+                                ],
+                            ],
+                        ],
+                        [
+                            'term' => [
+                                'mergeable' => 'yes',
+                            ],
+                        ],
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED',
+                                ],
+                            ],
+
+                        ],
+                        [
+                            'term' => [
+                                'subject' => 'wip',
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'negative_reviews' => [
+                                    'gte' => 1,
+                                ],
+                            ],
+                        ],
+                        [
+                            'range' => [
+                                'negative_verifications' => [
+                                    'gte' => 1,
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'sort' => $this->querySort(),
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => $aggregations,
+        ];
+        $viewData = $this->search($fullRequest);
+        $viewData['routeName'] = 'gerrit_coreteam_merge';
+        return $this->render('review/genericReviewView.html.twig', $viewData);
+    }
+
+    /**
+     * @Route("/gerrit/stale-issues", name="gerrit_stale_issues")
+     */
+    public function staleIssues(): Response
+    {
+        $re = '/http[s]*:\/\/review\.typo3\.org\/([\d]*)/';
+        $staleIssues = [];
+
+        $resultSet = $this->getUnderReviewIssues();
+        foreach ($resultSet->getResults() as $result) {
+            $reviewIds = [];
+            foreach ($result->getData()['journals'] as $journal) {
+                if (isset($journal['notes'])) {
+                    preg_match_all($re, $journal['notes'], $matches);
+                    $id = $matches[1][0] ?? null;
+                    if ($id !== null && $id !== '') {
+                        $reviewIds[] = $id;
+                    }
+                }
+            }
+            $reviewIds = array_unique($reviewIds);
+            $resultSet = $this->getOpenReviewsByIds($reviewIds);
+            if (!$resultSet->count()) {
+                $staleIssues[] = $result->getData();
+            }
+        }
+        $viewData['issues'] = $staleIssues;
+        $viewData['routeName'] = 'gerrit_stale_issues';
+        return $this->render('review/staleIssues.html.twig', $viewData);
     }
 
     /**
@@ -412,5 +781,94 @@ class ReviewController extends AbstractController
         }
 
         return $out;
+    }
+
+    protected function getOpenReviewsByIds(array $ids) : ResultSet
+    {
+        $filter = [];
+        foreach ($ids as $reviewId) {
+            $filter[] = [
+                'term' => [
+                    'id' => $reviewId,
+                ],
+            ];
+        }
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'reviewstatus' => [
+                                    'MERGED',
+                                    'ABANDONED',
+                                ],
+                            ],
+                        ],
+                    ],
+                    'should' => $filter
+                ],
+            ],
+            'sort' => [
+                'updated_on' => 'asc',
+                'insertions' => 'asc',
+                'deletions' => 'asc',
+                'patchsets' => 'desc',
+            ],
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+        ];
+        $query = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
+        $query->addType('review');
+
+        return $query->search();
+    }
+
+    /**
+     * @return ResultSet
+     *
+     * @throws InvalidException
+     */
+    protected function getUnderReviewIssues() : ResultSet
+    {
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'term' => [
+                                'status.id' => '8',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'sort' => [
+                'updated_on' => 'asc',
+                'insertions' => 'asc',
+                'deletions' => 'asc',
+                'patchsets' => 'desc',
+            ],
+            'size' => 1000,
+            'from' => 0,
+            'aggregations' => [
+                'Releases' => [
+                    'terms' => [
+                        'field' => 'releases',
+                    ],
+                ],
+                'Updated on' => [
+                    'date_histogram' => [
+                        'field' => 'updated_on',
+                        'interval' => $this->dateInterval,
+                        'format' => 'MMMM yyyy',
+                    ],
+                ],
+            ],
+        ];
+        $query = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
+        $query->addType('issue');
+
+        return $query->search();
     }
 }
