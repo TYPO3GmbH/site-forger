@@ -295,26 +295,26 @@ class MenuBuilder
     public function mainFooter(): MenuItem
     {
         $menu = $this->factory->createItem('root');
-//        $menu->addChild(
-//            'privacy',
-//            [
-//                'label' => 'Privacy Policy',
-//                'route' => 'page_privacy',
-//                'extras' => [
-//                    'icon' => 'shield-alt',
-//                ],
-//            ]
-//        );
-//        $menu->addChild(
-//            'legal',
-//            [
-//                'label' => 'Imprint / Legal Information',
-//                'route' => 'page_legal',
-//                'extras' => [
-//                    'icon' => 'balance-scale',
-//                ],
-//            ]
-//        );
+        $menu->addChild(
+            'privacy',
+            [
+                'label' => 'Privacy Policy',
+                'route' => 'static_privacy',
+                'extras' => [
+                    'icon' => 'shield-alt',
+                ],
+            ]
+        );
+        $menu->addChild(
+            'legal',
+            [
+                'label' => 'Imprint / Legal Information',
+                'route' => 'static_legal',
+                'extras' => [
+                    'icon' => 'balance-scale',
+                ],
+            ]
+        );
         return $menu;
     }
 }
