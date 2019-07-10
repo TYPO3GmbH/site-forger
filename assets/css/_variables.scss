@@ -33,6 +33,17 @@ $theme-colors: (
     darkest: $gray-900
 );
 
+$status-colors: (
+    New: #AE4A32,
+    Accepted: #D1C4B1,
+    UnderReview: #8DB173,
+    OnHold: #F38725,
+    NeedsFeedback: #F38725,
+    nextup: #7373b1,
+    InProgress: #62C0DC,
+    done: #696969
+);
+
 $theme-shadow: 0 2px 1px rgba(0, 0, 0, 0.15);
 
 //
@@ -67,3 +78,6 @@ $border-radius-sm:           2px;
 $card-border-width:                 0;
 $card-spacer-y:                     2rem !default;
 $card-spacer-x:                     2rem !default;
+
+$list-group-item-padding-y: 2px;
+$list-group-item-padding-x: 2px;

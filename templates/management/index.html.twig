@@ -1,0 +1,84 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Issue Manager{% endblock %}
+
+{% block body %}
+
+    <div class="content-section bg-transparent">
+        <div class="container-fluid">
+            <form action="{{ path(routeName) }}" method="get" class="form">
+                <h3>Issue Management View</h3>
+                <div class="form-row">
+                    <div class="form-group form-check-inline">
+                        {{ trackerCheckbox('epic')|raw }}
+                        <label class="form-check-label">Exclude Epics</label>
+                    </div>
+                    <div class="form-group form-check-inline">
+                        {{ trackerCheckbox('story')|raw }}
+                        <label class="form-check-label">Exclude Stories</label>
+                    </div>
+                    <div class="form-group form-check-inline">
+                        {{ trackerCheckbox('feature')|raw }}
+                        <label class="form-check-label">Exclude Features</label>
+                    </div>
+                    <div class="form-group form-check-inline">
+                        {{ trackerCheckbox('task')|raw }}
+                        <label class="form-check-label">Exclude Tasks</label>
+                    </div>
+                    <div class="form-group form-check-inline">
+                        {{ trackerCheckbox('bug')|raw }}
+                        <label class="form-check-label">Exclude Bugs</label>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-success">Filter</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        {% for year in aggs %}
+            <div class="container-fluid">
+                <h4>{{year.year}} ({{year.total}})</h4>
+                <div class="row">
+                    {% for month in year.months %}
+                        <div class="col">
+                            {% if month.stati is defined %}
+                                <div class="list-group">
+                                    <a class="list-group-item active" href="{{ forgeLink(year.year, month.month) }}">{{month.month}} ({{month.total}}) </a>
+                                    {% for status in month.stati %}
+                                        <li class="list-group-item">
+                                            {% if status.name == 'New' %}
+                                                <a href="{{ forgeLink(year.year, month.month, '1') }}">
+                                                    <span class="badge status-New">{{status.total}}</span> {{status.name}}
+                                                </a>
+                                            {% elseif status.name == 'Accepted' %}
+                                                <a href="{{ forgeLink(year.year, month.month, '2') }}">
+                                                    <span class="badge status-Accepted">{{status.total}}</span> {{status.name}}
+                                                </a>
+                                            {% elseif status.name == 'Under Review' %}
+                                                <a href="{{ forgeLink(year.year, month.month, '8') }}">
+                                                    <span class="badge status-UnderReview">{{status.total}}</span> {{status.name}}
+                                                </a>
+                                            {% elseif status.name == 'On Hold' %}
+                                                <a href="{{ forgeLink(year.year, month.month, '7') }}">
+                                                    <span class="badge status-OnHold">{{status.total}}</span> {{status.name}}
+                                                </a>
+                                            {% elseif status.name == 'Needs Feedback' %}
+                                                <a href="{{ forgeLink(year.year, month.month, '4') }}">
+                                                    <span class="badge status-NeedsFeedback">{{status.total}}</span> {{status.name}}
+                                                </a>
+                                            {% elseif status.name == 'In Progress' %}
+                                                <a href="{{ forgeLink(year.year, month.month, '11') }}">
+                                                    <span class="badge status-InProgress">{{status.total}}</span> {{status.name}}
+                                                </a>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
