@@ -4,6 +4,7 @@
 namespace App\Twig;
 
 
+use Netcarver\Textile\Parser;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
@@ -15,6 +16,7 @@ class ForgerTwigExtension extends AbstractExtension
             new TwigFunction('idCounter', [$this, 'idCounter']),
             new TwigFunction('bucketCounter', [$this, 'bucketCounter']),
             new TwigFunction('aggregationBucket', [$this, 'aggregationBucket']),
+            new TwigFunction('textile', [$this, 'textile']),
         ];
     }
 
@@ -79,6 +81,22 @@ class ForgerTwigExtension extends AbstractExtension
             . '</label>';
 
         return $content;
+    }
+
+    public function textile(string $markup)
+    {
+        $parser = new Parser();
+        $parsedText = $parser->parse($markup);
+        /*
+         * Keep only whitelisted tags
+         */
+        $parsedText = strip_tags($parsedText, '<h1><h2><h3><h4><h5><h6><ul><li><ol><pre><code><p>');
+
+        /*
+         * Kill off all attributes because we don't want them
+         */
+        $parsedText = preg_replace('/<([a-z][a-z0-9]*)[^>]*?(\/?)>/i', '<$1$2>', $parsedText);
+        return $parsedText;
     }
 
     /**
