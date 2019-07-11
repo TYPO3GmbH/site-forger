@@ -20,6 +20,7 @@ class ForgerTwigExtension extends AbstractExtension
             new TwigFunction('textile', [$this, 'textile']),
             new TwigFunction('trackerCheckbox', [$this, 'trackerCheckbox']),
             new TwigFunction('forgeLink', [$this, 'forgeLink']),
+            new TwigFunction('gravatar', [$this, 'gravatar']),
         ];
     }
 
@@ -251,5 +252,12 @@ class ForgerTwigExtension extends AbstractExtension
         }
 
         return $string;
+    }
+
+    public function gravatar(string $email)
+    {
+        $hash = md5($email);
+        $url = 'https://www.gravatar.com/avatar/' . $hash . '?s=64';
+        return $url;
     }
 }

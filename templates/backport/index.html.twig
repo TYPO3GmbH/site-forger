@@ -1,20 +1,52 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Hello BackportController!{% endblock %}
+{% block title %}Backports{% endblock %}
 
 {% block body %}
-<style>
-    .example-wrapper { margin: 1em auto; max-width: 800px; width: 95%; font: 18px/1.5 sans-serif; }
-    .example-wrapper code { background: #F5F5F5; padding: 2px 6px; }
-</style>
 
-<div class="example-wrapper">
-    <h1>Hello {{ controller_name }}! ✅</h1>
-
-    This friendly message is coming from:
-    <ul>
-        <li>Your controller at <code><a href="{{ '/Volumes/Web/docRoot/forger/src/Controller/BackportController.php'|file_link(0) }}">src/Controller/BackportController.php</a></code></li>
-        <li>Your template at <code><a href="{{ '/Volumes/Web/docRoot/forger/templates/backport/index.html.twig'|file_link(0) }}">templates/backport/index.html.twig</a></code></li>
-    </ul>
-</div>
+    <div class="content-section bg-transparent">
+        <div class="container">
+            <h1>{{sum}} backports to do</h1>
+            <table class="table table-striped boardcolumn">
+                <tr>
+                    <th>master</th>
+                    <th>9.5</th>
+                    <th>8.7</th>
+                </tr>
+                {% for backport in backports %}
+                    <tr>
+                        <td>
+                            <div class="cards">
+                                {% include '/_partials/ReviewCard.html.twig' with {'card': backport.releases.t3_master, 'mode': 'backport'} only %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if backport.releases.t3_95 == 'missing' %}
+                                <div class="cards">
+                                    {% include '/_partials/ReviewCard.html.twig' with  {'mode': 'backport'} only %}
+                                </div>
+                            {% endif %}
+                            {% if backport.releases.t3_95.id is defined %}
+                                <div class="cards">
+                                    {% include '/_partials/ReviewCard.html.twig' with  {'card': backport.releases.t3_95, 'mode': 'backport'} only %}
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if backport.releases.t3_87 == 'missing' %}
+                                <div class="cards">
+                                    {% include '/_partials/ReviewCard.html.twig' with  {'mode': 'backport'} only %}
+                                </div>
+                            {% endif %}
+                            {% if backport.releases.t3_87.id is defined %}
+                                <div class="cards">
+                                    {% include '/_partials/ReviewCard.html.twig' with  {'card': backport.releases.t3_87, 'mode': 'backport'} only %}
+                                </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
 {% endblock %}
