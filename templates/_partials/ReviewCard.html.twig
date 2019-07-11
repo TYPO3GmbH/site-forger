@@ -18,35 +18,37 @@
     } %}
 {% endif %}
 <div class="card card-status-{{card.negative_reviews}}" id="review-{{card.id}}">
-    {% if mode == 'backport' %}
-        {% if not card.reviewstatus %}
-            <div class="ribbon ribbonOrange" data-ribbon="MISSING"></div>
-        {% elseif card.reviewstatus == 'MERGED' %}
-            <div class="ribbon ribbonGreen" data-ribbon="MERGED"></div>
-        {% elseif card.reviewstatus == 'ABANDONED' %}
-            <div class="ribbon ribbonBlue" data-ribbon="ABANDONED"></div>
+    <div class="card-body">
+        {% if mode == 'backport' %}
+            {% if not card.reviewstatus %}
+                <div class="ribbon ribbonOrange" data-ribbon="MISSING"></div>
+            {% elseif card.reviewstatus == 'MERGED' %}
+                <div class="ribbon ribbonGreen" data-ribbon="MERGED"></div>
+            {% elseif card.reviewstatus == 'ABANDONED' %}
+                <div class="ribbon ribbonBlue" data-ribbon="ABANDONED"></div>
+            {% endif %}
+        {% else %}
+            {% if card.branch == 'TYPO3_6-2' %}
+                <div class="ribbon ribbonOrange" data-ribbon="6.2"></div>
+            {% elseif card.branch == 'TYPO3_7-6' %}
+                <div class="ribbon ribbonOrange" data-ribbon="7.6"></div>
+            {% elseif card.branch == 'TYPO3_8_7' %}
+                <div class="ribbon ribbonOrange" data-ribbon="8.7"></div>
+            {% elseif card.branch == 'TYPO3_9-5' %}
+                <div class="ribbon ribbonBlue" data-ribbon="8.7"></div>
+            {% endif %}
         {% endif %}
-    {% else %}
-        {% if card.branch == 'TYPO3_6-2' %}
-            <div class="ribbon ribbonOrange" data-ribbon="6.2"></div>
-        {% elseif card.branch == 'TYPO3_7-6' %}
-            <div class="ribbon ribbonOrange" data-ribbon="7.6"></div>
-        {% elseif card.branch == 'TYPO3_8_7' %}
-            <div class="ribbon ribbonOrange" data-ribbon="8.7"></div>
-        {% elseif card.branch == 'TYPO3_9-5' %}
-            <div class="ribbon ribbonBlue" data-ribbon="8.7"></div>
-        {% endif %}
-    {% endif %}
-    <div class="card-heading"  {{ (card.reviewstatus) ? '' : 'style="opacity: 0.3"' }}>
-    <div class="media">
-        <div class="media-body">
-            <a href="https://review.typo3.org/#/c/{{card.id}}/" target="_blank">{{card.subject}}</a>
-        </div>
-        <div class="media-right">
-            <img src="{{ gravatar(card.ownerEmail) }}">
-        </div>
+        <h6 class="card-title"  {{ (card.reviewstatus) ? '' : 'style="opacity: 0.3"' }}>
+            <div class="media">
+                <div class="media-body">
+                    <a href="https://review.typo3.org/#/c/{{card.id}}/" target="_blank">{{card.subject}}</a>
+                </div>
+                <div class="media-right">
+                    <img src="{{ gravatar(card.ownerEmail) }}">
+                </div>
+            </div>
+        </h6>
     </div>
-</div>
 {% if card.mergeable is defined and card.mergeable == 'no' %}
     <div class="card-status">
         <span class="badge badge-danger">CAN'T MERGE</span>
@@ -59,8 +61,8 @@
     </div>
 </div>
 <div class="row">
-    <div class="col-md-6">Files: <span class="badge badge-default float-right">{{card.affected_files}}</span></div>
-    <div class="col-md-6">Patches: <span class="badge badge-default float-right">{{card.patchsets}}</span></div>
+    <div class="col-md-6">Files: <span class="badge badge-secondary float-right">{{card.affected_files}}</span></div>
+    <div class="col-md-6">Patches: <span class="badge badge-secondary float-right">{{card.patchsets}}</span></div>
 </div>
 <div class="row status">
     <div class="col-md-6">Review:

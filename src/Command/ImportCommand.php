@@ -255,6 +255,8 @@ class ImportCommand extends Command
             $interaction = [];
             $subBar->start(count($change['messages']));
             foreach ($change['messages'] as $message) {
+                $interaction['fullname'] = '';
+                $interaction['email'] = '';
                 try {
                     $interaction['interaction_id'] = $message['id'];
                     $interaction['interaction_source'] = 'Gerrit';
@@ -269,16 +271,22 @@ class ImportCommand extends Command
                     if ($this->checkIfMessageIsMerge($message['message'])) {
                         // set author of interaction
                         $interaction['interaction_type'] = 'Merge';
-                        $interaction['account'] =
-                            $change['revisions'][$change['current_revision']]['uploader']['username'];
-                        $interaction['fullname'] =
-                            $change['revisions'][$change['current_revision']]['uploader']['name'];
+                        $interaction['account'] = $change['revisions'][$change['current_revision']]['uploader']['username'];
+                        $interaction['fullname'] = $change['revisions'][$change['current_revision']]['uploader']['name'];
+                        if (isset($change['revisions'][$change['current_revision']]['uploader']['email'])) {
+                            $interaction['email'] = $change['revisions'][$change['current_revision']]['uploader']['email'];
+                        } else {
+                            $interaction['email'] = 'Unknown';
+                        }
                         $this->addDocumentToElastic($interaction, 'interactions');
                     } elseif ($this->checkIfMessageIsBackport($message['message'])) {
                         // code intentionally left blank
                     } else {
                         $interaction['account'] = $message['author']['username'];
                         $interaction['fullname'] = $message['author']['name'];
+                        if (isset($message['author']['email'])) {
+                            $interaction['email'] = $message['author']['email'];
+                        }
                         // Is patchset, add as event
                         if ($patchSetNumber < $message['_revision_number']) {
                             $patchSetNumber = $message['_revision_number'];
@@ -573,21 +581,7 @@ class ImportCommand extends Command
             } else {
                 $doc = new Document($document['id'], $document);
             }
-
             $elasticType->addDocument($doc);
-//            switch ($type) {
-//                case 'review':
-//                    $this->reviewCount++;
-//                    break;
-//                case 'issue':
-//                    $this->output->write('F');
-//                    break;
-//                case 'interactions':
-//                    $this->interactionCount++;
-//                    break;
-//                default:
-//                    $this->output->write('?');
-//            }
         }
     }
 
