@@ -314,7 +314,7 @@ class SprintController extends Controller
         if (isset($ticket['journals'])) {
             foreach ((array)$ticket['journals'] as $journalEntry) {
                 if (isset($journalEntry['notes']) && (
-                        false !== strpos($journalEntry['notes'], 'It is available at http://review.typo3.org/')
+                    false !== strpos($journalEntry['notes'], 'It is available at http://review.typo3.org/')
                         ||
                         false !== strpos($journalEntry['notes'], 'It is available at https://review.typo3.org/')
                     )
