@@ -9,6 +9,7 @@
 
 namespace App\Http;
 
+use App\Http\Middleware\Refresh;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Auth\Middleware\AuthenticateWithBasicAuth;
 use Illuminate\Auth\Middleware\Authorize;
@@ -31,6 +32,7 @@ class Kernel extends HttpKernel
      */
     protected $middleware = [
         CheckForMaintenanceMode::class,
+        Middleware\Refresh::class,
     ];
 
     /**
