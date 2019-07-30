@@ -1,6 +1,20 @@
 'T3G':
   'Forger':
     'Boards':
+      'CodingNight':
+        'Name': T3DD19 Coding Night
+        'Query':
+          'bool':
+            'must':
+              - 'term': {'tags': CodingNight}
+            'must_not':
+              'bool':
+                must:
+                  - range: {'updated_on': {'lte': 'now-30d'}}
+                'should':
+                  - 'term': {'status.name': Closed}
+                  - 'term': {'status.name': Resolved}
+                  - 'term': {'status.name': Rejected}
       'CodeSprint':
         'Name': Code Sprints
         'Query':
