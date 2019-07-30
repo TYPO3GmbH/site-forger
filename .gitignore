@@ -19,6 +19,7 @@ logs
 
 ### Vendor folder
 /Web
+/public
 
 laravel_backup*
 laravel/.php_cs.cache
