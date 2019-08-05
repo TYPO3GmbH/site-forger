@@ -130,3 +130,25 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    # LDAP connection for user authentication
+    Symfony\Component\Ldap\Ldap:
+      arguments: ['@Symfony\Component\Ldap\Adapter\ExtLdap\Adapter']
+    Symfony\Component\Ldap\Adapter\ExtLdap\Adapter:
+      arguments:
+        - host: ldap.typo3.org
+          port: 636
+          encryption: ssl
+          options:
+            protocol_version: 3
+            referrals: false
+
+  # Our custom user provider to ldap.typo3.org
+    ldap.typo3.org.user.provider:
+      class: App\Security\LdapUserProvider
+      arguments:
+        $ldap: '@Symfony\Component\Ldap\Ldap'
+        $baseDn: 'ou=people,dc=typo3,dc=org'
+        $searchDn: '%env(LDAP_SEARCH_USER)%'
+        $searchPassword: '%env(LDAP_SEARCH_PASSWORD)%'
+        $defaultRoles: [ 'ROLE_USER' ]

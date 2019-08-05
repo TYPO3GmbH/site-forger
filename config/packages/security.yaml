@@ -1,13 +1,28 @@
 security:
     # https://symfony.com/doc/current/security.html#where-do-users-come-from-user-providers
     providers:
-        in_memory: { memory: ~ }
+        typo3_org_ldap:
+            # Use an own user provider defined as service
+            id: ldap.typo3.org.user.provider
+
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
         main:
             anonymous: true
+
+            form_login_ldap:
+                login_path: login
+                check_path: login
+                csrf_token_generator: security.csrf.token_manager
+                service: Symfony\Component\Ldap\Ldap
+                dn_string: 'ou=people,dc=typo3,dc=org'
+                query_string: '(&(objectClass=inetOrgPerson)(uid={username}))'
+                success_handler: App\Security\AuthenticationSuccessHandler
+            logout:
+                path: /logout
+                target: dashboard_index
 
             # activate different ways to authenticate
             # https://symfony.com/doc/current/security.html#firewalls-authentication
@@ -18,5 +33,6 @@ security:
     # Easy way to control access for large sections of your site
     # Note: Only the *first* access control that matches will be used
     access_control:
+        - { path: ^/login$, role: IS_AUTHENTICATED_ANONYMOUSLY }
         # - { path: ^/admin, roles: ROLE_ADMIN }
         # - { path: ^/profile, roles: ROLE_USER }

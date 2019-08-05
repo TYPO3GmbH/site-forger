@@ -14,6 +14,7 @@ use Knp\Menu\FactoryInterface;
 //use Knp\Menu\Matcher\MatcherInterface;
 use Knp\Menu\MenuFactory;
 use Knp\Menu\MenuItem;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 //use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -36,15 +37,22 @@ class MenuBuilder
     private $authorizationChecker;
 
     /**
+     * @var TokenStorageInterface
+     */
+    private $tokenStorage;
+
+    /**
      * @param FactoryInterface $factory
      * @param AuthorizationCheckerInterface $authorizationChecker
      */
     public function __construct(
         FactoryInterface $factory,
-        AuthorizationCheckerInterface $authorizationChecker
+        AuthorizationCheckerInterface $authorizationChecker,
+        TokenStorageInterface $tokenStorage
     ) {
         $this->factory = $factory;
         $this->authorizationChecker = $authorizationChecker;
+        $this->tokenStorage = $tokenStorage;
     }
 
     /**
@@ -222,6 +230,39 @@ class MenuBuilder
                 ],
             ]
         );
+        if ($this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
+            $menu->addChild(
+                'username',
+                [
+                    'label' => $this->tokenStorage->getToken()->getUsername(),
+                    'uri' => '#',
+                    'extras' => [
+                        'icon' => 'user',
+                    ],
+                ]
+            );
+            $menu->addChild(
+                'logout',
+                [
+                    'route' => 'logout',
+                    'label' => 'Logout',
+                    'extras' => [
+                        'icon' => 'lock',
+                    ],
+                ]
+            )->setLinkAttribute('class', 'btn btn-primary');
+        } else {
+            $menu->addChild(
+                'login',
+                [
+                    'route' => 'login',
+                    'label' => 'Login',
+                    'extras' => [
+                        'icon' => 'unlock',
+                    ],
+                ]
+            )->setLinkAttribute('class', 'btn btn-primary');
+        }
         return $menu;
     }
 
