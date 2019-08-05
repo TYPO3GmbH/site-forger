@@ -309,20 +309,14 @@ class MenuBuilder
             'privacy',
             [
                 'label' => 'Privacy Policy',
-                'route' => 'static_privacy',
-                'extras' => [
-                    'icon' => 'shield-alt',
-                ],
+                'route' => 'static_privacy'
             ]
         );
         $menu->addChild(
             'legal',
             [
-                'label' => 'Imprint / Legal Information',
-                'route' => 'static_legal',
-                'extras' => [
-                    'icon' => 'balance-scale',
-                ],
+                'label' => 'Legal Information',
+                'route' => 'static_legal'
             ]
         );
         return $menu;
