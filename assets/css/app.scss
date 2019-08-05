@@ -4,6 +4,10 @@
 // Include Dependencies
 @import '~bootstrap/scss/bootstrap';
 
+// Mixins
+@import 'mixins/function';
+@import 'mixins/svg';
+
 // Modules
 @import 'module/page';
 @import 'module/text';
@@ -11,6 +15,7 @@
 @import 'module/navbar';
 @import 'module/alert';
 @import 'module/card';
+@import 'module/datatable';
 @import 'module/form';
 @import 'module/btn';
 @import "module/avatar";

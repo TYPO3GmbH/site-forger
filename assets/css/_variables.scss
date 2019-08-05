@@ -1,36 +1,37 @@
 //
 // Color system
 //
-$white: #fff;
-$gray-100: #f8f9fa;
-$gray-200: #eceeef;
-$gray-300: #dee2e6;
-$gray-400: #ced4da;
-$gray-500: #adb5bd;
-$gray-600: #b0bbc5;
-$gray-700: #495057;
-$gray-800: #313131;
-$gray-900: #212121;
-$black: #000;
+$white:     #FFFFFF;
+$gray-100:  #EAEAEA;
+$gray-200:  #D5D5D5;
+$gray-300:  #C0C0C0;
+$gray-400:  #ABABAB;
+$gray-500:  #969696;
+$gray-600:  #6C6C6C;
+$gray-700:  #575757;
+$gray-800:  #424242;
+$gray-900:  #2D2D2D;
+$black:     #191919;
 
-$progress-bg: $gray-600;
-
-$primary:       #e17700;
-$secondary:     #538bb3;
-$success:       #75a75a;
+$primary:   #E87B00;
+$secondary: #333333;
+$success:   #37BD74;
+$danger:    #FF304F;
+$info:      #27A2FC;
+$warning:   #FF9B37;
 
 $theme-colors: (
     primary: $primary,
     secondary: $secondary,
     success: $success,
-    info: #1c84c6,
-    warning: #f8ac59,
-    danger: #ed5565,
+    info: $info,
+    warning: $warning,
+    danger: $danger,
     notice: #efefef,
     default: $white,
-    light: $gray-200,
-    dark: $gray-800,
-    darkest: $gray-900
+    light: $gray-100,
+    dark: $gray-900,
+    darkest: $black
 );
 
 $status-colors: (
@@ -45,6 +46,7 @@ $status-colors: (
 );
 
 $theme-shadow: 0 2px 1px rgba(0, 0, 0, 0.15);
+$theme-shadow-hover: 0 2px 1px rgba(0, 0, 0, 0.25);
 
 //
 // Spacer
@@ -69,15 +71,19 @@ $navbar-border-radius: 0;
 //
 // Border Radius
 //
-$border-radius:              2px;
-$border-radius-lg:           2px;
-$border-radius-sm:           2px;
+$border-radius:             2px;
+$border-radius-lg:          2px;
+$border-radius-sm:          2px;
+
+//
+// Pagination
+//
+$pagination-color:          #616161;
+$pagination-hover-color:    #313131;
 
 
 // Cards
-$card-border-width:                 0;
-$card-spacer-y:                     2rem !default;
-$card-spacer-x:                     2rem !default;
-
-$list-group-item-padding-y: 2px;
-$list-group-item-padding-x: 2px;
+$card-border-width:         0;
+$card-spacer:               1.5rem;
+$card-spacer-y:             $card-spacer;
+$card-spacer-x:             $card-spacer;

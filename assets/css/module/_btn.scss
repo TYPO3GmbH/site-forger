@@ -1,17 +1,26 @@
 //
 // Buttons
 //
-.btn {
+.btn:not(.btn-link) {
     display: inline-flex;
     letter-spacing: .5px;
     text-transform: uppercase;
     box-shadow: $theme-shadow;
+    &:focus,
+    &:hover {
+        box-shadow: $theme-shadow-hover;
+    }
     .input-group & {
         box-shadow: none;
     }
 }
 .btn-icon {
     & + .btn-text {
+        padding-left: 0.5rem;
+    }
+}
+.btn-text {
+    & + .btn-icon {
         padding-left: 0.5rem;
     }
 }

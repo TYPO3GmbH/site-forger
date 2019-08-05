@@ -1,7 +1,14 @@
 {% extends 'base.html.twig' %}
-{% block title %}{% endblock %}
+{% block title %}Dashboard{% endblock %}
 {% block body %}
 
-    <h1>Dashboard</h1>
+    {% include '_partials/searchbar.html.twig' %}
+
+    <div class="content-section content-section-small">
+        <div class="container-fluid">
+            <h1>Dashboard</h1>
+            <p>Here will be charts</p>
+        </div>
+    </div>
 
 {% endblock %}
