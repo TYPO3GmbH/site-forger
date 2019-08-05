@@ -1,0 +1,84 @@
+//
+// Issue
+//
+$issue-shadow: $theme-shadow;
+$issue-bg: #ffffff;
+$issue-border-radius: 2px;
+$issue-color: color-yiq($issue-bg);
+$issue-padding: $card-spacer;
+$issue-margin: $spacer * 2;
+
+.issue {
+    position: relative;
+    padding-left: 2rem;
+    border-radius: 2px;
+    color: $issue-color;
+    background-color: $issue-bg;
+    overflow: hidden;
+    box-shadow: $issue-shadow;
+    margin-bottom: $issue-margin;
+}
+.issue-type {
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2rem;
+    position: absolute;
+    display: block;
+    text-transform: uppercase;
+    line-height: 2rem;
+    font-size: 0.875rem;
+}
+@each $color, $value in $issue-colors {
+    .issue-type-#{$color} {
+        background-color: $value;
+        color: color-yiq($value);
+    }
+}
+
+
+.issue-type-title {
+    position: absolute;
+    top: 1rem;
+    left: 2rem;
+    transform: perspective(1px) rotate(90deg);
+    transform-origin: left top 0;
+    letter-spacing: 2px;
+}
+.issue-item {
+    padding: $issue-padding;
+    > *:first-child {
+        margin-top: 0;
+    }
+    > *:last-child {
+        margin-bottom: 0;
+    }
+    + .issue-item {
+        margin-top: -$issue-padding;
+    }
+}
+.issue-meta {
+    font-size: 0.875rem;
+    margin-top: 0!important;
+    background-color: darken($issue-bg, 2.5%)
+}
+.issue-meta-item-label {
+    &:after {
+        content: ': ';
+    }
+}
+.issue-meta-item-label {
+    font-weight: bold;
+}
+
+.issue-headline {
+    > a {
+        color: $issue-color!important;
+    }
+}
+.issue-id {
+    color: theme-color('primary')!important;
+}
+.issue-title {
+    color: $issue-color!important;
+}

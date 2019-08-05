@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import '_macros/buttons.html.twig' as buttons %}
 {% block title %}{{ routeName }}!{% endblock %}
 {% block body %}
 
@@ -15,11 +16,12 @@
                     {% if totalResults > 0 %}
                         <div class="col-sm-3">
                             <h4>Aggregations</h4>
-                            <button type="submit" class="btn btn-success"><i class="fal fa-filter"></i> Filter
-                            </button>
-                            {% include '_partials/Accordeon.html.twig' with {'aggregations': aggs, 'query': query} %}
-                            <button type="submit" class="btn btn-success"><i class="fal fa-filter"></i> Filter
-                            </button>
+                            <form action="{{ path('search_search') }}" method="get">
+                                <input type="hidden" name="query" value="{{ (query is defined) ? query : '' }}">
+                                {{ buttons.submit('Filter', 'secondary', 'filter') }}
+                                {% include '_partials/Accordeon.html.twig' with {'aggregations': aggs, 'query': query} %}
+                                {{ buttons.submit('Filter', 'secondary', 'filter') }}
+                            </form>
                         </div>
                         <div class="col-sm-9">
                             <h4>Showing hits <strong>{{startingAtItem}} </strong>to <strong>{{endingAtItem}}</strong> of <strong>{{totalResults}}</strong></h4>
@@ -27,7 +29,7 @@
                                 {{ block('paginator') }}
                             {% endif %}
                             {% for result in results %}
-                                {% include '_partials/Issue.html.twig' with {'issue': result.hit} %}
+                                {% include '_partials/issue.html.twig' with {'issue': result.hit} %}
                             {% endfor %}
                             {% block paginator %}
                                 <nav aria-label="Page navigation example">
@@ -55,12 +57,12 @@
                 {% else %}
                     <div class="col-sm-12 col-md-6">
                         <h4>Requested Issue</h4>
-                        {% include '_partials/Issue.html.twig' with {'issue': issue} %}
+                        {% include '_partials/issue.html.twig' with {'issue': issue} %}
                     </div>
                     <div class="col-sm-12 col-md-6">
                         <h4>{{totalResults}} potential duplicates</h4>
                         {% for result in results %}
-                            {% include '_partials/Issue.html.twig' with {'issue': result.hit} %}
+                            {% include '_partials/issue.html.twig' with {'issue': result.hit} %}
                         {% endfor %}
                     </div>
                 {% endif %}
