@@ -1,5 +1,12 @@
 <?php
 
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
+
 namespace App\Command;
 
 use App\Client\ElasticClient;
@@ -47,10 +54,9 @@ class TruncateTypeCommand extends Command
             $typeToWorkOn = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->getType($type);
             $query = new MatchAll();
             $typeToWorkOn->deleteByQuery($query);
-            $io->success('Cleared type "' . $type  . '"');
+            $io->success('Cleared type "' . $type . '"');
         } else {
             $io->error('Please provide a proper type to truncate. You provided "' . $type . '"');
         }
-
     }
 }

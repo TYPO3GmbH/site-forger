@@ -64,5 +64,10 @@ return PhpCsFixer\Config::create()
     ])
     ->setFinder(
         PhpCsFixer\Finder::create()
-            ->in('app')
+            ->exclude('laravel')
+            ->exclude('bin')
+            ->exclude('config')
+            ->exclude('public')
+            ->exclude('var')
+            ->in(__DIR__)
     );

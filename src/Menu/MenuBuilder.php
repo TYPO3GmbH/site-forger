@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the package t3g/elts-satis.
+ * This file is part of the package t3g/forger.
  *
  * For the full copyright and license information, please read the
  * LICENSE file that was distributed with this source code.
@@ -25,47 +25,26 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  */
 class MenuBuilder
 {
-//    /**
-//     * @var ContainerInterface
-//     */
-//    private $container;
-
     /**
      * @var MenuFactory
      */
     private $factory;
 
-//    /**
-//     * @var MatcherInterface
-//     */
-//    private $matcher;
-//
     /**
      * @var AuthorizationCheckerInterface
      */
     private $authorizationChecker;
-//
-//    /**
-//     * @var TokenStorageInterface
-//     */
-//    private $tokenStorage;
 
     /**
      * @param FactoryInterface $factory
      * @param AuthorizationCheckerInterface $authorizationChecker
      */
     public function __construct(
-//        ContainerInterface $container,
         FactoryInterface $factory,
-//        MatcherInterface $matcher,
         AuthorizationCheckerInterface $authorizationChecker
-//        TokenStorageInterface $tokenStorage
     ) {
-//        $this->container = $container;
         $this->factory = $factory;
-//        $this->matcher = $matcher;
         $this->authorizationChecker = $authorizationChecker;
-//        $this->tokenStorage = $tokenStorage;
     }
 
     /**
@@ -78,7 +57,7 @@ class MenuBuilder
             'index',
             [
                 'label' => 'Home',
-                'route' => 'page_index',
+                'route' => 'dashboard_index',
                 'extras' => [
                     'icon' => 'home',
                 ],
@@ -94,7 +73,7 @@ class MenuBuilder
                 ],
             ]
         );
-            $menu['gerrit']->addChild(
+        $menu['gerrit']->addChild(
                 'gerrit_status',
                 [
                     'label' => 'All (excl. WIP)',
@@ -104,7 +83,7 @@ class MenuBuilder
                     ],
                 ]
             );
-            $menu['gerrit']->addChild(
+        $menu['gerrit']->addChild(
                 'gerrit_hasverifications',
                 [
                     'label' => 'Has verifications',
@@ -114,7 +93,7 @@ class MenuBuilder
                     ],
                 ]
             );
-            $menu['gerrit']->addChild(
+        $menu['gerrit']->addChild(
                 'gerrit_missesverifications',
                 [
                     'label' => 'Needs verification',
@@ -124,7 +103,7 @@ class MenuBuilder
                     ],
                 ]
             );
-            $menu['gerrit']->addChild(
+        $menu['gerrit']->addChild(
                 'gerrit_missesreview',
                 [
                     'label' => 'Needs review',
@@ -134,7 +113,7 @@ class MenuBuilder
                     ],
                 ]
             );
-            $menu['gerrit']->addChild(
+        $menu['gerrit']->addChild(
                 'gerrit_rebase',
                 [
                     'label' => 'Rebase',
@@ -144,7 +123,7 @@ class MenuBuilder
                     ],
                 ]
             );
-            $menu['gerrit']->addChild(
+        $menu['gerrit']->addChild(
                 'gerrit_files',
                 [
                     'label' => 'Find Review by filename',
@@ -154,7 +133,7 @@ class MenuBuilder
                     ],
                 ]
             );
-            $menu['gerrit']->addChild(
+        $menu['gerrit']->addChild(
                 'gerrit_negative_vote_cleanup',
                 [
                     'label' => 'Has negative votes',
@@ -164,7 +143,7 @@ class MenuBuilder
                     ],
                 ]
             );
-            $menu['gerrit']->addChild(
+        $menu['gerrit']->addChild(
                 'gerrit_wip',
                 [
                     'label' => 'Work In Progress',
@@ -174,7 +153,7 @@ class MenuBuilder
                     ],
                 ]
             );
-            $menu['gerrit']->addChild(
+        $menu['gerrit']->addChild(
                 'gerrit_coreteam_merge',
                 [
                     'label' => 'Coreteam action required',
@@ -184,7 +163,7 @@ class MenuBuilder
                     ],
                 ]
             );
-            $menu['gerrit']->addChild(
+        $menu['gerrit']->addChild(
                 'gerrit_stale_issues',
                 [
                     'label' => 'Stale Issues',
@@ -208,7 +187,7 @@ class MenuBuilder
             'sprint',
             [
                 'label' => 'Sprints',
-                'route' => 'page_index',
+                'route' => 'dashboard_index',
                 'extras' => [
                     'icon' => 'rabbit-fast',
                 ],
@@ -218,55 +197,12 @@ class MenuBuilder
             'utility',
             [
                 'label' => 'Utility',
-                'route' => 'page_index',
+                'route' => 'dashboard_index',
                 'extras' => [
                     'icon' => 'home',
                 ],
             ]
         );
-//        if ($this->authorizationChecker->isGranted('ROLE_USER')) {
-//            $menu->addChild(
-//                'select',
-//                [
-//                    'label' => 'Select File to edit',
-//                    'route' => 'select_translation',
-//                    'extras' => [
-//                        'icon' => 'file-excel',
-//                    ],
-//                ]
-//            );
-//            $menu->addChild(
-//                'git',
-//                [
-//                    'label' => 'Commit to git',
-//                    'route' => 'git_list',
-//                    'extras' => [
-//                        'icon' => 'code-merge',
-//                    ],
-//                ]
-//            );
-//            $menu->addChild(
-//                'logout',
-//                [
-//                    'label' => 'Logout',
-//                    'route' => 'logout',
-//                    'extras' => [
-//                        'icon' => 'sign-out',
-//                    ],
-//                ]
-//            );
-//        } else {
-//            $menu->addChild(
-//                'logout',
-//                [
-//                    'label' => 'Login',
-//                    'route' => 'login',
-//                    'extras' => [
-//                        'icon' => 'sign-in',
-//                    ],
-//                ]
-//            );
-//        }
         return $menu;
     }
 
@@ -280,22 +216,12 @@ class MenuBuilder
             'help',
             [
                 'label' => 'Help',
-                'route' => 'page_index',
+                'route' => 'dashboard_index',
                 'extras' => [
                     'icon' => 'question-circle',
                 ],
             ]
         );
-//        $menu->addChild(
-//            'legal',
-//            [
-//                'label' => 'Imprint / Legal Information',
-//                'route' => 'page_legal',
-//                'extras' => [
-//                    'icon' => 'balance-scale',
-//                ],
-//            ]
-//        );
         return $menu;
     }
 

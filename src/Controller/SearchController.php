@@ -1,5 +1,12 @@
 <?php
 
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
+
 namespace App\Controller;
 
 use App\Client\ElasticClient;
@@ -12,6 +19,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
+/**
+ * @Route("/search", name="search_")
+ */
 class SearchController extends AbstractController
 {
     protected $perPage = 25;
@@ -38,18 +48,9 @@ class SearchController extends AbstractController
             $this->currentPage = (int) $_GET['page'];
         }
     }
-    /**
-     * @Route("/", name="page_index")
-     */
-    public function index(): Response
-    {
-        return $this->render('search/index.html.twig', [
-            'controller_name' => 'SearchController',
-        ]);
-    }
 
     /**
-     * @Route("/search", name="search_search")
+     * @Route(name="search")
      * @param Request $request
      * @return Response
      * @throws Exception

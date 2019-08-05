@@ -1,5 +1,12 @@
 <?php
 
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
+
 namespace App\Command;
 
 use App\Client\ElasticClient;
@@ -87,13 +94,13 @@ class ImportCommand extends Command
         if (!in_array($mode, self::$importModes, true)) {
             $io->note('Please select one of the modes: "' . implode('" ', self::$importModes) . '"');
         }
-        
+
         switch ($mode) {
             case 'forgeFull':
-                $this->importFromForge( 100, $startAt);
+                $this->importFromForge(100, $startAt);
                 break;
             case 'forgeDelta':
-                $this->importFromForge( 100, $startAt, true);
+                $this->importFromForge(100, $startAt, true);
                 break;
             case 'reviewDelta':
                 $mainSection = $output->section();
@@ -135,9 +142,8 @@ class ImportCommand extends Command
         }
     }
 
-    private function importFromForge(int $perRun,int $startOffset = 0, bool $importDelta = false): void
+    private function importFromForge(int $perRun, int $startOffset = 0, bool $importDelta = false): void
     {
-
         $currentSlot = 0;
         if ($startOffset > 0) {
             $currentSlot = $startOffset;

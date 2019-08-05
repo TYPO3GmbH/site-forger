@@ -1,5 +1,12 @@
 <?php
 
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
+
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,7 +32,7 @@ class BackportController extends AbstractController
     public function index(): Response
     {
         $viewData = [];
-        $finalFilePath = $this->parameters->get('kernel.project_dir'). '/var/backports.json';
+        $finalFilePath = $this->parameters->get('kernel.project_dir') . '/var/backports.json';
         if (is_file($finalFilePath)) {
             $backports = json_decode(file_get_contents($finalFilePath), true);
             $viewData['backports'] = $backports;

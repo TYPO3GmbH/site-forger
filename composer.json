@@ -1,4 +1,5 @@
 {
+    "name": "t3g/forger",
     "type": "project",
     "license": "proprietary",
     "require": {

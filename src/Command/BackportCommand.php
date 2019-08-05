@@ -1,5 +1,12 @@
 <?php
 
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
+
 namespace App\Command;
 
 use App\Client\ElasticClient;
@@ -86,7 +93,7 @@ class BackportCommand extends Command
             /** @noinspection DisconnectedForeachInstructionInspection */
             $progressBar->advance();
         }
-        $finalFilePath = $this->parameters->get('kernel.project_dir'). '/var/backports.json';
+        $finalFilePath = $this->parameters->get('kernel.project_dir') . '/var/backports.json';
         file_put_contents($finalFilePath, json_encode($workingArray));
 
         $io->success('Wrote backports to ' . $finalFilePath);
