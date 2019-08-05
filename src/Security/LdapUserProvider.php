@@ -33,7 +33,6 @@ class LdapUserProvider implements UserProviderInterface
      * @var array
      */
     private $roleMapping = [
-        'typo3.com-intercept-docs' => 'ROLE_DOCUMENTATION_MAINTAINER',
         'typo3.com-gmbh' => 'ROLE_ADMIN',
     ];
 
