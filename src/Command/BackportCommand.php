@@ -10,6 +10,7 @@
 namespace App\Command;
 
 use App\Client\ElasticClient;
+use App\Repository\BackportBlacklistEntryRepository;
 use Elastica\Exception\InvalidException;
 use Elastica\Index;
 use Elastica\Result;
@@ -38,12 +39,17 @@ class BackportCommand extends Command
      * @var ParameterBagInterface
      */
     protected $parameters;
+    /**
+     * @var BackportBlacklistEntryRepository
+     */
+    private $blackListRepository;
 
-    public function __construct(ParameterBagInterface $parameters, ElasticClient $elasticClient)
+    public function __construct(ParameterBagInterface $parameters, ElasticClient $elasticClient, BackportBlacklistEntryRepository $blacklistEntryRepository)
     {
         parent::__construct();
         $this->parameters = $parameters;
         $this->elasticIndex = $elasticClient->getIndex($parameters->get('elastic_index_name'));
+        $this->blackListRepository = $blacklistEntryRepository;
     }
 
     protected function configure(): void
@@ -149,7 +155,11 @@ class BackportCommand extends Command
      */
     protected function getPotentialBackports(): array
     {
-        $config = $this->parameters->get('backport_blacklist');
+        $blackListedReviews = [];
+        $blackList = $this->blackListRepository->findAll();
+        foreach ($blackList as $item) {
+            $blackListedReviews[] = $item->getChangeId();
+        }
         $fullRequest = [
             'query' => [
                 'bool' => [
@@ -190,7 +200,7 @@ class BackportCommand extends Command
                         ],
                         [
                             'terms' => [
-                                'change_id' => array_keys($config)
+                                'change_id' => $blackListedReviews
                             ]
                         ],
                         [
