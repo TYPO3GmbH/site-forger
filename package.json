@@ -1,7 +1,7 @@
 {
     "devDependencies": {
-        "@symfony/webpack-encore": "^0.27.0",
         "@fortawesome/fontawesome-pro": "^5.8.1",
+        "@symfony/webpack-encore": "^0.27.0",
         "autoprefixer": "^9.5.1",
         "bootstrap": "^4.3.1",
         "core-js": "^3.0.1",
@@ -23,6 +23,8 @@
         "dev": "encore dev",
         "watch": "encore dev --watch",
         "build": "encore production --progress"
+    },
+    "dependencies": {
+        "luxon": "^1.17.2"
     }
 }
-

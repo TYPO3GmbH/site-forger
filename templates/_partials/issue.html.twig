@@ -57,11 +57,11 @@
         </div>
         <div class="issue-meta-item">
             <span class="issue-meta-item-label">Created</span>
-            <span class="issue-meta-item-value"><time is="time-ago" datetime="{{ issue._source.created_on }}">{{ issue._source.created_on }}</time></span>
+            <span class="issue-meta-item-value">{{ relativetime(to_datetime(issue._source.created_on)) }}</span>
         </div>
         <div class="issue-meta-item">
             <span class="issue-meta-item-label">Updated</span>
-            <span class="issue-meta-item-value"><time is="time-ago" datetime="{{ issue._source.updated_on }}">{{ issue._source.updated_on }}</time></span>
+            <span class="issue-meta-item-value">{{ relativetime(to_datetime(issue._source.updated_on)) }}</span>
         </div>
     </div>
 </div>
