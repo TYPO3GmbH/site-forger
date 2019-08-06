@@ -25,7 +25,6 @@ class ForgerTwigExtension extends AbstractExtension
             new TwigFunction('textile', [$this, 'textile']),
             new TwigFunction('trackerCheckbox', [$this, 'trackerCheckbox']),
             new TwigFunction('forgeLink', [$this, 'forgeLink']),
-            new TwigFunction('gravatar', [$this, 'gravatar']),
         ];
     }
 
@@ -38,9 +37,9 @@ class ForgerTwigExtension extends AbstractExtension
     public function idCounter(int $increase = 1, bool $output = false)
     {
         $counterId = 'CounterViewHelper_counter';
-//        if (array_key_exists('id', $this->arguments) && $this->arguments['id'] !== null) {
-//            $counterId .= ':' . $this->arguments['id'];
-//        }
+        // if (array_key_exists('id', $this->arguments) && $this->arguments['id'] !== null) {
+        //    $counterId .= ':' . $this->arguments['id'];
+        // }
         if (empty($GLOBALS[$counterId])) {
             $GLOBALS[$counterId] = 0;
         }
@@ -73,7 +72,7 @@ class ForgerTwigExtension extends AbstractExtension
         $label = $bucket['key_as_string'] ?? $bucket['key'];
         $docCount = $bucket['doc_count'];
         $category = $this->fixWording($category);
-//        $bucket = $this->fixWording($bucket, false);
+        // $bucket = $this->fixWording($bucket, false);
 
         // check if checkbox has been set
         if (isset($_GET['filters'][$category][$bucket['key']]) && $_GET['filters'][$category][$bucket['key']] === 'true') {
@@ -146,10 +145,10 @@ class ForgerTwigExtension extends AbstractExtension
     {
         $redmineUrl = 'https://forge.typo3.org/projects/typo3cms-core/issues?set_filter=1';
         // @todo figure out how to work with the server-team forger here
-//        $projectId = Config::get('app.redmine.projectId');
-//        if ($projectId === '1862') {
-//            $redmineUrl = 'https://forge.typo3.org/projects/team-server-public/issues?set_filter=1';
-//        }
+        // $projectId = Config::get('app.redmine.projectId');
+        // if ($projectId === '1862') {
+        //     $redmineUrl = 'https://forge.typo3.org/projects/team-server-public/issues?set_filter=1';
+        // }
         $filtersString = $this->getFiltersString($year, $month, $status);
         $content = $redmineUrl . $filtersString . '&f[]=' . $this->getColumnsString() . '&group_by=';
 
@@ -257,12 +256,5 @@ class ForgerTwigExtension extends AbstractExtension
         }
 
         return $string;
-    }
-
-    public function gravatar(string $email)
-    {
-        $hash = md5($email);
-        $url = 'https://www.gravatar.com/avatar/' . $hash . '?s=64';
-        return $url;
     }
 }
