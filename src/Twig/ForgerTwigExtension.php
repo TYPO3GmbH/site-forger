@@ -19,35 +19,12 @@ class ForgerTwigExtension extends AbstractExtension
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('idCounter', [$this, 'idCounter']),
             new TwigFunction('bucketCounter', [$this, 'bucketCounter']),
             new TwigFunction('aggregationBucket', [$this, 'aggregationBucket']),
             new TwigFunction('textile', [$this, 'textile'], ['is_safe' => ['html']]),
             new TwigFunction('trackerCheckbox', [$this, 'trackerCheckbox']),
             new TwigFunction('forgeLink', [$this, 'forgeLink']),
         ];
-    }
-
-    /**
-     * Used to count up accordion IDs in aggregations
-     * @param int $increase
-     * @param bool $output
-     * @return mixed|null
-     */
-    public function idCounter(int $increase = 1, bool $output = false)
-    {
-        $counterId = 'CounterViewHelper_counter';
-        // if (array_key_exists('id', $this->arguments) && $this->arguments['id'] !== null) {
-        //    $counterId .= ':' . $this->arguments['id'];
-        // }
-        if (empty($GLOBALS[$counterId])) {
-            $GLOBALS[$counterId] = 0;
-        }
-        $GLOBALS[$counterId] += $increase;
-        if ($output) {
-            return $GLOBALS[$counterId];
-        }
-        return null;
     }
 
     public function bucketCounter(string $category, array $buckets): string

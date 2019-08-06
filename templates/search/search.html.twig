@@ -3,70 +3,66 @@
 {% block title %}{{ routeName }}!{% endblock %}
 {% block body %}
 
-{% include '_partials/searchbar.html.twig' %}
-<div class="content-section bg-transparent">
-    <div class="container">
-        <div class="row">
+    {% include '_partials/searchbar.html.twig' %}
+    <div class="content-section content-section-small">
+        <div class="container">
             {% if (ErrorMessage is defined) %}
-                <div class="col-sm-12">
-                    <div class="alert alert-info">{ErrorMessage}</div>
-                </div>
+                {% include '_partials/alert.html.twig' with {'message': ErrorMessage} %}
             {% else %}
                 {% if mode == 'query' %}
                     {% if totalResults > 0 %}
-                        <div class="col-sm-3">
-                            <h4>Aggregations</h4>
-                            <form action="{{ path('search_search') }}" method="get">
-                                <input type="hidden" name="query" value="{{ (query is defined) ? query : '' }}">
-                                {{ buttons.submit('Filter', 'secondary', 'filter') }}
-                                {% include '_partials/Accordeon.html.twig' with {'aggregations': aggs, 'query': query} %}
-                                {{ buttons.submit('Filter', 'secondary', 'filter') }}
-                            </form>
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <h4>Aggregations</h4>
+                                <form action="{{ path('search_search') }}" method="get">
+                                    <input type="hidden" name="query" value="{{ (query is defined) ? query : '' }}">
+                                    {{ buttons.submit('Filter', 'secondary', 'filter') }}
+                                    {% include '_partials/aggregations.html.twig' with {'aggregations': aggs, 'query': query} %}
+                                    {{ buttons.submit('Filter', 'secondary', 'filter') }}
+                                </form>
+                            </div>
+                            <div class="col-sm-9">
+                                <h4>Showing hits <strong>{{startingAtItem}} </strong>to <strong>{{endingAtItem}}</strong> of <strong>{{totalResults}}</strong></h4>
+                                {% if results %}
+                                    {{ block('paginator') }}
+                                {% endif %}
+                                {% for result in results %}
+                                    {% include '_partials/issue.html.twig' with {'issue': result.hit} %}
+                                {% endfor %}
+                                {% block paginator %}
+                                    <nav aria-label="Page navigation example">
+                                        <ul class="pagination">
+                                            {% for pageDesc, page in pagesToLinkTo %}
+                                                {% if currentPage == page %}
+                                                    <li class="page-item active"><a class="page-link" href="{{ path(routeName, {'query':query, 'page': page, 'filters': filters}) }}">{{ page }}</a></li>
+                                                {% else %}
+                                                    <li class="page-item"><a class="page-link" href="{{ path(routeName, {'query':query, 'page': page, 'filters': filters}) }}">{{ page }}</a></li>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </ul>
+                                    </nav>
+                                {% endblock %}
+                            </div>
                         </div>
-                        <div class="col-sm-9">
-                            <h4>Showing hits <strong>{{startingAtItem}} </strong>to <strong>{{endingAtItem}}</strong> of <strong>{{totalResults}}</strong></h4>
-                            {% if results %}
-                                {{ block('paginator') }}
-                            {% endif %}
+                    {% else %}
+                        {% include '_partials/alert.html.twig' with {'message': 'Try another term or set the checkbox "Search closed tickets".', 'title': 'No results were found for <code>' ~ query ~ '</code>.', 'style': 'danger'} %}
+                    {% endif %}
+                {% else %}
+                    <div class="row">
+                        <div class="col-sm-12 col-md-6">
+                            <h4>Requested Issue</h4>
+                            {% include '_partials/issue.html.twig' with {'issue': issue} %}
+                        </div>
+                        <div class="col-sm-12 col-md-6">
+                            <h4>{{totalResults}} potential duplicates</h4>
                             {% for result in results %}
                                 {% include '_partials/issue.html.twig' with {'issue': result.hit} %}
                             {% endfor %}
-                            {% block paginator %}
-                                <nav aria-label="Page navigation example">
-                                    <ul class="pagination">
-                                        {% for pageDesc, page in pagesToLinkTo %}
-                                            {% if currentPage == page %}
-                                                <li class="page-item active"><a class="page-link" href="{{ path(routeName, {'query':query, 'page': page, 'filters': filters}) }}">{{ page }}</a></li>
-                                            {% else %}
-                                                <li class="page-item"><a class="page-link" href="{{ path(routeName, {'query':query, 'page': page, 'filters': filters}) }}">{{ page }}</a></li>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </ul>
-                                </nav>
-                            {% endblock %}
                         </div>
-                    {% else %}
-                        <div class="col-sm-12" style="margin-top: 20px;">
-                            <div class="alert alert-danger" role="alert">
-                                <h3><strong>Oh Snap!</strong> No results were found for <code>{{ query }}</code>.</h3>
-                                <p>Try another term or set the checkbox "Search closed tickets".</p>
-                            </div>
-                        </div>
-                    {% endif %}
-                {% else %}
-                    <div class="col-sm-12 col-md-6">
-                        <h4>Requested Issue</h4>
-                        {% include '_partials/issue.html.twig' with {'issue': issue} %}
-                    </div>
-                    <div class="col-sm-12 col-md-6">
-                        <h4>{{totalResults}} potential duplicates</h4>
-                        {% for result in results %}
-                            {% include '_partials/issue.html.twig' with {'issue': result.hit} %}
-                        {% endfor %}
                     </div>
                 {% endif %}
             {% endif %}
         </div>
     </div>
-</div>
+
 {% endblock %}
