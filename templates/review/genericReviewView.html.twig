@@ -2,10 +2,10 @@
 {% block title %}{{ routeName }}!{% endblock %}
 {% block body %}
 
-    <div class="content-section bg-transparent">
+    <div class="content-section content-section-small">
         <div class="container">
             <form action="{{ path(routeName) }}" method="get">
-                {% include '/_partials/review_view.html.twig' %}
+                {% include '_partials/review_view.html.twig' %}
             </form>
         </div>
     </div>

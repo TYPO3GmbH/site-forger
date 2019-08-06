@@ -9,8 +9,10 @@
 .section-filter,
 .section-sidebar {
     @include make-col-ready();
+    margin-bottom: $spacer;
     @include media-breakpoint-up(lg) {
         width: 300px;
+        margin-bottom: 0;
     }
 }
 .section-main {

@@ -2,15 +2,11 @@
 {% block title %}{{ routeName }}!{% endblock %}
 {% block body %}
 
+    {% include '_partials/searchbar.html.twig' %}
     <div class="content-section bg-transparent">
         <div class="container">
-            <form action="{{ path(routeName) }}" method="get" class="form">
-                {% include '/_partials/Searchbox.html.twig' %}
-            </form>
-        </div>
-        <div class="container">
             {% if results|length > 0 %}
-            {% include '/_partials/review_view.html.twig' %}
+            {% include '_partials/review_view.html.twig' %}
             {% else %}
                 {% include '_partials/alert.html.twig' with {'message': 'We couldn\'t find any review matching your query. Please try searching for a full path name.'} %}
             {% endif %}
