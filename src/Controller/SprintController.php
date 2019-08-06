@@ -107,7 +107,8 @@ class SprintController extends AbstractController
             'menu' => $this->createMenu($sprints, $activeSprintId),
             'cards' => $cards,
             'boardInfo' => $boardInfo,
-            'progress' => $progress
+            'progress' => $progress,
+            'category' => $category
         ]);
     }
 
