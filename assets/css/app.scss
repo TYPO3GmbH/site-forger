@@ -11,6 +11,9 @@
 // Modules
 @import 'module/page';
 @import 'module/text';
+@import 'module/status';
+@import 'module/expander';
+@import 'module/text';
 @import 'module/content';
 @import 'module/navbar';
 @import 'module/alert';
@@ -20,18 +23,3 @@
 @import 'module/form';
 @import 'module/btn';
 @import "module/avatar";
-
-.expander {
-  display: none;
-}
-
-.expander:target {
-  display: table-row;
-}
-
-@each $color, $value in $status-colors {
-  .status-#{$color} {
-    background-color: $value;
-    color: color-yiq($value);
-  }
-}

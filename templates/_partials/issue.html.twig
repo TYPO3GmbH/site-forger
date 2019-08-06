@@ -38,7 +38,7 @@
                 <span class="issue-title">{{ issue._source.subject }}</span>
             </a>
         </h4>
-        <p>{{ textile(issue._source.description) }}</p>
+        <p>{{ text_expand(textile(issue._source.description)) }}</p>
     </div>
 
     <div class="issue-item issue-meta">
