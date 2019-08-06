@@ -82,8 +82,8 @@ class MenuBuilder
             ]
         );
         $menu['gerrit']->addChild(
-                'gerrit_status',
-                [
+            'gerrit_status',
+            [
                     'label' => 'All (excl. WIP)',
                     'route' => 'gerrit_index',
                     'extras' => [
@@ -92,8 +92,8 @@ class MenuBuilder
                 ]
             );
         $menu['gerrit']->addChild(
-                'gerrit_hasverifications',
-                [
+            'gerrit_hasverifications',
+            [
                     'label' => 'Has verifications',
                     'route' => 'gerrit_hasverifications',
                     'extras' => [
@@ -102,8 +102,8 @@ class MenuBuilder
                 ]
             );
         $menu['gerrit']->addChild(
-                'gerrit_missesverifications',
-                [
+            'gerrit_missesverifications',
+            [
                     'label' => 'Needs verification',
                     'route' => 'gerrit_missesverifications',
                     'extras' => [
@@ -112,8 +112,8 @@ class MenuBuilder
                 ]
             );
         $menu['gerrit']->addChild(
-                'gerrit_missesreview',
-                [
+            'gerrit_missesreview',
+            [
                     'label' => 'Needs review',
                     'route' => 'gerrit_missesreview',
                     'extras' => [
@@ -122,8 +122,8 @@ class MenuBuilder
                 ]
             );
         $menu['gerrit']->addChild(
-                'gerrit_rebase',
-                [
+            'gerrit_rebase',
+            [
                     'label' => 'Rebase',
                     'route' => 'gerrit_rebase',
                     'extras' => [
@@ -132,8 +132,8 @@ class MenuBuilder
                 ]
             );
         $menu['gerrit']->addChild(
-                'gerrit_files',
-                [
+            'gerrit_files',
+            [
                     'label' => 'Find Review by filename',
                     'route' => 'gerrit_files',
                     'extras' => [
@@ -142,8 +142,8 @@ class MenuBuilder
                 ]
             );
         $menu['gerrit']->addChild(
-                'gerrit_negative_vote_cleanup',
-                [
+            'gerrit_negative_vote_cleanup',
+            [
                     'label' => 'Has negative votes',
                     'route' => 'gerrit_negative_vote_cleanup',
                     'extras' => [
@@ -152,8 +152,8 @@ class MenuBuilder
                 ]
             );
         $menu['gerrit']->addChild(
-                'gerrit_wip',
-                [
+            'gerrit_wip',
+            [
                     'label' => 'Work In Progress',
                     'route' => 'gerrit_wip',
                     'extras' => [
@@ -162,8 +162,8 @@ class MenuBuilder
                 ]
             );
         $menu['gerrit']->addChild(
-                'gerrit_coreteam_merge',
-                [
+            'gerrit_coreteam_merge',
+            [
                     'label' => 'Coreteam action required',
                     'route' => 'gerrit_coreteam_merge',
                     'extras' => [
@@ -172,8 +172,8 @@ class MenuBuilder
                 ]
             );
         $menu['gerrit']->addChild(
-                'gerrit_stale_issues',
-                [
+            'gerrit_stale_issues',
+            [
                     'label' => 'Stale Issues',
                     'route' => 'gerrit_stale_issues',
                     'extras' => [
