@@ -175,6 +175,72 @@ class ManagementController extends AbstractController
     }
 
     /**
+     * @Route("/management/bycategory", name="management_bycategory")
+     */
+    public function byCategory(): Response
+    {
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'status.name' => [
+                                    'Closed',
+                                    'Rejected',
+                                    'Resolved',
+                                ],
+                            ],
+                        ],
+                        [
+                            'terms' => [
+                                'project.id' => [
+                                    '78',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'size' => 0,
+            'aggregations' => [
+                'category' => [
+                    'terms' => [
+                        'field' => 'category.name',
+                        'size' => 1000
+                    ],
+                    'aggregations' => [
+                        'tracker' => [
+                            'terms' => [
+                                'field' => 'tracker.name',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
+        $search->addType('issue');
+        $resultSet = $search->search();
+        $aggregations = $resultSet->getAggregations();
+        $viewData = [];
+        foreach ($aggregations['category']['buckets'] as $category) {
+            $viewData[$category['key']] = [
+                'Bug' => 0,
+                'Feature' => 0,
+                'Task' => 0,
+                'Story' => 0,
+                'Epic' => 0
+            ];
+            foreach ($category['tracker']['buckets'] as $tracker) {
+                $viewData[$category['key']][$tracker['key']] = $tracker['doc_count'];
+            }
+            ksort($viewData);
+        }
+        return $this->render('management/bycategory.html.twig', ['data' => $viewData]);
+    }
+
+    /**
      * @Route("/management/interactions", name="management_interactions")
      */
     public function interactions(): Response

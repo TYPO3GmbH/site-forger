@@ -201,6 +201,16 @@ class MenuBuilder
                 ],
             ]
         );
+        $menu['management']->addChild(
+            'management-by-category',
+            [
+                'label' => 'Issues by Category',
+                'route' => 'management_bycategory',
+                'extras' => [
+                    'icon' => 'award',
+                ],
+            ]
+        );
         $menu->addChild(
             'sprint',
             [
