@@ -1,28 +1,38 @@
 {% extends 'base.html.twig' %}
 {% block title %}Issues by Category{% endblock %}
+{% block headline %}Issue Category View{% endblock %}
 {% block body %}
 
 <div class="content-section bg-transparent">
     <div class="container">
-        <h3>Issue Category View</h3>
-        <table class="table-bordered table table-striped">
-            <tr>
-                <th>Category</th>
-                <th>Bugs</th>
-                <th>Features</th>
-                <th>Tasks</th>
-                <th>Stories</th>
-                <th>Epics</th>
-            </tr>
-        {% for category, trackers in data %}
-            <tr>
-                <td>{{ category }}</td>
-                {% for tracker,amount in trackers %}
-                    <td>{{ (amount > 0) ? amount : '' }}</td>
-                {% endfor %}
-            </tr>
-        {% endfor %}
-        </table>
+
+        <div class="card">
+            <div class="datatable">
+                <table class="datatable-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Category</th>
+                            <th scope="col">Bugs</th>
+                            <th scope="col">Features</th>
+                            <th scope="col">Tasks</th>
+                            <th scope="col">Stories</th>
+                            <th scope="col">Epics</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category, trackers in data %}
+                            <tr>
+                                <th data-type="title">{{ category }}</th>
+                                {% for tracker,amount in trackers %}
+                                    <td>{{ (amount > 0) ? amount : '' }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 </div>
 
