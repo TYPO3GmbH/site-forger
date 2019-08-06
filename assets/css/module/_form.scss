@@ -15,3 +15,21 @@
     vertical-align: middle;
     margin-left: 1rem;
 }
+
+
+//
+// Custom Forms
+//
+.custom-control-label-hascount {
+    display: flex;
+}
+.custom-control-label-title {
+    flex-grow: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.custom-control-label-count {
+    flex-shrink: 0;
+    margin-left: 1rem
+}

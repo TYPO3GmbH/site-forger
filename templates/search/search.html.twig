@@ -13,35 +13,23 @@
                     {% if totalResults > 0 %}
                         <div class="row">
                             <div class="col-sm-3">
-                                <h4>Aggregations</h4>
+                                <h4>Filter</h4>
                                 <form action="{{ path('search_search') }}" method="get">
                                     <input type="hidden" name="query" value="{{ (query is defined) ? query : '' }}">
-                                    {{ buttons.submit('Filter', 'secondary', 'filter') }}
-                                    {% include '_partials/aggregations.html.twig' with {'aggregations': aggs, 'query': query} %}
-                                    {{ buttons.submit('Filter', 'secondary', 'filter') }}
+                                    {% include '_partials/aggregations.html.twig' with {'aggregations': aggs, 'query': query} only %}
                                 </form>
                             </div>
                             <div class="col-sm-9">
                                 <h4>Showing hits <strong>{{startingAtItem}} </strong>to <strong>{{endingAtItem}}</strong> of <strong>{{totalResults}}</strong></h4>
-                                {% if results %}
-                                    {{ block('paginator') }}
-                                {% endif %}
                                 {% for result in results %}
-                                    {% include '_partials/issue.html.twig' with {'issue': result.hit} %}
+                                    {% include '_partials/issue.html.twig' with {'issue': result.hit} only %}
                                 {% endfor %}
-                                {% block paginator %}
-                                    <nav aria-label="Page navigation example">
-                                        <ul class="pagination">
-                                            {% for pageDesc, page in pagesToLinkTo %}
-                                                {% if currentPage == page %}
-                                                    <li class="page-item active"><a class="page-link" href="{{ path(routeName, {'query':query, 'page': page, 'filters': filters}) }}">{{ page }}</a></li>
-                                                {% else %}
-                                                    <li class="page-item"><a class="page-link" href="{{ path(routeName, {'query':query, 'page': page, 'filters': filters}) }}">{{ page }}</a></li>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </ul>
-                                    </nav>
-                                {% endblock %}
+                                {% include '_partials/pagination.html.twig' with {
+                                    'pages': pagesToLinkTo,
+                                    'current': currentPage,
+                                    'routeName': routeName,
+                                    'arguments': {'query': query, 'filters': filters}
+                                } only %}
                             </div>
                         </div>
                     {% else %}

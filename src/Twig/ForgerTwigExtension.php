@@ -19,8 +19,8 @@ class ForgerTwigExtension extends AbstractExtension
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('bucketCounter', [$this, 'bucketCounter']),
-            new TwigFunction('aggregationBucket', [$this, 'aggregationBucket']),
+            new TwigFunction('bucketCounter', [$this, 'bucketCounter'], ['is_safe' => ['html']]),
+            new TwigFunction('aggregationBucket', [$this, 'aggregationBucket'], ['is_safe' => ['html']]),
             new TwigFunction('textile', [$this, 'textile'], ['is_safe' => ['html']]),
             new TwigFunction('trackerCheckbox', [$this, 'trackerCheckbox']),
             new TwigFunction('forgeLink', [$this, 'forgeLink']),
@@ -41,7 +41,7 @@ class ForgerTwigExtension extends AbstractExtension
             return '';
         }
 
-        return '<span class="badge badge-info float-right">' . $activeCount . ' / ' . count($buckets) . '</span>';
+        return '<span class="badge badge-info">' . $activeCount . ' / ' . count($buckets) . '</span>';
     }
 
     public function aggregationBucket(string $category, string $index, array $bucket): string
@@ -49,21 +49,20 @@ class ForgerTwigExtension extends AbstractExtension
         $label = $bucket['key_as_string'] ?? $bucket['key'];
         $docCount = $bucket['doc_count'];
         $category = $this->fixWording($category);
-        // $bucket = $this->fixWording($bucket, false);
 
         // check if checkbox has been set
         if (isset($_GET['filters'][$category][$bucket['key']]) && $_GET['filters'][$category][$bucket['key']] === 'true') {
             $checked = ' checked';
-            $labelStyle = ' style="font-weight:bold; color:#008cba;"';
         } else {
             $checked = '';
-            $labelStyle = ' style="font-weight: normal;"';
         }
 
-        $content = '
-            <label class="form-check-label" ' . $labelStyle . ' for="' . $category . '-' . $index . '">'
-            . '<input class="form-check-input" type="checkbox" id="' . $category . '-' . $index . '" name="filters[' . $category . '][' . $bucket['key'] . ']" ' . $checked . ' value="true" />' . $label . ' (' . $docCount . ')'
-            . '</label>';
+        $content = '<div class="custom-control custom-checkbox">'
+            . '<input type="checkbox" class="custom-control-input" id="' . $category . '-' . $index . '" name="filters[' . $category . '][' . $bucket['key'] . ']" ' . $checked . ' value="true" onchange="this.form.submit()">'
+            . '<label class="custom-control-label custom-control-label-hascount" for="' . $category . '-' . $index . '">'
+            . '<span class="custom-control-label-title">' . $label . '</span> <span class="custom-control-label-count">' . $docCount . '</span>'
+            . '</label>'
+            . '</div>';
 
         return $content;
     }

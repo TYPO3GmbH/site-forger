@@ -5,7 +5,9 @@
         Show more
     </label>
     <div class="expander-content">
-        {{ content|raw }}
+        <div class="expander-content-inner">
+            {{ content|raw }}
+        </div>
     </div>
 </div>
 {% endif %}

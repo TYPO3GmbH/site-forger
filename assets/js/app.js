@@ -6,13 +6,24 @@ require('../css/app.scss');
 
 // Load the JS stuff
 let $ = require('jquery');
+var {DateTime} = require('luxon');
 require('bootstrap');
 require('./libs/navbar.js');
 
-// DateTime Transformations
-var {DateTime} = require('luxon');
 document.onreadystatechange = function () {
     if (document.readyState == "interactive") {
+
+        // Expander
+        // Unfolds elements where the inner container is smaller than the
+        // outer wrap
+        Array.from(document.querySelectorAll('.expander')).forEach(function (element) {
+            let checkbox = element.getElementsByClassName('expander-checkbox')[0];
+            let content = element.getElementsByClassName('expander-content')[0];
+            let inner = element.getElementsByClassName('expander-content-inner')[0];
+            if (checkbox && content && inner && inner.clientHeight < content.clientHeight) {
+                checkbox.checked = true;
+            }
+        });
 
         // Format to Local Date
         Array.from(document.querySelectorAll('[data-processor="localdate"]')).forEach(function (element) {
