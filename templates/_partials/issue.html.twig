@@ -1,7 +1,3 @@
-{% set descriptionLength = 300 %}
-{% set description = issue._source.description %}
-{% set description = description|length > descriptionLength ? description|slice(0, descriptionLength) ~ '...' : description %}
-
 {% set issueTypeClass = 'default' %}
 {% if issue._source.tracker.name == 'Bug' %}
     {% set issueTypeClass = 'bug' %}
@@ -42,7 +38,7 @@
                 <span class="issue-title">{{ issue._source.subject }}</span>
             </a>
         </h4>
-        <p>{{ description }}</p>
+        <p>{{ textile(issue._source.description) }}</p>
     </div>
 
     <div class="issue-item issue-meta">
