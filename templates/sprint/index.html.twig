@@ -6,6 +6,7 @@
 <div class="content-section bg-transparent">
     <div class="container-fluid">
         <div class="row">
+            {% if menu|length > 0 %}
             <div class="btn-group">
                 {% for boardNav in menu %}
                     <a href="{{ path("sprint", {"sprint":boardNav.id}) }}" class="btn btn-default {{ (boardNav.active) ? 'active' : '' }}" title="{{boardNav.count.open}} open, {{boardNav.count.closed}} closed, {{boardNav.count.total}} total">
@@ -13,6 +14,11 @@
                     </a>
                 {% endfor %}
             </div>
+            {% else %}
+                <div class="col-sm-12">
+                    <div class="alert alert-info">No boards have been defined for this category, yet. If you think there should be something here, get in touch with us on Slack</div>
+                </div>
+            {% endif %}
         </div>
         {% if cards|length > 0 %}
             <h3>{{ boardInfo }} ({{ progress.total }})</h3>

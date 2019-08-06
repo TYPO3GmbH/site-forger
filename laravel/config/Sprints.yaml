@@ -1,77 +1,35 @@
-'T3G':
-  'Forger':
-    'Boards':
-      'CodeSprint':
-        'Name': Code Sprints
-        'Query':
-          'bool':
-            'must':
-              - 'term': {'focus.name': On Location Sprint}
-            'must_not':
-              'bool':
-                must:
-                  - range: {'updated_on': {'lte': 'now-30d'}}
-                'should':
-                  - 'term': {'status.name': Closed}
-                  - 'term': {'status.name': Resolved}
-                  - 'term': {'status.name': Rejected}
-      'nmr':
-        'Name': Next Maintenance Release
-        'Query':
-          'bool':
-            'should':
-              - 'term': {'fixed_version.id': 3285}
-              - 'term': {'fixed_version.id': 2354}
-            'must_not':
-              'bool':
-                must:
-                  - range: {'updated_on': {'lte': 'now-30d'}}
-                'should':
-                  - 'term': {'status.name': Closed}
-                  - 'term': {'status.name': Resolved}
-                  - 'term': {'status.name': Rejected}
-      'next-patchlevel':
-        'Name': Next patch level
-        'Query':
-          'bool':
-            'should':
-              - 'term': {'fixed_version.id': 2354}
-            'must_not':
-              'bool':
-                must:
-                  - range: {'updated_on': {'lte': 'now-30d'}}
-                'should':
-                  - 'term': {'status.name': Closed}
-                  - 'term': {'status.name': Resolved}
-                  - 'term': {'status.name': Rejected}
-      'next-minor-release':
-        'Name': Next 8.7 Release
-        'Query':
-          'bool':
-            'should':
-              - 'term': {'fixed_version.id': 3528}
-            'must_not':
-              'bool':
-                must:
-                  - range: {'updated_on': {'lte': 'now-30d'}}
-                'should':
-                  - 'term': {'status.name': Closed}
-                  - 'term': {'status.name': Resolved}
-                  - 'term': {'status.name': Rejected}
-      'next-major-release':
-        'Name': Next 9 Release
-        'Query':
-          'bool':
-            'should':
-              - 'term': {'fixed_version.id': 3459}
-            'must_not':
-              'bool':
-                must:
-                  - range: {'updated_on': {'lte': 'now-30d'}}
-                'should':
-                  - 'term': {'status.name': Closed}
-                  - 'term': {'status.name': Resolved}
-                  - 'term': {'status.name': Rejected}
+'next-patchlevel':
+  'Name': Next patch level
+  'Query':
+
+'next-minor-release':
+  'Name': Next 8.7 Release
+  'Query':
+    'bool':
+      'should':
+        - 'term': {'fixed_version.id': 3528}
+      'must_not':
+        'bool':
+          must:
+            - range: {'updated_on': {'lte': 'now-30d'}}
+          'should':
+            - 'term': {'status.name': Closed}
+            - 'term': {'status.name': Resolved}
+            - 'term': {'status.name': Rejected}
+'next-major-release':
+  'Name': Next 9 Release
+  'Query':
+    'bool':
+      'should':
+        - 'term': {'fixed_version.id': 3459}
+      'must_not':
+        'bool':
+          must:
+            - range: {'updated_on': {'lte': 'now-30d'}}
+          'should':
+            - 'term': {'status.name': Closed}
+            - 'term': {'status.name': Resolved}
+            - 'term': {'status.name': Rejected}
     'FocusBoards':
       'FormEngine':
         'Name': FormEngine

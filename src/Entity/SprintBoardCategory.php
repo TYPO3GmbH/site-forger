@@ -33,6 +33,11 @@ class SprintBoardCategory
      */
     private $identifier;
 
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $icon;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -58,6 +63,18 @@ class SprintBoardCategory
     public function setIdentifier(string $identifier): self
     {
         $this->identifier = $identifier;
+
+        return $this;
+    }
+
+    public function getIcon(): ?string
+    {
+        return $this->icon;
+    }
+
+    public function setIcon(string $icon): self
+    {
+        $this->icon = $icon;
 
         return $this;
     }

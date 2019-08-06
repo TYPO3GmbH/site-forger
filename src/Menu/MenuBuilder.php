@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace App\Menu;
 
+use App\Repository\SprintBoardCategoryRepository;
 use Knp\Menu\FactoryInterface;
 //use Knp\Menu\Matcher\MatcherInterface;
 use Knp\Menu\MenuFactory;
@@ -40,19 +41,27 @@ class MenuBuilder
      * @var TokenStorageInterface
      */
     private $tokenStorage;
+    /**
+     * @var SprintBoardCategoryRepository
+     */
+    private $categoryRepository;
 
     /**
      * @param FactoryInterface $factory
      * @param AuthorizationCheckerInterface $authorizationChecker
+     * @param TokenStorageInterface $tokenStorage
+     * @param SprintBoardCategoryRepository $sprintBoardCategoryRepository
      */
     public function __construct(
         FactoryInterface $factory,
         AuthorizationCheckerInterface $authorizationChecker,
-        TokenStorageInterface $tokenStorage
+        TokenStorageInterface $tokenStorage,
+        SprintBoardCategoryRepository $sprintBoardCategoryRepository
     ) {
         $this->factory = $factory;
         $this->authorizationChecker = $authorizationChecker;
         $this->tokenStorage = $tokenStorage;
+        $this->categoryRepository = $sprintBoardCategoryRepository;
     }
 
     /**
@@ -60,6 +69,7 @@ class MenuBuilder
      */
     public function mainDefault(): MenuItem
     {
+        $categories = $this->categoryRepository->findAll();
         $menu = $this->factory->createItem('root');
         $menu->addChild(
             'index',
@@ -195,12 +205,25 @@ class MenuBuilder
             'sprint',
             [
                 'label' => 'Sprints',
-                'route' => 'dashboard_index',
+                'route' => 'sprint',
                 'extras' => [
                     'icon' => 'rabbit-fast',
                 ],
             ]
         );
+        foreach ($categories as $category) {
+            $menu['sprint']->addChild(
+                'sprint_' . $category->getIdentifier(),
+                [
+                    'label' => $category->getName(),
+                    'route' => 'sprint',
+                    'routeParameters' => ['category' => $category->getIdentifier()],
+                    'extras' => [
+                        'icon' => $category->getIcon()
+                    ]
+                ]
+            );
+        }
         $menu->addChild(
             'utility',
             [
