@@ -14,7 +14,8 @@ use App\Entity\SprintBoard;
 use App\Repository\SprintBoardCategoryRepository;
 use App\Repository\SprintBoardRepository;
 use Elastica\Exception\InvalidException;
-use RuntimeException;
+use Exception;
+use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -64,7 +65,7 @@ class SprintController extends AbstractController
      * @Route("/sprint/{category}", defaults={"category"="index"}, name="sprint")
      * @param string $category
      * @return Response
-     * @throws \Exception
+     * @throws Exception
      */
     public function index(string $category): Response
     {
@@ -81,7 +82,11 @@ class SprintController extends AbstractController
             ['sorting' => 'ASC']
         );
         // Find active Sprint
-        $activeSprintId = (int) $this->requestStack->getCurrentRequest()->get('sprint');
+        $activeSprintId = 0;
+        $currentRequest = $this->requestStack->getCurrentRequest();
+        if ($currentRequest) {
+            $activeSprintId = (int)$currentRequest->get('sprint');
+        }
         $cards = [];
         $boardInfo = [];
         $progress = [];
@@ -97,7 +102,7 @@ class SprintController extends AbstractController
                 $boardInfo = $currentSprint->getName();
                 $ticketCount = [];
                 foreach ($cards as $status => $tickets) {
-                    $ticketCount[$status] = ($tickets ? \count($tickets) : 0);
+                    $ticketCount[$status] = ($tickets ? count($tickets) : 0);
                 }
                 $progress = $this->calculateProgressBars($ticketCount);
             }
@@ -121,62 +126,13 @@ class SprintController extends AbstractController
             $menuItem = [
                 'id' => $sprint->getId(),
                 'title' => $sprint->getName(),
-                'active' => $activeId === $sprint->getId(), //@todo fix this part
+                'active' => $activeId === $sprint->getId(),
                 'count' => $resultCount
 
             ];
             $menu[] = $menuItem;
         }
         return $menu;
-    }
-
-    /**
-     * @param string $boardId
-     * @param string $boardType
-     *
-     * @throws \Exception
-     */
-    private function prepareBoardData($boardId = '', $boardType = 'Boards')
-    {
-        $boardInfo = [];
-        $this->view->assign('boardMenu', $this->makeBoardMenu($boardId, $boardType));
-        $this->getAllUsers();
-        if (!is_numeric($boardId) && !isset($this->sprintConfig['T3G']['Forger'][$boardType][$boardId])) {
-            return;
-        }
-        $query = '';
-        if (isset($this->sprintConfig['T3G']['Forger'][$boardType][$boardId])) {
-            $query = $this->sprintConfig['T3G']['Forger'][$boardType][$boardId]['Query'];
-            $boardInfo = $this->sprintConfig['T3G']['Forger'][$boardType][$boardId];
-        }
-        if (is_numeric($boardId)) {
-            $query = [
-                'bool' => [
-                    'must' => [
-                        [
-                            'term' => [
-                                'assigned_to.id' => (int) $boardId,
-                            ],
-                        ],
-                    ],
-                ],
-            ];
-            $boardInfo['Name'] = '';
-            if (isset($this->users[$boardId])) {
-                $boardInfo['Name'] = 'Private Board: ' . $this->users[$boardId]['fullname'];
-            }
-        }
-        $boardData = $this->getBoardData($query);
-        $ticketCount = [];
-        foreach ($boardData as $status => $tickets) {
-            $ticketCount[$status] = ($tickets ? \count($tickets) : 0);
-        }
-        $this->view->assignMultiple([
-            'progress' => $this->calculateProgressBars($ticketCount),
-            'board' => $boardData,
-            'boardInfo' => $boardInfo
-        ]);
-        Debugbar::startMeasure('Fluid', 'Fluid Rendering');
     }
 
     /**
@@ -252,7 +208,7 @@ class SprintController extends AbstractController
      * @param SprintBoard $sprint
      * @return array
      *
-     * @throws \Exception
+     * @throws Exception
      */
     private function getBoardData(SprintBoard $sprint) : array
     {
@@ -265,7 +221,7 @@ class SprintController extends AbstractController
         $search->addType('issue');
         $resultSet = $search->search();
         foreach ($resultSet->getResults() as $ticket) {
-            $status = $ticket->status;
+            $status = $ticket->getSource()['status'];
             $getBoardGroup = $this->defineBoardGroup($status['name']);
             if ($getBoardGroup === 'Review') {
                 $out[$getBoardGroup][] = $this->getReviewCard($ticket->getData());
@@ -284,7 +240,7 @@ class SprintController extends AbstractController
      *
      * @return array
      *
-     * @throws \Exception
+     * @throws Exception
      */
     private function getReviewCard(array $ticket) : array
     {
@@ -306,13 +262,13 @@ class SprintController extends AbstractController
             $pattern = '|.*https:\/\/review\.typo3\.org\/(?>(c\/)?)(?>Packages\/TYPO3\.CMS\/\+\/)?(?<reviewId>[\d]{2,6})|';
             preg_match($pattern, $notes, $matches);
             if (!isset($matches['reviewId'])) {
-                throw new \InvalidArgumentException('There should be a review id in ' . $notes);
+                throw new InvalidArgumentException('There should be a review id in ' . $notes);
             }
             $reviewType = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->getType('review');
 
             try {
                 $item = $reviewType->getDocument($matches['reviewId']);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 return $ticket;
             }
             $returnValue = $item->getData();
