@@ -76,9 +76,10 @@ class SprintController extends AbstractController
         if (!$sprintCategory) {
             return new Response('Sprint board not found', Response::HTTP_NOT_FOUND);
         }
-        $sprints = $this->sprintBoardRepository->findBy([
-            'category' => $sprintCategory
-        ]);
+        $sprints = $this->sprintBoardRepository->findBy(
+            ['category' => $sprintCategory],
+            ['sorting' => 'ASC']
+        );
         // Find active Sprint
         $activeSprintId = (int) $this->requestStack->getCurrentRequest()->get('sprint');
         $cards = [];

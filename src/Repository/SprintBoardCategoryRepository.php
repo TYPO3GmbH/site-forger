@@ -16,7 +16,6 @@ use Symfony\Bridge\Doctrine\RegistryInterface;
 /**
  * @method SprintBoardCategory|null find($id, $lockMode = null, $lockVersion = null)
  * @method SprintBoardCategory|null findOneBy(array $criteria, array $orderBy = null)
- * @method SprintBoardCategory[]    findAll()
  * @method SprintBoardCategory[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
 class SprintBoardCategoryRepository extends ServiceEntityRepository
@@ -26,32 +25,8 @@ class SprintBoardCategoryRepository extends ServiceEntityRepository
         parent::__construct($registry, SprintBoardCategory::class);
     }
 
-    // /**
-    //  * @return SprintBoardCategory[] Returns an array of SprintBoardCategory objects
-    //  */
-    /*
-    public function findByExampleField($value)
+    public function findAll(): array
     {
-        return $this->createQueryBuilder('s')
-            ->andWhere('s.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('s.id', 'ASC')
-            ->setMaxResults(10)
-            ->getQuery()
-            ->getResult()
-        ;
+        return $this->findBy([], ['sorting' => 'ASC']);
     }
-    */
-
-    /*
-    public function findOneBySomeField($value): ?SprintBoardCategory
-    {
-        return $this->createQueryBuilder('s')
-            ->andWhere('s.exampleField = :val')
-            ->setParameter('val', $value)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
-    }
-    */
 }

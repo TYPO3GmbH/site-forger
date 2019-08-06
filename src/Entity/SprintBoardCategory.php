@@ -38,6 +38,11 @@ class SprintBoardCategory
      */
     private $icon;
 
+    /**
+     * @ORM\Column(type="integer", nullable=true)
+     */
+    private $sorting;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -75,6 +80,18 @@ class SprintBoardCategory
     public function setIcon(string $icon): self
     {
         $this->icon = $icon;
+
+        return $this;
+    }
+
+    public function getSorting(): ?int
+    {
+        return $this->sorting;
+    }
+
+    public function setSorting(?int $sorting): self
+    {
+        $this->sorting = $sorting;
 
         return $this;
     }
