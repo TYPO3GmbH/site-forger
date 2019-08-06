@@ -15,49 +15,55 @@
     <div class="issue-type issue-type-{{ issueTypeClass }}">
         <span class="issue-type-title">{{ issue._source.tracker.name }}</span>
     </div>
-    <div class="issue-item issue-status">
-        {% if issue._source.status.name == 'New' %}
-            <span class="badge badge-danger">NEW</span>
-        {% else %}
-            <span class="badge badge-secondary">{{ issue._source.status.name }}</span>
-        {% endif %}
-        {% if issue._source.category.name is defined %}
-            <span class="badge badge-light">{{ issue._source.category.name }}</span>
-        {% endif %}
-        {% if issue._source.typo3_version is defined %}
-            <span class="badge badge-primary">TYPO3 CMS {{ issue._source.typo3_version }}</span>
-        {% endif %}
-        {% if issue.score is defined %}
-            <span class="pull-right"><b>Score:</b> {{ issue.score }}</span>
-        {% endif %}
-    </div>
-    <div class="issue-item issue-content">
+    <div class="issue-content">
+        <div class="issue-status">
+            {% if issue._source.status.name == 'New' %}
+                <span class="badge badge-danger">NEW</span>
+            {% else %}
+                <span class="badge badge-secondary">{{ issue._source.status.name }}</span>
+            {% endif %}
+            {% if issue._source.category.name is defined %}
+                <span class="badge badge-light">{{ issue._source.category.name }}</span>
+            {% endif %}
+            {% if issue._source.typo3_version is defined %}
+                <span class="badge badge-primary">TYPO3 CMS {{ issue._source.typo3_version }}</span>
+            {% endif %}
+            {% if issue.score is defined %}
+                <span class="pull-right"><b>Score:</b> {{ issue.score }}</span>
+            {% endif %}
+        </div>
         <h4 class="issue-headline">
             <a href="http://forge.typo3.org/issues/{{ issue._source.id }}" target="issue{{ issue._source.id }}">
                 <span class="issue-id">#{{ issue._source.id }}</span>
                 <span class="issue-title">{{ issue._source.subject }}</span>
             </a>
         </h4>
-        <p>{{ text_expand(textile(issue._source.description)) }}</p>
+        {{ text_expand(textile(issue._source.description)) }}
     </div>
 
-    <div class="issue-item issue-meta">
-        <div class="issue-meta-item">
+    <div class="issue-meta">
+        <div class="issue-meta-item issue-meta-author">
             {% if issue._source.author.email %}
                 <span class="issue-meta-item-avatar">
                     {{ avatar(issue._source.author.email) }}
                 </span>
             {% endif %}
-            <span class="issue-meta-item-label">Author</span>
-            <span class="issue-meta-item-value">{{ issue._source.author.name }}</span>
+            <span class="issue-meta-item-body">
+                <span class="issue-meta-item-label">Author</span>
+                <span class="issue-meta-item-value">{{ issue._source.author.name }}</span>
+            </span>
         </div>
-        <div class="issue-meta-item">
-            <span class="issue-meta-item-label">Created</span>
-            <span class="issue-meta-item-value">{{ relativetime(to_datetime(issue._source.created_on)) }}</span>
+        <div class="issue-meta-item issue-meta-created">
+            <span class="issue-meta-item-body">
+                <span class="issue-meta-item-label">Created</span>
+                <span class="issue-meta-item-value">{{ relativetime(to_datetime(issue._source.created_on)) }}</span>
+            </span>
         </div>
-        <div class="issue-meta-item">
-            <span class="issue-meta-item-label">Updated</span>
-            <span class="issue-meta-item-value">{{ relativetime(to_datetime(issue._source.updated_on)) }}</span>
+        <div class="issue-meta-item issue-meta-updated">
+            <span class="issue-meta-item-body">
+                <span class="issue-meta-item-label">Updated</span>
+                <span class="issue-meta-item-value">{{ relativetime(to_datetime(issue._source.updated_on)) }}</span>
+            </span>
         </div>
     </div>
 </div>
