@@ -22,7 +22,7 @@ class ForgerTwigExtension extends AbstractExtension
             new TwigFunction('idCounter', [$this, 'idCounter']),
             new TwigFunction('bucketCounter', [$this, 'bucketCounter']),
             new TwigFunction('aggregationBucket', [$this, 'aggregationBucket']),
-            new TwigFunction('textile', [$this, 'textile']),
+            new TwigFunction('textile', [$this, 'textile'], ['is_safe' => ['html']]),
             new TwigFunction('trackerCheckbox', [$this, 'trackerCheckbox']),
             new TwigFunction('forgeLink', [$this, 'forgeLink']),
         ];
