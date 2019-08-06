@@ -11,6 +11,7 @@ namespace App\Controller;
 
 use App\Client\ElasticClient;
 use App\Entity\TrackerFilters;
+use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,6 +28,36 @@ class ManagementController extends AbstractController
      * @var ParameterBagInterface
      */
     private $parameters;
+
+    private $coreMergers = [
+        'Alexander Schnitzler',
+        'Andreas Fernandez',
+        'Anja Leichsenring',
+        'Arno Schoon',
+        'Benjamin Franzke',
+        'Benni Mack',
+        'Claus Due',
+        'Daniel Goerz',
+        'Daniel Sattler',
+        'Frank Naegler',
+        'Georg Ringer',
+        'Josef Glatz',
+        'Manuel Selbach',
+        'Oliver Hader',
+        'Ralf Zimmermann',
+        'Riccardo De Contardi',
+        'Richard Haeser',
+        'Susanne Moog',
+        'Tobi Kretschmann',
+        'Tymoteusz Motylewski',
+    ];
+
+    /**
+     * @var string
+     *
+     * framework / component merger structure in place since
+     */
+    private $timeFrame = '2019/03/01 00:00:00';
 
     public function __construct(ElasticClient $elasticClient, ParameterBagInterface $parameters)
     {
@@ -141,5 +172,99 @@ class ManagementController extends AbstractController
         }
         $viewData['aggs'] = $out;
         return $this->render('management/index.html.twig', $viewData);
+    }
+
+    /**
+     * @Route("/management/interactions", name="management_interactions")
+     */
+    public function interactions(): Response
+    {
+        if (isset($_GET['taggles'])) {
+            $this->coreMergers = $this->sanitizeTaggles($_GET['taggles']);
+            sort($this->coreMergers);
+        }
+        $out = [];
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'range' => [
+                                'interacted_on' => [
+                                    'gte' => $this->timeFrame
+                                ]
+                            ]
+                        ],
+                        [
+                            'terms' => [
+                                'fullname' => $this->coreMergers,
+                            ]
+                        ]
+                    ],
+                ],
+            ],
+            'size' => 0,
+            'aggregations' => [
+                'month' => [
+                    'date_histogram' => [
+                        'field' => 'interacted_on',
+                        'interval' => 'month',
+                    ],
+                    'aggregations' => [
+                        'member' => [
+                            'terms' => [
+                                'field' => 'fullname',
+                                'size' => 30,
+                            ],
+                            'aggregations' => [
+                                'interaction_type' => [
+                                    'terms' => [
+                                        'field' => 'interaction_type',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ]
+                ],
+            ],
+        ];
+        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
+        $search->addType('interactions');
+        $resultSet = $search->search();
+        $aggregations = $resultSet->getAggregations();
+        foreach ($aggregations as $aggregation) {
+            foreach ($aggregation['buckets'] as $bucket) {
+                $monthParts = explode('/', $bucket['key_as_string']);
+                $dateIdent = $monthParts[0] . '/' . $monthParts[1];
+                foreach ($this->coreMergers as $coreMember) {
+                    $out[$dateIdent][$coreMember] = [];
+                }
+                foreach ($bucket['member']['buckets'] as $member) {
+                    foreach ($member['interaction_type']['buckets'] as $interactionType) {
+                        $out[$dateIdent][$member['key']][$interactionType['key']] = $interactionType['doc_count'];
+                    }
+                }
+            }
+        }
+        krsort($out);
+        return $this->render('management/interactions.html.twig', [
+            'aggs' => $out,
+            'coreTeamMergers' => $this->coreMergers
+        ]);
+    }
+
+    private function sanitizeTaggles(array $taggles): array
+    {
+        $sanitizedArray = [];
+        foreach ($taggles as $index => $taggle) {
+            if (!is_string($taggle)) {
+                throw new InvalidArgumentException('Taggles need to be strings');
+            }
+            $result = preg_replace("/[^[:alnum:][:space:]-\.']/u", '', html_entity_decode($taggle));
+            if (trim($result) !== '') {
+                $sanitizedArray[$index] = $result;
+            }
+        }
+        return $sanitizedArray;
     }
 }
