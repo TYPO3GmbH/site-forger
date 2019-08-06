@@ -1,0 +1,30 @@
+<div class="section">
+    {% if results is defined %}
+        <div class="section-filter">
+            {% include '_partials/aggregations.html.twig' with {'aggregations': aggregations, 'query': query} only %}
+        </div>
+        <div class="section-main">
+            <h4>Showing hits <strong>{{ startingAtItem }} </strong>to <strong>{{ endingAtItem }}</strong> of <strong>{{ totalResults }}</strong></h4>
+            {% if results %}
+                {{ block('paginator') }}
+            {% endif %}
+            {% for result in results %}
+                {% include '_partials/review.html.twig' with {'review': result.hit} only %}
+            {% endfor %}
+            {% block paginator %}
+                <nav aria-label="Page navigation example">
+                    <ul class="pagination">
+                        {% for pageDesc, page in pagesToLinkTo %}
+                            {% if currentPage == page %}
+                                <li class="page-item active"><a class="page-link" href="{{ path(routeName, {'query':query, 'page': page, 'filters': filters}) }}">{{ page }}</a></li>
+                            {% else %}
+                                <li class="page-item"><a class="page-link" href="{{ path(routeName, {'query':query, 'page': page, 'filters': filters}) }}">{{ page }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </nav>
+            {% endblock %}
+        </div>
+    {% endif %}
+</div>
+

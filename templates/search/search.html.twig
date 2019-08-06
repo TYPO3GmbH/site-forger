@@ -1,5 +1,4 @@
 {% extends 'base.html.twig' %}
-{% import '_macros/buttons.html.twig' as buttons %}
 {% block title %}{{ routeName }}!{% endblock %}
 {% block body %}
 
@@ -11,15 +10,14 @@
             {% else %}
                 {% if mode == 'query' %}
                     {% if totalResults > 0 %}
-                        <div class="row">
-                            <div class="col-sm-3">
-                                <h4>Filter</h4>
+                        <div class="section">
+                            <div class="section-filter">
                                 <form action="{{ path('search_search') }}" method="get">
                                     <input type="hidden" name="query" value="{{ (query is defined) ? query : '' }}">
                                     {% include '_partials/aggregations.html.twig' with {'aggregations': aggs, 'query': query} only %}
                                 </form>
                             </div>
-                            <div class="col-sm-9">
+                            <div class="section-main">
                                 <h4>Showing hits <strong>{{startingAtItem}} </strong>to <strong>{{endingAtItem}}</strong> of <strong>{{totalResults}}</strong></h4>
                                 {% for result in results %}
                                     {% include '_partials/issue.html.twig' with {'issue': result.hit} only %}

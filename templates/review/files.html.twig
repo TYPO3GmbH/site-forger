@@ -10,7 +10,7 @@
         </div>
         <div class="container">
             {% if results|length > 0 %}
-            {% include '/_partials/ReviewView.html.twig' %}
+            {% include '/_partials/review_view.html.twig' %}
             {% else %}
                 {% include '_partials/alert.html.twig' with {'message': 'We couldn\'t find any review matching your query. Please try searching for a full path name.'} %}
             {% endif %}

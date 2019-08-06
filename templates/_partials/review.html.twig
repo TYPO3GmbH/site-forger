@@ -1,3 +1,4 @@
+{% import '_macros/buttons.html.twig' as buttons %}
 <table class="table table-sm table-bordered">
     <thead>
         <tr
@@ -72,7 +73,13 @@
             {% endif %}
         </td>
         <td>
-            <a href="https://review.typo3.org/#/c/{{review._source.id}}/" target="gerrit{}{review._source.id}}"><span class="btn btn-info btn-sm"><i class="fal fa-external-link"></i> Open in Gerrit</span></a>
+            {{ buttons.link(
+                'https://review.typo3.org/c/Packages/TYPO3.CMS/+/' ~ review._source.id ~ '/',
+                'Open in Gerrit',
+                'info btn-sm',
+                'external-link',
+                'gerrit{}' ~ review._source.id
+            )}}
         </td>
     </tr>
 </table>
