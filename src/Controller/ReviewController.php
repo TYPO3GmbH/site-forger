@@ -105,6 +105,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_index';
+        $viewData['headline'] = 'Status';
         return $this->render('review/genericReviewView.html.twig', $viewData);
     }
 
@@ -157,6 +158,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_hasverifications';
+        $viewData['headline'] = 'Merge Ready';
         return $this->render('review/genericReviewView.html.twig', $viewData);
     }
 
@@ -209,6 +211,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_missesverifications';
+        $viewData['headline'] = 'Needs Verification';
         return $this->render('review/genericReviewView.html.twig', $viewData);
     }
 
@@ -261,6 +264,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_missesreview';
+        $viewData['headline'] = 'Needs Review';
         return $this->render('review/genericReviewView.html.twig', $viewData);
     }
 
@@ -306,6 +310,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_rebase';
+        $viewData['headline'] = 'Needs Rebase';
         return $this->render('review/genericReviewView.html.twig', $viewData);
     }
 
@@ -421,6 +426,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_negative_vote_cleanup';
+        $viewData['headline'] = 'Negative Vote Cleanup';
         return $this->render('review/genericReviewView.html.twig', $viewData);
     }
 
@@ -469,6 +475,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_wip';
+        $viewData['headline'] = 'Work in Progress';
         return $this->render('review/genericReviewView.html.twig', $viewData);
     }
 
@@ -546,6 +553,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_coreteam_merge';
+        $viewData['headline'] = 'Core Team Action Required';
         return $this->render('review/genericReviewView.html.twig', $viewData);
     }
 
