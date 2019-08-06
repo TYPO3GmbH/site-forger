@@ -43,9 +43,7 @@
                 <div class="media-body">
                     <a href="https://review.typo3.org/#/c/{{card.id}}/" target="_blank">{{card.subject}}</a>
                 </div>
-                <div class="media-right">
-                    <img src="{{ avatar(card.ownerEmail) }}" alt="{{ card.owner }}">
-                </div>
+                <div class="media-right">{{ avatar(card.ownerEmail) }}</div>
             </div>
         </h6>
     </div>

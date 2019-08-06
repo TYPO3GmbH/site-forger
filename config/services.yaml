@@ -6,6 +6,21 @@
 parameters:
     redmine_project_id: 27
     elastic_index_name: '%env(ELASTIC_INDEX)%'
+    'StatusMapping':
+      'Rejected': 'Done'
+      'Closed': 'Done'
+      'Resolved': 'Done'
+      'Under Review': 'Review'
+      'In Progress': 'WIP'
+      'On Hold': 'BLOCKED'
+      'Needs Feedback': 'BLOCKED'
+      'DefaultState': 'Open'
+    'ColumnOrder':
+      'BLOCKED':
+      'Open':
+      'WIP':
+      'Review':
+      'Done':
 
 services:
     # default configuration for services in *this* file
