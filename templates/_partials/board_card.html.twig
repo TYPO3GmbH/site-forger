@@ -1,82 +1,176 @@
-{{ dump(card) }}
-<div class="card" id="issue-{card.id}">
+<div class="card" id="issue-{{ card.id }}">
     <div class="card-heading">
         <div class="media">
             <div class="media-left">
                 <span class="tracker-icon">
-                    <f:switch expression="{card.tracker.name}">
-                        <f:case value="Bug"><span class="fa-stack" title="Bug"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-bug fa-stack-1x fa-inverse"></i></span></f:case>
-                        <f:case value="Feature"><span class="fa-stack" title="Feature"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-heart fa-stack-1x fa-inverse"></i></span></f:case>
-                        <f:case value="Task"><span class="fa-stack" title="Task"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-tasks fa-stack-1x fa-inverse"></i></span></f:case>
-                        <f:case value="Story"><span class="fa-stack" title="Story"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-film fa-stack-1x fa-inverse"></i></span></f:case>
-                        <f:case value="Epic"><span class="fa-stack" title="Epic"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-book fa-stack-1x fa-inverse"></i></span></f:case>
-                        <f:defaultCase><span class="label label-default">{card.tracker.name}</span> </f:defaultCase>
-                    </f:switch>
+                    {% if card.tracker.name == 'Bug' %}
+                        <span class="fa-stack" title="Bug"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-bug fa-stack-1x fa-inverse"></i></span>
+                    {% elseif card.tracker.name == 'Feature' %}
+                        <span class="fa-stack" title="Feature"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-heart fa-stack-1x fa-inverse"></i></span>
+                    {% elseif card.tracker.name == 'Task' %}
+                        <span class="fa-stack" title="Task"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-tasks fa-stack-1x fa-inverse"></i></span>
+                    {% elseif card.tracker.name == 'Story' %}
+                        <span class="fa-stack" title="Story"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-film fa-stack-1x fa-inverse"></i></span>
+                    {% elseif card.tracker.name == 'Epic' %}
+                        <span class="fa-stack" title="Epic"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-book fa-stack-1x fa-inverse"></i></span>
+                    {% else %}
+                        <span class="label label-default">{{ card.tracker.name }}</span>
+                    {% endif %}
                 </span>
-                <a href="#" class="jq-button btn btn-link btn-xs" data-issue="{card.id}" data-subject="{card.subject}" data-description="{card.description}" data-tracker="{card.tracker.id}" data-card="{card.id}"><i class="fa fa-ticket"></i></a>
+                <a href="#" class="jq-button btn btn-link btn-xs" data-issue="{{ card.id }}" data-subject="{{ card.subject }}" data-description="{{ card.description }}" data-tracker="{{ card.tracker.id }}" data-card="{{ card.id }}"><i class="fa fa-ticket"></i></a>
             </div>
             <div class="media-body">
-                <a href="https://forge.typo3.org/issues/{card.id}" target="_blank" title="#{card.id} {card.subject}">#{card.id} {card.subject}</a>
+                <a href="https://forge.typo3.org/issues/{{ card.id }}" target="_blank" title="#{{ card.id }} {{ card.subject }}">#{{ card.id }} {{ card.subject }}</a>
             </div>
-            <f:if condition="{card.avatar}">
+            {% if card.avatar is defined %}
                 <div class="media-right">
-                    <f:render partial="Avatar" arguments="{username: card.avatar.username}" />
+                    avatar(card.avatar.username)
                 </div>
-            </f:if>
+            {% endif %}
         </div>
     </div>
-    <f:if condition="{0: coltype} != {0: 'Done'}">
+
+
         <div class="card-body">
             <div class="row">
                 <div class="col-sm-12">
-                    <i class="fa fa-bullhorn fa-fw" title="Added by"></i> {card.author.name} <span class="pull-right"> <time is="time-ago" datetime="{card.created_on}">{card.created_on}</time></span>
+                    <i class="fa fa-bullhorn fa-fw" title="Added by"></i> {{ card.author.name }} <span class="pull-right"> <time is="time-ago" datetime="{{ card.created_on }}">{{ card.created_on }}</time></span>
                 </div>
-                <f:if condition="{card.lastComment}">
+                {% if card.lastComment is defined %}
                     <div class="col-sm-12">
-                        <i class="fa fa-comment fa-fw" title="Last Updated by"></i> {card.lastComment.user.name} <span class="pull-right"><time is="time-ago" datetime="{card.lastComment.created_on}">{card.lastComment.created_on}</time></span>
+                        <i class="fa fa-comment fa-fw" title="Last Updated by"></i> {{ card.lastComment.user.name }} <span class="pull-right"><time is="time-ago" datetime="{{ card.lastComment.created_on }}">{{ card.lastComment.created_on }}</time></span>
                     </div>
-                </f:if>
-                <f:if condition="{card.assigned_to.name}">
+                {% endif %}
+                {% if card.assigned_to.name is defined %}
                     <div class="col-sm-12">
-                        <i class="fa fa-hand-o-right fa-fw" title="Assigned to"></i> {card.assigned_to.name}</span>
+                        <i class="fa fa-hand-o-right fa-fw" title="Assigned to"></i> {{ card.assigned_to.name }}
                     </div>
-                </f:if>
+                {% endif %}
             </div>
             <div class="row">
                 <div class="col-md-6"><p>Status:<br/>
-                        <f:switch expression="{card.status.name}">
-                            <f:case value="Under Review">  <span class="label status-Review">{card.status.name}</span></f:case>
-                            <f:case value="On Hold">       <span class="label status-OnHold">{card.status.name}</span></f:case>
-                            <f:case value="Needs Feedback"><span class="label status-BLOCKED">{card.status.name}</span></f:case>
-                            <f:case value="In Progress">   <span class="label status-WIP">{card.status.name}</span></f:case>
-                            <f:defaultCase>                <span class="label status-{card.status.name}">{card.status.name}</span> </f:defaultCase>
-                        </f:switch>
+                        {% if card.status.name == 'Under Review' %}
+                            <span class="label status-Review">{{ card.status.name }}</span>
+                        {% elseif card.status.name == 'On Hold' %}
+                            <span class="label status-OnHold">{{ card.status.name }}</span>
+                        {% elseif card.status.name == 'Needs Feedback' %}
+                            <span class="label status-BLOCKED">{{ card.status.name }}</span>
+                        {% elseif card.status.name == 'In Progress' %}
+                            <span class="label status-WIP">{{ card.status.name }}</span>
+                        {% else %}
+                            <span class="label status-{{ card.status.name }}">{{ card.status.name }}</span>
+                        {% endif %}
                     </p>
                 </div>
                 <div class="col-md-6">
-                    <f:for each="{card.custom_fields}" as="customfield">
-                        <f:if condition="{customfield.name} == 'Complexity'">
-                            <f:switch expression="{customfield.value}">
-                                <f:case value="easy">      Complexity:<br/> <span class="label label-success">{customfield.value}</span></f:case>
-                                <f:case value="no-brainer">Complexity:<br/> <span class="label label-success">{customfield.value}</span></f:case>
-                                <f:case value="medium">    Complexity:<br/> <span class="label status-Accepted">{customfield.value}</span></f:case>
-                                <f:case value="hard">      Complexity:<br/> <span class="label status-New">{customfield.value}</span></f:case>
-                                <f:case value="nightmare"> Complexity:<br/> <span class="label label-danger">{customfield.value}</span></f:case>
-                                <f:defaultCase></f:defaultCase>
-                            </f:switch>
-                        </f:if>
-                    </f:for>
+                    {% for customfield in card.custom_fields %}
+                        {% if customfield.name is defined %}
+                            {% if customfield.value == 'easy' %}
+                                Complexity:<br/> <span class="label label-success">{{ customfield.value }}</span>
+                            {% elseif customfield.value == 'no-brainer' %}
+                                Complexity:<br/> <span class="label label-success">{{ customfield.value }}</span>
+                            {% elseif customfield.value == 'medium' %}
+                                Complexity:<br/> <span class="label status-Accepted">{{ customfield.value }}</span>
+                            {% elseif customfield.value == 'hard' %}
+                                Complexity:<br/> <span class="label status-New">{{ customfield.value }}</span>
+                            {% elseif customfield.value == 'nightmare' %}
+                                Complexity:<br/> <span class="label label-danger">{{ customfield.value }}</span>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
                 </div>
-                <f:if condition="{card.tags}">
+                {% if card.tags is defined %}
                     <div class="col-md-12">
                         <p>Tags:<br/>
-                            <f:for each="{card.tags}" as="tag">
-                                <span class="label label-default">{tag}</span>
-                            </f:for>
+                            {% for tag in card.tags %}
+                                <span class="label label-default">{{ tag }}</span>
+                            {% endfor %}
                         </p>
                     </div>
-                </f:if>
+                {% endif %}
             </div>
         </div>
-    </f:if>
 </div>
+
+
+{#<div class="card" id="issue-{card.id}">#}
+{#    <div class="card-heading">#}
+{#        <div class="media">#}
+{#            <div class="media-left">#}
+{#                <span class="tracker-icon">#}
+{#                    <f:switch expression="{card.tracker.name}">#}
+{#                        <f:case value="Bug"><span class="fa-stack" title="Bug"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-bug fa-stack-1x fa-inverse"></i></span></f:case>#}
+{#                        <f:case value="Feature"><span class="fa-stack" title="Feature"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-heart fa-stack-1x fa-inverse"></i></span></f:case>#}
+{#                        <f:case value="Task"><span class="fa-stack" title="Task"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-tasks fa-stack-1x fa-inverse"></i></span></f:case>#}
+{#                        <f:case value="Story"><span class="fa-stack" title="Story"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-film fa-stack-1x fa-inverse"></i></span></f:case>#}
+{#                        <f:case value="Epic"><span class="fa-stack" title="Epic"><i class="fa fa-square fa-stack-2x"></i><i class="fa fa-book fa-stack-1x fa-inverse"></i></span></f:case>#}
+{#                        <f:defaultCase><span class="label label-default">{card.tracker.name}</span> </f:defaultCase>#}
+{#                    </f:switch>#}
+{#                </span>#}
+{#                <a href="#" class="jq-button btn btn-link btn-xs" data-issue="{card.id}" data-subject="{card.subject}" data-description="{card.description}" data-tracker="{card.tracker.id}" data-card="{card.id}"><i class="fa fa-ticket"></i></a>#}
+{#            </div>#}
+{#            <div class="media-body">#}
+{#                <a href="https://forge.typo3.org/issues/{card.id}" target="_blank" title="#{card.id} {card.subject}">#{card.id} {card.subject}</a>#}
+{#            </div>#}
+{#            <f:if condition="{card.avatar}">#}
+{#                <div class="media-right">#}
+{#                    <f:render partial="Avatar" arguments="{username: card.avatar.username}" />#}
+{#                </div>#}
+{#            </f:if>#}
+{#        </div>#}
+{#    </div>#}
+{#    <f:if condition="{0: coltype} != {0: 'Done'}">#}
+{#        <div class="card-body">#}
+{#            <div class="row">#}
+{#                <div class="col-sm-12">#}
+{#                    <i class="fa fa-bullhorn fa-fw" title="Added by"></i> {card.author.name} <span class="pull-right"> <time is="time-ago" datetime="{card.created_on}">{card.created_on}</time></span>#}
+{#                </div>#}
+{#                <f:if condition="{card.lastComment}">#}
+{#                    <div class="col-sm-12">#}
+{#                        <i class="fa fa-comment fa-fw" title="Last Updated by"></i> {card.lastComment.user.name} <span class="pull-right"><time is="time-ago" datetime="{card.lastComment.created_on}">{card.lastComment.created_on}</time></span>#}
+{#                    </div>#}
+{#                </f:if>#}
+{#                <f:if condition="{card.assigned_to.name}">#}
+{#                    <div class="col-sm-12">#}
+{#                        <i class="fa fa-hand-o-right fa-fw" title="Assigned to"></i> {card.assigned_to.name}</span>#}
+{#                    </div>#}
+{#                </f:if>#}
+{#            </div>#}
+{#            <div class="row">#}
+{#                <div class="col-md-6"><p>Status:<br/>#}
+{#                        <f:switch expression="{card.status.name}">#}
+{#                            <f:case value="Under Review">  <span class="label status-Review">{card.status.name}</span></f:case>#}
+{#                            <f:case value="On Hold">       <span class="label status-OnHold">{card.status.name}</span></f:case>#}
+{#                            <f:case value="Needs Feedback"><span class="label status-BLOCKED">{card.status.name}</span></f:case>#}
+{#                            <f:case value="In Progress">   <span class="label status-WIP">{card.status.name}</span></f:case>#}
+{#                            <f:defaultCase>                <span class="label status-{card.status.name}">{card.status.name}</span> </f:defaultCase>#}
+{#                        </f:switch>#}
+{#                    </p>#}
+{#                </div>#}
+{#                <div class="col-md-6">#}
+{#                    <f:for each="{card.custom_fields}" as="customfield">#}
+{#                        <f:if condition="{customfield.name} == 'Complexity'">#}
+{#                            <f:switch expression="{customfield.value}">#}
+{#                                <f:case value="easy">      Complexity:<br/> <span class="label label-success">{customfield.value}</span></f:case>#}
+{#                                <f:case value="no-brainer">Complexity:<br/> <span class="label label-success">{customfield.value}</span></f:case>#}
+{#                                <f:case value="medium">    Complexity:<br/> <span class="label status-Accepted">{customfield.value}</span></f:case>#}
+{#                                <f:case value="hard">      Complexity:<br/> <span class="label status-New">{customfield.value}</span></f:case>#}
+{#                                <f:case value="nightmare"> Complexity:<br/> <span class="label label-danger">{customfield.value}</span></f:case>#}
+{#                                <f:defaultCase></f:defaultCase>#}
+{#                            </f:switch>#}
+{#                        </f:if>#}
+{#                    </f:for>#}
+{#                </div>#}
+{#                <f:if condition="{card.tags}">#}
+{#                    <div class="col-md-12">#}
+{#                        <p>Tags:<br/>#}
+{#                            <f:for each="{card.tags}" as="tag">#}
+{#                                <span class="label label-default">{tag}</span>#}
+{#                            </f:for>#}
+{#                        </p>#}
+{#                    </div>#}
+{#                </f:if>#}
+{#            </div>#}
+{#        </div>#}
+{#    </f:if>#}
+{#</div>#}
