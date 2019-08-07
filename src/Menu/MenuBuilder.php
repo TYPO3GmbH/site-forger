@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace App\Menu;
 
+use App\Entity\SprintBoardCategory;
 use App\Repository\SprintBoardCategoryRepository;
 use Knp\Menu\FactoryInterface;
 //use Knp\Menu\Matcher\MatcherInterface;
@@ -221,6 +222,7 @@ class MenuBuilder
                 ],
             ]
         );
+        /** @var SprintBoardCategory $category */
         foreach ($categories as $category) {
             $menu['sprint']->addChild(
                 'sprint_' . $category->getIdentifier(),
@@ -250,7 +252,17 @@ class MenuBuilder
                 'label' => 'Utility',
                 'route' => 'dashboard_index',
                 'extras' => [
-                    'icon' => 'home',
+                    'icon' => 'tools',
+                ],
+            ]
+        );
+        $menu['utility']->addChild(
+            'utility_backports',
+            [
+                'label' => 'Backports',
+                'route' => 'utilities_backport',
+                'extras' => [
+                    'icon' => 'chevron-double-left',
                 ],
             ]
         );
