@@ -80,8 +80,15 @@
         {% if card.negative_verifications == '2' %}
             <span class="badge badge-danger float-right"><i class="fal fa-times fa-fw"></i></span>
         {% elseif card.negative_verifications == '1' %}
-            <span class="badge badge-danger float-right"><i class="fal fa-minus fa-fw"></i></span>
+
         {% endif %}
+    </div>
+    <div class="col-md-12">
+        <div class="float-right">
+            <a href="{{ path('backport_delete', {'changeId': card.id}) }}">
+                <span class="badge badge-danger float-right" title="Delete"><i class="fal fa-trash-alt fa-fw"></i></span>
+            </a>
+        </div>
     </div>
 </div>
 </div>

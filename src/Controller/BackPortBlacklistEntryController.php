@@ -104,4 +104,29 @@ class BackPortBlacklistEntryController extends AbstractController
             ]
         );
     }
+
+    /**
+     * @Route("/utilities/backport/delete/{changeId}", name="backport_delete")
+     * @IsGranted("ROLE_ADMIN")
+     *
+     * @param Request $request
+     * @param string $changeId
+     * @param EntityManagerInterface $entityManager
+     * @return Response
+     */
+    public function deleteBackportBlacklistEntry(
+        Request $request,
+        string $changeId,
+        EntityManagerInterface $entityManager
+    ): Response {
+        $backport = $this->backportBlacklistEntryRepository->findOneBy(['changeId' => $changeId]);
+
+        if (null !== $backport) {
+            $entityManager->remove($backport);
+            $entityManager->flush();
+            $this->addFlash('success', 'Backport deleted.');
+        }
+
+        return $this->redirectToRoute('utilities_backport');
+    }
 }
