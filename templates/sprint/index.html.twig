@@ -19,6 +19,15 @@
                     </div>
                 {% endif %}
             </div>
+
+            {% if sprintId is defined and sprintId > 0 %}
+                <div class="float-right">
+                    <a href="{{ path('sprint_edit', {'sprintId': sprintId}) }}">
+                        <button class="btn btn-primary">Edit Sprint</button>
+                    </a>
+                </div>
+            {% endif %}
+
             {% if cards|length > 0 %}
                 <h3>{{ boardInfo }} ({{ progress.total }})</h3>
                 <div class="progress">
