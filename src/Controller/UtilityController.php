@@ -47,9 +47,16 @@ class UtilityController extends AbstractController
     {
         $viewData = [];
         $finalFilePath = $this->parameters->get('kernel.project_dir') . '/var/backports.json';
+        $entries = $this->backportBlacklistEntryRepository->findAll();
         if (is_file($finalFilePath)) {
             $backports = json_decode(file_get_contents($finalFilePath), true);
             $viewData['backports'] = $backports;
+            foreach ($viewData['backports'] as $key => $value) {
+                $blacklist = $this->backportBlacklistEntryRepository->findOneBy(['changeId' => $key]);
+                if (null !== $blacklist) {
+                    unset($viewData['backports'][$key]);
+                }
+            }
             $viewData['sum'] = count($backports);
         }
         return $this->render('utility/backport.html.twig', $viewData);
@@ -86,6 +93,30 @@ class UtilityController extends AbstractController
                 'form' => $form->createView(),
             ]
         );
+    }
+
+    /**
+     * @Route("/backport/quickcreate/{changeId}", name="backport_quickcreate")
+     * @IsGranted("ROLE_ADMIN")
+     *
+     * @param Request $request
+     * @param string $changeId
+     * @param EntityManagerInterface $entityManager
+     * @return Response
+     */
+    public function quickCreateBackportBlacklistEntry(
+        Request $request,
+        string $changeId,
+        EntityManagerInterface $entityManager
+    ): Response {
+        $entry = (new BackportBlacklistEntry())
+            ->setChangeId($changeId)
+            ->setComment('');
+        $entityManager->persist($entry);
+        $entityManager->flush();
+        $this->addFlash('success', 'Blacklist entry created.');
+
+        return $this->redirectToRoute('utilities_backport');
     }
 
     /**
