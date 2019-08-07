@@ -162,6 +162,57 @@ class SprintController extends AbstractController
     }
 
     /**
+     * @Route("/sprint/delete/{sprintId}", name="sprint_delete")
+     * @IsGranted("ROLE_ADMIN")
+     *
+     * @param Request $request
+     * @param int $sprintId
+     * @param EntityManagerInterface $entityManager
+     * @return Response
+     */
+    public function deleteSprint(
+        Request $request,
+        int $sprintId,
+        EntityManagerInterface $entityManager
+    ): Response {
+        $sprint = $this->sprintBoardRepository->find($sprintId);
+
+        if (null !== $sprint) {
+            $entityManager->remove($sprint);
+            $entityManager->persist();
+            $this->addFlash('success', 'Sprint deleted.');
+        }
+
+        return $this->redirectToRoute('dashboard_index');
+    }
+
+    /**
+     * @Route("/sprint/delete/{sprintId}/confirm", name="sprint_delete_confirm")
+     * @IsGranted("ROLE_ADMIN")
+     *
+     * @param Request $request
+     * @param int $sprintId
+     * @return Response
+     */
+    public function deleteSprintConfirm(
+        Request $request,
+        int $sprintId
+    ): Response {
+        $sprint = $this->sprintBoardRepository->find($sprintId);
+
+        if (null !== $sprint) {
+            return $this->render(
+                 'sprint/delete_confirm.html.twig',
+                 [
+                    'sprint' => $sprint,
+                ]
+            );
+        }
+
+        return $this->redirectToRoute('dashboard_index');
+    }
+
+    /**
      * @param string $boardId
      *
      * @return array

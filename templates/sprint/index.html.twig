@@ -20,10 +20,13 @@
                 {% endif %}
             </div>
 
-            {% if sprintId is defined and sprintId > 0 %}
+            {% if sprintId is defined and sprintId > 0 and is_granted('ROLE_ADMIN') %}
                 <div class="float-right">
                     <a href="{{ path('sprint_edit', {'sprintId': sprintId}) }}">
                         <button class="btn btn-primary">Edit Sprint</button>
+                    </a>
+                    <a href="{{ path('sprint_delete_confirm', {'sprintId': sprintId}) }}">
+                        <button class="btn btn-danger">Delete Sprint</button>
                     </a>
                 </div>
             {% endif %}

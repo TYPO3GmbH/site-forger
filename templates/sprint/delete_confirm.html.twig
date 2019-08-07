@@ -1,0 +1,29 @@
+{% extends 'base.html.twig' %}
+{% block title %}Sprint Boards{% endblock %}
+{% block headline %}Sprint Boards{% endblock %}
+{% block body %}
+
+    <div class="content-section">
+        <div class="container">
+            <h2>
+                Delete a Sprint Board
+            </h2>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            Are you sure you want to delete sprint: {{ sprint.name }}?<br><br>
+                            <a href="{{ path('sprint', {'category': sprint.category.identifier,'sprint': sprint.id}) }}">
+                                <button class="btn btn-success">No, take me back</button>
+                            </a>
+                            <a href="{{ path('sprint_delete', {'sprintId': sprint.id}) }}">
+                                <button class="btn btn-danger">Yes, I want to delete this sprint</button>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
