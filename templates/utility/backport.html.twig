@@ -5,7 +5,7 @@
     <div class="content-section bg-transparent">
         <div class="container-fluid">
             <h1>{{ sum ?? 0 }} backports to do</h1>
-            <table class="table table-striped boardcolumn">
+            <table class="table table-striped">
                 <tr>
                     <th>master</th>
                     <th>9.5</th>
@@ -14,32 +14,20 @@
                 {% for backport in backports %}
                     <tr>
                         <td>
-                            <div class="cards">
-                                {% include '_partials/backport_card.html.twig' with {'card': backport.releases.t3_master, 'mode': 'backport'} only %}
-                            </div>
+                            {% include '_partials/review_card.html.twig' with {'card': backport.releases.t3_master, 'mode': 'backport'} only %}
                         </td>
                         <td>
                             {% if backport.releases.t3_95 == 'missing' %}
-                                <div class="cards">
-                                    {% include '_partials/backport_card.html.twig' with  {'mode': 'backport'} only %}
-                                </div>
-                            {% endif %}
-                            {% if backport.releases.t3_95.id is defined %}
-                                <div class="cards">
-                                    {% include '_partials/backport_card.html.twig' with  {'card': backport.releases.t3_95, 'mode': 'backport'} only %}
-                                </div>
+                                {% include '_partials/review_card.html.twig' with {'card': null, 'mode': 'backport'} only %}
+                            {% elseif backport.releases.t3_95.id is defined %}
+                                {% include '_partials/review_card.html.twig' with {'card': backport.releases.t3_95, 'mode': 'backport'} only %}
                             {% endif %}
                         </td>
                         <td>
                             {% if backport.releases.t3_87 == 'missing' %}
-                                <div class="cards">
-                                    {% include '_partials/backport_card.html.twig' with  {'mode': 'backport'} only %}
-                                </div>
-                            {% endif %}
-                            {% if backport.releases.t3_87.id is defined %}
-                                <div class="cards">
-                                    {% include '_partials/backport_card.html.twig' with  {'card': backport.releases.t3_87, 'mode': 'backport'} only %}
-                                </div>
+                                {% include '_partials/review_card.html.twig' with {'card': null, 'mode': 'backport'} only %}
+                            {% elseif backport.releases.t3_87.id is defined %}
+                                {% include '_partials/review_card.html.twig' with {'card': backport.releases.t3_87, 'mode': 'backport'} only %}
                             {% endif %}
                         </td>
                     </tr>
