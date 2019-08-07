@@ -320,6 +320,7 @@ class ReviewController extends AbstractController
     public function getFiles() : Response
     {
         $viewData['routeName'] = 'gerrit_files';
+        $viewData['results'] = [];
         if (array_key_exists('query', $_GET)) {
             $searchClosed = false;
             if (array_key_exists('searchClosed', $_GET) && $_GET['searchClosed'] === '1') {
