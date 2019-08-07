@@ -100,6 +100,7 @@ class BackPortBlacklistEntryController extends AbstractController
             'utility/backport_form.html.twig',
             [
                 'form' => $form->createView(),
+                'edit' => true,
             ]
         );
     }

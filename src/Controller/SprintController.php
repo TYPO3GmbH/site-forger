@@ -156,6 +156,7 @@ class SprintController extends AbstractController
             'sprint/form.html.twig',
             [
                 'form' => $form->createView(),
+                'edit' => true,
             ]
         );
     }
