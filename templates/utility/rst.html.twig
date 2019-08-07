@@ -1,0 +1,126 @@
+{% extends 'base.html.twig' %}
+{% import '_macros/buttons.html.twig' as macros %}
+{% block title %}ReST Helper{% endblock %}
+{% block headline %}ReST Helper{% endblock %}
+{% block body %}
+
+    <div class="content-section bg-transparent">
+        <div class="container">
+            <div class="flashmessage-container"></div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <form class="form-rst-helper" autocomplete="off">
+                        <div class="form-row">
+                            <div class="form-group col-sm-4">
+                                <label for="ticketid">Ticket ID</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="ticketid" placeholder="99999" autocomplete="off" required>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-default" type="button" data-action="fetch-ticket"><i class="fal fa-search"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col form-group">
+                                <label for="title">Title</label>
+                                <input type="text" class="form-control text-monospace" id="title" autocomplete="off" required>
+                            </div>
+                        </div>
+
+                        <div class="btn-group btn-group-toggle d-flex" data-toggle="buttons">
+                            <label class="btn btn-outline-danger"><input type="radio" name="classification" autocomplete="off" value="breaking"> Breaking</label>
+                            <label class="btn btn-outline-warning"><input type="radio" name="classification" autocomplete="off" value="deprecation"> Deprecation</label>
+                            <label class="btn btn-outline-success"><input type="radio" name="classification" autocomplete="off" value="feature"> Feature</label>
+                            <label class="btn btn-outline-info"><input type="radio" name="classification" autocomplete="off" value="important"> Important</label>
+                        </div>
+                        <hr>
+                        <div class="row" id="no-type-selected-hint">
+                            <div class="col-sm-12">
+                                <div class="alert alert-info" role="alert">
+                                    <strong>No Type selected!</strong> Please select one rst type above!
+                                </div>
+                                <hr>
+                            </div>
+                        </div>
+                        <div hidden class="form-group" data-classified-as="breaking deprecation feature important">
+                            <label for="description">Description</label>
+                            <textarea class="form-control text-monospace" rows="5" id="description" title="Description" required disabled></textarea>
+                        </div>
+                        <div hidden class="form-group" data-classified-as="breaking deprecation feature">
+                            <label for="impact">Impact</label>
+                            <textarea class="form-control text-monospace" rows="5" id="impact" title="Impact" required disabled></textarea>
+                        </div>
+                        <div hidden class="form-group" data-classified-as="breaking deprecation">
+                            <label for="affected">Affected Installations</label>
+                            <textarea class="form-control text-monospace" rows="5" id="affected" title="Affected Installations" required disabled></textarea>
+                        </div>
+                        <div hidden class="form-group" data-classified-as="breaking deprecation">
+                            <label for="migration">Migration</label>
+                            <textarea class="form-control text-monospace" rows="5" id="migration" title="Migration" required disabled></textarea>
+                        </div>
+                        <div hidden class="form-group" data-classified-as="breaking deprecation feature important">
+                            <label>Tags</label>
+                            <div class="row">
+                                {% for tag in tags %}
+                                    <div class="col-sm-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="{{ tag }}" id="tag-{{ loop.index }}">
+                                            <label class="form-check-label" for="tag-{{ loop.index }}">
+                                                {{ tag }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div hidden class="form-group" data-classified-as="breaking deprecation feature important">
+                            <label for="extensionTag">Core Extension</label>
+                            <select name="tag[]" id="extensionTag" class="form-control" required>
+                                <option value=""></option>
+                                {% for extensionKey in extensionKeys %}
+                                    <option value="ext:{{ extensionKey }}">{{ extensionKey }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div hidden class="form-group" data-classified-as="breaking deprecation">
+                            <label>ExtensionScanner Tags</label>
+                            <div>
+                                <div class="btn-group btn-group-toggle d-flex" data-toggle="buttons">
+                                    <label class="btn btn-outline-secondary active"><input type="radio" name="tag[]" id="tag-not-scanned" autocomplete="off" value="NotScanned" checked> Not scanned</label>
+                                    <label class="btn btn-outline-secondary"><input type="radio" name="tag[]" id="tag-partially-scanned" autocomplete="off" value="PartiallyScanned"> Partially scanned</label>
+                                    <label class="btn btn-outline-secondary"><input type="radio" name="tag[]" id="tag-fully-scanned" autocomplete="off" value="FullyScanned"> Fully scanned</label>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted"><a href="https://docs.typo3.org/typo3cms/CoreApiReference/ApiOverview/ExtensionScanner/Index.html#connection-to-changelog-rst-files" target="_blank" rel="noopener">More information about this tags</a></small>
+                        </div>
+                        <div hidden class="form-group" data-classified-as="breaking deprecation feature important">
+                            {{ macros.submit('Create ReST manual', 'success') }}
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-4">
+                    <h2>Code snippets</h2>
+                    {% include '_partials/utility/code_snippet_accordion.html.twig' %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="changelogModal" tabindex="-1" role="dialog" aria-labelledby="changelogModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="changelogModalLabel"></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <textarea class="form-control" rows="20" style="font-family:monospace;" readonly></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}

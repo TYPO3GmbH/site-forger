@@ -9,6 +9,7 @@ let $ = require('jquery');
 var {DateTime} = require('luxon');
 require('bootstrap');
 require('./libs/navbar.js');
+require('./rst.js');
 
 document.onreadystatechange = function () {
     if (document.readyState == "interactive") {

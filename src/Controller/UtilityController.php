@@ -200,6 +200,73 @@ class UtilityController extends AbstractController
     }
 
     /**
+     * @Route("/rst", name="rst")
+     */
+    public function rst(): Response
+    {
+        $tags = [
+            'Backend',
+            'CLI',
+            'Database',
+            'FAL',
+            'FlexForm',
+            'Fluid',
+            'Frontend',
+            'LocalConfiguration',
+            'JavaScript',
+            'PHP-API',
+            'RTE',
+            'TCA',
+            'TSConfig',
+            'TypoScript',
+        ];
+
+        $extensionKeys = [
+            'about',
+            'adminpanel',
+            'backend',
+            'belog',
+            'beuser',
+            'core',
+            'extbase',
+            'extensionmanager',
+            'felogin',
+            'filelist',
+            'filemetadata',
+            'fluid',
+            'fluid_styled_content',
+            'form',
+            'frontend',
+            'impexp',
+            'indexed_search',
+            'info',
+            'install',
+            'linkvalidator',
+            'lowlevel',
+            'opendocs',
+            'recordlist',
+            'recycler',
+            'redirects',
+            'reports',
+            'rte_ckeditor',
+            'scheduler',
+            'seo',
+            'setup',
+            'sys_note',
+            't3editor',
+            'tstemplate',
+            'viewpage',
+            'workspaces',
+        ];
+
+        $viewData = [
+            'tags' => $tags,
+            'extensionKeys' => $extensionKeys,
+        ];
+        return $this->render('utility/rst.html.twig', $viewData);
+    }
+
+    /**
      * @Route("/", name="index")
      */
     public function index()

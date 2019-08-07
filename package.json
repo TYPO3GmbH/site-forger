@@ -25,6 +25,7 @@
         "build": "encore production --progress"
     },
     "dependencies": {
-        "luxon": "^1.17.2"
+        "luxon": "^1.17.2",
+        "sprintf-js": "^1.1.2"
     }
 }

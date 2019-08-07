@@ -278,6 +278,16 @@ class MenuBuilder
                 ],
             ]
         );
+        $menu['utility']->addChild(
+            'utility_rst',
+            [
+                'label' => 'ReST Helper',
+                'route' => 'utilities_rst',
+                'extras' => [
+                    'icon' => 'file-alt',
+                ],
+            ]
+        );
         if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
             $menu['utility']->addChild(
                 'utility_backport_list',
