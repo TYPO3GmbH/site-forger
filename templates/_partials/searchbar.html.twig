@@ -1,8 +1,10 @@
+{% set searchRouteName = (searchRouteName is defined) ? searchRouteName : 'search_search' %}
+{% set searchPlaceholder = (searchPlaceholder is defined) ? searchPlaceholder : 'Issue ID or Searchwords' %}
 <div class="content-section content-section-smallest bg-dark">
     <div class="container">
-        <form action="{{ path('search_search') }}" method="get" class="form">
+        <form action="{{ path(searchRouteName) }}" method="get" class="form">
             <div class="input-group">
-                <input type="text" name="query" placeholder="Issue ID or Searchwords" class="form-control" value="{{ (query is defined) ? query : '' }}">
+                <input type="text" name="query" placeholder="{{ searchPlaceholder }}" class="form-control" value="{{ (query is defined) ? query : '' }}">
                 <div class="input-group-append">
                     <span class="input-group-text">
                         <div class="custom-control custom-checkbox">
