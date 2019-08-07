@@ -252,7 +252,7 @@ class MenuBuilder
                 'label' => 'Utility',
                 'route' => 'dashboard_index',
                 'extras' => [
-                    'icon' => 'home',
+                    'icon' => 'tools',
                 ],
             ]
         );
