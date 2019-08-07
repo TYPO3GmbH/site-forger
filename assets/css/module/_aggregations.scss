@@ -6,7 +6,52 @@ $aggregation-padding: $card-spacer;
 $aggregation-margin: $spacer;
 $aggregation-bg: #ffffff;
 $aggregation-border-radius: 2px;
+$aggregation-breakpoint: 'lg';
 
+// Toggle
+.aggregations-checkbox {
+    display: none;
+}
+.aggregations {
+    display: none;
+}
+.aggregations-toggle-text-active {
+    display: none;
+}
+.aggregations-checkbox:checked ~ .aggregations-toggle {
+    .aggregations-toggle-text-active {
+        display: initial;
+    }
+    .aggregations-toggle-text-inactive {
+        display: none;
+    }
+}
+.aggregations-checkbox:checked ~ .aggregations {
+    display: block;
+}
+.aggregations-toggle {
+    @extend .btn;
+    @extend .btn-secondary;
+    @extend .btn-block;
+    cursor: pointer;
+    justify-content: center;
+}
+.aggregations-toggle-icon {
+    @extend .btn-icon;
+}
+.aggregations-toggle-text {
+    @extend .btn-text;
+}
+@include media-breakpoint-up($aggregation-breakpoint) {
+    .aggregations-toggle {
+        display: none;
+    }
+    .aggregations {
+        display: block;
+    }
+}
+
+// Component
 .aggregations {
     overflow: hidden;
     background-color: $aggregation-bg;

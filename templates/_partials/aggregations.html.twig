@@ -1,4 +1,13 @@
-<h4>Filters</h4>
+<input type="checkbox" id="toggleAggregations" class="aggregations-checkbox">
+<label for="toggleAggregations" class="aggregations-toggle">
+    <span class="aggregations-toggle-icon"><i class="fal fa-filter"></i></span>
+    <span class="aggregations-toggle-text">
+        <span class="aggregations-toggle-text-inactive">Show</span>
+        <span class="sr-only">/</span>
+        <span class="aggregations-toggle-text-active">Hide</span>
+        Filter
+    </span>
+</label>
 <div class="aggregations" id="aggregations" role="tablist" aria-multiselectable="true">
     {% for title, buckets in aggregations %}
         <div class="aggregation">
