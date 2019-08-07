@@ -8,6 +8,11 @@
 {% endif %}
 
 <div class="review review-full review-type-{{ reviewTypeClass }}">
+    {% if review._source.mergeable == 'no' %}
+        <div class="review-note review-note-danger">
+            Merge conflict
+        </div>
+    {% endif %}
     <div class="review-header">
         <div class="review-issue">
             #{{review._source.id}}
@@ -81,9 +86,4 @@
             </span>
         </div>
     </div>
-    {% if review._source.mergeable == 'no' %}
-        <div class="review-note review-note-danger">
-            Merge conflict
-        </div>
-    {% endif %}
 </div>

@@ -69,9 +69,9 @@
                         <div class="board-column-content">
                             {% for card in cardList %}
                                 {% if columnName == "Review" %}
-                                    {% include '_partials/review_card.html.twig' with {'card':card, 'mode': ''} %}
+                                    {% include '_partials/review_card.html.twig' with {'card': card, 'mode': ''} only %}
                                 {% else %}
-                                    {% include '_partials/board_card.html.twig' with {'card':card}  %}
+                                    {% include '_partials/board_card.html.twig' with {'card': card} only %}
                                 {% endif %}
                             {% endfor %}
                         </div>

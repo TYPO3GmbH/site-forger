@@ -1,96 +1,88 @@
-{% if card is not defined %}
-    {% set card = {
-        'id' : 0,
-        'negative_reviews' : 0,
-        'positive_reviews' : 0,
-        'negative_verifications' : 0,
-        'positive_verifications' : 0,
-        '_redmine_issue_id' : 0,
-        'reviewstatus': false,
-        'branch': '',
-        'subject': '',
-        'owner': '',
-        'ownerEmail': '',
-        'updated_on': '',
-        'affected_files': '',
-        'patchsets': '',
-        'mergeable': '',
-    } %}
-{% endif %}
-<div class="card card-status-{{card.negative_reviews ?? 0}}" id="review-{{card.id}}">
-    <div class="card-body">
-        {% if mode == 'backport' %}
-            {% if not card.reviewstatus %}
-                <div class="ribbon ribbonOrange" data-ribbon="MISSING"></div>
-            {% elseif card.reviewstatus == 'MERGED' %}
-                <div class="ribbon ribbonGreen" data-ribbon="MERGED"></div>
-            {% elseif card.reviewstatus == 'ABANDONED' %}
-                <div class="ribbon ribbonBlue" data-ribbon="ABANDONED"></div>
-            {% endif %}
-        {% else %}
-            {% if card.branch is defined %}
-                {% if card.branch == 'TYPO3_6-2' %}
-                    <div class="ribbon ribbonOrange" data-ribbon="6.2"></div>
-                {% elseif card.branch == 'TYPO3_7-6' %}
-                    <div class="ribbon ribbonOrange" data-ribbon="7.6"></div>
-                {% elseif card.branch == 'TYPO3_8_7' %}
-                    <div class="ribbon ribbonOrange" data-ribbon="8.7"></div>
-                {% elseif card.branch == 'TYPO3_9-5' %}
-                    <div class="ribbon ribbonBlue" data-ribbon="8.7"></div>
-                {% endif %}
-            {% endif %}
-        {% endif %}
-        <h6 class="card-title"  {{ (card.status.name == 'Under Review') ? '' : 'style="opacity: 0.3"' }}>
-            <div class="media">
-                <div class="media-body">
-                    <a href="https://review.typo3.org/#/c/{{card.id}}/" target="_blank">{{card.subject}}</a>
-                </div>
-                <div class="media-right">{{ avatar(card.author.email) }}</div>
-            </div>
-        </h6>
-    </div>
-{% if card.mergeable is defined and card.mergeable == 'no' %}
-    <div class="card-status">
-        <span class="badge badge-danger">CAN'T MERGE</span>
-    </div>
-{% endif %}
-<div class="card-body" {{ (card.status.name == 'Under Review') ? '' : 'style="opacity: 0.3"' }}>
-<div class="row">
-    <div class="col-sm-12">
-        <i class="fal fa-user"></i> {{card.author.name}} <span class="float-right"><time is="time-ago" datetime="{{card.updated_on}}">{{card.updated_on}}</time></span>
-    </div>
-</div>
-<div class="row">
-    {#    Todo: This data is currently not present!     #}
-    <div class="col-md-6">Files: <span class="badge badge-secondary float-right">{{card.affected_files ?? 0}}</span></div>
-    <div class="col-md-6">Patches: <span class="badge badge-secondary float-right">{{card.patchsets ?? 0}}</span></div>
-</div>
-<div class="row status">
-    {#    Todo: This data is currently not present!     #}
-    {% if card.positive_reviews is defined and card.negative_reviews is defined %}
-        <div class="col-md-6">Review:
-            {% if card.positive_reviews > 0 %}
-                <span class="badge badge-success float-right"><i class="fal fa-check fa-fw"></i></span>
-            {% endif %}
-            {% if card.negative_reviews == '2' %}
-                <span class="badge badge-danger float-right"><i class="fal fa-times fa-fw"></i></span>
-            {% elseif card.negative_reviews == '1' %}
-                <span class="badge badge-danger float-right"><i class="fal fa-minus fa-fw"></i></span>
-            {% endif %}
-        </div>
-    {% endif %}
-    {% if card.positive_verifications is defined and card.negative_verifications is defined %}
-        <div class="col-md-6">Tested:
-            {% if card.positive_verifications > 0 %}
-                <span class="badge badge-success float-right"><i class="fal fa-check fa-fw"></i></span>
-            {% endif %}
-            {% if card.negative_verifications == '2' %}
-                <span class="badge badge-danger float-right"><i class="fal fa-times fa-fw"></i></span>
-            {% elseif card.negative_verifications == '1' %}
+{% import '_macros/buttons.html.twig' as buttons %}
 
-            {% endif %}
+{% set reviewTypeClass = 'default' %}
+{% if card.reviewtags.0 == 'FEATURE' %}
+    {% set reviewTypeClass = 'feature' %}
+{% elseif card.reviewtags.0 == 'TASK' %}
+    {% set reviewTypeClass = 'task' %}
+{% elseif card.reviewtags.0 == 'BUGFIX' %}
+    {% set reviewTypeClass = 'bugfix' %}
+{% endif %}
+
+<div class="review review-card review-type-{{ reviewTypeClass }}">
+    {% if card.mergeable == 'no' %}
+        <div class="review-note review-note-danger">Merge conflict</div>
+    {% endif %}
+    {% if mode == 'backport' %}
+        {% if not card.reviewstatus %}
+            <div class="review-note review-note-warning">Backport missing</div>
+        {% elseif card.reviewstatus == 'MERGED' %}
+            <div class="review-note review-note-success">Merged</div>
+        {% elseif card.reviewstatus == 'ABANDONED' %}
+            <div class="review-note review-note-info">Abandoned</div>
+        {% endif %}
+    {% endif %}
+    <div class="review-header">
+        <div class="review-issue">
+            #{{card.id}}
+        </div>
+        <div class="review-title">
+            <a href="https://review.typo3.org/c/Packages/TYPO3.CMS/+/{{ card.id }}/" target="gerrit{}{{ card.id }}">{{card.subject}}</a>
+        </div>
+         {% if card.branch != 'master' %}
+            <div class="review-branch">
+                <span class="badge badge-danger">{{ card.branch }}</span>
+            </div>
+        {% endif %}
+    </div>
+    <div class="review-data">
+        <div class="review-data-item">
+            <span class="review-data-item-label">Author</span>
+            <span class="review-data-item-value">{{ card.owner }}</span>
+        </div>
+        <div class="review-data-item">
+            <span class="review-data-item-label">Updated</span>
+            <span class="review-data-item-value">{{ relativetime(to_datetime(card.updated_on)) }}</span>
+        </div>
+        <div class="review-data-item">
+            <span class="review-data-item-label">Affected Files</span>
+            <span class="review-data-item-value">{{ card.affected_files }}</span>
+        </div>
+        <div class="review-data-item">
+            <span class="review-data-item-label">Patchsets</span>
+            <span class="review-data-item-value">{{ card.patchsets }}</span>
+        </div>
+        <div class="review-data-item">
+            <span class="review-data-item-label">Reviews</span>
+            <span class="review-data-item-value">
+                {% if card.positive_reviews %}
+                    <span class="badge badge-success">{{card.positive_reviews}}</span>
+                {% endif %}
+                {% if card.negative_reviews %}
+                    <span class="badge badge-danger">{{card.negative_reviews}}</span>
+                {% endif %}
+            </span>
+        </div>
+        <div class="review-data-item">
+            <span class="review-data-item-label">Verifies</span>
+            <span class="review-data-item-value">
+                {% if card.positive_verifications %}
+                    <span class="badge badge-success">{{card.positive_verifications}}</span>
+                {% endif %}
+                {% if card.negative_verifications %}
+                    <span class="badge badge-danger">{{card.negative_verifications}}</span>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+    {% if mode == 'backport' and is_granted('ROLE_ADMIN') %}
+        <div class="review-actions">
+            {{ buttons.link(
+                path('utilities_backport_quickcreate', {'changeId': card.change_id}),
+                'Add to blacklist',
+                'danger btn-sm',
+                'trash'
+            ) }}
         </div>
     {% endif %}
-</div>
-</div>
 </div>

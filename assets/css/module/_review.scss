@@ -33,6 +33,9 @@ $review-padding: $card-spacer;
 }
 .review-branch {
     padding-left: .25rem;
+    .badge {
+        display: block;
+    }
 }
 .review-title {
     flex-grow: 1;
@@ -43,7 +46,8 @@ $review-padding: $card-spacer;
     }
 }
 .review-note {
-    padding: 1rem $review-padding;
+    font-size: $font-size-sm;
+    padding: .5rem $review-padding;
     text-align: center;
     text-transform: uppercase;
     background-color: darken($issue-bg, 2.5%);
@@ -73,4 +77,23 @@ $review-padding: $card-spacer;
 }
 .review-data-item-value {
     font-weight: bold;
+}
+.review-actions {
+    border-top: 1px dashed rgba(0,0,0,.15);
+    padding: 1rem $review-padding;
+}
+
+
+//
+// Small
+//
+.review-card {
+    .review-header {
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .review-title {
+        order: 1;
+    }
 }
