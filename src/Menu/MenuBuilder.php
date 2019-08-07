@@ -262,7 +262,7 @@ class MenuBuilder
             'utility',
             [
                 'label' => 'Utility',
-                'route' => 'dashboard_index',
+                'route' => 'utilities_index',
                 'extras' => [
                     'icon' => 'tools',
                 ],
@@ -303,7 +303,7 @@ class MenuBuilder
             'help',
             [
                 'label' => 'Help',
-                'route' => 'dashboard_index',
+                'route' => 'static_help',
                 'extras' => [
                     'icon' => 'question-circle',
                 ],

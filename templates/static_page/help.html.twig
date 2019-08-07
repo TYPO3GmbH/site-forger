@@ -1,0 +1,74 @@
+{% extends "base.html.twig" %}
+{% block title %}Legal Information{% endblock %}
+{% block head %}{% endblock %}
+{% block body %}
+
+    <div class="content-section bg-primary text-white">
+        <div class="container">
+            <h1>Help</h1>
+        </div>
+    </div>
+
+    <div class="content-section bg-transparent">
+        <div class="container">
+            <h3>Where does the data come from?</h3>
+            <p>All data is being read from <a href="https://forge.typo3.org" target="_blank">forge.typo3.org</a> every 15 minutes (to keep the serverload low) and from <a href="http://review.typo3.org" target="_blank">review.typo3.org</a> once a minute.</p>
+
+            <h3>Understanding the graphs</h3>
+            <h4>Velocity</h4>
+            <p>
+                This graph works over time.<br>
+                The red line indicates issues (or reviews) that have been opened. It is important to understand that the numbers add up.<br>
+                This means that the chart will continually grow.</p>
+            <p>
+                The purpose of this chart is to quickly identify velocity problems within a project because you can see when less issues (or reviews) have been closed than there have been new issues.
+            </p>
+            <p>FORGER aggregates these values by weeks - the date indicates the first day of the respective week.</p>
+            <div id="openvsclosed" data-type="Forge" data-graph="Velocity" data-chart="Velocity" data-charttitle="Forge Velocity" class="graph"></div>
+
+            <h4>Open Reviews on Forge</h4>
+            <p>
+                This graph works over time.<br>
+                The chart is based on the "updated_on" property of <a href="https://forge.typo3.org/" target="_blank">forge.typo3.org</a>, meaning that whenever an update to an issue takes place or a new review patchset is pushed this property will get updated.<br>
+            </p>
+            <p>
+                The purpose of this chart is to get an overview of the older issues that are still "under review".
+            </p>
+            <p>FORGER aggregates these values by weeks - the date indicates the first day of the respective week.</p>
+            <p>The data goes back for one year.</p>
+            <div id="reviewOverTime" data-type="Gerrit" data-graph="OpenReviews" data-chart="Line" data-charttitle="Open Reviews" class="graph"></div>
+
+            <h4>Open vs. Closed Issues on Forge</h4>
+            <p>
+                This chart works with two different metrics.<br>
+                The red line indicates new issues, that have been created. So the aggregation uses the property "created_on" of <a href="https://forge.typo3.org/" target="_blank">forge.typo3.org</a>.
+                The green line indicated issues that have changed their status to either "Closed", "Rejected" or "Resolved" and use the "updated_on" property of <a href="https://forge.typo3.org/" target="_blank">forge.typo3.org</a>.
+            </p>
+            <p>
+                The purpose of this chart is to visualize our current velocity. So as long as we close more or an equal amount of issues than have been opened, we're fine.
+            </p>
+            <p>FORGER aggregates these values by days and will date back the last 60 days.</p>
+            <div id="closedLastTwoMonths" data-type="Forge" data-graph="OpenVsClosed" data-chart="Line" data-charttitle="Open vs. Closed" class="graph"></div>
+
+            <h4>Tracker Types</h4>
+            <p>
+                C'mon... you know what this does :)<br>
+                It only takes issues into account that are not either "Closed", "Rejected" or "Resolved".
+            </p>
+            <div id="trackertype" data-type="Forge" data-graph="TrackerTypes" data-chart="BarHorizontal" data-charttitle="Tracker Types" class="graph"></div>
+
+            <h4>Review Overview</h4>
+            <p>This chart is pretty straight-forward.<br>
+                The blue line shows new reviews for the respective day.<br>
+                The red line shows abandoned reviews for the respective day.<br>
+                The green line shows merged reviews for the respective day.<br>
+            </p>
+            <p>
+                In the bottom of the chart you will find two handles that allow to change the timeframe that is displayed.
+            </p>
+            <div id="gerritOpenVsClosed" data-type="Gerrit" data-graph="Overview" data-chart="Overview" data-charttitle="Gerrit Overview" class="graph"></div>
+        </div>
+        </div>
+    </div>
+
+{% endblock %}

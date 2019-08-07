@@ -45,7 +45,7 @@ class UtilityController extends AbstractController
     }
 
     /**
-     * @Route("/utility", name="utility")
+     * @Route("/", name="index")
      */
     public function index()
     {
