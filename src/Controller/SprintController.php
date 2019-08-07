@@ -104,7 +104,7 @@ class SprintController extends AbstractController
 
                 $this->addFlash('success', 'Sprint board created.');
 
-                return $this->redirectToRoute('sprint', ['category' => $category->getIdentifier(), 'sprint' => $sprint->getId()]);
+                return $this->redirectToRoute('sprint', ['category' => $category->getIdentifier(), 'sprintId' => $sprint->getId()]);
             }
         }
 
@@ -400,12 +400,13 @@ class SprintController extends AbstractController
     }
 
     /**
-     * @Route("/sprint/{category}", defaults={"category"="index"}, name="sprint")
+     * @Route("/sprint/{category}/{sprintId}", defaults={"category"="index"}, name="sprint")
      * @param string $category
+     * @param int|null $sprintId
      * @return Response
      * @throws Exception
      */
-    public function index(string $category): Response
+    public function index(string $category, int $sprintId = null): Response
     {
         $sprintCategory = $this->sprintBoardCategoryRepository->findOneBy([
             'identifier' => $category
@@ -419,11 +420,7 @@ class SprintController extends AbstractController
             ['sorting' => 'ASC']
         );
         // Find active Sprint
-        $activeSprintId = 0;
-        $currentRequest = $this->requestStack->getCurrentRequest();
-        if ($currentRequest) {
-            $activeSprintId = (int)$currentRequest->get('sprint');
-        }
+        $activeSprintId = $sprintId ?? 0;
         $cards = [];
         $boardInfo = [];
         $progress = [];
