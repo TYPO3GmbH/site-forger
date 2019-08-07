@@ -62,6 +62,209 @@ class SprintController extends AbstractController
     }
 
     /**
+     * @Route("/sprint/reviews/{reviewType}", defaults={"reviewType"="bugfix"}, name="sprint_reviews")
+     * @param string $reviewType
+     * @return Response
+     * @throws Exception
+     */
+    public function reviewSprintAction(string $reviewType): Response
+    {
+        $reviewBoardData = $this->getReviewBoardData($reviewType);
+        $foo = '';
+        return $this->render('sprint/review.html.twig', [
+            'menu' => $this->makeReviewMenu($reviewType),
+            'cards' => $reviewBoardData,
+        ]);
+    }
+
+    /**
+     * @param string $boardId
+     *
+     * @return array
+     * @throws \Exception
+     */
+    protected function getReviewBoardData($boardId = ''): array
+    {
+        if (in_array($boardId, ['bugfix', 'feature', 'task'], true)) {
+            $query = $this->getReviewBoardQuery($boardId);
+            $out = [
+                'missesBoth' => [],
+                'missesCodeReview' => [],
+                'missesTesting' => [],
+                'hasPlusOne' => [],
+                'mergeConflict' => [],
+                'blocked' => [],
+                'unclear' => [],
+            ];
+            $fullRequest = [
+                'query' => $query,
+                'size' => 500,
+                'sort' => [
+                    [
+                        'updated_on' => [
+                            'order' => 'asc'
+                        ]
+                    ]
+                ]
+            ];
+            $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
+            $search->addType('review');
+            $resultSet = $search->search();
+            foreach ($resultSet->getResults() as $review) {
+                $getBoardGroup = $this->defineReviewBoardGroup($review->getSource());
+                $out[$getBoardGroup][] = $review->getSource();
+            }
+
+            return $out;
+        }
+        return [];
+    }
+
+    /**
+     * @param string $boardId
+     *
+     * @return array
+     */
+    protected function getReviewBoardQuery($boardId) : array
+    {
+        $query = [
+            'bool' => [
+                'must' => [
+                    [
+                        'terms' => [
+                            'reviewtags' => [
+                                strtoupper($boardId)
+                            ]
+                        ],
+                    ],
+                    [
+                        'query_string' => [
+                            'default_field' => 'reviewstatus',
+                            'query' => 'NEW',
+                        ],
+                    ],
+                ],
+                'must_not' => [
+                    [
+                        'terms' => [
+                            'reviewtags' => [
+                                'WIP'
+                            ]
+                        ],
+                    ],
+                ],
+
+            ],
+        ];
+
+        return $query;
+    }
+
+    /**
+     * Generates a list of boards to link to.
+     *
+     * @param string $active
+     *
+     * @return array
+     *
+     * @throws InvalidException
+     */
+    protected function makeReviewMenu($active = '') : array
+    {
+        $out = [
+            [
+                'id' => 'bugfix',
+                'count' => $this->getReviewsByBoardQuery($this->getReviewBoardQuery('bugfix')),
+                'name' => 'Bugfixes',
+                'active' => 'bugfix' === $active,
+            ],
+            [
+                'id' => 'task',
+                'count' => $this->getReviewsByBoardQuery($this->getReviewBoardQuery('task')),
+                'name' => 'Tasks',
+                'active' => 'task' === $active,
+            ],
+            [
+                'id' => 'feature',
+                'count' => $this->getReviewsByBoardQuery($this->getReviewBoardQuery('feature')),
+                'name' => 'Features',
+                'active' => 'feature' === $active,
+            ],
+        ];
+
+        return $out;
+    }
+
+    /**
+     * @param array $query
+     *
+     * @return string
+     *
+     * @throws InvalidException
+     */
+    protected function getReviewsByBoardQuery(array $query) : string
+    {
+        $fullRequest = [
+            'query' => $query,
+            'size' => 0,
+        ];
+        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
+        $search->addType('review');
+        $resultSet = $search->search();
+
+        return $resultSet->getTotalHits();
+    }
+
+    /**
+     * Defines board columns.
+     *
+     * @param array $review
+     *
+     * @return string
+     */
+    protected function defineReviewBoardGroup(array $review) : string
+    {
+        switch (true) {
+            // Blocked or merge conflict
+            case $review['mergeable'] === 'no':
+                $metaStatus = 'mergeConflict';
+                break;
+            case
+                $review['positive_reviews'] === 0
+                && $review['positive_verifications'] === 0
+                && $review['negative_reviews'] === 0
+                && $review['negative_verifications'] === 0:
+                $metaStatus = 'missesBoth';
+                break;
+            case
+                $review['positive_reviews'] > 0
+                && $review['positive_verifications'] === 0
+                && $review['negative_reviews'] === 0
+                && $review['negative_verifications'] === 0:
+                $metaStatus = 'missesTesting';
+                break;
+            case
+                $review['positive_reviews'] === 0
+                && $review['positive_verifications'] > 0
+                && $review['negative_reviews'] === 0
+                && $review['negative_verifications'] === 0:
+                $metaStatus = 'missesCodeReview';
+                break;
+            case
+                $review['positive_reviews'] > 0
+                && $review['positive_verifications'] > 0
+                && $review['negative_reviews'] === 0
+                && $review['negative_verifications'] === 0:
+                $metaStatus = 'hasPlusOne';
+                break;
+            default:
+                $metaStatus = 'blocked';
+        }
+
+        return $metaStatus;
+    }
+
+    /**
      * @Route("/sprint/{category}", defaults={"category"="index"}, name="sprint")
      * @param string $category
      * @return Response
@@ -108,7 +311,6 @@ class SprintController extends AbstractController
             }
         }
         return $this->render('sprint/index.html.twig', [
-            'controller_name' => 'SprintController',
             'menu' => $this->createMenu($sprints, $activeSprintId),
             'cards' => $cards,
             'boardInfo' => $boardInfo,
@@ -301,7 +503,6 @@ class SprintController extends AbstractController
     private function calculateProgressBars(array $data) : array
     {
         $out = [];
-//        $data['Done'] += $this->closedTicketsNotBeingShown;
         $fullCount = array_sum($data);
         $percentage = $fullCount / 100;
         $percentage = $percentage ?: 1;

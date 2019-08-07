@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+{% block title %}Review Board{% endblock %}
+{% block body %}
+
+    <div class="content-section bg-transparent">
+        <div class="container-fluid">
+            <div class="row">
+                {% if menu|length > 0 %}
+                <div class="btn-group">
+                    {% for boardNav in menu %}
+                        <a href="{{ path("sprint_reviews", {"reviewType":boardNav.id}) }}" class="btn btn-default {{ (boardNav.active) ? 'active' : '' }}">
+                            {{ boardNav.name }} ({{ boardNav.count }})
+                        </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            <div class="row">
+                {% for columnName, cardList in cards %}
+                <f:for each="{board}" as="cards" key="metacolname">
+                    <div class="col" id="column-{{ columnName }}">
+                        {% if columnName == "missesBoth" %}
+                            <h3 class="status-New"><strong>{{ cardList|length }}</strong> Unchecked</h3>
+                        {% elseif columnName == "missesCodeReview" %}
+                            <h3 class="status-New"><strong>{{ cardList|length }}</strong> Miss Code Review</h3>
+                        {% elseif columnName == "missesTesting" %}
+                            <h3 class="status-New"><strong>{{ cardList|length }}</strong> Miss Testing</h3>
+                        {% elseif columnName == "hasPlusOne" %}
+                            <h3 class="status-New"><strong>{{ cardList|length }}</strong> Has Votes</h3>
+                        {% elseif columnName == "mergeConflict" %}
+                            <h3 class="status-New"><strong>{{ cardList|length }}</strong> Merge Conflicts</h3>
+                        {% elseif columnName == "blocked" %}
+                            <h3 class="status-New"><strong>{{ cardList|length }}</strong> Blocked</h3>
+                        {% endif %}
+                        <div class="cards">
+                            {% for card in cardList %}
+                                {% include '_partials/review_card.html.twig' with {'card':card, 'mode': ''} %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </f:for>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
