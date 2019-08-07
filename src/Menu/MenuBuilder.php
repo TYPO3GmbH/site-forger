@@ -234,6 +234,16 @@ class MenuBuilder
                 ]
             );
         }
+        $menu['sprint']->addChild(
+            'sprint_reviews',
+            [
+                'label' => 'Reviews',
+                'route' => 'sprint_reviews',
+                'extras' => [
+                    'icon' => 'cogs',
+                ],
+            ]
+        );
         $menu->addChild(
             'utility',
             [
