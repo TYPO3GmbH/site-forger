@@ -46,6 +46,8 @@ class UtilityController extends AbstractController
     public function backport(): Response
     {
         $viewData = [];
+        $viewData['backports'] = [];
+        $viewData['sum'] = 0;
         $finalFilePath = $this->parameters->get('kernel.project_dir') . '/var/backports.json';
         $entries = $this->backportBlacklistEntryRepository->findAll();
         if (is_file($finalFilePath)) {
