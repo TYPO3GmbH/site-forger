@@ -182,7 +182,21 @@ class UtilityController extends AbstractController
             $this->addFlash('success', 'Backport deleted.');
         }
 
-        return $this->redirectToRoute('utilities_backport');
+        return $this->redirectToRoute('utilities_backport_index');
+    }
+
+    /**
+     * @Route("/backport/list", name="backport_index")
+     * @IsGranted("ROLE_ADMIN")
+     *
+     * @return Response
+     */
+    public function blacklistIndex(
+
+    ): Response {
+        $entries = $this->backportBlacklistEntryRepository->findAll();
+
+        return $this->render('utility/backport_blacklist.html.twig', ['items' => $entries]);
     }
 
     /**

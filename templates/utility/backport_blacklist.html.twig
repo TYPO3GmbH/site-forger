@@ -1,0 +1,60 @@
+{% extends 'base.html.twig' %}
+{% block title %}Backport Blacklist{% endblock %}
+{% block headline %}Backport Blacklist{% endblock %}
+{% block body %}
+
+    <div class="content-section bg-transparent">
+        <div class="container">
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="float-right">
+                        <a href="{{ path('utilities_backport_create') }}">
+                            <button class="btn btn-primary">Add a blacklist item</button>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-md-12">
+                    {% if items %}
+                        <div class="card">
+                            <div class="datatable">
+                                <table class="datatable-table">
+                                    <thead>
+                                    <tr>
+                                        <th scope="col">Change ID</th>
+                                        <th scope="col">Actions</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for item in items %}
+                                        <tr>
+                                            <th>
+                                                <strong>{{ item.changeId }}</strong><br>
+                                                <small>{{ item.comment }}</small>
+                                            </th>
+                                            <td>
+                                                <a class="datatable-action" title="Delete"
+                                                   href="{{ path('utilities_backport_delete', {'changeId': item.changeId}) }}">
+                                                    <button class="btn btn-danger">
+                                                        Delete
+                                                    </button>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% else %}
+                        {% include '_partials/alert.html.twig' with {'message': '<strong>No stale blacklist items!</strong>', 'style': 'success'} %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

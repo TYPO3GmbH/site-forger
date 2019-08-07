@@ -280,12 +280,12 @@ class MenuBuilder
         );
         if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
             $menu['utility']->addChild(
-                'utility_backport_create',
+                'utility_backport_list',
                 [
-                    'label' => 'Create a backport',
-                    'route' => 'utilities_backport_create',
+                    'label' => 'Backport blacklist',
+                    'route' => 'utilities_backport_index',
                     'extras' => [
-                        'icon' => 'plus',
+                        'icon' => 'times',
                     ],
                 ]
             );
