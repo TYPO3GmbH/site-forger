@@ -179,7 +179,7 @@ class SprintController extends AbstractController
 
         if (null !== $sprint) {
             $entityManager->remove($sprint);
-            $entityManager->persist();
+            $entityManager->flush();
             $this->addFlash('success', 'Sprint deleted.');
         }
 
@@ -202,8 +202,8 @@ class SprintController extends AbstractController
 
         if (null !== $sprint) {
             return $this->render(
-                 'sprint/delete_confirm.html.twig',
-                 [
+                'sprint/delete_confirm.html.twig',
+                [
                     'sprint' => $sprint,
                 ]
             );
