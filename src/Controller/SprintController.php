@@ -13,15 +13,18 @@ use App\Client\ElasticClient;
 use App\Entity\SprintBoard;
 use App\Repository\SprintBoardCategoryRepository;
 use App\Repository\SprintBoardRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Elastica\Exception\InvalidException;
 use Exception;
 use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Yaml\Yaml;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 
 class SprintController extends AbstractController
 {
@@ -75,6 +78,96 @@ class SprintController extends AbstractController
             'menu' => $this->makeReviewMenu($reviewType),
             'cards' => $reviewBoardData,
         ]);
+    }
+
+
+    /**
+     * @Route("/sprint/create", name="sprint_create")
+     * @IsGranted("ROLE_ADMIN")
+     *
+     * @param Request $request
+     * @param SprintBoardCategoryRepository $sprintBoardCategoryRepository
+     * @param EntityManagerInterface $entityManager
+     * @return Response
+     */
+    public function createSprint(
+        Request $request,
+        SprintBoardCategoryRepository $sprintBoardCategoryRepository,
+        EntityManagerInterface $entityManager
+    ): Response
+    {
+        $sprint = new SprintBoard();
+        $form = $this->createForm(\App\Form\SprintBoard::class, $sprint, ['entity_manager' => $this->getDoctrine()->getManager()]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $category = $sprintBoardCategoryRepository->find($request->get('sprint_board')['categoryId']);
+            if (null !== $category) {
+                $sprint->setCategory($category);
+                $entityManager->persist($sprint);
+                $entityManager->flush();
+
+                $this->addFlash('success', 'Sprint board created.');
+
+                return $this->redirectToRoute('dashboard_index');
+            }
+        }
+
+        return $this->render(
+            'sprint/form.html.twig',
+            [
+                'form' => $form->createView(),
+            ]
+        );
+    }
+
+    /**
+     * @Route("/sprint/edit/{sprintId}", name="sprint_edit")
+     * @IsGranted("ROLE_ADMIN")
+     *
+     * @param Request $request
+     * @param int $sprintId
+     * @param SprintBoardCategoryRepository $sprintBoardCategoryRepository
+     * @param EntityManagerInterface $entityManager
+     * @param SprintBoardRepository $sprintBoardRepository
+     * @return Response
+     */
+    public function editSprint(
+        Request $request,
+        int $sprintId,
+        SprintBoardCategoryRepository $sprintBoardCategoryRepository,
+        EntityManagerInterface $entityManager,
+        SprintBoardRepository $sprintBoardRepository
+    ): Response
+    {
+        $sprint = $sprintBoardRepository->find($sprintId);
+
+        if (null === $sprint) {
+            $this->redirectToRoute('sprint_create');
+        }
+
+        $form = $this->createForm(\App\Form\SprintBoard::class, $sprint, ['entity_manager' => $this->getDoctrine()->getManager()]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $category = $sprintBoardCategoryRepository->find($request->get('sprint_board')['categoryId']);
+            if (null !== $category) {
+                $sprint->setCategory($category);
+                $entityManager->persist($sprint);
+                $entityManager->flush();
+
+                $this->addFlash('success', 'Sprint board edited.');
+
+                return $this->redirectToRoute('dashboard_index');
+            }
+        }
+
+        return $this->render(
+            'sprint/form.html.twig',
+            [
+                'form' => $form->createView(),
+            ]
+        );
     }
 
     /**
