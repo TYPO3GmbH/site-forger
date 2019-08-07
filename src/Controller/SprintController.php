@@ -84,13 +84,11 @@ class SprintController extends AbstractController
      * @IsGranted("ROLE_ADMIN")
      *
      * @param Request $request
-     * @param SprintBoardCategoryRepository $sprintBoardCategoryRepository
      * @param EntityManagerInterface $entityManager
      * @return Response
      */
     public function createSprint(
         Request $request,
-        SprintBoardCategoryRepository $sprintBoardCategoryRepository,
         EntityManagerInterface $entityManager
     ): Response {
         $sprint = new SprintBoard();
@@ -98,7 +96,7 @@ class SprintController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $category = $sprintBoardCategoryRepository->find($request->get('sprint_board')['categoryId']);
+            $category = $this->sprintBoardCategoryRepository->find($request->get('sprint_board')['categoryId']);
             if (null !== $category) {
                 $sprint->setCategory($category);
                 $entityManager->persist($sprint);
@@ -124,19 +122,15 @@ class SprintController extends AbstractController
      *
      * @param Request $request
      * @param int $sprintId
-     * @param SprintBoardCategoryRepository $sprintBoardCategoryRepository
      * @param EntityManagerInterface $entityManager
-     * @param SprintBoardRepository $sprintBoardRepository
      * @return Response
      */
     public function editSprint(
         Request $request,
         int $sprintId,
-        SprintBoardCategoryRepository $sprintBoardCategoryRepository,
-        EntityManagerInterface $entityManager,
-        SprintBoardRepository $sprintBoardRepository
+        EntityManagerInterface $entityManager
     ): Response {
-        $sprint = $sprintBoardRepository->find($sprintId);
+        $sprint = $this->sprintBoardRepository->find($sprintId);
 
         if (null === $sprint) {
             $this->redirectToRoute('sprint_create');
@@ -146,7 +140,7 @@ class SprintController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $category = $sprintBoardCategoryRepository->find($request->get('sprint_board')['categoryId']);
+            $category = $this->sprintBoardCategoryRepository->find($request->get('sprint_board')['categoryId']);
             if (null !== $category) {
                 $sprint->setCategory($category);
                 $entityManager->persist($sprint);

@@ -246,6 +246,18 @@ class MenuBuilder
                 ],
             ]
         );
+        if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
+            $menu['sprint']->addChild(
+                'sprint_create',
+                [
+                    'label' => 'Create sprint',
+                    'route' => 'sprint_create',
+                    'extras' => [
+                        'icon' => 'plus',
+                    ],
+                ]
+            );
+        }
         $menu->addChild(
             'utility',
             [
@@ -266,6 +278,18 @@ class MenuBuilder
                 ],
             ]
         );
+        if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
+            $menu['utility']->addChild(
+                'utility_backport_create',
+                [
+                    'label' => 'Create a backport',
+                    'route' => 'backport_create',
+                    'extras' => [
+                        'icon' => 'plus',
+                    ],
+                ]
+            );
+        }
         return $menu;
     }
 

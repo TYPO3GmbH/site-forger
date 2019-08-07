@@ -1,0 +1,29 @@
+{% extends 'base.html.twig' %}
+{% block title %}Backport Blacklist{% endblock %}
+{% block headline %}Backport Blacklist{% endblock %}
+{% block body %}
+
+    <div class="content-section">
+        <div class="container">
+            <h2>
+                {% if edit is defined %}
+                    Edit a Backport Blacklist Entry
+                {% else %}
+                    Add a Backport Blacklist Entry
+                {% endif %}
+            </h2>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            {{ form_start(form) }}
+                            {{ form_widget(form) }}
+                            {{ form_end(form) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
