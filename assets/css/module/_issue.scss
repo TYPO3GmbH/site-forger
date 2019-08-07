@@ -11,7 +11,7 @@ $issue-margin: $spacer * 2;
 .issue {
     position: relative;
     padding-left: 2rem;
-    border-radius: 2px;
+    border-radius: $issue-border-radius;
     color: $issue-color;
     background-color: $issue-bg;
     overflow: hidden;
@@ -73,7 +73,7 @@ $issue-margin: $spacer * 2;
     font-size: 0.875rem;
     line-height: 1.25;
     margin-top: 0!important;
-    background-color: darken($issue-bg, 2.5%)
+    background-color: darken($issue-bg, 2.5%);
 }
 .issue-meta-item {
     display: flex;

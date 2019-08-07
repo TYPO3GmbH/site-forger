@@ -1,85 +1,91 @@
 {% import '_macros/buttons.html.twig' as buttons %}
-<table class="table table-sm table-bordered">
-    <thead>
-        <tr
-                {% if review._source.reviewtags.0 == 'FEATURE' %}
-                    class="table-success"
-                {% elseif review._source.reviewtags.0 == 'TASK' %}
-                    class="table-info"
-                {% elseif review._source.reviewtags.0 == 'BUGFIX' %}
-                    class="table-warning"
-                {% endif %}
-        >
-            <th colspan="4">
-                {% if review._source.branch != 'master' %}
+
+{% set reviewTypeClass = 'default' %}
+{% if review._source.reviewtags.0 == 'FEATURE' %}
+    {% set reviewTypeClass = 'feature' %}
+{% elseif review._source.reviewtags.0 == 'TASK' %}
+    {% set reviewTypeClass = 'task' %}
+{% elseif review._source.reviewtags.0 == 'BUGFIX' %}
+    {% set reviewTypeClass = 'bugfix' %}
+{% endif %}
+
+<div class="review review-full review-type-{{ reviewTypeClass }}">
+    <div class="review-header">
+        <div class="review-issue">
+            #{{review._source.id}}
+        </div>
+        <div class="review-title">
+            <a href="https://review.typo3.org/c/Packages/TYPO3.CMS/+/{{ review._source.id }}/" target="gerrit{}{{ review._source.id }}">{{review._source.subject}}</a>
+        </div>
+         {% if review._source.branch != 'master' %}
+            <div class="review-branch">
                 <span class="badge badge-danger">{{review._source.branch}}</span>
+            </div>
+        {% endif %}
+    </div>
+    <div class="review-data">
+        <div class="review-data-item">
+            <span class="review-data-item-label">Topic</span>
+            <span class="review-data-item-value">{{review._source.topic}}</span>
+        </div>
+        <div class="review-data-item">
+            <span class="review-data-item-label">Target Release</span>
+            <span class="review-data-item-value">
+                {% for release in review._source.releases %}
+                    {% if release == 'master' %}
+                        <span class="badge badge-success">master</span>
+                    {% elseif release == '9.5' %}
+                        <span class="badge badge-info">{{release}}</span>
+                    {% elseif release == '8.7' %}
+                        <span class="badge badge-warning">{{release}}</span>
+                    {% else %}
+                        <span class="badge badge-danger">{{release}}</span>
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+        <div class="review-data-item">
+            <span class="review-data-item-label">Affected Files</span>
+            <span class="review-data-item-value">{{review._source.affected_files}}</span>
+        </div>
+        <div class="review-data-item">
+            <span class="review-data-item-label">Patchsets</span>
+            <span class="review-data-item-value">{{review._source.patchsets}}</span>
+        </div>
+        <div class="review-data-item">
+            <span class="review-data-item-label">Created</span>
+            <span class="review-data-item-value">{{ relativetime(to_datetime(review._source.created_on)) }}</span>
+        </div>
+        <div class="review-data-item">
+            <span class="review-data-item-label">Updated</span>
+            <span class="review-data-item-value">{{ relativetime(to_datetime(review._source.updated_on)) }}</span>
+        </div>
+        <div class="review-data-item">
+            <span class="review-data-item-label">Reviews</span>
+            <span class="review-data-item-value">
+                {% if review._source.positive_reviews %}
+                    <span class="badge badge-success">{{review._source.positive_reviews}}</span>
                 {% endif %}
-                {{review._source.subject}}
-            </th>
-        </tr>
-    </thead>
-    <tr>
-        <td>Topic</td>
-        <td><span class="badge badge-default">{{review._source.topic}}</span></td>
-        <td>Target Release</td>
-        <td>
-            {% for release in review._source.releases %}
-                {% if release == 'master' %}
-                    <span class="badge badge-success">master</span>
-                {% elseif release == '9.5' %}
-                    <span class="badge badge-info">{{release}}</span>
-                {% elseif release == '8.7' %}
-                    <span class="badge badge-warning">{{release}}</span>
-                {% else %}
-                    <span class="badge badge-danger">{{release}}</span>
+                {% if review._source.negative_reviews %}
+                    <span class="badge badge-danger">{{review._source.negative_reviews}}</span>
                 {% endif %}
-            {% endfor %}
-        </td>
-    </tr>
-    <tr>
-        <td>Affected Files:</td>
-        <td><span class="label label-default">{{review._source.affected_files}}</span></td>
-        <td>Patchsets: </td>
-        <td><span class="label label-default">{{review._source.patchsets}}</span></td>
-    </tr>
-    <tr>
-        <td>Created:</td>
-        <td><strong><time is="time-ago" datetime="{{review._source.created_on}}">{{review._source.created_on}}</time></strong></td>
-        <td>Updated:</td>
-        <td><strong><time is="time-ago" datetime="{{review._source.updated_on}}">{{review._source.updated_on}}</time></strong></td>
-    </tr>
-    <tr>
-        <td>
-            Reviews
-            {% if review._source.positive_reviews %}
-                <span class="badge badge-success float-right">{{review._source.positive_reviews}}</span>
-            {% endif %}
-            {% if review._source.negative_reviews %}
-                <span class="badge badge-danger float-right">{{review._source.negative_reviews}}</span>
-            {% endif %}
-        </td>
-        <td>
-            Verifies
-            {% if review._source.positive_verifications %}
-                <span class="badge badge-success float-right">{{review._source.positive_verifications}}</span>
-            {% endif %}
-            {% if review._source.negative_verifications %}
-                <span class="badge badge-danger float-right">{{review._source.negative_verifications}}</span>
-            {% endif %}
-        </td>
-        <td>
-            {% if review._source.mergeable == 'no' %}
-                <span class="badge badge-danger">CODE CANNOT BE MERGED</span>
-            {% endif %}
-        </td>
-        <td>
-            {{ buttons.link(
-                'https://review.typo3.org/c/Packages/TYPO3.CMS/+/' ~ review._source.id ~ '/',
-                'Open in Gerrit',
-                'info btn-sm',
-                'external-link',
-                'gerrit{}' ~ review._source.id
-            )}}
-        </td>
-    </tr>
-</table>
+            </span>
+        </div>
+        <div class="review-data-item">
+            <span class="review-data-item-label">Verifies</span>
+            <span class="review-data-item-value">
+                {% if review._source.positive_verifications %}
+                    <span class="badge badge-success">{{review._source.positive_verifications}}</span>
+                {% endif %}
+                {% if review._source.negative_verifications %}
+                    <span class="badge badge-danger">{{review._source.negative_verifications}}</span>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+    {% if review._source.mergeable == 'no' %}
+        <div class="review-note review-note-danger">
+            Merge conflict
+        </div>
+    {% endif %}
+</div>
