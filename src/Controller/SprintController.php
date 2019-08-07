@@ -148,7 +148,7 @@ class SprintController extends AbstractController
 
                 $this->addFlash('success', 'Sprint board edited.');
 
-                return $this->redirectToRoute('sprint', ['category' => $category->getIdentifier(), 'sprint' => $sprint->getId()]);
+                return $this->redirectToRoute('sprint', ['category' => $category->getIdentifier(), 'sprintId' => $sprint->getId()]);
             }
         }
 
