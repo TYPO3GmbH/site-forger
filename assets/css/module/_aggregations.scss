@@ -44,7 +44,7 @@ $aggregation-breakpoint: 'lg';
 }
 @include media-breakpoint-up($aggregation-breakpoint) {
     .aggregations-toggle {
-        display: none;
+        display: none!important;
     }
     .aggregations {
         display: block;
