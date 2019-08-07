@@ -91,7 +91,7 @@ class BackPortBlacklistEntryController extends AbstractController
             $entityManager->persist($entry);
             $entityManager->flush();
 
-            $this->addFlash('success', 'Blacklist entry created.');
+            $this->addFlash('success', 'Blacklist entry updated.');
 
             return $this->redirectToRoute('dashboard_index');
         }
