@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import '_macros/buttons.html.twig' as buttons %}
 {% block title %}Backport Blacklist{% endblock %}
 {% block headline %}Backport Blacklist{% endblock %}
 {% block body %}
@@ -9,9 +10,12 @@
             <div class="row">
                 <div class="col-md-12">
                     <div class="float-right">
-                        <a href="{{ path('utilities_backport_create') }}">
-                            <button class="btn btn-primary">Add a blacklist item</button>
-                        </a>
+                        {{ buttons.link(
+                            path('utilities_backport_create'),
+                            'Create new',
+                            'primary',
+                            'plus'
+                        ) }}
                     </div>
                 </div>
             </div>
@@ -36,12 +40,12 @@
                                                 <small>{{ item.comment }}</small>
                                             </th>
                                             <td>
-                                                <a class="datatable-action" title="Delete"
-                                                   href="{{ path('utilities_backport_delete', {'changeId': item.changeId}) }}">
-                                                    <button class="btn btn-danger">
-                                                        Delete
-                                                    </button>
-                                                </a>
+                                                {{ buttons.link(
+                                                    path('utilities_backport_delete', {'changeId': item.changeId}),
+                                                    'Delete',
+                                                    'danger',
+                                                    'trash'
+                                                ) }}
                                             </td>
                                         </tr>
                                     {% endfor %}
