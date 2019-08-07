@@ -2,10 +2,9 @@
 {% block title %}Review Board{% endblock %}
 {% block body %}
 
-    <div class="content-section bg-transparent">
-        <div class="container-fluid">
-            <div class="row">
-                {% if menu|length > 0 %}
+    <div class="content-section content-section-smallest bg-dark">
+        <div class="container-fluid text-center">
+            {% if menu|length > 0 %}
                 <div class="btn-group">
                     {% for boardNav in menu %}
                         <a href="{{ path("sprint_reviews", {"reviewType":boardNav.id}) }}" class="btn btn-default {{ (boardNav.active) ? 'active' : '' }}">
@@ -13,8 +12,12 @@
                         </a>
                     {% endfor %}
                 </div>
-                {% endif %}
-            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="content-section bg-transparent">
+        <div class="container-fluid">
             <div class="row">
                 {% for columnName, cardList in cards %}
                 <f:for each="{board}" as="cards" key="metacolname">

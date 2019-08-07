@@ -2,10 +2,9 @@
 {% block title %}Hello SprintController!{% endblock %}
 {% block body %}
 
-    <div class="content-section bg-transparent">
-        <div class="container-fluid">
-            <div class="row">
-                {% if menu|length > 0 %}
+    <div class="content-section content-section-smallest bg-dark">
+        <div class="container-fluid text-center">
+            {% if menu|length > 0 %}
                 <div class="btn-group">
                     {% for boardNav in menu %}
                         <a href="{{ path("sprint", {"category":category, "sprint":boardNav.id}) }}" class="btn btn-default {{ (boardNav.active) ? 'active' : '' }}" title="{{boardNav.count.open}} open, {{boardNav.count.closed}} closed, {{boardNav.count.total}} total">
@@ -13,12 +12,14 @@
                         </a>
                     {% endfor %}
                 </div>
-                {% else %}
-                    <div class="col-sm-12">
-                        <div class="alert alert-info">No boards have been defined for this category, yet. If you think there should be something here, get in touch with us on Slack</div>
-                    </div>
-                {% endif %}
-            </div>
+            {% else %}
+                <div class="alert alert-info">No boards have been defined for this category, yet. If you think there should be something here, get in touch with us on Slack</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="content-section bg-transparent">
+        <div class="container-fluid">
 
             {% if sprintId is defined and sprintId > 0 and is_granted('ROLE_ADMIN') %}
                 <div class="float-right">
