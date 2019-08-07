@@ -1,8 +1,13 @@
 <?php
 
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
 
 namespace App\Form;
-
 
 use App\Entity\SprintBoardCategory;
 use App\Repository\SprintBoardCategoryRepository;
@@ -38,12 +43,15 @@ class SprintBoard extends AbstractType
                     'attr' => ['class' => 'form-control']
                 ]
             )
-            ->add('submit', SubmitType::class,
+            ->add(
+                'submit',
+                SubmitType::class,
                 [
                     'label' => 'Save',
                     'attr' => ['class' => 'btn btn-primary pull-right'
                 ],
-            ]);
+            ]
+            );
     }
 
     public function configureOptions(OptionsResolver $resolver): void

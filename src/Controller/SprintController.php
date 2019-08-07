@@ -17,6 +17,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Elastica\Exception\InvalidException;
 use Exception;
 use InvalidArgumentException;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,7 +25,6 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Yaml\Yaml;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 
 class SprintController extends AbstractController
 {
@@ -55,8 +55,7 @@ class SprintController extends AbstractController
         ElasticClient $elasticClient,
         ParameterBagInterface $parameters,
         RequestStack $requestStack
-    )
-    {
+    ) {
         $this->sprintBoardCategoryRepository = $sprintBoardCategoryRepository;
         $this->sprintBoardRepository = $sprintBoardRepository;
         $this->elasticClient = $elasticClient;
@@ -80,7 +79,6 @@ class SprintController extends AbstractController
         ]);
     }
 
-
     /**
      * @Route("/sprint/create", name="sprint_create")
      * @IsGranted("ROLE_ADMIN")
@@ -94,8 +92,7 @@ class SprintController extends AbstractController
         Request $request,
         SprintBoardCategoryRepository $sprintBoardCategoryRepository,
         EntityManagerInterface $entityManager
-    ): Response
-    {
+    ): Response {
         $sprint = new SprintBoard();
         $form = $this->createForm(\App\Form\SprintBoard::class, $sprint, ['entity_manager' => $this->getDoctrine()->getManager()]);
         $form->handleRequest($request);
@@ -138,8 +135,7 @@ class SprintController extends AbstractController
         SprintBoardCategoryRepository $sprintBoardCategoryRepository,
         EntityManagerInterface $entityManager,
         SprintBoardRepository $sprintBoardRepository
-    ): Response
-    {
+    ): Response {
         $sprint = $sprintBoardRepository->find($sprintId);
 
         if (null === $sprint) {
@@ -365,7 +361,6 @@ class SprintController extends AbstractController
      */
     public function index(string $category): Response
     {
-
         $sprintCategory = $this->sprintBoardCategoryRepository->findOneBy([
             'identifier' => $category
         ]);
@@ -543,7 +538,7 @@ class SprintController extends AbstractController
         if (isset($ticket['journals'])) {
             foreach ((array)$ticket['journals'] as $journalEntry) {
                 if (isset($journalEntry['notes']) && (
-                        false !== strpos($journalEntry['notes'], 'It is available at http://review.typo3.org/')
+                    false !== strpos($journalEntry['notes'], 'It is available at http://review.typo3.org/')
                         ||
                         false !== strpos($journalEntry['notes'], 'It is available at https://review.typo3.org/')
                     )
