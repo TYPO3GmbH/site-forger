@@ -208,7 +208,7 @@ class MenuBuilder
                 'label' => 'Issues by Category',
                 'route' => 'management_bycategory',
                 'extras' => [
-                    'icon' => 'award',
+                    'icon' => 'tag',
                 ],
             ]
         );
@@ -218,7 +218,7 @@ class MenuBuilder
                 'label' => 'Sprints',
                 'route' => 'sprint',
                 'extras' => [
-                    'icon' => 'rabbit-fast',
+                    'icon' => 'flag-checkered',
                 ],
             ]
         );

@@ -16,34 +16,34 @@
         </div>
     </div>
 
-    <div class="content-section bg-transparent">
-        <div class="container-fluid">
-            <div class="row">
-                {% for columnName, cardList in cards %}
-                <f:for each="{board}" as="cards" key="metacolname">
-                    <div class="col" id="column-{{ columnName }}">
+    <div class="board">
+        <div class="board-container">
+            {% for columnName, cardList in cards %}
+                <div class="board-column" id="column-{{ columnName }}">
+                    <div class="board-column-header">
                         {% if columnName == "missesBoth" %}
-                            <h3 class="status-New"><strong>{{ cardList|length }}</strong> Unchecked</h3>
+                            <h3 class="board-colum-header-headline"><strong>{{ cardList|length }}</strong> Unchecked</h3>
                         {% elseif columnName == "missesCodeReview" %}
-                            <h3 class="status-New"><strong>{{ cardList|length }}</strong> Miss Code Review</h3>
+                            <h3 class="board-colum-header-headline"><strong>{{ cardList|length }}</strong> Miss Code Review</h3>
                         {% elseif columnName == "missesTesting" %}
-                            <h3 class="status-New"><strong>{{ cardList|length }}</strong> Miss Testing</h3>
+                            <h3 class="board-colum-header-headline"><strong>{{ cardList|length }}</strong> Miss Testing</h3>
                         {% elseif columnName == "hasPlusOne" %}
-                            <h3 class="status-New"><strong>{{ cardList|length }}</strong> Has Votes</h3>
+                            <h3 class="board-colum-header-headline"><strong>{{ cardList|length }}</strong> Has Votes</h3>
                         {% elseif columnName == "mergeConflict" %}
-                            <h3 class="status-New"><strong>{{ cardList|length }}</strong> Merge Conflicts</h3>
+                            <h3 class="board-colum-header-headline"><strong>{{ cardList|length }}</strong> Merge Conflicts</h3>
                         {% elseif columnName == "blocked" %}
-                            <h3 class="status-New"><strong>{{ cardList|length }}</strong> Blocked</h3>
+                            <h3 class="board-colum-header-headline"><strong>{{ cardList|length }}</strong> Blocked</h3>
+                        {% else %}
+                            <h3 class="board-colum-header-headline"><strong>{{ cardList|length }}</strong> Unclear</h3>
                         {% endif %}
-                        <div class="cards">
-                            {% for card in cardList %}
-                                {% include '_partials/review_card.html.twig' with {'card':card, 'mode': ''} %}
-                            {% endfor %}
-                        </div>
                     </div>
-                </f:for>
-                {% endfor %}
-            </div>
+                    <div class="board-column-content">
+                        {% for card in cardList %}
+                            {% include '_partials/review_card.html.twig' with {'card':card, 'mode': ''} %}
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
         </div>
     </div>
 

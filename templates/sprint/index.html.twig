@@ -18,21 +18,20 @@
         </div>
     </div>
 
-    <div class="content-section bg-transparent">
-        <div class="container-fluid">
+    {% if sprintId is defined and sprintId > 0 and is_granted('ROLE_ADMIN') %}
+        <div class="float-right">
+            <a href="{{ path('sprint_edit', {'sprintId': sprintId}) }}">
+                <button class="btn btn-primary">Edit Sprint</button>
+            </a>
+            <a href="{{ path('sprint_delete_confirm', {'sprintId': sprintId}) }}">
+                <button class="btn btn-danger">Delete Sprint</button>
+            </a>
+        </div>
+    {% endif %}
 
-            {% if sprintId is defined and sprintId > 0 and is_granted('ROLE_ADMIN') %}
-                <div class="float-right">
-                    <a href="{{ path('sprint_edit', {'sprintId': sprintId}) }}">
-                        <button class="btn btn-primary">Edit Sprint</button>
-                    </a>
-                    <a href="{{ path('sprint_delete_confirm', {'sprintId': sprintId}) }}">
-                        <button class="btn btn-danger">Delete Sprint</button>
-                    </a>
-                </div>
-            {% endif %}
-
-            {% if cards|length > 0 %}
+    {% if cards|length > 0 %}
+        <div class="content-section content-section-smallest">
+            <div class="container-fluid">
                 <h3>{{ boardInfo }} ({{ progress.total }})</h3>
                 <div class="progress">
                     {% for bar in progress.sections %}
@@ -47,24 +46,28 @@
                         </div>
                     {% endfor %}
                 </div>
-                <div class="row">
-                    {% for columnName, cardList in cards %}
-                        <div class="col">
-                            <h3 class="status-{{ columnName }}"><strong>{{ cardList|length }}</strong> {{ columnName }}</h3>
-                            <div class="cards">
-                                {% for card in cardList %}
-                                    {% if columnName == "Review" %}
-                                        {% include '_partials/review_card.html.twig' with {'card':card, 'mode': ''} %}
-                                    {% else %}
-                                        {% include '_partials/board_card.html.twig' with {'card':card}  %}
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
+            </div>
         </div>
-    </div>
+        <div class="board">
+            <div class="board-container">
+                {% for columnName, cardList in cards %}
+                    <div class="board-column">
+                        <div class="board-column-header">
+                            <h3 class="board-colum-header-headline status-{{ columnName }}"><strong>{{ cardList|length }}</strong> {{ columnName }}</h3>
+                        </div>
+                        <div class="board-column-content">
+                            {% for card in cardList %}
+                                {% if columnName == "Review" %}
+                                    {% include '_partials/review_card.html.twig' with {'card':card, 'mode': ''} %}
+                                {% else %}
+                                    {% include '_partials/board_card.html.twig' with {'card':card}  %}
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
 
 {% endblock %}
