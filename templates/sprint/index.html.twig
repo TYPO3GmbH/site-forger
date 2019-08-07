@@ -19,42 +19,44 @@
         </div>
     </div>
 
-    <div class="content-section content-section-smallest">
-        <div class="container-fluid">
-            <div class="header">
-                <h2 class="header-headline">{{ boardInfo }} ({{ progress.total }})</h2>
-                {% if sprintId is defined and sprintId > 0 and is_granted('ROLE_ADMIN') %}
-                    <div class="header-actions">
-                        {{ buttons.link(
-                            path('sprint_edit', {'sprintId': sprintId}),
-                            'Edit Sprint',
-                            'secondary',
-                            'pencil'
-                        ) }}
-                        {{ buttons.link(
-                            path('sprint_delete_confirm', {'sprintId': sprintId}),
-                            'Delete Sprint',
-                            'danger',
-                            'trash'
-                        ) }}
-                    </div>
-                {% endif %}
-            </div>
-            <div class="progress mt-2">
-                {% for bar in progress.sections %}
-                    <div
-                            class="progress-bar progress-type-{{ bar.classes }}"
-                            role="progressbar"
-                            aria-valuenow="60"
-                            aria-valuemin="0"
-                            aria-valuemax="100"
-                            style="width: {{ bar.value }}%;">
-                        {{ bar.label }}
-                    </div>
-                {% endfor %}
+    {% if boardInfo is not empty %}
+        <div class="content-section content-section-smallest">
+            <div class="container-fluid">
+                <div class="header">
+                    <h2 class="header-headline">{{ boardInfo }} ({{ progress.total }})</h2>
+                    {% if sprintId is defined and sprintId > 0 and is_granted('ROLE_ADMIN') %}
+                        <div class="header-actions">
+                            {{ buttons.link(
+                                path('sprint_edit', {'sprintId': sprintId}),
+                                'Edit Sprint',
+                                'secondary',
+                                'pencil'
+                            ) }}
+                            {{ buttons.link(
+                                path('sprint_delete_confirm', {'sprintId': sprintId}),
+                                'Delete Sprint',
+                                'danger',
+                                'trash'
+                            ) }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="progress mt-2">
+                    {% for bar in progress.sections %}
+                        <div
+                                class="progress-bar progress-type-{{ bar.classes }}"
+                                role="progressbar"
+                                aria-valuenow="60"
+                                aria-valuemin="0"
+                                aria-valuemax="100"
+                                style="width: {{ bar.value }}%;">
+                            {{ bar.label }}
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
-    </div>
+    {% endif %}
 
     {% if cards|length > 0 %}
         <div class="board">
