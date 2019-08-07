@@ -61,6 +61,14 @@ $status-colors: (
     done: #696969
 );
 
+$progress-colors: (
+    default: $secondary,
+    blocked: $danger,
+    open: $info,
+    wip: $secondary,
+    done: $success
+);
+
 $theme-shadow: 0 2px 1px rgba(0, 0, 0, 0.15);
 $theme-shadow-hover: 0 2px 1px rgba(0, 0, 0, 0.25);
 
