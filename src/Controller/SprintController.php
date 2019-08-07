@@ -104,7 +104,7 @@ class SprintController extends AbstractController
 
                 $this->addFlash('success', 'Sprint board created.');
 
-                return $this->redirectToRoute('dashboard_index');
+                return $this->redirectToRoute('sprint', ['category' => $category->getIdentifier(), 'sprint' => $sprint->getId()]);
             }
         }
 
@@ -148,7 +148,7 @@ class SprintController extends AbstractController
 
                 $this->addFlash('success', 'Sprint board edited.');
 
-                return $this->redirectToRoute('dashboard_index');
+                return $this->redirectToRoute('sprint', ['category' => $category->getIdentifier(), 'sprint' => $sprint->getId()]);
             }
         }
 
@@ -398,7 +398,8 @@ class SprintController extends AbstractController
             'cards' => $cards,
             'boardInfo' => $boardInfo,
             'progress' => $progress,
-            'category' => $category
+            'category' => $category,
+            'sprintId' => $activeSprintId,
         ]);
     }
 
