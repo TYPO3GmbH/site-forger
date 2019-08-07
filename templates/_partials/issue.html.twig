@@ -29,7 +29,7 @@
                 <span class="badge badge-primary">TYPO3 CMS {{ issue._source.typo3_version }}</span>
             {% endif %}
             {% if issue.score is defined %}
-                <span class="pull-right"><b>Score:</b> {{ issue.score }}</span>
+                <span class="badge badge-secondary">Score: {{ issue.score }}</span>
             {% endif %}
         </div>
         <h4 class="issue-headline">
@@ -42,28 +42,32 @@
     </div>
 
     <div class="issue-meta">
-        <div class="issue-meta-item issue-meta-author">
-            {% if issue._source.author.email %}
-                <span class="issue-meta-item-avatar">
-                    {{ avatar(issue._source.author.email) }}
+        <div class="issue-meta-group">
+            <div class="issue-meta-item issue-meta-author">
+                {% if issue._source.author.email is defined %}
+                    <span class="issue-meta-item-avatar">
+                        {{ avatar(issue._source.author.email) }}
+                    </span>
+                {% endif %}
+                <span class="issue-meta-item-body">
+                    <span class="issue-meta-item-label">Author</span>
+                    <span class="issue-meta-item-value">{{ issue._source.author.name }}</span>
                 </span>
-            {% endif %}
-            <span class="issue-meta-item-body">
-                <span class="issue-meta-item-label">Author</span>
-                <span class="issue-meta-item-value">{{ issue._source.author.name }}</span>
-            </span>
+            </div>
         </div>
-        <div class="issue-meta-item issue-meta-created">
-            <span class="issue-meta-item-body">
-                <span class="issue-meta-item-label">Created</span>
-                <span class="issue-meta-item-value">{{ relativetime(to_datetime(issue._source.created_on)) }}</span>
-            </span>
-        </div>
-        <div class="issue-meta-item issue-meta-updated">
-            <span class="issue-meta-item-body">
-                <span class="issue-meta-item-label">Updated</span>
-                <span class="issue-meta-item-value">{{ relativetime(to_datetime(issue._source.updated_on)) }}</span>
-            </span>
+        <div class="issue-meta-group">
+            <div class="issue-meta-item issue-meta-created">
+                <span class="issue-meta-item-body">
+                    <span class="issue-meta-item-label">Created</span>
+                    <span class="issue-meta-item-value">{{ relativetime(to_datetime(issue._source.created_on)) }}</span>
+                </span>
+            </div>
+            <div class="issue-meta-item issue-meta-updated">
+                <span class="issue-meta-item-body">
+                    <span class="issue-meta-item-label">Updated</span>
+                    <span class="issue-meta-item-value">{{ relativetime(to_datetime(issue._source.updated_on)) }}</span>
+                </span>
+            </div>
         </div>
     </div>
 </div>

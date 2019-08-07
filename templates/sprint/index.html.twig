@@ -71,7 +71,7 @@
                                 {% if columnName == "Review" %}
                                     {% include '_partials/review_card.html.twig' with {'card': card, 'mode': ''} only %}
                                 {% else %}
-                                    {% include '_partials/board_card.html.twig' with {'card': card} only %}
+                                    {% include '_partials/issue_card.html.twig' with {'card': card} only %}
                                 {% endif %}
                             {% endfor %}
                         </div>

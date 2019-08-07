@@ -4,6 +4,7 @@
     {% include '_partials/alert.html.twig' with {message: 'Review is missing.', style: 'danger'} %}
 
 {% else %}
+
     {% set reviewTypeClass = 'default' %}
     {% if card.reviewtags.0 == 'FEATURE' %}
         {% set reviewTypeClass = 'feature' %}
@@ -89,4 +90,5 @@
             </div>
         {% endif %}
     </div>
+
 {% endif %}

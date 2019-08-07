@@ -1,0 +1,131 @@
+{% if card is not defined or card is null %}
+
+    {% include '_partials/alert.html.twig' with {message: 'Issue is missing.', style: 'danger'} %}
+
+{% else %}
+
+    {% set issueTypeClass = 'default' %}
+    {% if card.tracker.name == 'Bug' %}
+        {% set issueTypeClass = 'bug' %}
+    {% elseif card.tracker.name == 'Feature' %}
+        {% set issueTypeClass = 'feature' %}
+    {% elseif card.tracker.name == 'Task' %}
+        {% set issueTypeClass = 'task' %}
+    {% elseif card.tracker.name == 'Epic' %}
+        {% set issueTypeClass = 'epic' %}
+    {% elseif card.tracker.name == 'Story' %}
+        {% set issueTypeClass = 'story' %}
+    {% endif %}
+
+    <div class="issue issue-card">
+        <div class="issue-type issue-type-{{ issueTypeClass }}">
+            <span class="issue-type-title">{{ card.tracker.name }}</span>
+        </div>
+        <div class="issue-content">
+            <div class="issue-status">
+                {% if card.status.name == 'New' %}
+                    <span class="badge badge-danger">NEW</span>
+                {% else %}
+                    <span class="badge badge-secondary">{{ card.status.name }}</span>
+                {% endif %}
+                {% if card.category.name is defined %}
+                    <span class="badge badge-light">{{ card.category.name }}</span>
+                {% endif %}
+                {% if card.typo3_version is defined %}
+                    <span class="badge badge-primary">TYPO3 CMS {{ card.typo3_version }}</span>
+                {% endif %}
+                {% if issue.score is defined %}
+                    <span class="badge badge-secondary">Score: {{ issue.score }}</span>
+                {% endif %}
+            </div>
+            <h4 class="issue-headline">
+                <a href="http://forge.typo3.org/issues/{{ card.id }}" target="issue{{ card.id }}">
+                    <span class="issue-id">#{{ card.id }}</span>
+                    <span class="issue-title">{{ card.subject }}</span>
+                </a>
+            </h4>
+        </div>
+
+        <div class="issue-data">
+            {% set complexityValue = 'n/a' %}
+            {% set complexitySeverity = 'secondary' %}
+            {% for customfield in card.custom_fields %}
+                {% if customfield.name is defined and customfield.value is defined%}
+                    {% if customfield.value == 'easy' %}
+                        {% set complexityValue = customfield.value %}
+                        {% set complexitySeverity = 'success' %}
+                    {% elseif customfield.value == 'no-brainer' %}
+                        {% set complexityValue = customfield.value %}
+                        {% set complexitySeverity = 'success' %}
+                    {% elseif customfield.value == 'medium' %}
+                        {% set complexityValue = customfield.value %}
+                        {% set complexitySeverity = 'warning' %}
+                    {% elseif customfield.value == 'hard' %}
+                        {% set complexityValue = customfield.value %}
+                        {% set complexitySeverity = 'danger' %}
+                    {% elseif customfield.value == 'nightmare' %}
+                        {% set complexityValue = customfield.value %}
+                        {% set complexitySeverity = 'danger' %}
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            <div class="issue-data-item">
+                <span class="issue-data-item-label">Complexity</span>
+                <span class="issue-data-item-value"><span class="badge badge-{{ complexitySeverity }}">{{ complexityValue }}</span></span>
+            </div>
+            {% if card.tags is defined %}
+                <div class="issue-data-item">
+                    <span class="issue-data-item-label">Tags</span>
+                    <span class="issue-data-item-value">
+                        {% for tag in card.tags %}
+                            <span class="label label-default">{{ tag }}</span>
+                        {% endfor %}
+                    </span>
+                </div>
+            {% endif %}
+            {% if card.lastComment is defined %}
+                <div class="issue-data-item">
+                    <span class="issue-data-item-label">Last Updated by</span>
+                    <span class="issue-data-item-value">{{ card.lastComment.user.name }}</span>
+                </div>
+            {% endif %}
+            {% if card.assigned_to.name is defined %}
+                <div class="issue-data-item">
+                    <span class="issue-data-item-label">Assigned to</span>
+                    <span class="issue-data-item-value">{{ card.assigned_to.name }}</span>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="issue-meta">
+            <div class="issue-meta-group">
+                <div class="issue-meta-item issue-meta-author">
+                    {% if card.author.email is defined %}
+                        <span class="issue-meta-item-avatar">
+                            {{ avatar(card.author.email) }}
+                        </span>
+                    {% endif %}
+                    <span class="issue-meta-item-body">
+                        <span class="issue-meta-item-label">Author</span>
+                        <span class="issue-meta-item-value">{{ card.author.name }}</span>
+                    </span>
+                </div>
+            </div>
+            <div class="issue-meta-group">
+                <div class="issue-meta-item issue-meta-created">
+                    <span class="issue-meta-item-body">
+                        <span class="issue-meta-item-label">Created</span>
+                        <span class="issue-meta-item-value">{{ relativetime(to_datetime(card.created_on)) }}</span>
+                    </span>
+                </div>
+                <div class="issue-meta-item issue-meta-updated">
+                    <span class="issue-meta-item-body">
+                        <span class="issue-meta-item-label">Updated</span>
+                        <span class="issue-meta-item-value">{{ relativetime(to_datetime(card.updated_on)) }}</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endif %}
