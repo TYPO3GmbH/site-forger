@@ -203,6 +203,26 @@ class MenuBuilder
             ]
         );
         $menu['management']->addChild(
+            'management-by-year',
+            [
+                'label' => 'Issue Overview',
+                'route' => 'management_index',
+                'extras' => [
+                    'icon' => 'calendar-alt',
+                ],
+            ]
+        );
+        $menu['management']->addChild(
+            'management-interactions',
+            [
+                'label' => 'Team Interactions',
+                'route' => 'management_interactions',
+                'extras' => [
+                    'icon' => 'users',
+                ],
+            ]
+        );
+        $menu['management']->addChild(
             'management-by-category',
             [
                 'label' => 'Issues by Category',
