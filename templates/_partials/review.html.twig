@@ -1,10 +1,13 @@
-{% set reviewTypeClass = 'default' %}
-{% if review._source.reviewtags.0 == 'FEATURE' %}
-    {% set reviewTypeClass = 'feature' %}
-{% elseif review._source.reviewtags.0 == 'TASK' %}
-    {% set reviewTypeClass = 'task' %}
-{% elseif review._source.reviewtags.0 == 'BUGFIX' %}
-    {% set reviewTypeClass = 'bugfix' %}
+{% if review._source.reviewtags %}
+    {% if review._source.reviewtags.0 == 'FEATURE' %}
+        {% set reviewTypeClass = 'feature' %}
+    {% elseif review._source.reviewtags.0 == 'TASK' %}
+        {% set reviewTypeClass = 'task' %}
+    {% elseif review._source.reviewtags.0 == 'BUGFIX' %}
+        {% set reviewTypeClass = 'bugfix' %}
+    {% endif %}
+{% else %}
+    {% set reviewTypeClass = 'default' %}
 {% endif %}
 
 <div class="review review-full review-type-{{ reviewTypeClass }}">
