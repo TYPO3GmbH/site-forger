@@ -3,37 +3,35 @@
 {% block headline %}Issue Management View{% endblock %}
 {% block body %}
 
-    <div class="content-section bg-transparent">
-        <div class="container-fluid">
+    <div class="content-section content-section-smallest bg-dark text-white">
+        <div class="container">
+
             <form action="{{ path(routeName) }}" method="get" class="form">
-                <div class="form-row">
-                    <div class="form-group form-check-inline">
-                        {{ trackerCheckbox('epic')|raw }}
-                        <label class="form-check-label">Exclude Epics</label>
+                <div class="form-row justify-content-md-center align-items-center">
+                    <div class="col">
+                        {{ trackerCheckbox('epic', 'Exclude Epics') }}
                     </div>
-                    <div class="form-group form-check-inline">
-                        {{ trackerCheckbox('story')|raw }}
-                        <label class="form-check-label">Exclude Stories</label>
+                    <div class="col">
+                        {{ trackerCheckbox('story', 'Exclude Stories') }}
                     </div>
-                    <div class="form-group form-check-inline">
-                        {{ trackerCheckbox('feature')|raw }}
-                        <label class="form-check-label">Exclude Features</label>
+                    <div class="col">
+                        {{ trackerCheckbox('feature', 'Exclude Features') }}
                     </div>
-                    <div class="form-group form-check-inline">
-                        {{ trackerCheckbox('task')|raw }}
-                        <label class="form-check-label">Exclude Tasks</label>
+                    <div class="col">
+                        {{ trackerCheckbox('task', 'Exclude Tasks') }}
                     </div>
-                    <div class="form-group form-check-inline">
-                        {{ trackerCheckbox('bug')|raw }}
-                        <label class="form-check-label">Exclude Bugs</label>
+                    <div class="col">
+                        {{ trackerCheckbox('bug', 'Exclude Bugs') }}
                     </div>
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-success">Filter</button>
+                    <div class="col">
+                        <button type="submit" class="btn btn-primary">Filter</button>
                     </div>
                 </div>
             </form>
-        </div>
 
+        </div>
+    </div>
+    <div class="content-section content-section-small">
         <div class="container-fluid">
             {% for year in aggs %}
                 <div class="yearview">

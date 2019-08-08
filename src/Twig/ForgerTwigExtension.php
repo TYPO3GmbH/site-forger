@@ -22,7 +22,7 @@ class ForgerTwigExtension extends AbstractExtension
             new TwigFunction('bucketCounter', [$this, 'bucketCounter'], ['is_safe' => ['html']]),
             new TwigFunction('aggregationBucket', [$this, 'aggregationBucket'], ['is_safe' => ['html']]),
             new TwigFunction('textile', [$this, 'textile'], ['is_safe' => ['html']]),
-            new TwigFunction('trackerCheckbox', [$this, 'trackerCheckbox']),
+            new TwigFunction('trackerCheckbox', [$this, 'trackerCheckbox'], ['is_safe' => ['html']]),
             new TwigFunction('forgeLink', [$this, 'forgeLink']),
         ];
     }
@@ -83,16 +83,21 @@ class ForgerTwigExtension extends AbstractExtension
         return $parsedText;
     }
 
-    public function trackerCheckbox(string $trackerType): string
+    public function trackerCheckbox(string $trackerType, string $label): string
     {
         $checked = '';
         $trackerFilters = new TrackerFilters();
         if ($trackerFilters->$trackerType === true) {
             $checked = ' checked="checked';
         }
-        $content = '<input type="checkbox" class="form-check-input" name="trackerFilters[' . $trackerType . ']"' . $checked . ' value="true" />';
 
-        return $content;
+        $content = [];
+        $content[] = '<div class="custom-control custom-checkbox">';
+        $content[] = '<input id="checkbox-' . $trackerType . '" type="checkbox" class="custom-control-input" name="trackerFilters[' . $trackerType . ']"' . $checked . ' value="true" />';
+        $content[] = '<label for="checkbox-' . $trackerType . '" class="custom-control-label">' . $label . '</label>';
+        $content[] = '</div>';
+
+        return implode('', $content);
     }
 
     /**
