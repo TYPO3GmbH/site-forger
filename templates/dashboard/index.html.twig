@@ -1,89 +1,82 @@
 {% extends 'base.html.twig' %}
 {% block title %}Dashboard{% endblock %}
+{% block headline %}Dashboard{% endblock %}
 {% block body %}
 
     {% include '_partials/searchbar.html.twig' %}
 
     <div class="content-section content-section-small">
         <div class="container-fluid">
-            <h1>Dashboard</h1>
 
-            <div class="card-deck">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Mergeable</h5>
-                        <canvas class="js-chart" data-chart-type="doughnut" data-src="/chart/mergeable"></canvas>
+            {% set dashboard = {
+                1: {
+                    identifier: 'mergeable',
+                    title: 'Mergeable',
+                    content: '<canvas class="js-chart" data-chart-type="doughnut" data-src="/chart/mergeable"></canvas>'
+                },
+                2: {
+                    identifier: 'openreviews',
+                    title: 'Open Reviews',
+                    content: '<canvas class="js-chart" data-chart-type="line" data-src="/chart/open_reviews"></canvas>'
+                },
+                3: {
+                    identifier: 'openclosed',
+                    title: 'Opened vs. Closed',
+                    content: '<canvas class="js-chart" data-chart-type="line" data-src="/chart/opened_closed"></canvas>'
+                },
+                4: {
+                    identifier: 'openticketsovertime',
+                    title: 'Open Tickets over time',
+                    content: 'implement me'
+                },
+                5: {
+                    identifier: 'openreviewsovertime',
+                    title: 'Open Reviews over time',
+                    content: 'implement me'
+                },
+                6: {
+                    identifier: 'gerritoverview',
+                    title: 'Gerrit overview',
+                    content: 'implement me'
+                },
+                7: {
+                    identifier: 'gerritactivity',
+                    title: 'Gerrit activity',
+                    content: 'implement me'
+                },
+                8: {
+                    identifier: 'gerritvelocity',
+                    title: 'Gerrit velocity',
+                    content: 'implement me'
+                },
+                9: {
+                    identifier: 'forgevelocity',
+                    title: 'Forge velocity',
+                    content: 'implement me'
+                },
+                10: {
+                    identifier: 'trackertypes',
+                    title: 'Tracker Types',
+                    content: 'implement me'
+                },
+                11: {
+                    identifier: 'reviewprogress',
+                    title: 'Review Progress Comparison',
+                    content: 'implement me'
+                },
+                12: {
+                    identifier: 'ticketprogress',
+                    title: 'Ticket Progress Comparison',
+                    content: 'implement me'
+                }
+            } %}
+            <div class="dashboard">
+                {% for item in dashboard %}
+                    <div class="dashboard-item dashboard-item-{{ item.identifier }}">
+                        <h5 class="dashboard-item-title">{{ item.title }}</h5>
+                        <div class="dashboard-item-body">{{ item.content|raw }}</div>
                     </div>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Open Reviews</h5>
-                        <canvas class="js-chart" data-chart-type="line" data-src="/chart/open_reviews"></canvas>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Opened vs. Closed</h5>
-                        <canvas class="js-chart" data-chart-type="line" data-src="/chart/opened_closed"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card-deck mt-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Open Tickets over time</h5>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Open Reviews over time</h5>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card-deck mt-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Gerrit overview</h5>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Gerrit activity</h5>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card-deck mt-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Gerrit velocity</h5>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Forge velocity</h5>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Tracker Types</h5>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card-deck mt-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Review Progress Comparison</h5>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Ticket Progress Comparison</h5>
-                    </div>
-                </div>
+                {% endfor %}
             </div>
 
         </div>

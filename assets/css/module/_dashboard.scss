@@ -1,0 +1,66 @@
+//
+// Dashboard
+//
+$dashboard-shadow: $theme-shadow;
+$dashboard-bg: #ffffff;
+$dashboard-border-radius: 2px;
+$dashboard-color: color-yiq($issue-bg);
+$dashboard-padding: 1rem;
+
+
+.dashboard {
+    display: grid;
+    grid-gap: 10px;
+    grid-template-areas:
+        "d01"
+        "d02"
+        "d03"
+        "d04"
+        "d05"
+        "d06"
+        "d07"
+        "d08"
+        "d09"
+        "d10"
+        "d11"
+        "d12";
+
+    @include media-breakpoint-up('sm') {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-areas:
+            "d01 d02"
+            "d03 d04"
+            "d05 d06"
+            "d07 d08"
+            "d09 d10"
+            "d11 d12";
+    }
+    @include media-breakpoint-up('md') {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-areas:
+            "d01 d01 d02 d02 d03 d03"
+            "d04 d04 d04 d05 d05 d05"
+            "d06 d06 d06 d07 d07 d07"
+            "d08 d08 d09 d09 d10 d10"
+            "d11 d11 d11 d12 d12 d12";
+    }
+}
+@each $name, $area in $dashboard-areas {
+    .dashboard-item-#{$name} {
+        grid-area: $area;
+    }
+}
+.dashboard-item {
+    border-radius: $dashboard-border-radius;
+    color: $dashboard-color;
+    background-color: $dashboard-bg;
+    overflow: hidden;
+    box-shadow: $dashboard-shadow;
+}
+.dashboard-item-title {
+    padding: $dashboard-padding;
+    background-color: darken($issue-bg, 2.5%);
+}
+.dashboard-item-body {
+    padding: $dashboard-padding;
+}
