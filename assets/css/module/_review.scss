@@ -43,7 +43,6 @@ $review-padding: 1rem;
     a {
         color: inherit;
         font-weight: bold;
-        text-decoration: underline;
     }
 }
 .review-note {
@@ -96,6 +95,7 @@ $review-padding: 1rem;
         align-items: center;
     }
     .review-title {
+        font-size: 1rem;
         width: 100%;
         order: 1;
     }
