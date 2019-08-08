@@ -10,6 +10,7 @@ var {DateTime} = require('luxon');
 require('bootstrap');
 require('./libs/navbar.js');
 require('./aggregations.js');
+require('./charts.js');
 require('./rst.js');
 
 document.onreadystatechange = function () {
