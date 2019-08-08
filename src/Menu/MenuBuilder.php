@@ -75,10 +75,10 @@ class MenuBuilder
         $menu->addChild(
             'index',
             [
-                'label' => 'Home',
+                'label' => 'Dashboard',
                 'route' => 'dashboard_index',
                 'extras' => [
-                    'icon' => 'home',
+                    'icon' => 'tachometer-alt',
                 ],
             ]
         );
