@@ -10,6 +10,7 @@
 namespace App\Controller;
 
 use App\Client\ElasticClient;
+use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -43,7 +44,7 @@ class ApiController extends AbstractController
     {
         try {
             $output = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->getType($type)->getDocument($documentId);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return new JsonResponse('Document not found', 404);
         }
         return new JsonResponse($output->getData());
