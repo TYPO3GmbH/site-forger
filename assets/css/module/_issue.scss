@@ -151,4 +151,22 @@ $issue-type-width: 1.25rem;
     .issue-headline {
         font-size: 1rem;
     }
+    .issue-meta-item-avatar {
+        margin-left: -19px;
+        position: relative;
+        z-index: 1;
+        .avatar {
+            border: 3px solid darken($issue-bg, 2.5%);
+        }
+    }
+    .issue-meta-author {
+        .issue-meta-item-body {
+            white-space: nowrap;
+            max-width: 120px;
+        }
+        .issue-meta-item-value {
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+    }
 }
