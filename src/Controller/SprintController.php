@@ -229,7 +229,6 @@ class SprintController extends AbstractController
                 'hasPlusOne' => [],
                 'mergeConflict' => [],
                 'blocked' => [],
-                'unclear' => [],
             ];
             $fullRequest = [
                 'query' => $query,
