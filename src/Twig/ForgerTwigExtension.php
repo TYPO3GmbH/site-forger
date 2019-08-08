@@ -49,16 +49,16 @@ class ForgerTwigExtension extends AbstractExtension
         $label = $bucket['key_as_string'] ?? $bucket['key'];
         $docCount = $bucket['doc_count'];
         $category = $this->fixWording($category);
+        $key = $this->fixWording($bucket['key'], false);
 
         // check if checkbox has been set
-        if (isset($_GET['filters'][$category][$bucket['key']]) && $_GET['filters'][$category][$bucket['key']] === 'true') {
+        if (isset($_GET['filters'][$category][$key]) && $_GET['filters'][$category][$key] === 'true') {
             $checked = ' checked';
         } else {
             $checked = '';
         }
-
         $content = '<div class="custom-control custom-checkbox">'
-            . '<input type="checkbox" class="custom-control-input" id="' . $category . '-' . $index . '" name="filters[' . $category . '][' . $this->fixWording($bucket['key'], false) . ']" ' . $checked . ' value="true" onchange="this.form.submit()">'
+            . '<input type="checkbox" class="custom-control-input" id="' . $category . '-' . $index . '" name="filters[' . $category . '][' . $key . ']" ' . $checked . ' value="true" onchange="this.form.submit()">'
             . '<label class="custom-control-label custom-control-label-hascount" for="' . $category . '-' . $index . '">'
             . '<span class="custom-control-label-title">' . $label . '</span> <span class="custom-control-label-count">' . $docCount . '</span>'
             . '</label>'
