@@ -1,4 +1,2 @@
-<button data-action="paste-code" data-code-location="#snippet-{{ identifier }}" class="btn btn-sm btn-default float-right ml-3" disabled><i class="fal fa-paste"></i></button>
-<pre id="snippet-{{ identifier }}">
-{{ code | raw }}
-</pre>
+{% set language = language ?? 'generic' %}
+<pre data-processor="syntax-highlight" id="snippet-{{ identifier }}"><code class="language-{{ language }}">{{ code | raw }}</code></pre>

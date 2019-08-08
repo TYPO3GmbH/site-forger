@@ -4,104 +4,120 @@
 {% block headline %}ReST Helper{% endblock %}
 {% block body %}
 
-    <div class="content-section bg-transparent">
+    <div class="content-section content-section-grow">
         <div class="container">
             <div class="flashmessage-container"></div>
+            <form class="form-rst-helper" autocomplete="off">
 
-            <div class="row">
-                <div class="col-md-8">
-                    <form class="form-rst-helper" autocomplete="off">
-                        <div class="form-row">
-                            <div class="form-group col-sm-4">
+                <div class="row">
+                    <div class="col-md-4">
+
+                        <div class="card">
+                            <div class="card-body">
                                 <label for="ticketid">Ticket ID</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="ticketid" placeholder="99999" autocomplete="off" required>
                                     <div class="input-group-append">
-                                        <button class="btn btn-default" type="button" data-action="fetch-ticket"><i class="fal fa-search"></i></button>
+                                        <button class="btn btn-secondary" type="button" data-action="fetch-ticket"><i class="fal fa-search"></i></button>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col form-group">
-                                <label for="title">Title</label>
-                                <input type="text" class="form-control text-monospace" id="title" autocomplete="off" required>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>Type</label>
+                                    <div class="custom-control custom-radio">
+                                        <input type="radio" id="classification-breaking" class="custom-control-input" name="classification" autocomplete="off" value="breaking" checked>
+                                        <label class="custom-control-label" for="classification-breaking">Breaking</label>
+                                    </div>
+                                    <div class="custom-control custom-radio">
+                                        <input type="radio" id="classification-deprecation" class="custom-control-input" name="classification" autocomplete="off" value="deprecation">
+                                        <label class="custom-control-label" for="classification-deprecation">Deprecation</label>
+                                    </div>
+                                    <div class="custom-control custom-radio">
+                                        <input type="radio" id="classification-feature" class="custom-control-input" name="classification" autocomplete="off" value="feature">
+                                        <label class="custom-control-label" for="classification-feature">Feature</label>
+                                    </div>
+                                    <div class="custom-control custom-radio">
+                                        <input type="radio" id="classification-important" class="custom-control-input" name="classification" autocomplete="off" value="important">
+                                        <label class="custom-control-label" for="classification-important">Important</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="btn-group btn-group-toggle d-flex" data-toggle="buttons">
-                            <label class="btn btn-outline-danger"><input type="radio" name="classification" autocomplete="off" value="breaking"> Breaking</label>
-                            <label class="btn btn-outline-warning"><input type="radio" name="classification" autocomplete="off" value="deprecation"> Deprecation</label>
-                            <label class="btn btn-outline-success"><input type="radio" name="classification" autocomplete="off" value="feature"> Feature</label>
-                            <label class="btn btn-outline-info"><input type="radio" name="classification" autocomplete="off" value="important"> Important</label>
-                        </div>
-                        <hr>
-                        <div class="row" id="no-type-selected-hint">
-                            <div class="col-sm-12">
-                                <div class="alert alert-info" role="alert">
-                                    <strong>No Type selected!</strong> Please select one rst type above!
-                                </div>
-                                <hr>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-body" data-classified-as="breaking deprecation feature important">
+                                <label for="title">Title</label>
+                                <input type="text" class="form-control text-monospace" id="title" autocomplete="off" required disabled>
+                            </div>
+                            <div hidden class="card-body" data-classified-as="breaking deprecation feature important">
+                                <label for="description">Description</label>
+                                <textarea class="form-control text-monospace" rows="5" id="description" title="Description" required disabled></textarea>
+                            </div>
+                            <div hidden class="card-body" data-classified-as="breaking deprecation feature">
+                                <label for="impact">Impact</label>
+                                <textarea class="form-control text-monospace" rows="5" id="impact" title="Impact" required disabled></textarea>
+                            </div>
+                            <div hidden class="card-body" data-classified-as="breaking deprecation">
+                                <label for="affected">Affected Installations</label>
+                                <textarea class="form-control text-monospace" rows="5" id="affected" title="Affected Installations" required disabled></textarea>
+                            </div>
+                            <div hidden class="card-body" data-classified-as="breaking deprecation">
+                                <label for="migration">Migration</label>
+                                <textarea class="form-control text-monospace" rows="5" id="migration" title="Migration" required disabled></textarea>
                             </div>
                         </div>
-                        <div hidden class="form-group" data-classified-as="breaking deprecation feature important">
-                            <label for="description">Description</label>
-                            <textarea class="form-control text-monospace" rows="5" id="description" title="Description" required disabled></textarea>
-                        </div>
-                        <div hidden class="form-group" data-classified-as="breaking deprecation feature">
-                            <label for="impact">Impact</label>
-                            <textarea class="form-control text-monospace" rows="5" id="impact" title="Impact" required disabled></textarea>
-                        </div>
-                        <div hidden class="form-group" data-classified-as="breaking deprecation">
-                            <label for="affected">Affected Installations</label>
-                            <textarea class="form-control text-monospace" rows="5" id="affected" title="Affected Installations" required disabled></textarea>
-                        </div>
-                        <div hidden class="form-group" data-classified-as="breaking deprecation">
-                            <label for="migration">Migration</label>
-                            <textarea class="form-control text-monospace" rows="5" id="migration" title="Migration" required disabled></textarea>
-                        </div>
-                        <div hidden class="form-group" data-classified-as="breaking deprecation feature important">
-                            <label>Tags</label>
-                            <div class="row">
-                                {% for tag in tags %}
-                                    <div class="col-sm-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" value="{{ tag }}" id="tag-{{ loop.index }}">
-                                            <label class="form-check-label" for="tag-{{ loop.index }}">
-                                                {{ tag }}
-                                            </label>
-                                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div hidden class="card-body" data-classified-as="breaking deprecation feature important">
+                        <label>Tags</label>
+                        <div class="form-row">
+                            {% for tag in tags %}
+                                <div class="col-sm-3">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" value="{{ tag }}" id="tag-{{ loop.index }}">
+                                        <label class="custom-control-label" for="tag-{{ loop.index }}">{{ tag }}</label>
                                     </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <div hidden class="form-group" data-classified-as="breaking deprecation feature important">
-                            <label for="extensionTag">Core Extension</label>
-                            <select name="tag[]" id="extensionTag" class="form-control" required>
-                                <option value=""></option>
-                                {% for extensionKey in extensionKeys %}
-                                    <option value="ext:{{ extensionKey }}">{{ extensionKey }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div hidden class="form-group" data-classified-as="breaking deprecation">
-                            <label>ExtensionScanner Tags</label>
-                            <div>
-                                <div class="btn-group btn-group-toggle d-flex" data-toggle="buttons">
-                                    <label class="btn btn-outline-secondary active"><input type="radio" name="tag[]" id="tag-not-scanned" autocomplete="off" value="NotScanned" checked> Not scanned</label>
-                                    <label class="btn btn-outline-secondary"><input type="radio" name="tag[]" id="tag-partially-scanned" autocomplete="off" value="PartiallyScanned"> Partially scanned</label>
-                                    <label class="btn btn-outline-secondary"><input type="radio" name="tag[]" id="tag-fully-scanned" autocomplete="off" value="FullyScanned"> Fully scanned</label>
                                 </div>
-                            </div>
-                            <small class="form-text text-muted"><a href="https://docs.typo3.org/typo3cms/CoreApiReference/ApiOverview/ExtensionScanner/Index.html#connection-to-changelog-rst-files" target="_blank" rel="noopener">More information about this tags</a></small>
+                            {% endfor %}
                         </div>
-                        <div hidden class="form-group" data-classified-as="breaking deprecation feature important">
-                            {{ macros.submit('Create ReST manual', 'success') }}
+                    </div>
+                    <div hidden class="card-body" data-classified-as="breaking deprecation feature important">
+                        <label for="extensionTag">Core Extension</label>
+                        <select name="tag[]" id="extensionTag" class="custom-select" required>
+                            <option value=""></option>
+                            {% for extensionKey in extensionKeys %}
+                                <option value="ext:{{ extensionKey }}">{{ extensionKey }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div hidden class="card-body" data-classified-as="breaking deprecation">
+                        <label>ExtensionScanner Tags</label>
+                        <div class="custom-control custom-radio">
+                            <input type="radio" id="tag-not-scanned" class="custom-control-input" name="tag[]" autocomplete="off" value="NotScanned" checked>
+                            <label class="custom-control-label" for="tag-not-scanned">Not scanned</label>
                         </div>
-                    </form>
+                        <div class="custom-control custom-radio">
+                            <input type="radio" id="tag-partially-scanned" class="custom-control-input" name="tag[]" autocomplete="off" value="PartiallyScanned" checked>
+                            <label class="custom-control-label" for="tag-partially-scanned">Partially scanned</label>
+                        </div>
+                        <div class="custom-control custom-radio">
+                            <input type="radio" id="tag-fully-scanned" class="custom-control-input" name="tag[]" autocomplete="off" value="FullyScanned" checked>
+                            <label class="custom-control-label" for="tag-fully-scanned">Fully scanned</label>
+                        </div>
+                        <small class="form-text text-muted"><a href="https://docs.typo3.org/typo3cms/CoreApiReference/ApiOverview/ExtensionScanner/Index.html#connection-to-changelog-rst-files" target="_blank" rel="noopener">More information about this tags</a></small>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    {% include '_partials/utility/code_snippet_accordion.html.twig' %}
+
+
+                <div hidden class="form-group" data-classified-as="breaking deprecation feature important">
+                    {{ macros.submit('Create ReST manual', 'primary') }}
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 
@@ -121,5 +137,10 @@
         </div>
     </div>
 
+    <div class="content-section content-section-small bg-shaded">
+        <div class="container">
+            {% include '_partials/utility/rst_snippets.html.twig' %}
+        </div>
+    </div>
 
 {% endblock %}

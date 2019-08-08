@@ -27,6 +27,7 @@
     "dependencies": {
         "chart.js": "^2.8.0",
         "luxon": "^1.17.2",
+        "prismjs": "^1.17.1",
         "sprintf-js": "^1.1.2"
     }
 }

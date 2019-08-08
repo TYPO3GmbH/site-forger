@@ -3,11 +3,9 @@
 
     const Selectors = {
         form: '.form-rst-helper',
-        nothingSelectedHint: '#no-type-selected-hint',
         classificationToggle: 'input[name="classification"]',
         ticketIdField: '#ticketid',
         ticketTitleField: '#title',
-        copyPastaButton: '[data-action="paste-code"]',
         fetchTicket: '[data-action="fetch-ticket"]',
         modal: '#changelogModal',
         flashMessageContainer: '.flashmessage-container'
@@ -27,16 +25,10 @@
             }
         },
         initializeEvents: function () {
-            $('textarea').on('focus', function () {
-                $lastActiveTextarea = $(this);
-                $(Selectors.copyPastaButton).prop('disabled', false);
-            });
-
+            Rst.togglePalettes('breaking');
             $(document).on('change', Selectors.classificationToggle, function (e) {
-                $(Selectors.nothingSelectedHint).hide();
                 Rst.togglePalettes(e.currentTarget.value);
-            }).on('click', Selectors.copyPastaButton, Rst.handleSnippetPaste)
-                .on('click', Selectors.fetchTicket, Rst.fetchTicket);
+            }).on('click', Selectors.fetchTicket, Rst.fetchTicket);
 
             $(Selectors.form).on('submit', Rst.generateDocument);
         },
@@ -77,24 +69,6 @@
                     $trigger.disabled = false;
                 }
             })
-        },
-        handleSnippetPaste: function (e) {
-            const codeContainerSelector = e.currentTarget.dataset.codeLocation;
-            const snippet = $.trim($(codeContainerSelector).text());
-
-            if (document.selection) {
-                $lastActiveTextarea.focus();
-                const range = document.selection.createRange();
-                range.text = snippet;
-            } else if ($lastActiveTextarea.prop('selectionStart') || $lastActiveTextarea.prop('selectionStart') === 0) {
-                const startPos = $lastActiveTextarea.prop('selectionStart');
-                const endPos = $lastActiveTextarea.prop('selectionEnd');
-                const fieldValue = $lastActiveTextarea.val();
-
-                $lastActiveTextarea.val(fieldValue.substring(0, startPos) + snippet + fieldValue.substring(endPos, fieldValue.length));
-            } else {
-                $lastActiveTextarea.val($lastActiveTextarea.val() + snippet);
-            }
         },
         togglePalettes: function (classification) {
             const $palettes = $('[data-classified-as]');
