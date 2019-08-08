@@ -302,6 +302,7 @@ class SearchController extends AbstractController
             return $filters;
         }
         foreach ($_GET['filters'] as $key => $filterValue) {
+            $key = $this->mapFilterNames($key);
             $filterCatCount = 0;
             $filterPart = new Query\BoolQuery();
             foreach ($filterValue as $term => $enabled) {
@@ -328,8 +329,18 @@ class SearchController extends AbstractController
                 $filters->addMust($filterPart);
             }
         }
-
         return $filters;
+    }
+
+    private function mapFilterNames(string $key): string
+    {
+        switch ($key) {
+            case 'target_version':
+                return 'fixed_version.name';
+                break;
+            default:
+                return $key;
+        }
     }
 
     /**

@@ -58,7 +58,7 @@ class ForgerTwigExtension extends AbstractExtension
         }
 
         $content = '<div class="custom-control custom-checkbox">'
-            . '<input type="checkbox" class="custom-control-input" id="' . $category . '-' . $index . '" name="filters[' . $category . '][' . $bucket['key'] . ']" ' . $checked . ' value="true" onchange="this.form.submit()">'
+            . '<input type="checkbox" class="custom-control-input" id="' . $category . '-' . $index . '" name="filters[' . $category . '][' . $this->fixWording($bucket['key'], false) . ']" ' . $checked . ' value="true" onchange="this.form.submit()">'
             . '<label class="custom-control-label custom-control-label-hascount" for="' . $category . '-' . $index . '">'
             . '<span class="custom-control-label-title">' . $label . '</span> <span class="custom-control-label-count">' . $docCount . '</span>'
             . '</label>'
