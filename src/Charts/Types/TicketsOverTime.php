@@ -18,7 +18,6 @@ class TicketsOverTime extends IssueChart
         $openedDataSet = $this->getOpenedDataSet();
         $closedDataSet = $this->getClosedDataSet();
         $mergedDataSets = array_replace_recursive($openedDataSet, $closedDataSet);
-        ksort($mergedDataSets);
 
         $labels = array_keys($mergedDataSets);
         $chartData = array_values(array_map(static function (array $metrics): int {
