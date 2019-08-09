@@ -70,4 +70,72 @@ abstract class AbstractChart
             ],
         ];
     }
+
+    protected function getCumulativeTicketsToDate(int $year, string $key, string $interval = 'day'): array
+    {
+        $terms = [
+            'status.name' => [
+                'Closed',
+                'Rejected',
+                'Resolved',
+            ],
+        ];
+        if ($this->getDocumentType() === 'review') {
+            $terms = [
+                'reviewstatus' => [
+                    'ABANDONED',
+                    'MERGED',
+                ],
+            ];
+        }
+        $query = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        ['terms' => $terms],
+                        [
+                            'range' => [
+                                'updated_on' => [
+                                    'gte' => $year,
+                                    'lt' => $year + 1,
+                                    'format' => 'yyyy'
+                                ],
+                            ],
+                        ]
+                    ],
+                ],
+            ],
+            'size' => 0,
+            'aggregations' => [
+                'over_time' => [
+                    'date_histogram' => [
+                        'field' => 'updated_on',
+                        'interval' => $interval,
+                    ],
+                ],
+            ],
+        ];
+        $resultSet = $this->fetchData($query);
+        $data = $resultSet->getAggregations();
+        $openSum = 0;
+        $result = [];
+        if (is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $frame) {
+                $openSum += $frame['doc_count'];
+                switch ($key) {
+                    case 'previous':
+                        $date = str_replace($year, $year + 1, $this->convertDateToFormat($frame['key_as_string'], 'M'));
+                        break;
+                    case 'previous2':
+                        $date = str_replace($year, $year + 2, $this->convertDateToFormat($frame['key_as_string'], 'M'));
+                        break;
+                    default:
+                        $date = $this->convertDateToFormat($frame['key_as_string'], 'M');
+                }
+                $result[$date] = $openSum;
+            }
+        }
+
+        return $result;
+    }
 }

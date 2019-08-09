@@ -20,6 +20,8 @@ final class ChartRegistry
         'opened_closed' => Types\OpenedClosed::class,
         'tickets_over_time' => Types\TicketsOverTime::class,
         'reviews_over_time' => Types\ReviewsOverTime::class,
+        'review_progress' => Types\ReviewProgress::class,
+        'ticket_progress' => Types\TicketProgress::class,
     ];
 
     public static function getChartInstance(string $identifier, Index $index): ChartInterface
