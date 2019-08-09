@@ -7,6 +7,9 @@ $dashboard-border-radius: 2px;
 $dashboard-color: color-yiq($issue-bg);
 $dashboard-padding: 1rem;
 
+.container-dashboard {
+    max-width: 2000px;
+}
 
 .dashboard {
     display: grid;
