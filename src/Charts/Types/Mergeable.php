@@ -9,7 +9,7 @@
 
 namespace App\Charts\Types;
 
-use Elastica\Index;
+use App\Charts\Colors;
 
 class Mergeable extends ReviewChart
 {
@@ -23,9 +23,9 @@ class Mergeable extends ReviewChart
                         $this->getWorkInProgress(),
                     ]),
                     'backgroundColor' => [
-                        'rgb(75, 192, 192)',
-                        'rgb(255, 99, 132)',
-                        'rgb(54, 162, 235)',
+                        Colors::getAsRgb(Colors::GREEN),
+                        Colors::getAsRgb(Colors::RED),
+                        Colors::getAsRgb(Colors::BLUE),
                     ],
                 ],
             ],
@@ -80,7 +80,7 @@ class Mergeable extends ReviewChart
                         ],
                         [
                             'terms' => ['reviewtags' => ['WIP']],
-                        ]
+                        ],
                     ],
                 ],
             ],

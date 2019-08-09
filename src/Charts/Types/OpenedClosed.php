@@ -9,6 +9,8 @@
 
 namespace App\Charts\Types;
 
+use App\Charts\Colors;
+
 class OpenedClosed extends IssueChart
 {
     public function getData(): array
@@ -28,48 +30,57 @@ class OpenedClosed extends IssueChart
 
     private function getOpenedDataSet(): array
     {
-        $data = $this->fetchData($this->getOpenedQuery());
-        $chartData = [];
-        if (is_array($data['over_time']['buckets'])) {
-            foreach ($data['over_time']['buckets'] as $i => $frame) {
-                $date = $this->convertDateToFormat($frame['key_as_string'], 'W Y');
-                $chartData[$date] = $frame['doc_count'];
-            }
-        }
+        $resultSet = $this->fetchData($this->getOpenedQuery([
+            'bool' => [
+                'must_not' => [
+                    'range' => ['created_on' => ['lte' => (new \DateTimeImmutable())->sub(new \DateInterval('P1M'))->format('Y/m/d H:i:s')]],
+                ],
+            ],
+        ]));
+        $data = $resultSet->getAggregations();
+        $chartData = $this->extractDataFromAggregation($data);
 
         return [
             'label' => 'Opened',
-            'backgroundColor' => 'rgba(255, 99, 132, 0.6)',
-            'borderColor' => 'rgb(255, 99, 132)',
+            'backgroundColor' => Colors::getAsRgba(Colors::RED),
+            'borderColor' => Colors::getAsRgb(Colors::RED),
             'data' => $chartData,
         ];
     }
 
     private function getClosedDataSet(): array
     {
-        $data = $this->fetchData($this->getClosedQuery());
-        $chartData = [];
-        if (is_array($data['over_time']['buckets'])) {
-            foreach ($data['over_time']['buckets'] as $i => $frame) {
-                $date = $this->convertDateToFormat($frame['key_as_string'], 'W Y');
-                $chartData[$date] = $frame['doc_count'];
-            }
-        }
+        $resultSet = $this->fetchData($this->getClosedQuery([
+            'bool' => [
+                'must' => [
+                    'terms' => ['status.name' => ['Closed', 'Rejected', 'Resolved']],
+                ],
+                'must_not' => [
+                    'range' => ['updated_on' => ['lte' => (new \DateTimeImmutable())->sub(new \DateInterval('P1M'))->format('Y/m/d H:i:s')]],
+                ],
+            ],
+        ]));
+        $data = $resultSet->getAggregations();
+        $chartData = $this->extractDataFromAggregation($data);
 
         return [
             'label' => 'Closed',
-            'backgroundColor' => 'rgba(75, 192, 192, 0.6)',
-            'borderColor' => 'rgb(75, 192, 192)',
+            'backgroundColor' => Colors::getAsRgba(Colors::GREEN),
+            'borderColor' => Colors::getAsRgb(Colors::GREEN),
             'data' => $chartData,
         ];
     }
 
-    private function fetchData(array $query): array
+    private function extractDataFromAggregation(array $data): array
     {
-        $search = $this->index->createSearch($query);
-        $search->addType($this->getDocumentType());
-        $resultSet = $search->search();
+        $chartData = [];
+        if (is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $i => $frame) {
+                $date = $this->convertDateToFormat($frame['key_as_string'], 'd.m');
+                $chartData[$date] = $frame['doc_count'];
+            }
+        }
 
-        return $resultSet->getAggregations();
+        return $chartData;
     }
 }

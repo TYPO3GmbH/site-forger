@@ -9,48 +9,76 @@
 
 namespace App\Charts\Types;
 
-use Elastica\Index;
+use App\Charts\Colors;
 
 class TicketsOverTime extends IssueChart
 {
     public function getData(): array
     {
         $openedDataSet = $this->getOpenedDataSet();
-        $search = $this->index->createSearch($this->getFullRequest());
-        $search->addType($this->getDocumentType());
-        $resultSet = $search->search();
-        $data = $resultSet->getAggregations();
+        $closedDataSet = $this->getClosedDataSet();
+        $mergedDataSets = array_replace_recursive($openedDataSet, $closedDataSet);
+        ksort($mergedDataSets);
 
-        $labels = [];
-        $chartData = [];
-
-        if (is_array($data['over_time']['buckets'])) {
-            foreach ($data['over_time']['buckets'] as $i => $frame) {
-                $date = $this->convertDateToFormat($frame['key_as_string'], 'M Y');
-                $labels[] = $date;
-                $chartData[] = $frame['doc_count'];
-            }
-        }
+        $labels = array_keys($mergedDataSets);
+        $chartData = array_values(array_map(static function (array $metrics): int {
+            return $metrics['open'] - $metrics['closed'];
+        }, $mergedDataSets));
 
         return [
             'labels' => $labels,
             'datasets' => [
                 [
-                    'label' => 'Reviews',
+                    'label' => 'Tickets',
                     'data' => $chartData,
-                    'backgroundColor' => 'rgba(54, 162, 235, 0.6)',
-                    'borderColor' => 'rgb(54, 162, 235)',
+                    'backgroundColor' => Colors::getAsRgba(Colors::ORANGE),
+                    'borderColor' => Colors::getAsRgb(Colors::ORANGE),
                 ],
             ],
         ];
     }
 
-    private function fetchData(Index $index, array $query): array
+    private function getOpenedDataSet(): array
     {
-        $search = $index->createSearch($query);
-        $search->addType($this->getDocumentType());
-        $resultSet = $search->search();
+        $resultSet = $this->fetchData($this->getOpenedQuery([
+            'match_all' => new \stdClass(),
+        ], 'quarter'));
 
-        return $resultSet->getAggregations();
+        $data = $resultSet->getAggregations();
+        $openSum = 0;
+        $opened = [];
+        if (\is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $frame) {
+                $openSum += $frame['doc_count'];
+                $date = $this->convertDateToFormat($frame['key_as_string'], 'M Y');
+                $opened[$date]['open'] = $openSum;
+            }
+        }
+
+        return $opened;
+    }
+
+    private function getClosedDataSet(): array
+    {
+        $resultSet = $this->fetchData($this->getClosedQuery([
+            'bool' => [
+                'must' => [
+                    'terms' => ['status.name' => ['Closed', 'Resolved', 'Rejected']],
+                ],
+            ],
+        ], 'quarter'));
+
+        $data = $resultSet->getAggregations();
+        $closeSum = 0;
+        $closed = [];
+        if (\is_array($data['over_time']['buckets'])) {
+            foreach ($data['over_time']['buckets'] as $frame) {
+                $closeSum += $frame['doc_count'];
+                $date = $this->convertDateToFormat($frame['key_as_string'], 'M Y');
+                $closed[$date]['closed'] = $closeSum;
+            }
+        }
+
+        return $closed;
     }
 }

@@ -9,10 +9,7 @@
 
 namespace App\Charts\Types;
 
-use Elastica\Index;
-
 interface ChartInterface
 {
-    public function getDocumentType(): string;
     public function getData(): array;
 }

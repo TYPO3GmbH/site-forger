@@ -9,7 +9,7 @@
 
 namespace App\Charts\Types;
 
-use Elastica\Index;
+use App\Charts\Colors;
 
 class OpenReviews extends ReviewChart
 {
@@ -37,8 +37,8 @@ class OpenReviews extends ReviewChart
                 [
                     'label' => 'Reviews',
                     'data' => $chartData,
-                    'backgroundColor' => 'rgba(54, 162, 235, 0.6)',
-                    'borderColor' => 'rgb(54, 162, 235)',
+                    'backgroundColor' => Colors::getAsRgba(Colors::BLUE),
+                    'borderColor' => Colors::getAsRgb(Colors::BLUE),
                 ],
             ],
         ];

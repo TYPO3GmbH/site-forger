@@ -10,19 +10,16 @@
 namespace App\Charts;
 
 use App\Charts\Types\ChartInterface;
-use App\Charts\Types\Mergeable;
-use App\Charts\Types\OpenedClosed;
-use App\Charts\Types\OpenReviews;
-use App\Charts\Types\TicketsOverTime;
 use Elastica\Index;
 
 final class ChartRegistry
 {
     private static $charts = [
-        'mergeable' => Mergeable::class,
-        'open_reviews' => OpenReviews::class,
-        'opened_closed' => OpenedClosed::class,
-        'tickets_over_time' => TicketsOverTime::class,
+        'mergeable' => Types\Mergeable::class,
+        'open_reviews' => Types\OpenReviews::class,
+        'opened_closed' => Types\OpenedClosed::class,
+        'tickets_over_time' => Types\TicketsOverTime::class,
+        'reviews_over_time' => Types\ReviewsOverTime::class,
     ];
 
     public static function getChartInstance(string $identifier, Index $index): ChartInterface

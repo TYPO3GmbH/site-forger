@@ -11,7 +11,7 @@ namespace App\Charts\Types;
 
 abstract class ReviewChart extends AbstractChart implements ChartInterface
 {
-    public function getDocumentType(): string
+    protected function getDocumentType(): string
     {
         return 'review';
     }
