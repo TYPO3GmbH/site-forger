@@ -282,7 +282,7 @@ class MenuBuilder
             'utility',
             [
                 'label' => 'Utility',
-                'route' => 'utilities_index',
+                'uri' => '#',
                 'extras' => [
                     'icon' => 'tools',
                 ],
