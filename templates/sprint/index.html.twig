@@ -9,7 +9,7 @@
                 <div class="btn-group">
                     {% for boardNav in menu %}
                         <a href="{{ path("sprint", {"category":category, "sprintId":boardNav.id}) }}" class="btn btn-default {{ (boardNav.active) ? 'active' : '' }}" title="{{boardNav.count.open}} open, {{boardNav.count.closed}} closed, {{boardNav.count.total}} total">
-                            {{ boardNav.title }} ({{ (boardNav.count.percentage is defined) ? boardNav.count.percentage : ''}}%)
+                            {{ boardNav.title }} ({{ (boardNav.count.percentage is defined) ? boardNav.count.percentage ~ '%' : '/'}})
                         </a>
                     {% endfor %}
                 </div>
