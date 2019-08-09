@@ -1,183 +1,60 @@
 {% extends 'base.html.twig' %}
 {% block title %}Interactions{% endblock %}
+{% block headline %}Coreteam Review Activity{% endblock %}
 {% block body %}
 
-    <div class="content-section bg-transparent">
+    <div class="content-section content-section-small">
         <div class="container-fluid">
-            <style>
-                .coreteam-table td:first-child {
-                    text-align: left;
-                    white-space: nowrap;
-                }
-                .coreteam-table td {
-                    text-align : right;
-                    min-width : 30px;
-                }
-
-                .btn-blocked {
-                    width: 49px;
-                }
-
-                .btn-blocked[disabled] {
-                    opacity: 0.3;
-                }
-
-                .interaction-month-block {
-                    float: left;
-                    width: 420px;
-                    margin-right : 10px;
-                }
-
-                .bootstrap-tagsinput {
-                    background-color: #fff;
-                    border: 1px solid #ccc;
-                    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-                    display: inline-block;
-                    padding: 4px 6px;
-                    color: #555;
-                    vertical-align: middle;
-                    border-radius: 4px;
-                    max-width: 100%;
-                    line-height: 22px;
-                    cursor: text;
-                }
-                .bootstrap-tagsinput input {
-                    border: none;
-                    box-shadow: none;
-                    outline: none;
-                    background-color: transparent;
-                    padding: 0 6px;
-                    margin: 0;
-                    width: auto;
-                    max-width: inherit;
-                }
-                .bootstrap-tagsinput.form-control input::-moz-placeholder {
-                    color: #777;
-                    opacity: 1;
-                }
-                .bootstrap-tagsinput.form-control input:-ms-input-placeholder {
-                    color: #777;
-                }
-                .bootstrap-tagsinput.form-control input::-webkit-input-placeholder {
-                    color: #777;
-                }
-                .bootstrap-tagsinput input:focus {
-                    border: none;
-                    box-shadow: none;
-                }
-                .bootstrap-tagsinput .tag {
-                    margin-right: 2px;
-                    color: white;
-                }
-                .bootstrap-tagsinput .tag [data-role="remove"] {
-                    margin-left: 8px;
-                    cursor: pointer;
-                }
-                .bootstrap-tagsinput .tag [data-role="remove"]:after {
-                    content: "x";
-                    padding: 0px 2px;
-                }
-                .bootstrap-tagsinput .tag [data-role="remove"]:hover {
-                    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05);
-                }
-                .bootstrap-tagsinput .tag [data-role="remove"]:hover:active {
-                    box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
-                }
-
-                .label-bigger {
-                    font-size: 14px;
-                    font-weight: normal;
-                    line-height : 2;
-                }
-            </style>
-            <h3>Coreteam Review Activity
-                <span class="btn btn-info"><i class="fal fa-code" aria-hidden="true"></i> Added Patchset</span>
-                <span class="btn btn-default"><i class="fal fa-eye" aria-hidden="true"></i> Code Review</span>
-                <span class="btn btn-default"><i class="fal fa-thumbs-o-up" aria-hidden="true"></i> Verification</span>
-                <span class="btn btn-success"><i class="fal fa-code-fork" aria-hidden="true"></i> Merge</span>
-                <span class="btn btn-danger"><i class="fal fa-trash-o" aria-hidden="true"></i> Abandon</span>
-                <span class="btn btn-default"><i class="fal fa-comment-o" aria-hidden="true"></i> Comment</span>
-            </h3>
-            <div class="container-fluid">
-                <div class="row">
-                    {% for monthKey, month in aggs %}
-                        <div class="interaction-month-block">
-                            <table class="table coreteam-table table-striped table-condensed">
-                                <tr>
-                                    <th colspan="7" class="text-center">{{ monthKey }}</th>
-                                </tr>
+            <div class="interactions">
+                {% for monthKey, month in aggs %}
+                    <div class="interactions-item">
+                        <div class="datatable">
+                            <table class="datatable-table datatable-table-compact">
+                                <caption class="datatable-caption">{{ monthKey }}</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Name</th>
+                                        <th scope="col"><i class="fal fa-fw fa-code" aria-hidden="true" data-toggle="tooltip" title="Added Patchset"></i><span class="sr-only">Added Patchset</span></th>
+                                        <th scope="col"><i class="fal fa-fw fa-eye" aria-hidden="true" data-toggle="tooltip" title="Core Review"></i><span class="sr-only">Code Review</span></th>
+                                        <th scope="col"><i class="fal fa-fw fa-thumbs-up" aria-hidden="true" data-toggle="tooltip" title="Verification"></i><span class="sr-only">Verification</span></th>
+                                        <th scope="col"><i class="fal fa-fw fa-code-branch" aria-hidden="true" data-toggle="tooltip" title="Merge"></i><span class="sr-only">Merge</span></th>
+                                        <th scope="col"><i class="fal fa-fw fa-trash" aria-hidden="true" data-toggle="tooltip" title="Abandon"></i><span class="sr-only">Abandon</span></th>
+                                        <th scope="col"><i class="fal fa-fw fa-comment" aria-hidden="true" data-toggle="tooltip" title="Comment"></i><span class="sr-only">Comment</span></th>
+                                    </tr>
+                                </thead>
                                 {% for committer, reviewTypes in month %}
                                     <tr>
-                                        <td>
-                                            {{ committer }}
-                                        </td>
-                                        <td colspan="6">
-                                            <div class="btn-group btn-group-xs" role="group">
-                                                {% if reviewTypes.Added_Patchset is defined %}
-                                                    <span class="btn btn-blocked btn-info"><i class="fal fa-code" aria-hidden="true"></i> {{ reviewTypes.Added_Patchset }}</span>
-                                                {% else %}
-                                                    <span class="btn btn-blocked btn-default" disabled="disabled"><i class="fal fa-code" aria-hidden="true"></i> </span>
-                                                {% endif %}
-
-                                                {% if reviewTypes.Code_Review is defined %}
-                                                    <span class="btn btn-blocked btn-default"><i class="fal fa-eye" aria-hidden="true"></i> {{ reviewTypes.Code_Review }}</span>
-                                                {% else %}
-                                                    <span class="btn btn-blocked btn-default" disabled="disabled"><i class="fal fa-eye" aria-hidden="true"></i> </span>
-                                                {% endif %}
-
-                                                {% if reviewTypes.Verification is defined %}
-                                                    <span class="btn btn-blocked btn-default"><i class="fal fa-thumbs-o-up" aria-hidden="true"></i> {{ reviewTypes.Verification }}</span>
-                                                {% else %}
-                                                    <span class="btn btn-blocked btn-default" disabled="disabled"><i class="fal fa-thumbs-o-up" aria-hidden="true"></i> </span>
-                                                {% endif %}
-
-                                                {% if reviewTypes.Merge is defined %}
-                                                    <span class="btn btn-blocked btn-success"><i class="fal fa-code-fork" aria-hidden="true"></i> {{ reviewTypes.Merge }}</span>
-                                                {% else %}
-                                                    <span class="btn btn-blocked btn-default" disabled="disabled"><i class="fal fa-code-fork" aria-hidden="true"></i> </span>
-                                                {% endif %}
-
-                                                {% if reviewTypes.Abandoned_Patch is defined %}
-                                                    <span class="btn btn-blocked btn-danger"><i class="fal fa-trash-o" aria-hidden="true"></i> {{ reviewTypes.Abandoned_Patch }}</span>
-                                                {% else %}
-                                                    <span class="btn btn-blocked btn-default" disabled="disabled"><i class="fal fa-trash-o" aria-hidden="true"></i></span>
-                                                {% endif %}
-
-                                                {% if reviewTypes.Comment is defined %}
-                                                    <span class="btn btn-blocked btn-default"><i class="fal fa-comment-o" aria-hidden="true"></i> {{ reviewTypes.Comment }}</span>
-                                                {% else %}
-                                                    <span class="btn btn-blocked btn-default" disabled="disabled"><i class="fal fa-comment-o" aria-hidden="true"></i></span>
-                                                {% endif %}
-                                            </div>
-                                        </td>
+                                        <th data-type="title">{{ committer }}</th>
+                                        <td data-type="number">{{ reviewTypes.Added_Patchset ?? '' }}</td>
+                                        <td data-type="number">{{ reviewTypes.Code_Review ?? '' }}</td>
+                                        <td data-type="number">{{ reviewTypes.Verification ?? '' }}</td>
+                                        <td data-type="number">{{ reviewTypes.Merge ?? '' }}</td>
+                                        <td data-type="number">{{ reviewTypes.Abandoned_Patch ?? '' }}</td>
+                                        <td data-type="number">{{ reviewTypes.Comment ?? '' }}</td>
                                     </tr>
                                 {% endfor %}
                             </table>
                         </div>
-                    {% endfor %}
-                </div>
-                <div class="row">
-                    <div class="sm-12">
-                        <div class="panel panel-default">
-                            <div class="panel-heading">
-                                <h3 class="panel-title">Contributors</h3>
-                            </div>
-                            <div class="panel-body">
-                                <form action="/management/interactions" method="get" id="contributorList">
-                                    <div>
-                                        <select multiple name="taggles[]" id="contributors" data-role="tagsinput">
-                                            {%  for member in coreTeamMergers %}
-                                                <option value="{{ member }}">{{ member }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div style="margin-top:10px;">
-                                        <input type="submit" class="btn btn-success" value="Show"> <a class="btn btn-warning" href="/management/interactions/">Reset</a>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
                     </div>
+                {% endfor %}
+            </div>
+            <div class="card">
+                <div class="card-heading">
+                    <h3 class="panel-title">Contributors</h3>
+                </div>
+                <div class="card-body">
+                    <form action="/management/interactions" method="get" id="contributorList">
+                        <div>
+                            <select multiple name="taggles[]" id="contributors" data-role="tagsinput">
+                                {%  for member in coreTeamMergers %}
+                                    <option value="{{ member }}">{{ member }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div style="margin-top:10px;">
+                            <input type="submit" class="btn btn-success" value="Show"> <a class="btn btn-warning" href="/management/interactions/">Reset</a>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
