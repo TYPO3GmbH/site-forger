@@ -124,7 +124,8 @@ class ImportCommand extends Command
                 $perRun = 100;
                 $mainSection = $output->section();
                 $subSection = $output->section();
-                $progressBar = new ProgressBar($mainSection, $totalCount - $currentSlot);
+                $progressBar = new ProgressBar($mainSection, $totalCount);
+                $progressBar->setProgress($currentSlot);
                 $subBar = new ProgressBar($subSection);
                 $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
                 while ($currentSlot <= $totalCount) {
