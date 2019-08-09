@@ -25,12 +25,12 @@
                                 {% for committer, reviewTypes in month %}
                                     <tr>
                                         <th data-type="title">{{ committer }}</th>
-                                        <td data-type="number">{{ reviewTypes.core_review_patchset ?? '' }}</td>
-                                        <td data-type="number">{{ reviewTypes.core_review_codereview ?? '' }}</td>
-                                        <td data-type="number">{{ reviewTypes.core_review_testing ?? '' }}</td>
-                                        <td data-type="number">{{ reviewTypes.core_review_merge ?? '' }}</td>
-                                        <td data-type="number">{{ reviewTypes.core_review_abandon ?? '' }}</td>
-                                        <td data-type="number">{{ reviewTypes.core_review_comment ?? '' }}</td>
+                                        <td>{{ reviewTypes.core_review_patchset ?? '' }}</td>
+                                        <td>{{ reviewTypes.core_review_codereview ?? '' }}</td>
+                                        <td>{{ reviewTypes.core_review_testing ?? '' }}</td>
+                                        <td>{{ reviewTypes.core_review_merge ?? '' }}</td>
+                                        <td>{{ reviewTypes.core_review_abandon ?? '' }}</td>
+                                        <td>{{ reviewTypes.core_review_comment ?? '' }}</td>
                                     </tr>
                                 {% endfor %}
                             </table>
@@ -38,25 +38,18 @@
                     </div>
                 {% endfor %}
             </div>
-            <div class="card">
-                <div class="card-heading">
-                    <h3 class="panel-title">Contributors</h3>
+
+            <form class="mt-3" action="/management/interactions" method="get" id="contributorList">
+                <div class="form-group">
+                    <select multiple name="taggles[]" id="contributors" data-role="tagsinput">
+                        {%  for member in coreTeamMergers %}
+                            <option value="{{ member }}">{{ member }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <div class="card-body">
-                    <form action="/management/interactions" method="get" id="contributorList">
-                        <div>
-                            <select multiple name="taggles[]" id="contributors" data-role="tagsinput">
-                                {%  for member in coreTeamMergers %}
-                                    <option value="{{ member }}">{{ member }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div style="margin-top:10px;">
-                            <input type="submit" class="btn btn-success" value="Show"> <a class="btn btn-warning" href="/management/interactions/">Reset</a>
-                        </div>
-                    </form>
-                </div>
-            </div>
+                <input type="submit" class="btn btn-primary" value="Show">
+                <a class="btn btn-secondary" href="/management/interactions/">Reset</a>
+            </form>
         </div>
     </div>
 
