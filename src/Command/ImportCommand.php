@@ -243,8 +243,9 @@ class ImportCommand extends Command
         $moreChanges = false;
         $out = [];
         $json = file_get_contents('https://review.typo3.org/changes/?q=project:Packages/TYPO3.CMS&n=' . $perRun .
-            '&start=' . $current . '&o=DETAILED_LABELS&o=CURRENT_REVISION&o=ALL_FILES&o=CURRENT_COMMIT&o=MESSAGES&o=DETAILED_ACCOUNTS');
+            '&start=' . $current . '&o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_FILES&o=CURRENT_COMMIT&o=MESSAGES&o=DETAILED_ACCOUNTS');
         $data = json_decode(str_replace(")]}'", '', $json), true);
+        $foo = '';
         foreach ($data as $change) {
             /** @noinspection DisconnectedForeachInstructionInspection */
             $mainProgressbar->advance();
@@ -275,17 +276,39 @@ class ImportCommand extends Command
 
                     // Check if is merge
                     if ($this->checkIfMessageIsMerge($message['message'])) {
-                        // @todo fiddle apart the merging points
-                        // set author of interaction
-                        $interaction['interaction_type'] = 'core:review:merge';
-                        $interaction['account'] = $change['revisions'][$change['current_revision']]['uploader']['username'];
-                        $interaction['fullname'] = $change['revisions'][$change['current_revision']]['uploader']['name'];
-                        if (isset($change['revisions'][$change['current_revision']]['uploader']['email'])) {
-                            $interaction['email'] = $change['revisions'][$change['current_revision']]['uploader']['email'];
-                        } else {
-                            $interaction['email'] = 'Unknown';
+                        $revisions = $change['revisions'];
+                        usort($revisions, function ($a, $b) {
+                            $a = new DateTime($this->fixDateFormat($a['created'], 'Gerrit'));
+                            $b = new DateTime($this->fixDateFormat($b['created'], 'Gerrit'));
+
+                            if ($a->getTimestamp() === $b->getTimestamp()) {
+                                return 0;
+                            }
+
+                            return ($a->getTimestamp() < $b->getTimestamp()) ? -1 : 1;
+                        });
+
+                        $mergeRevision = $revisions[array_key_last($revisions)];
+                        $this->addDocumentToElastic($this->buildRevisionArray($mergeRevision, 'core:review:merge') + $interaction, 'interactions');
+
+                        // If there is more than one revision, we want to give credit to both the original author
+                        // and the person that patched this change with improvements (in case that is a different person)
+                        if (count($revisions) > 1) {
+                            $firstRevision = $revisions[array_key_first($revisions)];
+                            // Only applicable if the first and merge revision was done by different people
+                            if ($firstRevision['uploader']['_account_id'] !== $mergeRevision['uploader']['_account_id']) {
+                                $this->addDocumentToElastic($this->buildRevisionArray($firstRevision, 'core:review:merge-author') + $interaction, 'interactions');
+                            }
+
+                            $lastRevisionBeforeMerge = $revisions[array_key_last($revisions) - 1];
+                            // Only applicable if the first and last and merge revision was done by different people
+                            if (
+                                $lastRevisionBeforeMerge['uploader']['_account_id'] !== $mergeRevision['uploader']['_account_id']
+                                && $lastRevisionBeforeMerge['uploader']['_account_id'] !== $firstRevision['uploader']['_account_id']
+                            ) {
+                                $this->addDocumentToElastic($this->buildRevisionArray($lastRevisionBeforeMerge, 'core:review:merge-lastpatchset') + $interaction, 'interactions');
+                            }
                         }
-                        $this->addDocumentToElastic($interaction, 'interactions');
                     } elseif ($this->checkIfMessageIsBackport($message['message'])) {
                         // code intentionally left blank
                     } else {
@@ -676,5 +699,24 @@ class ImportCommand extends Command
             return true;
         }
         return false;
+    }
+
+    /**
+     * @param array $data
+     * @param string $interactionType
+     * @return array
+     */
+    private function buildRevisionArray(array $data, string $interactionType): array
+    {
+        $interaction['interaction_type'] = $interactionType;
+        $interaction['account'] = $data['uploader']['username'];
+        $interaction['fullname'] = $data['uploader']['name'];
+        if (isset($mergeRevision['uploader']['email'])) {
+            $interaction['email'] = $data['uploader']['email'];
+        } else {
+            $interaction['email'] = 'Unknown';
+        }
+
+        return $interaction;
     }
 }
