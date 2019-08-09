@@ -267,6 +267,7 @@ class ImportCommand extends Command
                 $interaction['email'] = '';
                 try {
                     $interaction['interaction_id'] = $message['id'];
+                    $messageId = $message['id'];
                     $interaction['interaction_source'] = 'Gerrit';
                     $interaction['interaction_source_id'] = $change['_number'];
                     $interaction['interacted_on'] = $this->fixDateFormat($message['date'], 'Gerrit');
@@ -290,7 +291,7 @@ class ImportCommand extends Command
                         });
 
                         $mergeRevision = $revisions[array_key_last($revisions)];
-                        $this->addDocumentToElastic($this->buildRevisionArray($mergeRevision, 'core:review:merge') + $interaction, 'interactions');
+                        $this->addDocumentToElastic($this->buildRevisionArray($mergeRevision, 'core:review:merge', $messageId) + $interaction, 'interactions');
 
                         // If there is more than one revision, we want to give credit to both the original author
                         // and the person that patched this change with improvements (in case that is a different person)
@@ -298,7 +299,7 @@ class ImportCommand extends Command
                             $firstRevision = $revisions[array_key_first($revisions)];
                             // Only applicable if the first and merge revision was done by different people
                             if ($firstRevision['uploader']['_account_id'] !== $mergeRevision['uploader']['_account_id']) {
-                                $this->addDocumentToElastic($this->buildRevisionArray($firstRevision, 'core:review:merge-author') + $interaction, 'interactions');
+                                $this->addDocumentToElastic($this->buildRevisionArray($firstRevision, 'core:review:merge-author', $messageId) + $interaction, 'interactions');
                             }
 
                             $lastRevisionBeforeMerge = $revisions[array_key_last($revisions) - 1];
@@ -307,7 +308,7 @@ class ImportCommand extends Command
                                 $lastRevisionBeforeMerge['uploader']['_account_id'] !== $mergeRevision['uploader']['_account_id']
                                 && $lastRevisionBeforeMerge['uploader']['_account_id'] !== $firstRevision['uploader']['_account_id']
                             ) {
-                                $this->addDocumentToElastic($this->buildRevisionArray($lastRevisionBeforeMerge, 'core:review:merge-lastpatchset') + $interaction, 'interactions');
+                                $this->addDocumentToElastic($this->buildRevisionArray($lastRevisionBeforeMerge, 'core:review:merge-lastpatchset', $messageId) + $interaction, 'interactions');
                             }
                         }
                     } elseif ($this->checkIfMessageIsBackport($message['message'])) {
@@ -705,10 +706,12 @@ class ImportCommand extends Command
     /**
      * @param array $data
      * @param string $interactionType
+     * @param string $messageId
      * @return array
      */
-    private function buildRevisionArray(array $data, string $interactionType): array
+    private function buildRevisionArray(array $data, string $interactionType, string $messageId): array
     {
+        $interaction['interaction_id'] = $messageId.'-'.$interactionType;
         $interaction['interaction_type'] = $interactionType;
         $interaction['account'] = $data['uploader']['username'];
         $interaction['fullname'] = $data['uploader']['name'];
