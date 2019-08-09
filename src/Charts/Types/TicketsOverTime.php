@@ -21,7 +21,7 @@ class TicketsOverTime extends IssueChart
 
         $labels = array_keys($mergedDataSets);
         $chartData = array_values(array_map(static function (array $metrics): int {
-            return $metrics['open'] - $metrics['closed'];
+            return $metrics['open'] - ($metrics['closed'] ?? 0);
         }, $mergedDataSets));
 
         return [
