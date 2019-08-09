@@ -21,6 +21,15 @@ parameters:
       'WIP':
       'Review':
       'Done':
+    karmaPoints:
+      core:review:comment: 1
+      core:review:codereview: 3
+      core:review:testing: 5
+      core:review:patchset: 5
+      core:review:merge: 10
+      core:review:merge-lastpatchset: 10
+      core:review:merge-author: 10
+      core:review:abandon: 3
 
 services:
     # default configuration for services in *this* file

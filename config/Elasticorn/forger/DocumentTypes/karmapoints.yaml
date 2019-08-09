@@ -1,0 +1,17 @@
+leaderboard_entry_id:
+  type: string
+company:
+  type: keyword
+account:
+  type: keyword
+fullname:
+  type: keyword
+email:
+  type: keyword
+interacted_on:
+  type: date
+  format: yyyy/MM/dd HH:mm:ss
+interaction:
+  type: keyword
+points:
+  type: integer

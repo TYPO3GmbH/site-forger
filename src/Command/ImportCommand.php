@@ -275,8 +275,9 @@ class ImportCommand extends Command
 
                     // Check if is merge
                     if ($this->checkIfMessageIsMerge($message['message'])) {
+                        // @todo fiddle apart the merging points
                         // set author of interaction
-                        $interaction['interaction_type'] = 'Merge';
+                        $interaction['interaction_type'] = 'core:review:merge';
                         $interaction['account'] = $change['revisions'][$change['current_revision']]['uploader']['username'];
                         $interaction['fullname'] = $change['revisions'][$change['current_revision']]['uploader']['name'];
                         if (isset($change['revisions'][$change['current_revision']]['uploader']['email'])) {
@@ -296,27 +297,27 @@ class ImportCommand extends Command
                         // Is patchset, add as event
                         if ($patchSetNumber < $message['_revision_number']) {
                             $patchSetNumber = $message['_revision_number'];
-                            $interaction['interaction_type'] = 'Added_Patchset';
+                            $interaction['interaction_type'] = 'core:review:patchset';
                             $this->addDocumentToElastic($interaction, 'interactions');
                         }
                         // Check if message is "just" a new patchset
                         if ($this->checkIfMessageIsComment($message['message'])) {
-                            $interaction['interaction_type'] = 'Comment';
+                            $interaction['interaction_type'] = 'core:review:comment';
                             $this->addDocumentToElastic($interaction, 'interactions');
                         }
                         // Check if message is a code review
                         if ($this->checkIfMessageIsCodeReview($message['message'])) {
-                            $interaction['interaction_type'] = 'Code_Review';
+                            $interaction['interaction_type'] = 'core:review:codereview';
                             $this->addDocumentToElastic($interaction, 'interactions');
                         }
                         // Check if message is a verification
                         if ($this->checkIfMessageIsVerification($message['message'])) {
-                            $interaction['interaction_type'] = 'Verification';
+                            $interaction['interaction_type'] = 'core:review:testing';
                             $this->addDocumentToElastic($interaction, 'interactions');
                         }
                         // Check if message is abandoning
                         if ($this->checkIfMessageIsAbandoning($message['message'])) {
-                            $interaction['interaction_type'] = 'Abandoned_Patch';
+                            $interaction['interaction_type'] = 'core:review:abandon';
                             $this->addDocumentToElastic($interaction, 'interactions');
                         }
                     }
