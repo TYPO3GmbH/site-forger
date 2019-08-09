@@ -30,6 +30,7 @@ Forger allows the following commands to be used on CLI:
   * `bin/console app:truncate-type issue` to delete all issues
   * `bin/console app:truncate-type review` to delete all reviews
   * `bin/console app:truncate-type interactions` to delete all interactions
+  * `bin/console app:truncate-type karmapoints` to delete all karma points (BE FUCKING CAREFUL WITH THIS!)
   
 ## LDAP
 
