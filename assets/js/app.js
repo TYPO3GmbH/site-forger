@@ -10,10 +10,17 @@ var {DateTime} = require('luxon');
 require('bootstrap');
 require('./libs/navbar.js');
 require('./aggregations.js');
+require('./charts.js');
 require('./rst.js');
 
 document.onreadystatechange = function () {
     if (document.readyState == "interactive") {
+
+        // Syntax Highlight
+        if (document.querySelectorAll('[data-processor="syntax-highlight"]')) {
+            require('prismjs');
+            require('prismjs/components/prism-rest');
+        }
 
         // Expander
         // Unfolds elements where the inner container is smaller than the

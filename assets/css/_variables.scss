@@ -30,6 +30,7 @@ $theme-colors: (
     notice: #efefef,
     default: $white,
     light: $gray-100,
+    shaded: $gray-200,
     dark: $gray-900,
     darkest: $black
 );
@@ -111,3 +112,19 @@ $card-border-width:         0;
 $card-spacer:               1.5rem;
 $card-spacer-y:             $card-spacer;
 $card-spacer-x:             $card-spacer;
+
+// Dashboard Mapping
+$dashboard-areas: (
+    mergeable: d01,
+    openreviews: d02,
+    openclosed: d03,
+    openticketsovertime: d04,
+    openreviewsovertime: d05,
+    gerritoverview: d06,
+    gerritactivity: d07,
+    gerritvelocity: d08,
+    forgevelocity: d09,
+    trackertypes: d10,
+    reviewprogress: d11,
+    ticketprogress: d12
+);

@@ -9,6 +9,7 @@
 
 namespace App\Controller;
 
+use App\Charts\ChartRegistry;
 use App\Client\ElasticClient;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -48,5 +49,19 @@ class ApiController extends AbstractController
             return new JsonResponse('Document not found', 404);
         }
         return new JsonResponse($output->getData());
+    }
+
+    /**
+     * @Route("/chart/{chartName}", name="chart")
+     * @param string $chartName
+     * @return JsonResponse
+     */
+    public function chart(string $chartName): JsonResponse
+    {
+        $index = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'));
+        $chartInstance = ChartRegistry::getChartInstance($chartName, $index);
+        $data = $chartInstance->getData();
+
+        return new JsonResponse($data);
     }
 }
