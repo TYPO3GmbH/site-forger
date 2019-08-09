@@ -257,7 +257,7 @@ class ManagementController extends AbstractController
                         [
                             'range' => [
                                 'interacted_on' => [
-                                    'gte' => $this->timeFrame
+                                    'gte' => 'now-5M'
                                 ]
                             ]
                         ],
@@ -307,7 +307,8 @@ class ManagementController extends AbstractController
                 }
                 foreach ($bucket['member']['buckets'] as $member) {
                     foreach ($member['interaction_type']['buckets'] as $interactionType) {
-                        $out[$dateIdent][$member['key']][$interactionType['key']] = $interactionType['doc_count'];
+                        $key = str_replace(':', '_', $interactionType['key']);
+                        $out[$dateIdent][$member['key']][$key] = $interactionType['doc_count'];
                     }
                 }
             }

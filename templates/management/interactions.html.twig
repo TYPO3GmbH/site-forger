@@ -25,12 +25,12 @@
                                 {% for committer, reviewTypes in month %}
                                     <tr>
                                         <th data-type="title">{{ committer }}</th>
-                                        <td data-type="number">{{ reviewTypes.Added_Patchset ?? '' }}</td>
-                                        <td data-type="number">{{ reviewTypes.Code_Review ?? '' }}</td>
-                                        <td data-type="number">{{ reviewTypes.Verification ?? '' }}</td>
-                                        <td data-type="number">{{ reviewTypes.Merge ?? '' }}</td>
-                                        <td data-type="number">{{ reviewTypes.Abandoned_Patch ?? '' }}</td>
-                                        <td data-type="number">{{ reviewTypes.Comment ?? '' }}</td>
+                                        <td data-type="number">{{ reviewTypes.core_review_patchset ?? '' }}</td>
+                                        <td data-type="number">{{ reviewTypes.core_review_codereview ?? '' }}</td>
+                                        <td data-type="number">{{ reviewTypes.core_review_testing ?? '' }}</td>
+                                        <td data-type="number">{{ reviewTypes.core_review_merge ?? '' }}</td>
+                                        <td data-type="number">{{ reviewTypes.core_review_abandon ?? '' }}</td>
+                                        <td data-type="number">{{ reviewTypes.core_review_comment ?? '' }}</td>
                                     </tr>
                                 {% endfor %}
                             </table>
