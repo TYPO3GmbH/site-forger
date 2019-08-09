@@ -7,6 +7,18 @@
     <div class="content-section content-section-small">
         <div class="container container-dashboard">
 
+
+            {% set trackerOptions = {
+                scales: {
+                    xAxes: [{
+                        stacked: true
+                    }],
+                    yAxes: [{
+                        stacked: true
+                    }]
+                }
+            } %}
+
             {% set dashboard = {
                 1: {
                     identifier: 'mergeable',
@@ -31,7 +43,7 @@
                 5: {
                     identifier: 'openreviewsovertime',
                     title: 'Open Reviews over time',
-                    content: '<canvas class="js-chart" data-chart-type="line" data-src="/chart/reviews_over_time"></canvas>'
+                    content: '<canvas class="js-chart" data-chart-type="line" data-options="" data-src="/chart/reviews_over_time"></canvas>'
                 },
                 6: {
                     identifier: 'gerritoverview',
@@ -56,7 +68,7 @@
                 10: {
                     identifier: 'trackertypes',
                     title: 'Tracker Types',
-                    content: 'implement me'
+                    content: '<canvas class="js-chart" data-chart-type="bar" data-options="' ~ trackerOptions|json_encode|escape ~ '" data-src="/chart/tracker_types"></canvas>'
                 },
                 11: {
                     identifier: 'reviewprogress',

@@ -22,6 +22,7 @@ final class ChartRegistry
         'reviews_over_time' => Types\ReviewsOverTime::class,
         'review_progress' => Types\ReviewProgress::class,
         'ticket_progress' => Types\TicketProgress::class,
+        'tracker_types' => Types\TrackerTypes::class,
     ];
 
     public static function getChartInstance(string $identifier, Index $index): ChartInterface
