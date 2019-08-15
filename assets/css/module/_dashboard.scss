@@ -59,6 +59,7 @@ $dashboard-padding: 1rem;
 .dashboard-item-title {
     padding: $dashboard-padding;
     background-color: darken($issue-bg, 2.5%);
+    margin-bottom: 0;
 }
 .dashboard-item-body {
     flex-grow: 1;
