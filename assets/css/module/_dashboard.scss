@@ -48,6 +48,8 @@ $dashboard-padding: 1rem;
     }
 }
 .dashboard-item {
+    display: flex;
+    flex-direction: column;
     border-radius: $dashboard-border-radius;
     color: $dashboard-color;
     background-color: $dashboard-bg;
@@ -59,5 +61,6 @@ $dashboard-padding: 1rem;
     background-color: darken($issue-bg, 2.5%);
 }
 .dashboard-item-body {
+    flex-grow: 1;
     padding: $dashboard-padding;
 }
