@@ -15,16 +15,16 @@ final class Colors
     public const GREEN = 'green';
     public const GREY = 'grey';
     public const ORANGE = 'orange';
-    public const RED = 'RED';
+    public const RED = 'red';
     public const YELLOW = 'yellow';
 
     protected static $colors = [
-        self::BLUE => [54, 162, 235],
-        self::GREEN => [75, 192, 192],
-        self::GREY => [201, 203, 207],
-        self::ORANGE => [255, 159, 64],
-        self::RED => [255, 99, 132],
-        self::YELLOW => [255, 205, 86],
+        self::BLUE => [39, 162, 252],
+        self::GREEN => [55, 189, 116],
+        self::GREY => [210, 210, 210],
+        self::ORANGE => [255, 135, 0],
+        self::RED => [255, 48, 79],
+        self::YELLOW => [255, 193, 7],
     ];
 
     public static function getAsRgb(string $color): string
