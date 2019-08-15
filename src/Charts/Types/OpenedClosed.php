@@ -42,9 +42,11 @@ class OpenedClosed extends IssueChart
 
         return [
             'label' => 'Opened',
+            'data' => $chartData,
             'backgroundColor' => Colors::getAsRgba(Colors::RED),
             'borderColor' => Colors::getAsRgb(Colors::RED),
-            'data' => $chartData,
+            'borderWidth' => static::BORDER_WIDTH,
+            'pointRadius' => static::POINT_RADIUS,
         ];
     }
 
@@ -65,9 +67,11 @@ class OpenedClosed extends IssueChart
 
         return [
             'label' => 'Closed',
+            'data' => $chartData,
             'backgroundColor' => Colors::getAsRgba(Colors::GREEN),
             'borderColor' => Colors::getAsRgb(Colors::GREEN),
-            'data' => $chartData,
+            'borderWidth' => static::BORDER_WIDTH,
+            'pointRadius' => static::POINT_RADIUS,
         ];
     }
 

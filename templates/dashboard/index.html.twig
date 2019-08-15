@@ -6,7 +6,22 @@
 
     <div class="content-section content-section-small">
         <div class="container container-dashboard">
-
+            {% set mergeableOptions = {
+                scales: {
+                    xAxes: [{
+                        gridLines: {
+                            display: false,
+                            drawBorder: false
+                        }
+                    }],
+                    yAxes: [{
+                        gridLines: {
+                            display: false,
+                            drawBorder: false
+                        }
+                    }]
+                }
+            } %}
 
             {% set trackerOptions = {
                 scales: {

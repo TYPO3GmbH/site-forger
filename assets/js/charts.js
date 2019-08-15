@@ -33,12 +33,8 @@
                     data: response,
                     options: Object.assign({
                         responsive: true,
-                        scales: {
-                            yAxes: [{
-                                ticks: {
-                                    beginAtZero: true
-                                }
-                            }]
+                        tooltips: {
+                            mode: 'index'
                         }
                     }, options)
                 });

@@ -32,6 +32,8 @@ class TicketsOverTime extends IssueChart
                     'data' => $chartData,
                     'backgroundColor' => Colors::getAsRgba(Colors::ORANGE),
                     'borderColor' => Colors::getAsRgb(Colors::ORANGE),
+                    'borderWidth' => static::BORDER_WIDTH,
+                    'pointRadius' => static::POINT_RADIUS,
                 ],
             ],
         ];

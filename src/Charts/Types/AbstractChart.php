@@ -14,6 +14,9 @@ use Elastica\ResultSet;
 
 abstract class AbstractChart
 {
+    protected const BORDER_WIDTH = 1;
+    protected const POINT_RADIUS = 2;
+
     /**
      * @var Index
      */

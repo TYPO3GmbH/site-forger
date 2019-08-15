@@ -39,6 +39,8 @@ class OpenReviews extends ReviewChart
                     'data' => $chartData,
                     'backgroundColor' => Colors::getAsRgba(Colors::BLUE),
                     'borderColor' => Colors::getAsRgb(Colors::BLUE),
+                    'borderWidth' => static::BORDER_WIDTH,
+                    'pointRadius' => static::POINT_RADIUS,
                 ],
             ],
         ];
