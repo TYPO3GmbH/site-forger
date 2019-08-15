@@ -29,7 +29,7 @@
                     data: response,
                     options: Object.assign({
                         responsive: true,
-                        maintainAspectRatio: true,
+                        maintainAspectRatio: false,
                         tooltips: {
                             mode: 'index'
                         }

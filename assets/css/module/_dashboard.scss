@@ -63,4 +63,15 @@ $dashboard-padding: 1rem;
 .dashboard-item-body {
     flex-grow: 1;
     padding: $dashboard-padding;
+
+    canvas {
+        height: 100%;
+        min-height: 300px;
+        max-height: 500px;
+    }
+}
+.dashboard-item-mergeable {
+    canvas {
+        min-height: 200px;
+    }
 }
