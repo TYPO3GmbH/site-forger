@@ -15,37 +15,31 @@ $dashboard-padding: 1rem;
     display: grid;
     grid-gap: 10px;
     grid-template-areas:
+        "d00"
         "d01"
         "d02"
         "d03"
         "d04"
         "d05"
         "d06"
-        "d07"
-        "d08"
-        "d09"
-        "d10"
-        "d11"
-        "d12";
+        "d07";
 
     @include media-breakpoint-up('sm') {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         grid-template-areas:
+            "d00 d00"
             "d01 d02"
             "d03 d04"
             "d05 d06"
-            "d07 d08"
-            "d09 d10"
-            "d11 d12";
+            "d07";
     }
     @include media-breakpoint-up('md') {
         grid-template-columns: repeat(6, minmax(0, 1fr));
         grid-template-areas:
+            "d00 d00 . . . ."
             "d01 d01 d02 d02 d03 d03"
             "d04 d04 d04 d05 d05 d05"
-            "d06 d06 d06 d07 d07 d07"
-            "d08 d08 d09 d09 d10 d10"
-            "d11 d11 d11 d12 d12 d12";
+            "d06 d06 d06 d07 d07 d07";
     }
 }
 @each $name, $area in $dashboard-areas {

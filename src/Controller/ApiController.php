@@ -52,6 +52,49 @@ class ApiController extends AbstractController
     }
 
     /**
+     * @Route("/quick_stats", name="quick_stats")
+     * @return JsonResponse
+     */
+    public function quickStats(): JsonResponse
+    {
+        $index = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'));
+        $openIssuesQuery = [
+            'query' => [
+                'bool' => [
+                    'must_not' => [
+                        ['terms' => ['status.name' => ['Closed', 'Rejected', 'Resolved']]],
+                    ],
+                ],
+            ],
+            'size' => 0,
+        ];
+        $openIssues = $index->getType('issue')->search($openIssuesQuery)->getTotalHits();
+
+        $openReviewsQuery = [
+            'query' => [
+                'bool' => [
+                    'must_not' => [
+                        ['terms' => ['reviewstatus' => ['ABANDONED', 'MERGED']]],
+                        ['terms' => ['reviewtags' => ['WIP']]],
+                    ],
+                ],
+            ],
+            'size' => 0,
+        ];
+        $openReviews = $index->getType('review')->search($openReviewsQuery)->getTotalHits();
+
+        return new JsonResponse([
+            'forge' => [
+                'value' => $openIssues,
+            ],
+            'gerrit' => [
+                'value' => $openReviews,
+                'link' => $this->generateUrl('gerrit_index'),
+            ],
+        ]);
+    }
+
+    /**
      * @Route("/chart/{chartName}", name="chart")
      * @param string $chartName
      * @return JsonResponse

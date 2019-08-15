@@ -13,10 +13,6 @@
 
     let $lastActiveTextarea = null;
 
-    $(function () {
-        Rst.initialize();
-    });
-
     const Rst = {
         initialize: function () {
             if (document.querySelector(Selectors.form) !== null) {
@@ -136,6 +132,10 @@
             });
         }
     };
+
+    $(function () {
+        Rst.initialize();
+    });
 })();
 
 String.prototype.toUpperCamelCase = function () {

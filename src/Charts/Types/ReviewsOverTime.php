@@ -18,7 +18,7 @@ use App\Charts\Colors;
 class ReviewsOverTime extends ReviewChart
 {
     private const DATE_FORMAT = 'M Y';
-    private const DATE_AGGREGATION_FORMAT = 'month';
+    private const DATE_AGGREGATION_FORMAT = 'quarter';
 
     public function getData(): array
     {
@@ -26,7 +26,7 @@ class ReviewsOverTime extends ReviewChart
         $closedDataSet = $this->getClosedDataSet();
         $mergedDataSets = array_replace_recursive($openedDataSet, $closedDataSet);
 
-        $dateToFilter = new \DateTimeImmutable('2014-01-01 00:00:00');
+        $dateToFilter = (new \DateTimeImmutable())->sub(new \DateInterval('P3Y'));
         $mergedDataSets = array_filter($mergedDataSets, static function (string $key) use ($dateToFilter) {
             $date = \DateTimeImmutable::createFromFormat(static::DATE_FORMAT, $key);
             return $date > $dateToFilter;

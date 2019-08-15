@@ -25,7 +25,7 @@ class OpenReviews extends ReviewChart
 
         if (is_array($data['over_time']['buckets'])) {
             foreach ($data['over_time']['buckets'] as $i => $frame) {
-                $date = $this->convertDateToFormat($frame['key_as_string'], 'M Y');
+                $date = $this->convertDateToFormat($frame['key_as_string'], 'Y [W]');
                 $labels[] = $date;
                 $chartData[] = $frame['doc_count'];
             }
@@ -62,7 +62,7 @@ class OpenReviews extends ReviewChart
                 'over_time' => [
                     'date_histogram' => [
                         'field' => 'updated_on',
-                        'interval' => 'month',
+                        'interval' => 'week',
                     ],
                 ],
             ],

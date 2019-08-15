@@ -13,11 +13,20 @@ use App\Charts\Colors;
 
 class TicketsOverTime extends IssueChart
 {
+    private const DATE_FORMAT = 'M Y';
+    private const DATE_AGGREGATION_FORMAT = 'quarter';
+
     public function getData(): array
     {
         $openedDataSet = $this->getOpenedDataSet();
         $closedDataSet = $this->getClosedDataSet();
         $mergedDataSets = array_replace_recursive($openedDataSet, $closedDataSet);
+
+        $dateToFilter = (new \DateTimeImmutable())->sub(new \DateInterval('P3Y'));
+        $mergedDataSets = array_filter($mergedDataSets, static function (string $key) use ($dateToFilter) {
+            $date = \DateTimeImmutable::createFromFormat(static::DATE_FORMAT, $key);
+            return $date > $dateToFilter;
+        }, ARRAY_FILTER_USE_KEY);
 
         $labels = array_keys($mergedDataSets);
         $chartData = array_values(array_map(static function (array $metrics): int {
@@ -43,7 +52,7 @@ class TicketsOverTime extends IssueChart
     {
         $resultSet = $this->fetchData($this->getOpenedQuery([
             'match_all' => new \stdClass(),
-        ], 'quarter'));
+        ], static::DATE_AGGREGATION_FORMAT));
 
         $data = $resultSet->getAggregations();
         $openSum = 0;
@@ -51,7 +60,7 @@ class TicketsOverTime extends IssueChart
         if (\is_array($data['over_time']['buckets'])) {
             foreach ($data['over_time']['buckets'] as $frame) {
                 $openSum += $frame['doc_count'];
-                $date = $this->convertDateToFormat($frame['key_as_string'], 'M Y');
+                $date = $this->convertDateToFormat($frame['key_as_string'], static::DATE_FORMAT);
                 $opened[$date]['open'] = $openSum;
             }
         }
@@ -67,7 +76,7 @@ class TicketsOverTime extends IssueChart
                     'terms' => ['status.name' => ['Closed', 'Resolved', 'Rejected']],
                 ],
             ],
-        ], 'quarter'));
+        ], static::DATE_AGGREGATION_FORMAT));
 
         $data = $resultSet->getAggregations();
         $closeSum = 0;
@@ -75,7 +84,7 @@ class TicketsOverTime extends IssueChart
         if (\is_array($data['over_time']['buckets'])) {
             foreach ($data['over_time']['buckets'] as $frame) {
                 $closeSum += $frame['doc_count'];
-                $date = $this->convertDateToFormat($frame['key_as_string'], 'M Y');
+                $date = $this->convertDateToFormat($frame['key_as_string'], static::DATE_FORMAT);
                 $closed[$date]['closed'] = $closeSum;
             }
         }

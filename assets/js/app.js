@@ -11,6 +11,7 @@ require('bootstrap');
 require('./libs/navbar.js');
 require('./aggregations.js');
 require('./charts.js');
+require('./quickstats.js');
 require('./rst.js');
 
 document.onreadystatechange = function () {

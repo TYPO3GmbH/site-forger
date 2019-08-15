@@ -5,10 +5,6 @@
         chartContainer: 'canvas.js-chart'
     };
 
-    $(function () {
-        Charts.initialize();
-    });
-
     const Charts = {
         initialize: function () {
             if (document.querySelectorAll(Selectors.chartContainer).length > 0) {
@@ -33,6 +29,7 @@
                     data: response,
                     options: Object.assign({
                         responsive: true,
+                        maintainAspectRatio: true,
                         tooltips: {
                             mode: 'index'
                         }
@@ -46,4 +43,8 @@
             });
         }
     };
+
+    $(function () {
+        Charts.initialize();
+    });
 })();

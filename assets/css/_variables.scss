@@ -115,16 +115,12 @@ $card-spacer-x:             $card-spacer;
 
 // Dashboard Mapping
 $dashboard-areas: (
+    quickstats: d00,
     mergeable: d01,
     openreviews: d02,
     openclosed: d03,
     openticketsovertime: d04,
     openreviewsovertime: d05,
-    gerritoverview: d06,
-    gerritactivity: d07,
-    gerritvelocity: d08,
-    forgevelocity: d09,
-    trackertypes: d10,
-    reviewprogress: d11,
-    ticketprogress: d12
+    reviewprogress: d06,
+    ticketprogress: d07
 );
