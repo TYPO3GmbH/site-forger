@@ -9,6 +9,7 @@ let $ = require('jquery');
 var {DateTime} = require('luxon');
 require('bootstrap');
 require('./libs/navbar.js');
+require('./libs/tagsinput.js');
 require('./aggregations.js');
 require('./charts.js');
 require('./quickstats.js');
@@ -53,6 +54,5 @@ document.onreadystatechange = function () {
             const value = element.dataset.value;
             element.textContent = DateTime.fromISO(value).toRelative();
         });
-
     }
 }
