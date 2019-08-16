@@ -711,7 +711,7 @@ class ImportCommand extends Command
      */
     private function buildRevisionArray(array $data, string $interactionType, string $messageId): array
     {
-        $interaction['interaction_id'] = $messageId.'-'.$interactionType;
+        $interaction['interaction_id'] = $messageId . '-' . $interactionType;
         $interaction['interaction_type'] = $interactionType;
         $interaction['account'] = $data['uploader']['username'];
         $interaction['fullname'] = $data['uploader']['name'];
