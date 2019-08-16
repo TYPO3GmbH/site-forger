@@ -31,7 +31,6 @@
                             valueElement = document.createElement('a');
                             valueElement.href = stat.link;
                             valueElement.textContent = stat.value;
-                            console.log('quickstats.js@34: ', valueElement);
                         } else {
                             valueElement = document.createElement('span');
                             valueElement.textContent = stat.value;
