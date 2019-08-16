@@ -11,6 +11,8 @@ namespace App\Controller;
 
 use App\Client\ElasticClient;
 use App\Entity\TrackerFilters;
+use DateTime;
+use Exception;
 use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -51,13 +53,6 @@ class ManagementController extends AbstractController
         'Tobi Kretschmann',
         'Tymoteusz Motylewski',
     ];
-
-    /**
-     * @var string
-     *
-     * framework / component merger structure in place since
-     */
-    private $timeFrame = '2019/03/01 00:00:00';
 
     public function __construct(ElasticClient $elasticClient, ParameterBagInterface $parameters)
     {
@@ -320,6 +315,211 @@ class ManagementController extends AbstractController
         ]);
     }
 
+    /**
+     * @Route(
+     *     "/management/leaderboard/{type}/{dateRange}",
+     *     defaults={
+     *       "type"="company",
+     *       "dateRange"="quarter"
+     *     },
+     *     requirements={
+     *       "type"="(individual|company)",
+     *       "dateRange"="(week|month|quarter|year)"
+     *     },
+     *     name="management_leaderboard"
+     * )
+     * @param string $type The type of board to show. Possible values are "individual" and "company"
+     * @param string $dateRange
+     * @return Response
+     */
+    public function leaderBoard(string $type, string $dateRange): Response
+    {
+        // Create Navs
+        $typeNav = [
+            'individual' => [
+                'title' => 'Individual contribution',
+                'active' => false,
+                'type' => 'individual'
+            ],
+            'company' => [
+                'title' => 'Company contribution',
+                'active' => false,
+                'type' => 'company'
+            ]
+        ];
+        $dateNav = [
+            'week' => [
+                'title' => 'per week',
+                'active' => false,
+                'type' => 'week'
+            ],
+            'month' => [
+                'title' => 'per month',
+                'active' => false,
+                'type' => 'month'
+            ],
+            'quarter' => [
+                'title' => 'per quarter',
+                'active' => false,
+                'type' => 'quarter'
+            ],
+            'year' => [
+                'title' => 'per year',
+                'active' => false,
+                'type' => 'year'
+            ],
+        ];
+        // Set active states
+        $dateNav[$dateRange]['active'] = true;
+        $typeNav[$type]['active'] = true;
+
+        // Set fields to aggregate on
+        $aggregationTypeField = 'fullname';
+        $title = 'Individual contribution';
+        if ($type === 'company') {
+            $aggregationTypeField = 'company';
+            $title = 'Company contribution';
+        }
+        // Define dateRanges based on selected date aggregation
+        switch ($dateRange) {
+            case 'week':
+                $dateStart = 'now-20w';
+                $title .= ' per week';
+                break;
+            case 'month':
+                $dateStart = 'now-11M';
+                $title .= ' per month';
+                break;
+            case 'quarter':
+                $dateStart = 'now-35M';
+                $title .= ' per quarter';
+                break;
+            case 'year':
+                $dateStart = '2010/01/01 00:00:00';
+                $title .= ' per year';
+                break;
+            default:
+                $dateStart = '2012/01/01 00:00:00';
+        }
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'range' => [
+                                'interacted_on' => [
+                                    'gte' => $dateStart,
+                                ]
+                            ]
+                        ],
+                    ],
+                    'must_not' => [
+                        [
+                            'terms' => [
+                                'fullname' => [
+                                    'TYPO3com',
+                                    'Mr. Jenkins'
+                                ]
+                            ]
+                        ]
+                    ]
+                ],
+            ],
+            'size' => 0,
+            'aggregations' => [
+                'month' => [
+                    'date_histogram' => [
+                        'field' => 'interacted_on',
+                        'interval' => $dateRange,
+                    ],
+                    'aggregations' => [
+                        'member' => [
+                            'terms' => [
+                                'field' => $aggregationTypeField,
+                                'size' => 20,
+                            ],
+                            'aggregations' => [
+                                'points' => [
+                                    'sum' => [
+                                        'field' => 'points',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
+        $search->addType('karmapoints');
+        $resultSet = $search->search();
+        $aggregations = $resultSet->getAggregations();
+        foreach ($aggregations as $month) {
+            foreach ($month['buckets'] as $bucket) {
+                $contributors = [];
+                $dateIdent = $this->getDateIdentifierByDateRangeType($dateRange, $bucket['key_as_string']);
+                foreach ($bucket['member']['buckets'] as $contributor) {
+                    $contributors[$contributor['key']] = $contributor['points']['value'];
+                }
+                arsort($contributors);
+                $out[$dateIdent] = $contributors;
+            }
+        }
+        krsort($out);
+        return $this->render('management/leaderboard.html.twig', [
+            'aggs' => $out,
+            'headline' => $title,
+            'typeMenu' => $typeNav,
+            'dateMenu' => $dateNav,
+            'type' => $type,
+            'dateRange' => $dateRange
+        ]);
+    }
+
+    private function getDateIdentifierByDateRangeType(string $dateRangeType, string $bucketKey): string
+    {
+        $dateRangeIdentifier = 'unclear';
+        switch ($dateRangeType) {
+            case 'week':
+                try {
+                    $time = new DateTime($bucketKey);
+                } catch (Exception $e) {
+                    $time = new DateTime('now');
+                }
+                $dateRangeIdentifier = $time->format('Y / \C\W W');
+                break;
+            case 'month':
+                $monthParts = explode('/', $bucketKey);
+                $dateRangeIdentifier = $monthParts[0] . '/' . $monthParts[1];
+                break;
+            case 'quarter':
+                $monthParts = explode('/', $bucketKey);
+                switch ($monthParts[1]) {
+                    case '01':
+                        $quarterIdentifier = 'Q1';
+                        break;
+                    case '04':
+                        $quarterIdentifier = 'Q2';
+                        break;
+                    case '07':
+                        $quarterIdentifier = 'Q3';
+                        break;
+                    case '10':
+                        $quarterIdentifier = 'Q4';
+                        break;
+                    default:
+                        $quarterIdentifier = 'dafuq?';
+                }
+                $dateRangeIdentifier = $monthParts[0] . '/' . $quarterIdentifier;
+                break;
+            case 'year':
+                $monthParts = explode('/', $bucketKey);
+                $dateRangeIdentifier = $monthParts[0];
+                break;
+        }
+        return $dateRangeIdentifier;
+    }
+
     private function sanitizeTaggles(array $taggles): array
     {
         $sanitizedArray = [];
@@ -327,7 +527,7 @@ class ManagementController extends AbstractController
             if (!is_string($taggle)) {
                 throw new InvalidArgumentException('Taggles need to be strings');
             }
-            $result = preg_replace("/[^[:alnum:][:space:]-\.']/u", '', html_entity_decode($taggle));
+            $result = preg_replace("/[^[:alnum:][:space:]-.']/u", '', html_entity_decode($taggle));
             if (trim($result) !== '') {
                 $sanitizedArray[$index] = $result;
             }

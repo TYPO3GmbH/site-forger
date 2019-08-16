@@ -1,0 +1,60 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ headline }}{% endblock %}
+{% block headline %}{{ headline }}{% endblock %}
+{% block body %}
+
+    <div class="content-section content-section-smallest bg-dark">
+        <div class="container-fluid text-center">
+            <div class="btn-group">
+                {% for typeNav in typeMenu %}
+                    <a href="{{ path("management_leaderboard", {"type":typeNav.type, "dateRange":dateRange}) }}" class="btn btn-default {{ (typeNav.active) ? 'active' : '' }}">
+                        {{ typeNav.title }}
+                    </a>
+                {% endfor %}
+            </div>
+            <div class="btn-group">
+                {% for dateNav in dateMenu %}
+                    <a href="{{ path("management_leaderboard", {"type":type,"dateRange":dateNav.type}) }}" class="btn btn-default {{ (dateNav.active) ? 'active' : '' }}">
+                        {{ dateNav.title }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="content-section bg-transparent">
+        <div class="container-fluid">
+            <div class="leaderboard">
+                {% for date, contributors in aggs %}
+                    <div class="leaderboard-item">
+                        <div class="card">
+                            <div class="card-datatable">
+                                <div class="datatable">
+                                    <table class="datatable-table datatable-table-compact">
+                                        <caption class="datatable-caption">{{ date }}</caption>
+                                        {% set counter = 1 %}
+                                        {% for name,points in contributors %}
+                                            {% if name != "unmapped" %}
+                                                <tr>
+                                                    <th data-type="uid">{{ counter }}.</th>
+                                                    <th data-type="title">{{ name }}</th>
+                                                    <td align="right">{{ points|number_format }}</td>
+                                                </tr>
+                                                {% set counter = counter+1 %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <small>
+                                    We found <strong>{{ contributors.unmapped|number_format }}</strong> points not claimed by a company
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

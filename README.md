@@ -31,7 +31,7 @@ Forger allows the following commands to be used on CLI:
   * `bin/console app:truncate-type review` to delete all reviews
   * `bin/console app:truncate-type interactions` to delete all interactions
   * `bin/console app:truncate-type karmapoints` to delete all karma points (BE FUCKING CAREFUL WITH THIS!)
-  
+* `bin/console app:calculate-karma YYYY` to calculate karmapoints (based on the year set in YYYY)
 ## LDAP
 
 To use LDAP two variables are needed in the .env.local file. `LDAP_SEARCH_USER` and `LDAP_SEARCH_PASSWORD`.
