@@ -5,17 +5,14 @@
 /.env.*.local
 /.php_cs.cache
 /public/bundles/
+/bin/*
+!/bin/console
 /var/
 /vendor/
 .idea/
+.vscode/
 ###< symfony/framework-bundle ###
 
-### @todo OLD-FORGER-RELATED
-### These can be removed, once laravel is killed off
-/laravel/node_modules/
-/laravel/storage/
-/laravel/.env
-/Web
 ###> symfony/webpack-encore-bundle ###
 /node_modules/
 /public/build/
