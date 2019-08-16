@@ -40,7 +40,10 @@ class SprintBoard extends AbstractType
                 'query',
                 TextareaType::class,
                 [
-                    'attr' => ['class' => 'form-control']
+                    'attr' => [
+                        'class' => 'form-control text-monospace',
+                        'rows' => 20
+                    ]
                 ]
             )
             ->add(
