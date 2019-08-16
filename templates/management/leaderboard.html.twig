@@ -45,11 +45,13 @@
                                     </table>
                                 </div>
                             </div>
-                            <div class="card-footer">
-                                <small>
-                                    We found <strong>{{ contributors.unmapped|number_format }}</strong> points not claimed by a company
-                                </small>
-                            </div>
+                            {% if contributors.unmapped is defined %}
+                                <div class="card-footer">
+                                    <small>
+                                        We found <strong>{{ contributors.unmapped|number_format }}</strong> points not claimed by a company
+                                    </small>
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 {% endfor %}

@@ -450,6 +450,7 @@ class ManagementController extends AbstractController
                 ],
             ],
         ];
+        $out = [];
         $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
         $search->addType('karmapoints');
         $resultSet = $search->search();
