@@ -12,6 +12,9 @@ set -x
 # lint, phpunit, composer in docker helper functions
 source Build/bamboo-container-functions.sh
 
+# Create log directory
+mkdir -p logs
+
 # Array for invalid options
 INVALID_OPTIONS=();
 TEST_SUITE="unit"
