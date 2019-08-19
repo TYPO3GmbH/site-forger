@@ -153,7 +153,7 @@ class ImportCommand extends Command
         $data = $this->forgeClient->api('issue')->all(
             [
                 'limit' => $perRun,
-                'offset' => $currentSlot + $perRun,
+                'offset' => $currentSlot,
                 'project_id' => $this->parameters->get('redmine_project_id'),
                 'status_id' => '*',
                 'sort' => 'updated_on:desc',
@@ -172,7 +172,7 @@ class ImportCommand extends Command
             $result = $this->forgeClient->api('issue')->all(
                 [
                     'limit' => $perRun,
-                    'offset' => $currentSlot + $perRun,
+                    'offset' => $currentSlot,
                     'project_id' => $this->parameters->get('redmine_project_id'),
                     'status_id' => '*',
                     'sort' => 'updated_on:desc',
