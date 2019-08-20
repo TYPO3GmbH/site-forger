@@ -128,7 +128,7 @@ class BackportCommand extends Command
                         [
                             'terms' => [
                                 'interaction_type' => [
-                                    'Merge',
+                                    'core:review:merge',
                                 ],
                             ],
                         ],
