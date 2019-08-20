@@ -263,8 +263,10 @@ class BackportCommand extends Command
         $returnValue = 'missing';
         foreach ($relatedChanges as $relatedChange) {
             $relatedChange = $relatedChange->getSource();
-            $mergingPerson = $this->getPersonWhoMergedTheChange($relatedChange['id']);
-            $relatedChange['owner'] = $mergingPerson['fullname'] ?? '';
+            if ($relatedChange['reviewstatus'] === 'MERGED') {
+                $mergingPerson = $this->getPersonWhoMergedTheChange($relatedChange['id']);
+                $relatedChange['owner'] = $mergingPerson['fullname'] ?? '';
+            }
             unset($relatedChange['mergeable']);
             switch ($release) {
                 case '6.2':
