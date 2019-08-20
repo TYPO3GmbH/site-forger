@@ -30,8 +30,12 @@ Forger allows the following commands to be used on CLI:
   * `bin/console app:truncate-type issue` to delete all issues
   * `bin/console app:truncate-type review` to delete all reviews
   * `bin/console app:truncate-type interactions` to delete all interactions
-  * `bin/console app:truncate-type karmapoints` to delete all karma points (BE FUCKING CAREFUL WITH THIS!)
-* `bin/console app:calculate-karma YYYY` to calculate karmapoints (based on the year set in YYYY)
+  * `bin/console app:truncate-type karmapoints` to delete all karma points (BE CAREFUL WITH THIS!)
+* `bin/console app:calculate-karma` to calculate karmapoints (based on the year set in arguments)
+  * argument `year` (int) `bin/console app:calculate-karma 2019` to select the year to update
+  * option `--account` (string) `bin/console app:calculate-karma 2019 --account=dermattes` to define a dedicated account to update
+* `bin/console app:backport` will populate the backport view
+
 ## LDAP
 
 To use LDAP two variables are needed in the .env.local file. `LDAP_SEARCH_USER` and `LDAP_SEARCH_PASSWORD`.

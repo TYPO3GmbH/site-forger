@@ -23,6 +23,7 @@ use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -61,6 +62,7 @@ class CalculateKarmaCommand extends Command
         $this
             ->setDescription('Calculate Karma point based on the data from forger')
             ->addArgument('year', InputArgument::REQUIRED, 'the year to import')
+            ->addOption('account', 'a', InputOption::VALUE_OPTIONAL, 'which account to update')
 
         ;
     }
@@ -91,21 +93,33 @@ class CalculateKarmaCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $year = (int)$input->getArgument('year');
         $yearTo = $year+1;
+        $finalConstraints = [];
+        $constraints['dateRange'] = [
+            'range' => [
+                'interacted_on' => [
+                    'gte' => $year . '/01/01 00:00:00',
+                    'lte' => $yearTo . '/01/01 00:00:00'
+                ]
+            ]
+        ];
+
+        $accountName = $input->getOption('account');
+        if ($accountName !== null) {
+            $constraints['account'] = [
+                'terms' => [
+                    'account' => [$accountName]
+                ]
+            ];
+        }
+        foreach ($constraints as $constraint) {
+            $finalConstraints[] = $constraint;
+        }
 
         // Prepare cli layout
         $fullRequest = [
             'query' => [
                 'bool' => [
-                    'must' => [
-                        [
-                            'range' => [
-                                'interacted_on' => [
-                                    'gte' => $year . '/01/01 00:00:00',
-                                    'lte' => $yearTo . '/01/01 00:00:00'
-                                ]
-                            ]
-                        ],
-                    ],
+                    'must' => $finalConstraints,
                     'must_not' => [
                         [
                             'terms' => [
