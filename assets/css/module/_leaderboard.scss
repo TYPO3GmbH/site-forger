@@ -13,4 +13,8 @@
         height: 100%;
         margin-bottom: 0;
     }
+
+    [data-type="title"] {
+        max-width: 178px;
+    }
 }
