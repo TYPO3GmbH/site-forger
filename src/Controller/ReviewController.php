@@ -565,7 +565,7 @@ class ReviewController extends AbstractController
      */
     public function staleIssues(): Response
     {
-        $re = '/http[s]*:\/\/review\.typo3\.org\/([\d]*)/';
+        $re = '|.*https:\/\/review\.typo3\.org\/(?>(c\/)?)(?>Packages\/TYPO3\.CMS\/\+\/)?(?<reviewId>[\d]{2,6})|';
         $staleIssues = [];
 
         $resultSet = $this->getUnderReviewIssues();
@@ -574,7 +574,7 @@ class ReviewController extends AbstractController
             foreach ($result->getData()['journals'] as $journal) {
                 if (isset($journal['notes'])) {
                     preg_match_all($re, $journal['notes'], $matches);
-                    $id = $matches[1][0] ?? null;
+                    $id = $matches['reviewId'][0] ?? null;
                     if ($id !== null && $id !== '') {
                         $reviewIds[] = $id;
                     }
