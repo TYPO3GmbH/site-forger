@@ -10,6 +10,7 @@
 namespace App\Controller;
 
 use App\Client\ElasticClient;
+use App\Entity\Company;
 use App\Entity\TrackerFilters;
 use DateTime;
 use Exception;

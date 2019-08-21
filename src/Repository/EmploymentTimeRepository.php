@@ -25,4 +25,14 @@ class EmploymentTimeRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, EmploymentTime::class);
     }
+
+    /**
+     * @param string $username
+     * @param array $orderBy
+     * @return EmploymentTime[]
+     */
+    public function findByUsername(string $username, array $orderBy = ['employedFrom' => 'desc']): array
+    {
+        return $this->findBy(['account' => $username], $orderBy);
+    }
 }
