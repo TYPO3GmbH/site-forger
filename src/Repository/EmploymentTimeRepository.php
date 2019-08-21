@@ -11,6 +11,7 @@ namespace App\Repository;
 
 use App\Entity\EmploymentTime;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Common\Collections\Collection;
 use Symfony\Bridge\Doctrine\RegistryInterface;
 
 /**
@@ -24,5 +25,15 @@ class EmploymentTimeRepository extends ServiceEntityRepository
     public function __construct(RegistryInterface $registry)
     {
         parent::__construct($registry, EmploymentTime::class);
+    }
+
+    /**
+     * @param string $username
+     * @param array $orderBy
+     * @return EmploymentTime[]
+     */
+    public function findByUsername(string $username, array $orderBy = ['employedFrom' => 'desc']): array
+    {
+        return $this->findBy(['account' => $username], $orderBy);
     }
 }

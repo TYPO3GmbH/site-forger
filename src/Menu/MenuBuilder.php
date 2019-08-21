@@ -362,6 +362,16 @@ class MenuBuilder
                     ],
                 ]
             );
+            $menu['username']->addChild(
+                'profile_employment',
+                [
+                    'label' => 'Company Employment',
+                    'route' => 'user_employment',
+                    'extras' => [
+                        'icon' => 'user-tie',
+                    ],
+                ]
+            );
             $menu->addChild(
                 'logout',
                 [

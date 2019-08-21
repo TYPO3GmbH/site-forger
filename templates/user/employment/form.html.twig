@@ -1,0 +1,29 @@
+{% extends 'base.html.twig' %}
+{% block title %}Company Employment{% endblock %}
+{% block headline %}Company Employment{% endblock %}
+{% block body %}
+
+    <div class="content-section">
+        <div class="container">
+            <h2>
+                {% if edit %}
+                    Edit a company employment
+                {% else %}
+                    Add a company employment
+                {% endif %}
+            </h2>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            {{ form_start(form) }}
+                            {{ form_widget(form) }}
+                            {{ form_end(form) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

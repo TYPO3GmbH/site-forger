@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+{% import '_macros/buttons.html.twig' as buttons %}
+{% block title %}Company Employment{% endblock %}
+{% block headline %}Company Employment{% endblock %}
+{% block body %}
+
+    <div class="content-section bg-transparent">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="float-right">
+                        {{ buttons.link(
+                            path('user_employment_manage'),
+                            'Create new',
+                            'primary',
+                            'plus'
+                        ) }}
+                    </div>
+                </div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-md-12">
+                    {% if employmentTimes %}
+                        <div class="card">
+                            <div class="datatable">
+                                <table class="datatable-table">
+                                    <thead>
+                                    <tr>
+                                        <th scope="col">Company</th>
+                                        <th scope="col">Dates</th>
+                                        <th scope="col">Actions</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for employmentTime in employmentTimes %}
+                                        <tr>
+                                            <th class="{{ employmentTime.employedTo ? 'text-muted' : '' }}">
+                                                <strong>{{ employmentTime.company.name }}</strong>
+                                            </th>
+                                            <td class="{{ employmentTime.employedTo ? 'text-muted' : '' }}">
+                                                {% if employmentTime.employedTo %}
+                                                    <small><i class="fal fa-sign-in"></i> {{ employmentTime.employedFrom|date('Y-m-d') }}</small><br>
+                                                    <i class="fal fa-sign-out"></i> {{ employmentTime.employedTo|date('Y-m-d') }}
+                                                {% else %}
+                                                    <i class="fal fa-sign-in"></i> {{ employmentTime.employedFrom|date('Y-m-d') }}
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    {{ buttons.link(
+                                                        path('user_employment_manage', {'id': employmentTime.id}),
+                                                        'Edit',
+                                                        'primary',
+                                                        'pencil'
+                                                    ) }}
+                                                    {{ buttons.link(
+                                                        path('user_employment_delete', {'id': employmentTime.id}),
+                                                        'Delete',
+                                                        'danger',
+                                                        'trash'
+                                                    ) }}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% else %}
+                        {% include '_partials/alert.html.twig' with {'message': '<strong>No employment yet.</strong>', 'style': 'info'} %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
