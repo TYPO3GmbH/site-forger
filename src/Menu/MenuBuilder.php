@@ -232,6 +232,18 @@ class MenuBuilder
                 ],
             ]
         );
+        if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
+            $menu['management']->addChild(
+                'management-companies',
+                [
+                    'label' => 'Companies',
+                    'route' => 'management_companies',
+                    'extras' => [
+                        'icon' => 'building',
+                    ],
+                ]
+            );
+        }
         $menu->addChild(
             'sprint',
             [

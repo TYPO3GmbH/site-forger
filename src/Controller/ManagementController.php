@@ -10,12 +10,19 @@
 namespace App\Controller;
 
 use App\Client\ElasticClient;
+use App\Entity\BackportBlacklistEntry;
+use App\Entity\Company;
 use App\Entity\TrackerFilters;
+use App\Repository\CompanyRepository;
 use DateTime;
+use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use InvalidArgumentException;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -475,6 +482,73 @@ class ManagementController extends AbstractController
             'type' => $type,
             'dateRange' => $dateRange
         ]);
+    }
+
+    /**
+     * @Route("/management/companies", name="management_companies")
+     * @IsGranted("ROLE_ADMIN")
+     * @param CompanyRepository $companyRepository
+     * @return JsonResponse
+     */
+    public function companies(CompanyRepository $companyRepository): Response
+    {
+        return $this->render('management/companies.html.twig', [
+            'companies' => $companyRepository->findAll()
+        ]);
+    }
+
+    /**
+     * @Route("/management/companies/create", name="management_companies_create")
+     * @IsGranted("ROLE_ADMIN")
+     * @param Request $request
+     * @param EntityManagerInterface $entityManager
+     * @return Response
+     */
+    public function createCompanyEntry(
+        Request $request,
+        EntityManagerInterface $entityManager
+    ): Response {
+        $entry = new Company();
+        $form = $this->createForm(\App\Form\Company::class, $entry);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $entityManager->persist($entry);
+            $entityManager->flush();
+
+            $this->addFlash('success', 'Company "' . $entry->getName() . '" created.');
+
+            return $this->redirectToRoute('management_companies');
+        }
+
+        return $this->render(
+            'management/company_form.html.twig',
+            [
+                'form' => $form->createView(),
+            ]
+        );
+    }
+
+    /**
+     * @Route("/management/company/delete/{id}", name="management_company_delete")
+     * @IsGranted("ROLE_ADMIN")
+     *
+     * @param int $id
+     * @param CompanyRepository $companyRepository
+     * @param EntityManagerInterface $entityManager
+     * @return Response
+     */
+    public function deleteCompany(int $id, CompanyRepository $companyRepository, EntityManagerInterface $entityManager): Response
+    {
+        $company = $companyRepository->findOneBy(['id' => $id]);
+
+        if ($company !== null) {
+            $entityManager->remove($company);
+            $entityManager->flush();
+            $this->addFlash('success', 'Company "' . $company->getName() . '" deleted.');
+        }
+
+        return $this->redirectToRoute('management_companies');
     }
 
     private function getDateIdentifierByDateRangeType(string $dateRangeType, string $bucketKey): string

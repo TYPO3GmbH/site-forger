@@ -9,6 +9,7 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -28,6 +29,13 @@ class Company
      */
     private $name;
 
+    /**
+     * Bidirectional - One-To-Many (INVERSE SIDE)
+     *
+     * @ORM\OneToMany(targetEntity="EmploymentTime", mappedBy="company", cascade={"remove"})
+     */
+    private $employmentTimes;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -42,6 +50,17 @@ class Company
     {
         $this->name = $name;
 
+        return $this;
+    }
+
+    public function getEmploymentTimes(): Collection
+    {
+        return $this->employmentTimes;
+    }
+
+    public function setEmploymentTimes(array $employmentTimes): self
+    {
+        $this->employmentTimes = $employmentTimes;
         return $this;
     }
 }
