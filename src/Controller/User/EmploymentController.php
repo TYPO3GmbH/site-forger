@@ -87,7 +87,7 @@ class EmploymentController extends AbstractController
         return $this->render(
             'user/employment/form.html.twig',
             [
-                'edit' => $entry->getId() !== null,
+                'edit' => $entry->getId() === null,
                 'form' => $form->createView(),
             ]
         );

@@ -19,6 +19,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
+/**
+ * @IsGranted("ROLE_ADMIN")
+ */
 class CompanyController extends AbstractController
 {
     private $companyRepository;
@@ -30,7 +33,6 @@ class CompanyController extends AbstractController
 
     /**
      * @Route("/management/companies", name="management_companies")
-     * @IsGranted("ROLE_ADMIN")
      * @return JsonResponse
      */
     public function companies(): Response
@@ -41,17 +43,24 @@ class CompanyController extends AbstractController
     }
 
     /**
-     * @Route("/management/companies/create", name="management_companies_create")
-     * @IsGranted("ROLE_ADMIN")
+     * @Route("/management/companies/manage/{id}", name="management_companies_manage")
      * @param Request $request
      * @param EntityManagerInterface $entityManager
+     * @param int $id
      * @return Response
      */
-    public function createCompanyEntry(
-        Request $request,
-        EntityManagerInterface $entityManager
-    ): Response {
-        $entry = new Company();
+    public function manageCompanyEntry(Request $request, EntityManagerInterface $entityManager, int $id = 0): Response
+    {
+        if ($id === 0) {
+            $entry = new Company();
+        } else {
+            $entry = $this->companyRepository->find($id);
+
+            if ($entry === null) {
+                $this->addFlash('danger', 'Invalid company requested.');
+                return $this->redirectToRoute('management_companies');
+            }
+        }
         $form = $this->createForm(\App\Form\Company::class, $entry);
         $form->handleRequest($request);
 
@@ -59,7 +68,7 @@ class CompanyController extends AbstractController
             $entityManager->persist($entry);
             $entityManager->flush();
 
-            $this->addFlash('success', 'Company "' . $entry->getName() . '" created.');
+            $this->addFlash('success', 'Company "' . $entry->getName() . '" saved.');
 
             return $this->redirectToRoute('management_companies');
         }
@@ -67,6 +76,7 @@ class CompanyController extends AbstractController
         return $this->render(
             'management/company/form.html.twig',
             [
+                'edit' => $entry->getId() !== null,
                 'form' => $form->createView(),
             ]
         );
@@ -74,7 +84,6 @@ class CompanyController extends AbstractController
 
     /**
      * @Route("/management/company/delete/{id}", name="management_company_delete")
-     * @IsGranted("ROLE_ADMIN")
      *
      * @param int $id
      * @param EntityManagerInterface $entityManager

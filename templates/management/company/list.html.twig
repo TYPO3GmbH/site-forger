@@ -10,7 +10,7 @@
                 <div class="col-md-12">
                     <div class="float-right">
                         {{ buttons.link(
-                            path('management_companies_create'),
+                            path('management_companies_manage'),
                             'Create new',
                             'primary',
                             'plus'
@@ -27,7 +27,7 @@
                                 <table class="datatable-table">
                                     <thead>
                                     <tr>
-                                        <th scope="col">Name</th>
+                                        <th scope="col" style="width: 99%">Name</th>
                                         <th scope="col">Actions</th>
                                     </tr>
                                     </thead>
@@ -38,6 +38,12 @@
                                                 <strong>{{ company.name }}</strong>
                                             </th>
                                             <td>
+                                                {{ buttons.link(
+                                                    path('management_companies_manage', {'id': company.id}),
+                                                    'Edit',
+                                                    'primary',
+                                                    'pencil'
+                                                ) }}
                                                 {{ buttons.link(
                                                     path('management_company_delete', {'id': company.id}),
                                                     'Delete',
