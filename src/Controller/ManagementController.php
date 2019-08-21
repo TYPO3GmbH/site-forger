@@ -10,19 +10,13 @@
 namespace App\Controller;
 
 use App\Client\ElasticClient;
-use App\Entity\BackportBlacklistEntry;
 use App\Entity\Company;
 use App\Entity\TrackerFilters;
-use App\Repository\CompanyRepository;
 use DateTime;
-use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use InvalidArgumentException;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
