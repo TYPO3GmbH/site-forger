@@ -113,7 +113,7 @@
                         return null;
                     }
                     return tagField.value;
-                });
+                }).filter(tag => tag !== null);
 
                 const extensionTag = document.querySelector('select[name="tag[]"]').value;
                 if (extensionTag.length > 0) {
