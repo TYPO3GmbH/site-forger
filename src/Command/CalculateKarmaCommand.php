@@ -61,7 +61,7 @@ class CalculateKarmaCommand extends Command
     {
         $this
             ->setDescription('Calculate Karma point based on the data from forger')
-            ->addArgument('year', InputArgument::REQUIRED, 'the year to import')
+            ->addArgument('year', InputArgument::OPTIONAL, 'the year to import')
             ->addOption('account', 'a', InputOption::VALUE_OPTIONAL, 'which account to update')
 
         ;
@@ -102,6 +102,15 @@ class CalculateKarmaCommand extends Command
                 ]
             ]
         ];
+        if ($year === 0) {
+            $constraints['dateRange'] = [
+                'range' => [
+                    'interacted_on' => [
+                        'gte' => 'now-3d',
+                    ]
+                ]
+            ];
+        }
 
         $accountName = $input->getOption('account');
         if ($accountName !== null) {
