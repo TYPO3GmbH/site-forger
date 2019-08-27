@@ -7,6 +7,7 @@
         "ext-ctype": "*",
         "ext-iconv": "*",
         "ext-json": "*",
+        "guzzlehttp/guzzle": "^6.3",
         "johnstyle/redmine-bundle": "^1.0",
         "kbsali/redmine-api": "^1.5",
         "knplabs/knp-menu-bundle": "^2.2",
@@ -23,7 +24,8 @@
         "symfony/security-bundle": "4.3.*",
         "symfony/twig-bundle": "4.3.*",
         "symfony/webpack-encore-bundle": "^1.6",
-        "symfony/yaml": "4.3.*"
+        "symfony/yaml": "4.3.*",
+        "woeler/phpdiscord": "^1.1"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^2.15",

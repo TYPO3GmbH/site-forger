@@ -36,6 +36,8 @@ Forger allows the following commands to be used on CLI:
   * option `--account` (string) `bin/console app:calculate-karma 2019 --account=dermattes` to define a dedicated account to update
 * `bin/console app:backport` will populate the backport view
 
+Note that for import Discord messages to be sent you need the `DISCORD_ISSUES_WEBHOOK` env variable.
+
 ## LDAP
 
 To use LDAP two variables are needed in the .env.local file. `LDAP_SEARCH_USER` and `LDAP_SEARCH_PASSWORD`.

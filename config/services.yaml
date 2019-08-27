@@ -54,6 +54,9 @@ services:
         arguments:
             $url: '%env(FORGE_ENDPOINT)%'
             $apikeyOrUsername: '%env(FORGE_ACCESS_TOKEN)%'
+    App\Client\GeneralClient:
+        class: App\Client\GeneralClient
+        public: true
     App\Client\ElasticClient:
         class: App\Client\ElasticClient
         public: true
@@ -66,6 +69,14 @@ services:
                   index: '%env(ELASTIC_INDEX)%'
                   username: '%env(ELASTIC_AUTH_USERNAME)%'
                   password: '%env(ELASTIC_AUTH_PASSWORD)%'
+    App\Service\DiscordService:
+        class: App\Service\DiscordService
+        public: true
+    App\Command\ImportCommand:
+        class: App\Command\ImportCommand
+        public: true
+        arguments:
+            $discordWebhook: '%env(DISCORD_ISSUES_WEBHOOK)%'
     #        tags:
     #            - testDouble
     App\Menu\MenuBuilder:
