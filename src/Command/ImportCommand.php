@@ -11,10 +11,13 @@ namespace App\Command;
 
 use App\Client\ElasticClient;
 use App\Client\ForgeClient;
+use App\Service\DiscordService;
 use DateTime;
 use Elastica\Document;
+use Elastica\Exception\NotFoundException;
 use Elastica\Type as DocType;
 use Exception;
+use GuzzleHttp\Exception\GuzzleException;
 use InvalidArgumentException;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
@@ -24,6 +27,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Woeler\DiscordPhp\Message\DiscordEmbedsMessage;
 
 class ImportCommand extends Command
 {
@@ -59,6 +63,13 @@ class ImportCommand extends Command
                 InputOption::VALUE_OPTIONAL,
                 'at which line should the script start',
                 0
+            )
+            ->addOption(
+                'sendnotifications',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Will not send notifications to Discord in silent mode',
+                false
             );
     }
 
@@ -73,16 +84,38 @@ class ImportCommand extends Command
     protected $forgeClient;
 
     /**
+     * @var DiscordService
+     */
+    private $discordService;
+
+    /**
+     * @var string
+     */
+    private $discordWebhook;
+
+    /**
      * @var OutputInterface
      */
     protected $output;
 
-    public function __construct(ParameterBagInterface $parameters, ForgeClient $forgeClient, ElasticClient $elasticClient)
-    {
+    /**
+     * @var bool
+     */
+    private $sendNotifications = false;
+
+    public function __construct(
+        ParameterBagInterface $parameters,
+        ForgeClient $forgeClient,
+        ElasticClient $elasticClient,
+        DiscordService $discordService,
+        string $discordWebhook
+    ) {
         parent::__construct();
         $this->parameters = $parameters;
         $this->forgeClient = $forgeClient;
         $this->elasticClient = $elasticClient;
+        $this->discordService = $discordService;
+        $this->discordWebhook = $discordWebhook;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -91,6 +124,7 @@ class ImportCommand extends Command
         $this->output = $output;
         $mode = $input->getOption('mode');
         $startAt = (int)$input->getOption('startAt');
+        $this->sendNotifications = ($input->getOption('sendnotifications') !== false);
         if (!in_array($mode, self::$importModes, true)) {
             $io->note('Please select one of the modes: "' . implode('" ', self::$importModes) . '"');
         }
@@ -590,11 +624,13 @@ class ImportCommand extends Command
                 $document['created_on'] = $this->fixDateFormat($document['created_on'], 'Redmine');
                 unset($document['start_date'], $document['due_date']);
                 $elasticType = new DocType($this->elasticClient->getIndex($this->parameters->get('elastic_index_name')), 'issue');
-//                try {
-//                    $elasticType->getDocument($document['id']);
-//                } catch (NotFoundException $e) {
-//                    $this->sendSlackMessage($document);
-//                }
+                if ($this->sendNotifications) {
+                    try {
+                        $elasticType->getDocument($document['id']);
+                    } catch (NotFoundException $e) {
+                        $this->sendDiscordMessage($document);
+                    }
+                }
                 break;
             case 'review':
                 $elasticType = new DocType($this->elasticClient->getIndex($this->parameters->get('elastic_index_name')), 'review');
@@ -722,5 +758,30 @@ class ImportCommand extends Command
         }
 
         return $interaction;
+    }
+
+    /**
+     * @param array $data
+     */
+    private function sendDiscordMessage(array $data): void
+    {
+        $message = (new DiscordEmbedsMessage())
+            ->setTitle('Forger found a new issues')
+            ->setAuthorName($data['author']['name'] ?? 'Unknown')
+            ->setDescription('[' . $data['subject'] . '](https://forge.typo3.org/issues/' . $data['id'] . ')'
+                . PHP_EOL . PHP_EOL . substr(strip_tags($data['description']), 0, 1500))
+            ->addField('Status', $data['status']['name'], true)
+            ->addField('Tracker', $data['tracker']['name'], true)
+            ->setColorWithHexValue('32CD32');
+        if ($data['tracker']['name'] === 'Bug') {
+            $message->setColorWithHexValue('B22222');
+        }
+        $message->setUsername('Forger');
+
+        try {
+            $this->discordService->sendMessage($message, $this->discordWebhook);
+        } catch (GuzzleException $e) {
+            // Could not send Discord message. Log?
+        }
     }
 }
