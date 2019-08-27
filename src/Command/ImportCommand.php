@@ -65,7 +65,7 @@ class ImportCommand extends Command
                 0
             )
             ->addOption(
-                'silent',
+                'sendnotifications',
                 null,
                 InputOption::VALUE_OPTIONAL,
                 'Will not send notifications to Discord in silent mode',
@@ -101,7 +101,7 @@ class ImportCommand extends Command
     /**
      * @var bool
      */
-    private $silent = false;
+    private $sendNotifications = false;
 
     public function __construct(
         ParameterBagInterface $parameters,
@@ -124,7 +124,7 @@ class ImportCommand extends Command
         $this->output = $output;
         $mode = $input->getOption('mode');
         $startAt = (int)$input->getOption('startAt');
-        $this->silent = ($input->getOption('silent') !== false);
+        $this->sendNotifications = ($input->getOption('sendnotifications') !== false);
         if (!in_array($mode, self::$importModes, true)) {
             $io->note('Please select one of the modes: "' . implode('" ', self::$importModes) . '"');
         }
@@ -624,7 +624,7 @@ class ImportCommand extends Command
                 $document['created_on'] = $this->fixDateFormat($document['created_on'], 'Redmine');
                 unset($document['start_date'], $document['due_date']);
                 $elasticType = new DocType($this->elasticClient->getIndex($this->parameters->get('elastic_index_name')), 'issue');
-                if (!$this->silent) {
+                if ($this->sendNotifications) {
                     try {
                         $elasticType->getDocument($document['id']);
                     } catch (NotFoundException $e) {
