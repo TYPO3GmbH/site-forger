@@ -26,6 +26,9 @@ Forger allows the following commands to be used on CLI:
 * `bin/console app:import --mode=forgeDelta` will import the latest 100 issues from Redmine
 * `bin/console app:import --mode=reviewFull` will import Gerrit completely
 * `bin/console app:import --mode=reviewDelta` will import the latest 100 Gerrit changes and create interactions from them
+
+Using `--sendnotifications` on the commands above will trigger Discord notifications.
+
 * `bin/console app:truncate-type` truncates a given type and takes the following arguments:
   * `bin/console app:truncate-type issue` to delete all issues
   * `bin/console app:truncate-type review` to delete all reviews
