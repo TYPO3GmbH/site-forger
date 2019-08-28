@@ -766,7 +766,7 @@ class ImportCommand extends Command
     private function sendDiscordMessage(array $data): void
     {
         $message = (new DiscordEmbedsMessage())
-            ->setTitle('Forger found a new issues')
+            ->setTitle('Forger found a new issue')
             ->setAuthorName($data['author']['name'] ?? 'Unknown')
             ->setDescription('[' . $data['subject'] . '](https://forge.typo3.org/issues/' . $data['id'] . ')'
                 . PHP_EOL . PHP_EOL . substr(strip_tags($data['description']), 0, 1500))
