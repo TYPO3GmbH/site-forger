@@ -438,6 +438,9 @@ class ManagementController extends AbstractController
                             'terms' => [
                                 'field' => $aggregationTypeField,
                                 'size' => 20,
+                                'order' => [
+                                    'points' => 'desc'
+                                ]
                             ],
                             'aggregations' => [
                                 'points' => [
@@ -463,7 +466,6 @@ class ManagementController extends AbstractController
                 foreach ($bucket['member']['buckets'] as $contributor) {
                     $contributors[$contributor['key']] = $contributor['points']['value'];
                 }
-                arsort($contributors);
                 $out[$dateIdent] = $contributors;
             }
         }
