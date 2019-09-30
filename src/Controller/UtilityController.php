@@ -89,7 +89,7 @@ class UtilityController extends AbstractController
             return $this->redirectToRoute('dashboard_index');
         }
 
-        if (null !== $request->get('changeId')) {
+        if ($request->get('changeId') !== null) {
             $form->get('changeId')->setData($request->get('changeId'));
         }
 
