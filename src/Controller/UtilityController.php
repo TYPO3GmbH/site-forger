@@ -89,6 +89,10 @@ class UtilityController extends AbstractController
             return $this->redirectToRoute('dashboard_index');
         }
 
+        if (null !== $request->get('changeId')) {
+            $form->get('changeId')->setData($request->get('changeId'));
+        }
+
         return $this->render(
             'utility/backport_form.html.twig',
             [
