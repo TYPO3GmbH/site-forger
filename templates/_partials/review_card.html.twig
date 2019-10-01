@@ -82,7 +82,7 @@
         {% if mode == 'backport' and is_granted('ROLE_ADMIN') %}
             <div class="review-actions">
                 {{ buttons.link(
-                    path('utilities_backport_quickcreate', {'changeId': card.change_id}),
+                    path('utilities_backport_create', {'changeId': card.change_id}),
                     'Add to blacklist',
                     'danger btn-sm',
                     'trash'
