@@ -13,6 +13,9 @@ Next generation of forger
 * call `ddev ssh` to get into the container
   * change to `cd config/Elasticorn`
   * call `elasticorn.phar index:init -c /var/www/html/config/Elasticorn` to create indices
+* call `ddev exec yarn install`
+* call `ddev exec yarn build`
+* call `ddev exec bin/console doctrine:schema:create`
 
 ### Add inline scripts to aggregations in elasticsearch
 
@@ -44,3 +47,10 @@ Note that for import Discord messages to be sent you need the `DISCORD_ISSUES_WE
 ## LDAP
 
 To use LDAP two variables are needed in the .env.local file. `LDAP_SEARCH_USER` and `LDAP_SEARCH_PASSWORD`.
+
+Following user groups are taken into consideration:
+
+* typo3.com-gmbh -> ROLE_ADMIN
+* typo3.org.team.core.component -> ROLE_CORE_COMPONENT
+* typo3.org.team.core.framework -> ROLE_CORE_FRAMEWORK
+

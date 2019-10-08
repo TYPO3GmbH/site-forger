@@ -39,6 +39,8 @@ class LdapUserProvider implements UserProviderInterface
      */
     private $roleMapping = [
         'typo3.com-gmbh' => 'ROLE_ADMIN',
+        'typo3.org.team.core.component' => 'ROLE_CORE_COMPONENT',
+        'typo3.org.team.core.framework' => 'ROLE_CORE_FRAMEWORK',
     ];
 
     /**

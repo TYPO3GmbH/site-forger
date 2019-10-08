@@ -320,7 +320,7 @@ class MenuBuilder
                 ],
             ]
         );
-        if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
+        if ($this->authorizationChecker->isGranted('ROLE_CORE_COMPONENT')) {
             $menu['utility']->addChild(
                 'utility_backport_list',
                 [
