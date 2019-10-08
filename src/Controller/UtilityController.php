@@ -66,7 +66,7 @@ class UtilityController extends AbstractController
 
     /**
      * @Route("/backport/create", name="backport_create")
-     * @IsGranted("ROLE_ADMIN")
+     * @IsGranted("ROLE_CORE_COMPONENT")
      *
      * @param Request $request
      * @param EntityManagerInterface $entityManager
@@ -103,7 +103,7 @@ class UtilityController extends AbstractController
 
     /**
      * @Route("/backport/quickcreate/{changeId}", name="backport_quickcreate")
-     * @IsGranted("ROLE_ADMIN")
+     * @IsGranted("ROLE_CORE_COMPONENT")
      *
      * @param Request $request
      * @param string $changeId
@@ -127,7 +127,7 @@ class UtilityController extends AbstractController
 
     /**
      * @Route("/backport/edit/{entryId}", name="backport_edit")
-     * @IsGranted("ROLE_ADMIN")
+     * @IsGranted("ROLE_CORE_COMPONENT")
      *
      * @param Request $request
      * @param int $entryId
@@ -168,7 +168,7 @@ class UtilityController extends AbstractController
 
     /**
      * @Route("/backport/delete/{changeId}", name="backport_delete")
-     * @IsGranted("ROLE_ADMIN")
+     * @IsGranted("ROLE_CORE_COMPONENT")
      *
      * @param Request $request
      * @param string $changeId
@@ -193,7 +193,7 @@ class UtilityController extends AbstractController
 
     /**
      * @Route("/backport/list", name="backport_index")
-     * @IsGranted("ROLE_ADMIN")
+     * @IsGranted("ROLE_CORE_COMPONENT")
      *
      * @return Response
      */
