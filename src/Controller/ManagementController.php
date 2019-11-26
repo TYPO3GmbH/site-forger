@@ -42,7 +42,7 @@ class ManagementController extends AbstractController
         'Claus Due',
         'Daniel Goerz',
         'Daniel Sattler',
-        'Frank Naegler',
+        'Frank Nägler',
         'Georg Ringer',
         'Josef Glatz',
         'Manuel Selbach',
