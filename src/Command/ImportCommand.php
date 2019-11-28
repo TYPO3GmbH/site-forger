@@ -21,6 +21,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use InvalidArgumentException;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Command\LockableTrait;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -31,6 +32,8 @@ use Woeler\DiscordPhp\Message\DiscordEmbedsMessage;
 
 class ImportCommand extends Command
 {
+    use LockableTrait;
+
     protected static $defaultName = 'app:import';
 
     protected const BAMBOO_USER_ID = [49454, 51735];
@@ -131,47 +134,71 @@ class ImportCommand extends Command
 
         switch ($mode) {
             case 'forgeFull':
-                $this->importFromForge(100, $startAt);
+                if ($this->lock('forge')) {
+                    $this->importFromForge(100, $startAt);
+                    $this->release();
+                } else {
+                    $output->writeln('Locked by another forge import');
+                    return 0;
+                }
                 break;
             case 'forgeDelta':
-                $this->importFromForge(100, $startAt, true);
+                if ($this->lock('forge')) {
+                    $this->importFromForge(100, $startAt, true);
+                    $this->release();
+                } else {
+                    $output->writeln('Locked by another forge import');
+                    return 0;
+                }
                 break;
             case 'reviewDelta':
-                $mainSection = $output->section();
-                $subSection = $output->section();
-                $progressBar = new ProgressBar($mainSection, 100);
-                $subBar = new ProgressBar($subSection);
-                $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
-                /** @noinspection PhpUnhandledExceptionInspection */
-                $result = $this->getReviewBlock(0, 100, $subBar, $progressBar);
-                foreach ($result as $review) {
+                if ($this->lock('gerrit')) {
+                    $mainSection = $output->section();
+                    $subSection = $output->section();
+                    $progressBar = new ProgressBar($mainSection, 100);
+                    $subBar = new ProgressBar($subSection);
+                    $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
                     /** @noinspection PhpUnhandledExceptionInspection */
-                    $this->addDocumentToElastic($review, 'review');
+                    $result = $this->getReviewBlock(0, 100, $subBar, $progressBar);
+                    foreach ($result as $review) {
+                        /** @noinspection PhpUnhandledExceptionInspection */
+                        $this->addDocumentToElastic($review, 'review');
+                    }
+                    $this->release();
+                } else {
+                    $output->writeln('Locked by another gerrit import');
+                    return 0;
                 }
                 break;
             case 'reviewFull':
-                $totalCount = 30000;
-                $currentSlot = 0;
-                if ($startAt > 0) {
-                    $currentSlot = $startAt;
-                }
-                $perRun = 100;
-                $mainSection = $output->section();
-                $subSection = $output->section();
-                $progressBar = new ProgressBar($mainSection, $totalCount);
-                $progressBar->setProgress($currentSlot);
-                $subBar = new ProgressBar($subSection);
-                $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
-                while ($currentSlot <= $totalCount) {
-                    if ($this->moreIssuesFromGerrit) {
-                        /** @noinspection PhpUnhandledExceptionInspection */
-                        $result = $this->getReviewBlock($currentSlot, $perRun, $subBar, $progressBar);
-                        foreach ($result as $review) {
-                            /** @noinspection PhpUnhandledExceptionInspection */
-                            $this->addDocumentToElastic($review, 'review');
-                        }
+                if ($this->lock('gerrit')) {
+                    $totalCount = 30000;
+                    $currentSlot = 0;
+                    if ($startAt > 0) {
+                        $currentSlot = $startAt;
                     }
-                    $currentSlot += $perRun;
+                    $perRun = 100;
+                    $mainSection = $output->section();
+                    $subSection = $output->section();
+                    $progressBar = new ProgressBar($mainSection, $totalCount);
+                    $progressBar->setProgress($currentSlot);
+                    $subBar = new ProgressBar($subSection);
+                    $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
+                    while ($currentSlot <= $totalCount) {
+                        if ($this->moreIssuesFromGerrit) {
+                            /** @noinspection PhpUnhandledExceptionInspection */
+                            $result = $this->getReviewBlock($currentSlot, $perRun, $subBar, $progressBar);
+                            foreach ($result as $review) {
+                                /** @noinspection PhpUnhandledExceptionInspection */
+                                $this->addDocumentToElastic($review, 'review');
+                            }
+                        }
+                        $currentSlot += $perRun;
+                    }
+                    $this->release();
+                } else {
+                    $output->writeln('Locked by another gerrit import');
+                    return 0;
                 }
                 break;
         }
