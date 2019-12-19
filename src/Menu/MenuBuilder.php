@@ -26,22 +26,8 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 /**
  * MenuBuilder
  */
-class MenuBuilder
+class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
 {
-    /**
-     * @var MenuFactory
-     */
-    private $factory;
-
-    /**
-     * @var AuthorizationCheckerInterface
-     */
-    private $authorizationChecker;
-
-    /**
-     * @var TokenStorageInterface
-     */
-    private $tokenStorage;
     /**
      * @var SprintBoardCategoryRepository
      */
@@ -66,9 +52,10 @@ class MenuBuilder
     }
 
     /**
+     * @param array $options
      * @return MenuItem
      */
-    public function mainDefault(): MenuItem
+    public function mainDefault(array $options): MenuItem
     {
         $categories = $this->categoryRepository->findAll();
         $menu = $this->factory->createItem('root');
@@ -336,9 +323,10 @@ class MenuBuilder
     }
 
     /**
+     * @param array $options
      * @return MenuItem
      */
-    public function mainProfile(): MenuItem
+    public function mainProfile(array $options): MenuItem
     {
         $menu = $this->factory->createItem('root');
         $menu->addChild(
@@ -394,29 +382,6 @@ class MenuBuilder
                 ]
             )->setLinkAttribute('class', 'btn btn-primary');
         }
-        return $menu;
-    }
-
-    /**
-     * @return MenuItem
-     */
-    public function mainFooter(): MenuItem
-    {
-        $menu = $this->factory->createItem('root');
-        $menu->addChild(
-            'privacy',
-            [
-                'label' => 'Privacy Policy',
-                'route' => 'static_privacy'
-            ]
-        );
-        $menu->addChild(
-            'legal',
-            [
-                'label' => 'Legal Information',
-                'route' => 'static_legal'
-            ]
-        );
         return $menu;
     }
 }
