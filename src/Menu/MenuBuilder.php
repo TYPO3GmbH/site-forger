@@ -14,7 +14,6 @@ use App\Entity\SprintBoardCategory;
 use App\Repository\SprintBoardCategoryRepository;
 use Knp\Menu\FactoryInterface;
 //use Knp\Menu\Matcher\MatcherInterface;
-use Knp\Menu\MenuFactory;
 use Knp\Menu\MenuItem;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
@@ -88,7 +87,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                         'icon' => 'home',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_hasverifications',
             [
@@ -98,7 +97,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                         'icon' => 'check-square',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_missesverifications',
             [
@@ -108,7 +107,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                         'icon' => 'plus-square',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_missesreview',
             [
@@ -118,7 +117,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                         'icon' => 'plus-square',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_rebase',
             [
@@ -128,7 +127,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                         'icon' => 'sync',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_files',
             [
@@ -138,7 +137,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                         'icon' => 'file',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_negative_vote_cleanup',
             [
@@ -148,7 +147,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                         'icon' => 'thumbs-down',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_wip',
             [
@@ -158,7 +157,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                         'icon' => 'bolt',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_coreteam_merge',
             [
@@ -168,7 +167,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                         'icon' => 'users',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_stale_issues',
             [
@@ -178,7 +177,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                         'icon' => 'ban',
                     ],
                 ]
-            );
+        );
         $menu->addChild(
             'management',
             [
