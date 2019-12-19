@@ -27,6 +27,7 @@
         "symfony/webpack-encore-bundle": "^1.6",
         "symfony/yaml": "^4.3",
         "t3g/symfony-template-bundle": "dev-master",
+        "t3g/symfony-usercentrics-bundle": "dev-master",
         "woeler/phpdiscord": "^1.1"
     },
     "require-dev": {

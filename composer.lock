@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9ff320eb6bc081867d95866c11948848",
+    "content-hash": "bbcb6080f5f84597d8390382b3e06f05",
     "packages": [
         {
             "name": "doctrine/annotations",
@@ -5687,6 +5687,42 @@
             "time": "2019-12-18T15:54:24+00:00"
         },
         {
+            "name": "t3g/symfony-usercentrics-bundle",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/TYPO3GmbH/symfony-usercentrics-bundle.git",
+                "reference": "a49813c787351b119bfc8ba4e31c17ebfdf6d6a6"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/TYPO3GmbH/symfony-usercentrics-bundle/zipball/a49813c787351b119bfc8ba4e31c17ebfdf6d6a6",
+                "reference": "a49813c787351b119bfc8ba4e31c17ebfdf6d6a6",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.2",
+                "symfony/dependency-injection": "^4.2||^5.0",
+                "symfony/twig-bundle": "^4.2||^5.0"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^2.16",
+                "phpunit/phpunit": "^8.5"
+            },
+            "type": "symfony-bundle",
+            "autoload": {
+                "psr-4": {
+                    "T3G\\Bundle\\UsercentricsBundle\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Integration of usercentrics.com for Symfony",
+            "time": "2019-12-16T15:24:45+00:00"
+        },
+        {
             "name": "twig/twig",
             "version": "v3.0.0",
             "source": {
@@ -6412,7 +6448,8 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "t3g/symfony-template-bundle": 20
+        "t3g/symfony-template-bundle": 20,
+        "t3g/symfony-usercentrics-bundle": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,

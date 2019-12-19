@@ -451,6 +451,9 @@
     "t3g/symfony-template-bundle": {
         "version": "dev-master"
     },
+    "t3g/symfony-usercentrics-bundle": {
+        "version": "dev-master"
+    },
     "twig/twig": {
         "version": "v2.11.3"
     },
