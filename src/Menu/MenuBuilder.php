@@ -13,14 +13,9 @@ namespace App\Menu;
 use App\Entity\SprintBoardCategory;
 use App\Repository\SprintBoardCategoryRepository;
 use Knp\Menu\FactoryInterface;
-//use Knp\Menu\Matcher\MatcherInterface;
 use Knp\Menu\MenuItem;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
-
-//use Symfony\Component\DependencyInjection\ContainerInterface;
-//use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-//use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * MenuBuilder
@@ -74,7 +69,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Reviews',
                 'route' => 'gerrit_index',
                 'extras' => [
-                    'icon' => 'code-merge',
+                    'icon' => 'code',
                 ],
             ]
         );
@@ -292,7 +287,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Backports',
                 'route' => 'utilities_backport',
                 'extras' => [
-                    'icon' => 'chevron-double-left',
+                    'icon' => 'chevron-left',
                 ],
             ]
         );
