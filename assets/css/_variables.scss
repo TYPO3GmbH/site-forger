@@ -35,15 +35,6 @@ $theme-colors: (
     darkest: $black
 );
 
-$issue-colors: (
-    default: $secondary,
-    bug: $danger,
-    feature: $success,
-    task: $info,
-    epic: #6610f2,
-    story: #ffc107
-);
-
 $review-colors: (
     default: $secondary,
     bugfix: $danger,
@@ -60,14 +51,6 @@ $status-colors: (
     nextup: #7373b1,
     inprogress: #62C0DC,
     done: #696969
-);
-
-$progress-colors: (
-    default: $secondary,
-    blocked: $danger,
-    open: $info,
-    wip: $secondary,
-    done: $success
 );
 
 $theme-shadow: 0 2px 1px rgba(0, 0, 0, 0.15);
