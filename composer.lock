@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "db2ff1936dd3fcb568e7c469d16c0c7b",
+    "content-hash": "256be146b9e0b9eecf535ac583fe898e",
     "packages": [
         {
             "name": "doctrine/annotations",
@@ -5688,7 +5688,7 @@
         },
         {
             "name": "t3g/symfony-usercentrics-bundle",
-            "version": "dev-master",
+            "version": "1.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/TYPO3GmbH/symfony-usercentrics-bundle.git",
@@ -6447,9 +6447,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "t3g/symfony-usercentrics-bundle": 20
-    },
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
