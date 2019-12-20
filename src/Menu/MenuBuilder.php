@@ -13,35 +13,15 @@ namespace App\Menu;
 use App\Entity\SprintBoardCategory;
 use App\Repository\SprintBoardCategoryRepository;
 use Knp\Menu\FactoryInterface;
-//use Knp\Menu\Matcher\MatcherInterface;
-use Knp\Menu\MenuFactory;
 use Knp\Menu\MenuItem;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
-//use Symfony\Component\DependencyInjection\ContainerInterface;
-//use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-//use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
-
 /**
  * MenuBuilder
  */
-class MenuBuilder
+class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
 {
-    /**
-     * @var MenuFactory
-     */
-    private $factory;
-
-    /**
-     * @var AuthorizationCheckerInterface
-     */
-    private $authorizationChecker;
-
-    /**
-     * @var TokenStorageInterface
-     */
-    private $tokenStorage;
     /**
      * @var SprintBoardCategoryRepository
      */
@@ -66,9 +46,10 @@ class MenuBuilder
     }
 
     /**
+     * @param array $options
      * @return MenuItem
      */
-    public function mainDefault(): MenuItem
+    public function mainDefault(array $options): MenuItem
     {
         $categories = $this->categoryRepository->findAll();
         $menu = $this->factory->createItem('root');
@@ -88,7 +69,7 @@ class MenuBuilder
                 'label' => 'Reviews',
                 'route' => 'gerrit_index',
                 'extras' => [
-                    'icon' => 'code-merge',
+                    'icon' => 'code',
                 ],
             ]
         );
@@ -101,7 +82,7 @@ class MenuBuilder
                         'icon' => 'home',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_hasverifications',
             [
@@ -111,7 +92,7 @@ class MenuBuilder
                         'icon' => 'check-square',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_missesverifications',
             [
@@ -121,7 +102,7 @@ class MenuBuilder
                         'icon' => 'plus-square',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_missesreview',
             [
@@ -131,7 +112,7 @@ class MenuBuilder
                         'icon' => 'plus-square',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_rebase',
             [
@@ -141,7 +122,7 @@ class MenuBuilder
                         'icon' => 'sync',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_files',
             [
@@ -151,7 +132,7 @@ class MenuBuilder
                         'icon' => 'file',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_negative_vote_cleanup',
             [
@@ -161,7 +142,7 @@ class MenuBuilder
                         'icon' => 'thumbs-down',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_wip',
             [
@@ -171,7 +152,7 @@ class MenuBuilder
                         'icon' => 'bolt',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_coreteam_merge',
             [
@@ -181,7 +162,7 @@ class MenuBuilder
                         'icon' => 'users',
                     ],
                 ]
-            );
+        );
         $menu['gerrit']->addChild(
             'gerrit_stale_issues',
             [
@@ -191,7 +172,7 @@ class MenuBuilder
                         'icon' => 'ban',
                     ],
                 ]
-            );
+        );
         $menu->addChild(
             'management',
             [
@@ -306,7 +287,7 @@ class MenuBuilder
                 'label' => 'Backports',
                 'route' => 'utilities_backport',
                 'extras' => [
-                    'icon' => 'chevron-double-left',
+                    'icon' => 'chevron-left',
                 ],
             ]
         );
@@ -336,9 +317,10 @@ class MenuBuilder
     }
 
     /**
+     * @param array $options
      * @return MenuItem
      */
-    public function mainProfile(): MenuItem
+    public function mainProfile(array $options): MenuItem
     {
         $menu = $this->factory->createItem('root');
         $menu->addChild(
@@ -394,29 +376,6 @@ class MenuBuilder
                 ]
             )->setLinkAttribute('class', 'btn btn-primary');
         }
-        return $menu;
-    }
-
-    /**
-     * @return MenuItem
-     */
-    public function mainFooter(): MenuItem
-    {
-        $menu = $this->factory->createItem('root');
-        $menu->addChild(
-            'privacy',
-            [
-                'label' => 'Privacy Policy',
-                'route' => 'static_privacy'
-            ]
-        );
-        $menu->addChild(
-            'legal',
-            [
-                'label' => 'Legal Information',
-                'route' => 'static_legal'
-            ]
-        );
         return $menu;
     }
 }

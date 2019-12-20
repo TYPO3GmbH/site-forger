@@ -1,0 +1,9 @@
+template:
+  application:
+    name: 'TYPO3 Forger'
+    routes:
+      home: dashboard_index
+    menu:
+      class: App\Menu\MenuBuilder
+    assets:
+      encore_entrypoint: app
