@@ -584,7 +584,7 @@ class SprintController extends AbstractController
                     false !== strpos($journalEntry['notes'], 'It is available at http://review.typo3.org/')
                         ||
                         false !== strpos($journalEntry['notes'], 'It is available at https://review.typo3.org/')
-                    )
+                )
                 ) {
                     $notes = $journalEntry['notes'];
                 }
