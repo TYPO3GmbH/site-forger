@@ -6,7 +6,9 @@
     {% elseif review._source.reviewtags.0 == 'BUGFIX' %}
         {% set reviewTypeClass = 'bugfix' %}
     {% endif %}
-{% else %}
+{% endif %}
+
+{% if reviewTypeClass is not defined %}
     {% set reviewTypeClass = 'default' %}
 {% endif %}
 

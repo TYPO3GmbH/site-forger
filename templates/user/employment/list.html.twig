@@ -40,10 +40,10 @@
                                             </th>
                                             <td class="{{ employmentTime.employedTo ? 'text-muted' : '' }}">
                                                 {% if employmentTime.employedTo %}
-                                                    <small><i class="fal fa-sign-in"></i> {{ employmentTime.employedFrom|date('Y-m-d') }}</small><br>
-                                                    <i class="fal fa-sign-out"></i> {{ employmentTime.employedTo|date('Y-m-d') }}
+                                                    <small><i class="fas fa-sign-in"></i> {{ employmentTime.employedFrom|date('Y-m-d') }}</small><br>
+                                                    <i class="fas fa-sign-out"></i> {{ employmentTime.employedTo|date('Y-m-d') }}
                                                 {% else %}
-                                                    <i class="fal fa-sign-in"></i> {{ employmentTime.employedFrom|date('Y-m-d') }}
+                                                    <i class="fas fa-sign-in"></i> {{ employmentTime.employedFrom|date('Y-m-d') }}
                                                 {% endif %}
                                             </td>
                                             <td>
