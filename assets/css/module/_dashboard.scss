@@ -1,10 +1,10 @@
 //
 // Dashboard
 //
-$dashboard-shadow: $theme-shadow;
+$dashboard-shadow:  0 2px 2px 0 rgba(0, 0, 0, .15);
 $dashboard-bg: #ffffff;
 $dashboard-border-radius: 2px;
-$dashboard-color: color-yiq($issue-bg);
+$dashboard-color: #2d2d2d;
 $dashboard-padding: 1rem;
 
 .container-dashboard {
@@ -24,7 +24,7 @@ $dashboard-padding: 1rem;
         "d06"
         "d07";
 
-    @include media-breakpoint-up('sm') {
+    @media (min-width: 576px) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         grid-template-areas:
             "d00 d01"
@@ -35,7 +35,7 @@ $dashboard-padding: 1rem;
             "d06 d06"
             "d07 d07";
     }
-    @include media-breakpoint-up('md') {
+    @media (min-width: 768px) {
         grid-template-columns: repeat(6, minmax(0, 1fr));
         grid-template-areas:
             "d00 d00 d02 d02 d03 d03"
@@ -60,7 +60,7 @@ $dashboard-padding: 1rem;
 }
 .dashboard-item-title {
     padding: $dashboard-padding;
-    background-color: darken($issue-bg, 2.5%);
+    background-color: darken($dashboard-bg, 2.5%);
     margin-bottom: 0;
 }
 .dashboard-item-body {
