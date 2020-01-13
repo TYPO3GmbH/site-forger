@@ -1,16 +1,20 @@
 var Encore = require('@symfony/webpack-encore');
+var webpack = require('webpack');
 
 Encore
   .setOutputPath('public/build/')
   .setPublicPath('/build')
   .addEntry('app', './assets/js/app.js')
-  .autoProvidejQuery()
   .splitEntryChunks()
   .enableSingleRuntimeChunk()
   .cleanupOutputBeforeBuild()
   .enableBuildNotifications()
   .enableSourceMaps(!Encore.isProduction())
   .enableVersioning()
+  .addPlugin(new webpack.ProvidePlugin({
+      $: 'jquery',
+      jQuery: 'jquery'
+  }))
   .configureBabel(() => {}, {
     useBuiltIns: 'usage',
     corejs: 3
