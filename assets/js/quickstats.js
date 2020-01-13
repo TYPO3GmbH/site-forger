@@ -48,7 +48,7 @@
         }
     };
 
-    $(function () {
+    window.addEventListener('DOMContentLoaded', function() {
         QuickStats.initialize();
     });
 })();

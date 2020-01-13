@@ -11,8 +11,6 @@
         flashMessageContainer: '.flashmessage-container'
     };
 
-    let $lastActiveTextarea = null;
-
     const Rst = {
         initialize: function () {
             if (document.querySelector(Selectors.form) !== null) {
@@ -124,16 +122,12 @@
             restContent += restBody.replace('\n', '');
 
             $modal.find('.modal-title')
-                .html('<a href="data:application/octet-stream;charset=utf-8;base64,' + window.btoa(restContent) + '" download="' + filename + '" title="' + filename + '"><i class="fal fa-file-download"></i></a> ' + filename);
+                .html('<a href="data:application/octet-stream;charset=utf-8;base64,' + window.btoa(restContent) + '" download="' + filename + '" title="' + filename + '"><i class="fa fa-file-download"></i></a> ' + filename);
             $modal.find('.modal-body textarea').val(restContent);
-
-            $modal.modal({
-                backdrop: 'static'
-            });
         }
     };
 
-    $(function () {
+    window.addEventListener('DOMContentLoaded', function() {
         Rst.initialize();
     });
 })();
