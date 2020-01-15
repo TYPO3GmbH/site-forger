@@ -5,8 +5,8 @@
     </a>
 {% endmacro %}
 
-{% macro submit(label, class = 'default', icon = null) %}
-    <button type="submit" class="btn btn-{{ class }}">
+{% macro submit(label, class = 'default', icon = null, dataAttributes = {}) %}
+    <button type="submit" class="btn btn-{{ class }}" {% for key, value in dataAttributes %}data-{{ key }}="{{ value }}" {% endfor %}>
         {% if icon %}<span class="btn-icon"><i class="fas fa-{{ icon }}"></i></span>{% endif %}
         <span class="btn-text">{{ label }}</span>
     </button>
