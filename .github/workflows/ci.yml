@@ -8,18 +8,13 @@ jobs:
 
     strategy:
       fail-fast: false
-      matrix:
-        php-versions:
-          - '7.2'
 
     steps:
       - uses: actions/checkout@v2
 
-      - uses: shivammathur/setup-php@v1 #https://github.com/shivammathur/setup-php
-        with:
-          php-version: ${{ matrix.php-versions }}
-          coverage: pcov
-
+      - name: Set up PHP Version
+        run: |
+          sudo update-alternatives --set php /usr/bin/php7.2
       - name: php --version
         run: php --version
 
@@ -30,10 +25,10 @@ jobs:
         run: composer install --prefer-dist --no-progress --no-suggest --no-interaction
 
       - name: (CGL) PHP
-        run: php bin/php-cs-fixer fix --config .php_cs.dist -v --dry-run --diff
+        run: composer t3g:cgl
 
       - name: Yarn install
         run: yarn install --silent
-  
+
       - name: Yarn build
         run: yarn build
