@@ -47,9 +47,9 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
 
     /**
      * @param array $options
-     * @return MenuItem
+     * @return \Knp\Menu\ItemInterface
      */
-    public function mainDefault(array $options): MenuItem
+    public function mainDefault(array $options): \Knp\Menu\ItemInterface
     {
         $categories = $this->categoryRepository->findAll();
         $menu = $this->factory->createItem('root');
@@ -224,6 +224,26 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     ],
                 ]
             );
+            $menu['management']->addChild(
+                'sprintcategory_index',
+                [
+                    'label' => 'Sprint Categories',
+                    'route' => 'sprintcategory_index',
+                    'extras' => [
+                        'icon' => 'book',
+                    ],
+                ]
+            );
+            $menu['management']->addChild(
+                'sprint_list',
+                [
+                    'label' => 'Sprints',
+                    'route' => 'sprint_list',
+                    'extras' => [
+                        'icon' => 'flag-checkered',
+                    ],
+                ]
+            );
         }
         $menu->addChild(
             'sprint',
@@ -259,28 +279,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 ],
             ]
         );
-        if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
-            $menu['sprint']->addChild(
-                'sprint_create',
-                [
-                    'label' => 'Create sprint',
-                    'route' => 'sprint_create',
-                    'extras' => [
-                        'icon' => 'plus',
-                    ],
-                ]
-            );
-            $menu['sprint']->addChild(
-                'sprintcategory_index',
-                [
-                    'label' => 'Sprint categories',
-                    'route' => 'sprintcategory_index',
-                    'extras' => [
-                        'icon' => 'book',
-                    ],
-                ]
-            );
-        }
         $menu->addChild(
             'utility',
             [
@@ -323,6 +321,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 ]
             );
         }
+
         return $menu;
     }
 

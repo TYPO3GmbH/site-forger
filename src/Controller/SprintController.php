@@ -64,6 +64,20 @@ class SprintController extends AbstractController
     }
 
     /**
+     * @Route("/sprint/list", name="sprint_list")
+     * @IsGranted("ROLE_ADMIN")
+     */
+    public function list(): Response
+    {
+        return $this->render(
+            'management/sprint/index.html.twig',
+            [
+                'items' => $this->sprintBoardRepository->findAll(),
+            ]
+        );
+    }
+
+    /**
      * @Route("/sprint/reviews/{reviewType}", defaults={"reviewType"="bugfix"}, name="sprint_reviews")
      * @param string $reviewType
      * @return Response
@@ -182,7 +196,7 @@ class SprintController extends AbstractController
             $this->addFlash('success', 'Sprint deleted.');
         }
 
-        return $this->redirectToRoute('dashboard_index');
+        return $this->redirectToRoute('sprint_list');
     }
 
     /**
