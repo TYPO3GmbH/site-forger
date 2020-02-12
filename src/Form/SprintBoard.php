@@ -52,7 +52,8 @@ class SprintBoard extends AbstractType
                 [
                     'attr' => [
                         'class' => 'form-control text-monospace',
-                        'rows' => 20
+                        'rows' => 20,
+                        'data-editor' => 'yaml'
                     ]
                 ]
             )
