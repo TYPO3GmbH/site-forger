@@ -52,7 +52,8 @@ class SprintBoardCategory
     private $sorting;
 
     /**
-     * @ORM\OneToMany(targetEntity="App\Entity\SprintBoard", mappedBy="category")
+     * @ORM\OneToMany(targetEntity="App\Entity\SprintBoard", mappedBy="category", orphanRemoval=true)
+     * @ORM\OrderBy({"name" = "ASC"})
      */
     private $sprintBoards;
 

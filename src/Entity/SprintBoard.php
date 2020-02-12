@@ -34,7 +34,7 @@ class SprintBoard
     private $name;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\SprintBoardCategory")
+     * @ORM\ManyToOne(targetEntity="App\Entity\SprintBoardCategory", inversedBy="sprintBoards")
      * @ORM\JoinColumn(nullable=false)
      */
     private $category;
@@ -121,5 +121,10 @@ class SprintBoard
         $this->sorting = $sorting;
 
         return $this;
+    }
+
+    public function __toString()
+    {
+        return $this->name;
     }
 }
