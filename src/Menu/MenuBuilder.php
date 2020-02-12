@@ -229,7 +229,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             'sprint',
             [
                 'label' => 'Sprints',
-                'route' => 'sprint',
+                'uri' => '#',
                 'extras' => [
                     'icon' => 'flag-checkered',
                 ],
@@ -267,6 +267,16 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'route' => 'sprint_create',
                     'extras' => [
                         'icon' => 'plus',
+                    ],
+                ]
+            );
+            $menu['sprint']->addChild(
+                'sprintcategory_index',
+                [
+                    'label' => 'Sprint categories',
+                    'route' => 'sprintcategory_index',
+                    'extras' => [
+                        'icon' => 'book',
                     ],
                 ]
             );

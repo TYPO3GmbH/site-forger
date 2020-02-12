@@ -27,6 +27,6 @@ class SprintBoardCategoryRepository extends ServiceEntityRepository
 
     public function findAll(): array
     {
-        return $this->findBy([], ['sorting' => 'ASC']);
+        return $this->findBy([], ['sorting' => 'ASC', 'name' => 'ASC']);
     }
 }

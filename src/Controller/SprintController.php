@@ -72,7 +72,6 @@ class SprintController extends AbstractController
     public function reviewSprintAction(string $reviewType): Response
     {
         $reviewBoardData = $this->getReviewBoardData($reviewType);
-        $foo = '';
         return $this->render('sprint/review.html.twig', [
             'menu' => $this->makeReviewMenu($reviewType),
             'cards' => $reviewBoardData,

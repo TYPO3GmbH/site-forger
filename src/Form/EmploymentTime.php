@@ -91,7 +91,6 @@ class EmploymentTime extends AbstractType
         $resolver->setDefaults([
             'data_class' => \App\Entity\EmploymentTime::class,
             'csrf_protection' => getenv('APP_ENV') !== 'test',
-            'validation_groups' => false,
             'entity_manager' => null,
         ]);
     }
