@@ -40,10 +40,18 @@
                                     {% for item in items %}
                                         <tr>
                                             <th>
-                                                <strong>{{ item.name }}</strong><br>
+                                                <span class="fa fa-{{ item.icon }}"></span> <strong>{{ item.name }}</strong><br>
                                             </th>
                                             <td>
-                                                {{ item.sprintBoards|join('<br>')|raw }}
+                                                {% if item.sprintBoards|length > 0 %}
+                                                    <ul style="margin-bottom: 0;">
+                                                        {% for sprint in item.sprintBoards %}
+                                                            <li>{{ sprint }}</li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                {% else %}
+                                                    <i>This category has no sprints yet</i>
+                                                {% endif %}
                                             </td>
                                             <td data-type="actions" data-label="Actions">
                                                 <a class="datatable-action" title="Edit"
