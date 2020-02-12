@@ -11,7 +11,6 @@ namespace App\Service;
 
 use App\Client\GeneralClient;
 use GuzzleHttp\Exception\BadResponseException;
-use GuzzleHttp\Exception\GuzzleException;
 use Woeler\DiscordPhp\Message\AbstractDiscordMessage;
 
 class DiscordService
@@ -29,7 +28,6 @@ class DiscordService
     /**
      * @param AbstractDiscordMessage $message
      * @param string $url
-     * @throws GuzzleException
      */
     public function sendMessage(AbstractDiscordMessage $message, string $url): void
     {
