@@ -25,7 +25,7 @@ class EmploymentTime
     private $id;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\Company")
+     * @ORM\ManyToOne(targetEntity="App\Entity\Company", inversedBy="employmentTimes")
      * @ORM\JoinColumn(nullable=false)
      */
     private $company;
