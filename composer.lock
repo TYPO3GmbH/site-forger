@@ -1641,16 +1641,16 @@
         },
         {
             "name": "knplabs/knp-components",
-            "version": "v2.3.1",
+            "version": "v2.3.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/KnpLabs/knp-components.git",
-                "reference": "024d538ee9150689da35c0cd54403606ecef0ff4"
+                "reference": "f4465d77d87f56b132ce23bb5fc6300265e6b889"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/KnpLabs/knp-components/zipball/024d538ee9150689da35c0cd54403606ecef0ff4",
-                "reference": "024d538ee9150689da35c0cd54403606ecef0ff4",
+                "url": "https://api.github.com/repos/KnpLabs/knp-components/zipball/f4465d77d87f56b132ce23bb5fc6300265e6b889",
+                "reference": "f4465d77d87f56b132ce23bb5fc6300265e6b889",
                 "shasum": ""
             },
             "require": {
@@ -1660,7 +1660,7 @@
             },
             "require-dev": {
                 "doctrine/mongodb-odm": "^2.0",
-                "doctrine/orm": "^2.4",
+                "doctrine/orm": "^2.5",
                 "doctrine/phpcr-odm": "^1.2",
                 "jackalope/jackalope-doctrine-dbal": "^1.2",
                 "phpunit/phpunit": "^8.0",
@@ -1712,7 +1712,7 @@
                 "pager",
                 "paginator"
             ],
-            "time": "2019-12-21T12:59:35+00:00"
+            "time": "2020-02-11T09:47:37+00:00"
         },
         {
             "name": "knplabs/knp-menu",
@@ -5827,16 +5827,16 @@
         },
         {
             "name": "twig/twig",
-            "version": "v3.0.2",
+            "version": "v3.0.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/twigphp/Twig.git",
-                "reference": "5e6df0763a83dab0b73c1e803342fc0315f63ff5"
+                "reference": "3b88ccd180a6b61ebb517aea3b1a8906762a1dc2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/twigphp/Twig/zipball/5e6df0763a83dab0b73c1e803342fc0315f63ff5",
-                "reference": "5e6df0763a83dab0b73c1e803342fc0315f63ff5",
+                "url": "https://api.github.com/repos/twigphp/Twig/zipball/3b88ccd180a6b61ebb517aea3b1a8906762a1dc2",
+                "reference": "3b88ccd180a6b61ebb517aea3b1a8906762a1dc2",
                 "shasum": ""
             },
             "require": {
@@ -5885,7 +5885,7 @@
             "keywords": [
                 "templating"
             ],
-            "time": "2020-02-11T06:03:57+00:00"
+            "time": "2020-02-11T15:33:47+00:00"
         },
         {
             "name": "woeler/phpdiscord",
