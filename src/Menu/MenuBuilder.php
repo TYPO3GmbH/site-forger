@@ -346,7 +346,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             $menu->addChild(
                 'username',
                 [
-                    'label' => $this->tokenStorage->getToken()->getUsername(),
+                    'label' => $this->tokenStorage->getToken()->getUser()->__toString(),
                     'uri' => '#',
                     'extras' => [
                         'icon' => 'user',

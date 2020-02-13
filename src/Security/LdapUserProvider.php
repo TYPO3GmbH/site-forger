@@ -76,18 +76,19 @@ class LdapUserProvider implements UserProviderInterface
     protected function loadUser($username, Entry $entry): User
     {
         $displayName = '';
-        if ($entry->hasAttribute('displayName')) {
-            $displayName = $this->getAttributeValue($entry, 'displayName');
+        if ($entry->hasAttribute('givenName') && $entry->hasAttribute('sn')) {
+            $displayName = $this->getAttributeValue($entry, 'givenName') . ' ' . $this->getAttributeValue($entry, 'sn');
         }
+
         if (!$entry->hasAttribute('isMemberOf')) {
             // If user does not have this attribute at all, he's just ROLE_USER
-            return new User($username, null, $displayName, $this->defaultRoles);
+            return new User($username, null, $displayName, $this->getAttributeValue($entry, 'mail'), $this->defaultRoles);
         }
         // If user has attribute, assign roles that map
         $isMemberOfValues = $entry->getAttribute('isMemberOf');
         $hasRoles = array_intersect_key($this->roleMapping, array_flip($isMemberOfValues));
         $roles = array_merge($this->defaultRoles, $hasRoles);
-        return new User($username, null, $displayName, $roles);
+        return new User($username, null, $displayName, $this->getAttributeValue($entry, 'mail'), $roles);
     }
 
     /**
@@ -131,7 +132,7 @@ class LdapUserProvider implements UserProviderInterface
             throw new UnsupportedUserException(sprintf('Instances of "%s" are not supported.', \get_class($user)));
         }
 
-        return new User($user->getUsername(), null, $user->getDisplayName(), $user->getRoles());
+        return new User($user->getUsername(), null, $user->getDisplayName(), $user->getEmail(), $user->getRoles());
     }
 
     /**
