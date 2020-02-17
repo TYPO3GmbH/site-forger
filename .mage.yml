@@ -49,7 +49,7 @@ magephp:
       post-release:
         - exec: { cmd: "[ -d ../../../cachetool ] || mkdir -p ../../../cachetool" }
         - exec: { cmd: "[ -f ../../../cachetool/cachetool.phar ] || curl -o ../../../cachetool/cachetool.phar http://gordalina.github.io/cachetool/downloads/cachetool.phar && chmod +x ../../../cachetool/cachetool.phar" }
-        - exec: { cmd: "php ../../../cachetool/cachetool.phar opcache:reset fcgi=/var/run/forger.typo3.com_fpm.sock -tmp-dir=/srv/vhosts/forger.typo3.com/site/cachetool" }
+        - exec: { cmd: "php ../../../cachetool/cachetool.phar opcache:reset --fcgi=/var/run/forger.typo3.com_fpm.sock --tmp-dir=/srv/vhosts/forger.typo3.com/site/cachetool" }
         - exec: { cmd: "rm -rf var/cache"}
         - exec: { cmd: "./bin/console doctrine:migrations:migrate --no-interaction"}
         - exec: { cmd: "./bin/console cache:warmup"}
@@ -74,7 +74,7 @@ magephp:
       post-release:
         - exec: { cmd: "[ -d ../../../cachetool ] || mkdir -p ../../../cachetool" }
         - exec: { cmd: "[ -f ../../../cachetool/cachetool.phar ] || curl -o ../../../cachetool/cachetool.phar http://gordalina.github.io/cachetool/downloads/cachetool.phar && chmod +x ../../../cachetool/cachetool.phar" }
-        - exec: { cmd: "php ../../../cachetool/cachetool.phar opcache:reset fcgi=/var/run/stage.forger.typo3.com_fpm.sock -tmp-dir=/srv/vhosts/stage.forger.typo3.com/site/cachetool" }
+        - exec: { cmd: "php ../../../cachetool/cachetool.phar opcache:reset --fcgi=/var/run/stage.forger.typo3.com_fpm.sock --tmp-dir=/srv/vhosts/stage.forger.typo3.com/site/cachetool" }
         - exec: { cmd: "rm -rf var/cache"}
         - exec: { cmd: "./bin/console doctrine:migrations:migrate --no-interaction"}
         - exec: { cmd: "./bin/console cache:warmup"}
