@@ -9,10 +9,14 @@
 
 namespace App\Entity;
 
+use App\Validator\Constraints as CustomAssert;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\SprintBoardRepository")
+ * @UniqueEntity("identifier")
  */
 class SprintBoard
 {
@@ -25,22 +29,27 @@ class SprintBoard
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Assert\Length(min = 1, max = 200)
      */
     private $name;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\SprintBoardCategory")
+     * @ORM\ManyToOne(targetEntity="App\Entity\SprintBoardCategory", inversedBy="sprintBoards")
      * @ORM\JoinColumn(nullable=false)
      */
     private $category;
 
     /**
      * @ORM\Column(type="text")
+     * @Assert\Length(min = 1, max = 2000)
+     * @CustomAssert\ConstrainsYaml
      */
     private $query;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Assert\Length(min = 1, max = 200)
+     * @Assert\Regex(pattern="/^[a-z0-9]+(?:-[a-z0-9]+)*$/",htmlPattern="^[a-z0-9]+(?:-[a-z0-9]+)*$")
      */
     private $identifier;
 
@@ -112,5 +121,10 @@ class SprintBoard
         $this->sorting = $sorting;
 
         return $this;
+    }
+
+    public function __toString()
+    {
+        return $this->name;
     }
 }

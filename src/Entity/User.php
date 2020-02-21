@@ -21,11 +21,16 @@ class User implements UserInterface
      * @var string Attribute 'displayName' from LDAP
      */
     private $displayName;
+    /**
+     * @var string|null
+     */
+    private $email;
 
     public function __construct(
         ?string $username,
         ?string $password,
         ?string $displayName,
+        ?string $email,
         array $roles = []
     ) {
         if ('' === $username || null === $username) {
@@ -35,11 +40,12 @@ class User implements UserInterface
         $this->password = $password;
         $this->displayName = $displayName;
         $this->roles = $roles;
+        $this->email = $email;
     }
 
     public function __toString()
     {
-        return $this->getUsername();
+        return $this->getDisplayName() ?? $this->getUsername();
     }
 
     /**
@@ -74,8 +80,6 @@ class User implements UserInterface
     }
 
     /**
-     * Attribute 'displayName' from LDAP
-     *
      * @return string
      */
     public function getDisplayName(): string
@@ -88,5 +92,10 @@ class User implements UserInterface
      */
     public function eraseCredentials()
     {
+    }
+
+    public function getEmail(): ?string
+    {
+        return $this->email;
     }
 }

@@ -9,10 +9,14 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\SprintBoardCategoryRepository")
+ * @UniqueEntity("identifier")
  */
 class SprintBoardCategory
 {
@@ -25,16 +29,20 @@ class SprintBoardCategory
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Assert\Length(min = 1, max = 200)
      */
     private $name;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Assert\Length(min = 1, max = 200)
+     * @Assert\Regex(pattern="/^[a-z0-9]+(?:-[a-z0-9]+)*$/",htmlPattern="^[a-z0-9]+(?:-[a-z0-9]+)*$")
      */
     private $identifier;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Assert\Length(min = 1, max = 200)
      */
     private $icon;
 
@@ -42,6 +50,17 @@ class SprintBoardCategory
      * @ORM\Column(type="integer", nullable=true)
      */
     private $sorting;
+
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\SprintBoard", mappedBy="category", orphanRemoval=true)
+     * @ORM\OrderBy({"name" = "ASC"})
+     */
+    private $sprintBoards;
+
+    public function __construct()
+    {
+        $this->sprintBoards = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -94,5 +113,13 @@ class SprintBoardCategory
         $this->sorting = $sorting;
 
         return $this;
+    }
+
+    /**
+     * @return ArrayCollection|SprintBoard[]
+     */
+    public function getSprintBoards()
+    {
+        return $this->sprintBoards;
     }
 }

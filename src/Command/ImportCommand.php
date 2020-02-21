@@ -17,8 +17,10 @@ use Elastica\Document;
 use Elastica\Exception\NotFoundException;
 use Elastica\Type as DocType;
 use Exception;
+use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\GuzzleException;
 use InvalidArgumentException;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Command\LockableTrait;
@@ -49,6 +51,10 @@ class ImportCommand extends Command
      * @var bool
      */
     private $moreIssuesFromGerrit = true;
+    /**
+     * @var LoggerInterface
+     */
+    private $logger;
 
     protected function configure(): void
     {
@@ -111,6 +117,7 @@ class ImportCommand extends Command
         ForgeClient $forgeClient,
         ElasticClient $elasticClient,
         DiscordService $discordService,
+        LoggerInterface $logger,
         string $discordWebhook
     ) {
         parent::__construct();
@@ -119,6 +126,7 @@ class ImportCommand extends Command
         $this->elasticClient = $elasticClient;
         $this->discordService = $discordService;
         $this->discordWebhook = $discordWebhook;
+        $this->logger = $logger;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -807,8 +815,15 @@ class ImportCommand extends Command
 
         try {
             $this->discordService->sendMessage($message, $this->discordWebhook);
+        } catch (BadResponseException $e) {
+            $this->logger->warning(
+                'Could not deliver message to Discord',
+                [
+                    'statusCode' => $e->getResponse()->getStatusCode(),
+                    'responseBody' => (string)$e->getResponse()->getBody(),
+                ]
+            );
         } catch (GuzzleException $e) {
-            // Could not send Discord message. Log?
         }
     }
 }

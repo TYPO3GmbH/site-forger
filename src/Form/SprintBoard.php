@@ -15,6 +15,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -25,6 +26,15 @@ class SprintBoard extends AbstractType
         $categoryRepository = $options['entity_manager']->getRepository(SprintBoardCategory::class);
         $builder
             ->add('name', null, ['required' => true, 'attr' => ['class' => 'form-control']])
+            ->add(
+                'identifier',
+                TextType::class,
+                [
+                    'required' => true,
+                    'label' => 'Identifier (only allowed lodwer case and -)',
+                    'attr' => ['pattern' => '^[a-z0-9]+(?:-[a-z0-9]+)*$']
+                ]
+            )
             ->add(
                 'categoryId',
                 ChoiceType::class,
@@ -42,7 +52,8 @@ class SprintBoard extends AbstractType
                 [
                     'attr' => [
                         'class' => 'form-control text-monospace',
-                        'rows' => 20
+                        'rows' => 20,
+                        'data-editor' => 'yaml'
                     ]
                 ]
             )
@@ -62,7 +73,6 @@ class SprintBoard extends AbstractType
         $resolver->setDefaults([
             'data_class' => \App\Entity\SprintBoard::class,
             'csrf_protection' => getenv('APP_ENV') !== 'test',
-            'validation_groups' => false,
             'entity_manager' => null,
         ]);
     }

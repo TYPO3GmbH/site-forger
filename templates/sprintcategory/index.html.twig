@@ -1,0 +1,82 @@
+{% extends 'base.html.twig' %}
+{% import '_macros/buttons.html.twig' as buttons %}
+{% block title %}Sprint Categories{% endblock %}
+{% block headline %}Sprint Categories{% endblock %}
+{% block body %}
+
+    <div class="content-section bg-transparent">
+        <div class="container">
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="float-right">
+                        {{ buttons.link(
+                            path('sprintcategory_create'),
+                            'Create new',
+                            'primary',
+                            'plus'
+                        ) }}
+                    </div>
+                </div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-md-12">
+                    {% if items %}
+                        <div class="alert alert-danger">
+                            Keep in mind that deleting a sprint category will also delete all underlying sprints!
+                        </div>
+                        <div class="card">
+                            <div class="datatable">
+                                <table class="datatable-table">
+                                    <thead>
+                                    <tr>
+                                        <th scope="col">Name</th>
+                                        <th scope="col">Sprints</th>
+                                        <th scope="col">Actions</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for item in items %}
+                                        <tr>
+                                            <th>
+                                                <span class="fa fa-{{ item.icon }}"></span> <strong>{{ item.name }}</strong><br>
+                                            </th>
+                                            <td>
+                                                {% if item.sprintBoards|length > 0 %}
+                                                    <ul style="margin-bottom: 0;">
+                                                        {% for sprint in item.sprintBoards %}
+                                                            <li>{{ sprint }}</li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                {% else %}
+                                                    <i>This category has no sprints yet</i>
+                                                {% endif %}
+                                            </td>
+                                            <td data-type="actions" data-label="Actions">
+                                                <a class="datatable-action" title="Edit"
+                                                   href="{{ path('sprintcategory_edit', {'categoryId': item.id}) }}">
+                                                    <span class="datatable-action-icon"><i class="fa fa-edit"></i></span>
+                                                    <span class="datatable-action-label datatable-visually-hidden">Edit</span>
+                                                </a>
+                                                <a class="datatable-action" title="Delete"
+                                                   href="{{ path('sprintcategory_delete', {'categoryId': item.id}) }}">
+                                                    <span class="datatable-action-icon"><i class="fa fa-trash"></i></span>
+                                                    <span class="datatable-action-label datatable-visually-hidden">Delete</span>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% else %}
+                        {% include '_partials/alert.html.twig' with {'message': '<strong>There are currently no sprint categories!</strong>', 'style': 'info'} %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

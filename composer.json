@@ -24,6 +24,7 @@
         "symfony/orm-pack": "^1.0",
         "symfony/security-bundle": "^4.3",
         "symfony/twig-bundle": "^4.3",
+        "symfony/validator": "^4.3",
         "symfony/webpack-encore-bundle": "^1.6",
         "symfony/yaml": "^4.3",
         "t3g/symfony-template-bundle": "^1.0",
@@ -73,6 +74,9 @@
         ],
         "post-update-cmd": [
             "@auto-scripts"
+        ],
+        "t3g:cgl": [
+            "mkdir -p var/php-cs-fixer/; php-cs-fixer fix --config .php_cs.dist --format=junit > var/php-cs-fixer/php-cs-fixer.xml"
         ]
     },
     "conflict": {

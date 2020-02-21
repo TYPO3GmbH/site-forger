@@ -37,7 +37,6 @@ class BackPortBlacklistEntry extends AbstractType
         $resolver->setDefaults([
             'data_class' => \App\Entity\BackportBlacklistEntry::class,
             'csrf_protection' => getenv('APP_ENV') !== 'test',
-            'validation_groups' => false,
             'entity_manager' => null,
         ]);
     }

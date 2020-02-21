@@ -1,0 +1,34 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up PHP Version
+        run: |
+          sudo update-alternatives --set php /usr/bin/php7.2
+      - name: php --version
+        run: php --version
+
+      - name: composer --version
+        run: composer --version
+
+      - name: (COMPOSER) Install dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest --no-interaction
+
+      - name: (CGL) PHP
+        run: composer t3g:cgl
+
+      - name: Yarn install
+        run: yarn install --silent
+
+      - name: Yarn build
+        run: yarn build
