@@ -11,8 +11,7 @@ Next generation of forger
 * put your personal redmine access token into `.env.local` with the key `FORGE_ACCESS_TOKEN`
 * call `composer install`
 * call `ddev ssh` to get into the container
-  * change to `cd config/Elasticorn`
-  * call `elasticorn.phar index:init -c /var/www/html/config/Elasticorn` to create indices
+* call `elasticorn.phar index:init -c /var/www/html/config/Elasticorn` to create indices
 * call `ddev exec yarn install`
 * call `ddev exec yarn build`
 * call `ddev exec bin/console doctrine:schema:create`

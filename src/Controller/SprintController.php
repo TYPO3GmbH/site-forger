@@ -293,10 +293,8 @@ class SprintController extends AbstractController
                 ],
                 'must_not' => [
                     [
-                        'terms' => [
-                            'reviewtags' => [
-                                'WIP'
-                            ]
+                        'term' => [
+                            'work_in_progress' => true,
                         ],
                     ],
                 ],

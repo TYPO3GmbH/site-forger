@@ -53,7 +53,7 @@ class OpenReviews extends ReviewChart
                 'bool' => [
                     'must_not' => [
                         ['terms' => ['reviewstatus' => ['ABANDONED', 'MERGED']]],
-                        [['term' => ['subject' => 'wip']]],
+                        [['term' => ['work_in_progress' => true]]],
                     ],
                 ],
             ],
