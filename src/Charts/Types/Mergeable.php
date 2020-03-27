@@ -42,7 +42,7 @@ class Mergeable extends ReviewChart
                     ],
                     'must_not' => [
                         [
-                            'terms' => ['reviewtags' => ['WIP']],
+                            'term' => ['work_in_progress' => true],
                         ],
                     ],
                 ],
@@ -79,7 +79,7 @@ class Mergeable extends ReviewChart
                             'terms' => ['reviewstatus' => ['NEW']],
                         ],
                         [
-                            'terms' => ['reviewtags' => ['WIP']],
+                            'term' => ['work_in_progress' => true],
                         ],
                     ],
                 ],

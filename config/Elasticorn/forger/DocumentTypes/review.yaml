@@ -44,3 +44,5 @@ ownerEmail:
   type: keyword
 files:
   type: keyword
+work_in_progress:
+  type: boolean

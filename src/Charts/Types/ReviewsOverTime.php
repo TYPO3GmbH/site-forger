@@ -57,7 +57,7 @@ class ReviewsOverTime extends ReviewChart
         $resultSet = $this->fetchData($this->getOpenedQuery([
             'bool' => [
                 'must_not' => [
-                    ['terms' => ['reviewtags' => ['WIP']]],
+                    ['term' => ['work_in_progress' => true]],
                 ],
             ],
         ], static::DATE_AGGREGATION_FORMAT));
@@ -85,7 +85,7 @@ class ReviewsOverTime extends ReviewChart
                 ],
                 'must_not' => [
                     [
-                        'terms' => ['reviewtags' => ['WIP']],
+                        'term' => ['work_in_progress' => true],
                     ],
                 ],
             ],

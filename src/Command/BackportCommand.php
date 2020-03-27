@@ -193,9 +193,11 @@ class BackportCommand extends Command
                         [
                             'terms' => [
                                 'reviewtags' => [
-                                    'WIP',
                                     'SECURITY'
                                 ],
+                            ],
+                            'term' => [
+                                'work_in_progress' => true
                             ],
                         ],
                         [
