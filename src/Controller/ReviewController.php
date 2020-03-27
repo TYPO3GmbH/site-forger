@@ -92,7 +92,7 @@ class ReviewController extends AbstractController
                         ],
                         [
                             'term' => [
-                                'subject' => 'wip',
+                                'work_in_progress' => true,
                             ],
                         ],
                     ],
@@ -145,7 +145,7 @@ class ReviewController extends AbstractController
                         ],
                         [
                             'term' => [
-                                'subject' => 'wip',
+                                'work_in_progress' => true,
                             ],
                         ],
                     ],
@@ -198,7 +198,7 @@ class ReviewController extends AbstractController
                         ],
                         [
                             'term' => [
-                                'subject' => 'wip',
+                                'work_in_progress' => true,
                             ],
                         ],
                     ],
@@ -251,7 +251,7 @@ class ReviewController extends AbstractController
                         ],
                         [
                             'term' => [
-                                'subject' => 'wip',
+                                'work_in_progress' => true,
                             ],
                         ],
                     ],
@@ -297,7 +297,7 @@ class ReviewController extends AbstractController
                         ],
                         [
                             'term' => [
-                                'subject' => 'wip',
+                                'work_in_progress' => true,
                             ],
                         ],
                     ],
@@ -416,7 +416,7 @@ class ReviewController extends AbstractController
                         ],
                         [
                             'term' => [
-                                'subject' => 'wip',
+                                'work_in_progress' => true,
                             ],
                         ],
                     ],
@@ -449,7 +449,7 @@ class ReviewController extends AbstractController
                     'must' => [
                         [
                             'term' => [
-                                'reviewtags' => 'WIP',
+                                'work_in_progress' => true,
                             ],
                         ],
                     ],
@@ -529,7 +529,7 @@ class ReviewController extends AbstractController
                         ],
                         [
                             'term' => [
-                                'subject' => 'wip',
+                                'work_in_progress' => true,
                             ],
                         ],
                         [

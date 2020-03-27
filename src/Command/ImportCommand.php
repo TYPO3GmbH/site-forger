@@ -441,6 +441,8 @@ class ImportCommand extends Command
                 $change['revisions'][$change['current_revision']]['commit']['message'] = '6.0';
             }
 
+            $reviewTags = $this->extractReviewTags($change['subject']);
+
             $out[$change['_number']] = [
                 'id' => $change['_number'],
                 'change_id' => $change['change_id'],
@@ -452,7 +454,7 @@ class ImportCommand extends Command
                 'affected_files' => count($change['revisions'][$change['current_revision']]['files']),
                 'insertions' => $change['insertions'],
                 'deletions' => $change['deletions'],
-                'reviewtags' => $this->extractReviewTags($change['subject']),
+                'reviewtags' => $reviewTags,
                 'positive_reviews' => $labels['positive_reviews'],
                 'negative_reviews' => $labels['negative_reviews'],
                 'positive_verifications' => $labels['positive_verifications'],
@@ -466,6 +468,7 @@ class ImportCommand extends Command
                 'owner' => $author ?? 'Unknown',
                 'ownerEmail' => $authorEmail ?? 'Unknown',
                 'files' => $filesInPatchset,
+                'work_in_progress' => in_array('WIP', $reviewTags, true) || ($change['work_in_progress'] ?? false),
             ];
             if (array_key_exists('_more_changes', $change)) {
                 $moreChanges = true;

@@ -75,7 +75,7 @@ class ApiController extends AbstractController
                 'bool' => [
                     'must_not' => [
                         ['terms' => ['reviewstatus' => ['ABANDONED', 'MERGED']]],
-                        ['terms' => ['reviewtags' => ['WIP']]],
+                        ['term' => ['work_in_progress' => true]],
                     ],
                 ],
             ],
