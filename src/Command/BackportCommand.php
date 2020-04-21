@@ -76,7 +76,7 @@ class BackportCommand extends Command
                     't3_76' => 'notTargeted',
                     't3_87' => 'notTargeted',
                     't3_95' => 'notTargeted',
-                ]
+                ],
 
             ];
             foreach ($releases as $release) {
@@ -106,7 +106,6 @@ class BackportCommand extends Command
     }
 
     /**
-     *
      * @param int $changeId
      * @return array
      * @throws RuntimeException
@@ -150,7 +149,6 @@ class BackportCommand extends Command
     }
 
     /**
-     *
      * @throws InvalidException
      */
     protected function getPotentialBackports(): array
@@ -183,8 +181,7 @@ class BackportCommand extends Command
                         [
                             'terms' => [
                                 'releases' => [
-                                    '8.7',
-                                    '9.5'
+                                    '9.5',
                                 ],
                             ],
                         ],
@@ -193,29 +190,31 @@ class BackportCommand extends Command
                         [
                             'terms' => [
                                 'reviewtags' => [
-                                    'SECURITY'
+                                    'SECURITY',
                                 ],
                             ],
+                        ],
+                        [
                             'term' => [
-                                'work_in_progress' => true
+                                'work_in_progress' => true,
                             ],
                         ],
                         [
                             'terms' => [
-                                'change_id' => $blackListedReviews
-                            ]
+                                'change_id' => $blackListedReviews,
+                            ],
                         ],
                         [
                             'range' => [
-                                'updated_on' => ['lte' =>  'now-1y']
-                            ]
-                        ]
+                                'updated_on' => ['lte' => 'now-1y'],
+                            ],
+                        ],
                     ],
-                    'minimum_should_match' => 1
+                    'minimum_should_match' => 1,
                 ],
             ],
             'sort' => [
-                'updated_on'
+                'updated_on',
             ],
             'size' => 5000,
         ];
@@ -226,7 +225,6 @@ class BackportCommand extends Command
     }
 
     /**
-     *
      * @param string $changeId
      * @return Result[]
      */
