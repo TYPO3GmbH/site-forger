@@ -36,18 +36,17 @@ class ManagementController extends AbstractController
         'Alexander Schnitzler',
         'Andreas Fernandez',
         'Anja Leichsenring',
-        'Arno Schoon',
         'Benjamin Franzke',
         'Benni Mack',
+        'Christian Eßl',
         'Claus Due',
         'Daniel Goerz',
-        'Daniel Sattler',
+        'Daniel Siepmann',
         'Frank Nägler',
         'Georg Ringer',
-        'Josef Glatz',
+        'Helmut Hummel',
         'Manuel Selbach',
         'Oliver Hader',
-        'Ralf Zimmermann',
         'Riccardo De Contardi',
         'Richard Haeser',
         'Susanne Moog',
@@ -531,7 +530,7 @@ class ManagementController extends AbstractController
             if (!is_string($taggle)) {
                 throw new InvalidArgumentException('Taggles need to be strings');
             }
-            $result = preg_replace("/[^[:alnum:][:space:]-.']/u", '', html_entity_decode($taggle));
+            $result = preg_replace("/[^[:alnum:][:space:][ß]-.']/u", '', html_entity_decode($taggle));
             if (trim($result) !== '') {
                 $sanitizedArray[$index] = $result;
             }
