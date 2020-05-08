@@ -649,7 +649,8 @@ class ImportCommand extends Command
                                 $document['complexity'] = $customField['value'] ?? '-';
                                 break;
                             case 15:
-                                $document['isregression'] = isset($customField['value']);
+                                // custom field for regression could not be set, empty, 0 or 1.
+                                $document['isregression'] = ($customField['value'] ?? '0') === '1';
                                 break;
                             case 18:
                                 $document['focus']['name'] = $customField['value'] ?? '-';
