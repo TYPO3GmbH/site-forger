@@ -13,9 +13,12 @@ namespace App\Menu;
 use App\Entity\SprintBoardCategory;
 use App\Repository\SprintBoardCategoryRepository;
 use Knp\Menu\FactoryInterface;
+use Knp\Menu\Matcher\MatcherInterface;
 use Knp\Menu\MenuItem;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * MenuBuilder
@@ -28,20 +31,24 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
     private $categoryRepository;
 
     /**
+     * @param ContainerInterface $container
      * @param FactoryInterface $factory
+     * @param MatcherInterface $matcher
      * @param AuthorizationCheckerInterface $authorizationChecker
      * @param TokenStorageInterface $tokenStorage
+     * @param TranslatorInterface $translator
      * @param SprintBoardCategoryRepository $sprintBoardCategoryRepository
      */
     public function __construct(
+        ContainerInterface $container,
         FactoryInterface $factory,
+        MatcherInterface $matcher,
         AuthorizationCheckerInterface $authorizationChecker,
         TokenStorageInterface $tokenStorage,
+        TranslatorInterface $translator,
         SprintBoardCategoryRepository $sprintBoardCategoryRepository
     ) {
-        $this->factory = $factory;
-        $this->authorizationChecker = $authorizationChecker;
-        $this->tokenStorage = $tokenStorage;
+        parent::__construct($container, $factory, $matcher, $authorizationChecker, $tokenStorage, $translator);
         $this->categoryRepository = $sprintBoardCategoryRepository;
     }
 
