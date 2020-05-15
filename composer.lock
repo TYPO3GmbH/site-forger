@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "377bc390284dfa829224a34c96e23d5e",
+    "content-hash": "3a248d37f5f1653c2770744404a606fd",
     "packages": [
         {
             "name": "doctrine/annotations",
@@ -6123,16 +6123,16 @@
         },
         {
             "name": "t3g/symfony-template-bundle",
-            "version": "1.0.0",
+            "version": "2.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/TYPO3GmbH/symfony-template-bundle.git",
-                "reference": "bf7c92a81b637086d9b5b31a9289679e0333f01f"
+                "reference": "afe7883381fdc7d56f0ef762078a30e5906438b1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/TYPO3GmbH/symfony-template-bundle/zipball/bf7c92a81b637086d9b5b31a9289679e0333f01f",
-                "reference": "bf7c92a81b637086d9b5b31a9289679e0333f01f",
+                "url": "https://api.github.com/repos/TYPO3GmbH/symfony-template-bundle/zipball/afe7883381fdc7d56f0ef762078a30e5906438b1",
+                "reference": "afe7883381fdc7d56f0ef762078a30e5906438b1",
                 "shasum": ""
             },
             "require": {
@@ -6140,18 +6140,22 @@
                 "knplabs/knp-paginator-bundle": "^3.0 || ^4.0 || ^5.0",
                 "php": "^7.2",
                 "symfony/asset": "^4.4 || ^5.0",
+                "symfony/dependency-injection": "^4.4 || ^5.0",
                 "symfony/framework-bundle": "^4.4 || ^5.0",
                 "symfony/http-kernel": "^4.4 || ^5.0",
                 "symfony/security-bundle": "^4.4 || ^5.0",
                 "symfony/translation": "^4.4 || ^5.0",
                 "symfony/twig-bundle": "^4.4 || ^5.0",
-                "symfony/webpack-encore-bundle": "^1.7",
                 "twig/twig": "^2.12 || ^3.0"
             },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^2.16",
                 "overtrue/phplint": "^1.2",
-                "symfony/phpunit-bridge": "^4.4 | ^5.0"
+                "symfony/phpunit-bridge": "^4.4 | ^5.0",
+                "symfony/webpack-encore-bundle": "^1.7"
+            },
+            "suggest": {
+                "symfony/webpack-encore-bundle": "Needed to support encore entrypoints."
             },
             "type": "symfony-bundle",
             "autoload": {
@@ -6159,24 +6163,7 @@
                     "T3G\\Bundle\\TemplateBundle\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "T3G\\Bundle\\TemplateBundle\\Tests\\": "tests/"
-                }
-            },
-            "notification-url": "https://repo.packagist.com/typo3gmbh/downloads/",
-            "scripts": {
-                "test:php:cgl": [
-                    "php-cs-fixer --diff -v fix"
-                ],
-                "test:php:lint": [
-                    "phplint"
-                ],
-                "test": [
-                    "@test:php:cgl",
-                    "@test:php:lint"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -6189,13 +6176,10 @@
             "description": "TYPO3 Template Bundle",
             "homepage": "http://www.typo3.com",
             "keywords": [
-                "TYPO3",
-                "Templates"
+                "templates",
+                "typo3"
             ],
-            "support": {
-                "source": "https://github.com/TYPO3GmbH/symfony-template-bundle/tree/1.0.0"
-            },
-            "time": "2019-12-20T11:23:53+00:00"
+            "time": "2020-05-15T09:49:56+00:00"
         },
         {
             "name": "t3g/symfony-usercentrics-bundle",
@@ -6915,5 +6899,6 @@
     "platform-dev": [],
     "platform-overrides": {
         "php": "7.4"
-    }
+    },
+    "plugin-api-version": "1.1.0"
 }
