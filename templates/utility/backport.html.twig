@@ -6,8 +6,14 @@
         <div class="container-fluid">
             <h1>{{ sum ?? 0 }} backports to do</h1>
             <table class="table table-striped">
+                <colgroup>
+                    <col style="width: calc(100% / 3)">
+                    <col style="width: calc(100% / 3)">
+                    <col style="width: calc(100% / 3)">
+                </colgroup>
                 <tr>
                     <th>master</th>
+                    <th>10.4</th>
                     <th>9.5</th>
                 </tr>
                 {% for backport in backports %}
