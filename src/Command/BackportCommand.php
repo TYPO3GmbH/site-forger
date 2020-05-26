@@ -76,6 +76,7 @@ class BackportCommand extends Command
                     't3_76' => 'notTargeted',
                     't3_87' => 'notTargeted',
                     't3_95' => 'notTargeted',
+                    't3_104' => 'notTargeted',
                 ],
 
             ];
@@ -182,6 +183,7 @@ class BackportCommand extends Command
                             'terms' => [
                                 'releases' => [
                                     '9.5',
+                                    '10.4',
                                 ],
                             ],
                         ],
@@ -286,6 +288,11 @@ class BackportCommand extends Command
                     break;
                 case '9.5':
                     if ($relatedChange['branch'] === '9.5') {
+                        return $relatedChange;
+                    }
+                    break;
+                case '10.4':
+                    if ($relatedChange['branch'] === '10.4') {
                         return $relatedChange;
                     }
                     break;
