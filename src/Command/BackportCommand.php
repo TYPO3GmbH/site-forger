@@ -76,6 +76,7 @@ class BackportCommand extends Command
                     't3_76' => 'notTargeted',
                     't3_87' => 'notTargeted',
                     't3_95' => 'notTargeted',
+                    't3_104' => 'notTargeted',
                 ],
 
             ];
@@ -182,6 +183,7 @@ class BackportCommand extends Command
                             'terms' => [
                                 'releases' => [
                                     '9.5',
+                                    '10.4',
                                 ],
                             ],
                         ],
