@@ -291,6 +291,11 @@ class BackportCommand extends Command
                         return $relatedChange;
                     }
                     break;
+                case '10.4':
+                    if ($relatedChange['branch'] === '10.4') {
+                        return $relatedChange;
+                    }
+                    break;
                 case 'master':
                     if ($relatedChange['branch'] === 'master') {
                         return $relatedChange;
