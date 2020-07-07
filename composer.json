@@ -7,6 +7,7 @@
         "ext-ctype": "*",
         "ext-iconv": "*",
         "ext-json": "*",
+        "doctrine/doctrine-migrations-bundle": "2.*",
         "guzzlehttp/guzzle": "^6.3",
         "johnstyle/redmine-bundle": "^1.0",
         "kbsali/redmine-api": "^1.5",

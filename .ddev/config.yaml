@@ -12,7 +12,7 @@ additional_fqdns: []
 mariadb_version: "10.2"
 nfs_mount_enabled: false
 provider: default
-webimage_extra_packages: [php-yaml php7.4-ldap]
+webimage_extra_packages: [php-yaml, php7.4-ldap]
 use_dns_when_possible: true
 timezone: ""
 
