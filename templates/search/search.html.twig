@@ -42,7 +42,7 @@
                             </div>
                         </div>
                     {% else %}
-                        {% include '_partials/alert.html.twig' with {'message': 'Try another term or set the checkbox "Search closed tickets".', 'title': 'No results were found for <code>' ~ query ~ '</code>.', 'style': 'danger'} %}
+                        {% include '_partials/alert.html.twig' with {'message': 'Try another term or set the checkbox "Search closed tickets".', 'title': 'No results were found for "' ~ query ~ '".', 'style': 'danger'} %}
                     {% endif %}
                 {% else %}
                     <div class="row">

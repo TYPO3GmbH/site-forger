@@ -46,7 +46,7 @@
     <div class="issue-meta">
         <div class="issue-meta-group">
             <div class="issue-meta-item issue-meta-author">
-                {% if card.author.email is defined %}
+                {% if (card.author.email is defined) and (card.author.email is not null) %}
                     <span class="issue-meta-item-avatar">
                         {{ avatar(card.author.email) }}
                     </span>

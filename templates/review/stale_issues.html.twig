@@ -44,7 +44,7 @@
                     </div>
                 </div>
             {% else %}
-                {% include '_partials/alert.html.twig' with {'message': '<strong>No stale issues!</strong> Good job, I couldn\'t find any stale issue!', 'style': 'success'} %}
+                {% include '_partials/alert.html.twig' with {'title': 'No stale issues!', 'message': 'Good job, I couldn\'t find any stale issue!', 'style': 'success'} %}
             {% endif %}
         </div>
     </div>

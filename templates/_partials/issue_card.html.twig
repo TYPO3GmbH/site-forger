@@ -80,8 +80,8 @@
             <div class="issue-data">
                 {% for issueDataItem in issueData %}
                     <div class="issue-data-item">
-                        <span class="issue-data-item-label">{{ issueDataItem.label|raw }}</span>
-                        <span class="issue-data-item-value">{{ issueDataItem.value|raw }}</span>
+                        <span class="issue-data-item-label">{{ issueDataItem.label }}</span>
+                        <span class="issue-data-item-value">{{ issueDataItem.value }}</span>
                     </div>
                 {% endfor %}
             </div>
@@ -90,7 +90,7 @@
         <div class="issue-meta">
             <div class="issue-meta-group">
                 <div class="issue-meta-item issue-meta-author">
-                    {% if card.author.email is defined %}
+                    {% if (card.author.email is defined) and (card.author.email is not null) %}
                         <span class="issue-meta-item-avatar">
                             {{ avatar(card.author.email) }}
                         </span>
