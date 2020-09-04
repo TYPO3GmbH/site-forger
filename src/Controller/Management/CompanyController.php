@@ -32,7 +32,7 @@ class CompanyController extends AbstractController
     }
 
     /**
-     * @Route("/management/companies", name="management_companies")
+     * @Route("/companies/management", name="management_companies")
      * @return JsonResponse
      */
     public function companies(): Response
@@ -43,7 +43,7 @@ class CompanyController extends AbstractController
     }
 
     /**
-     * @Route("/management/companies/manage/{id}", name="management_companies_manage")
+     * @Route("/companies/management/manage/{id}", name="management_companies_manage")
      * @param Request $request
      * @param EntityManagerInterface $entityManager
      * @param int $id
@@ -83,7 +83,7 @@ class CompanyController extends AbstractController
     }
 
     /**
-     * @Route("/management/company/delete/{id}", name="management_company_delete")
+     * @Route("/companies/management/delete/{id}", name="management_company_delete")
      *
      * @param int $id
      * @param EntityManagerInterface $entityManager
