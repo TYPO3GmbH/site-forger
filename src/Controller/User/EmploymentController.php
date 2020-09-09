@@ -20,7 +20,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 /**
- * @IsGranted("IS_AUTHENTICATED_FULLY")
+ * @IsGranted("ROLE_USER")
  */
 class EmploymentController extends AbstractController
 {
