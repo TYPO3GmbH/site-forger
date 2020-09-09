@@ -1,0 +1,34 @@
+client-id: forger-typo3-com
+client-secret: Something
+discovery-url: https://login.typo3.com/auth/realms/TYPO3
+enable-default-deny: true
+enable-refresh-tokens: true
+encryption-key: 4uk7syOdJxzNSzeASHpXAJ4HjDtu1lam
+listen: :3009
+redirection-url: https://forger.ddev.site
+upstream-url: http://web:4719
+resources:
+- uri: /
+  white-listed: true
+- uri: /bundles/*
+  white-listed: true
+- uri: /build/*
+  white-listed: true
+- uri: /api/*
+  white-listed: true
+- uri: /quick_stats
+  white-listed: true
+- uri: /chart/*
+  white-listed: true
+- uri: /management/*
+  white-listed: true
+- uri: /gerrit/*
+  white-listed: true
+- uri: /search
+  white-listed: true
+- uri: /sprint/reviews/*
+  white-listed: true
+- uri: /help
+  white-listed: true
+- uri: /backport
+  white-listed: true

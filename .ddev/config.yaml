@@ -10,7 +10,11 @@ additional_hostnames: []
 additional_fqdns: []
 mariadb_version: "10.2"
 provider: default
-webimage_extra_packages: [php-yaml, php7.4-ldap]
+hooks:
+  pre-start:
+  - exec-host: php -r "file_exists('.ddev/keycloak-gatekeeper.conf') || copy('.ddev/keycloak-gatekeeper.conf.tmpl',
+      '.ddev/keycloak-gatekeeper.conf');"
+webimage_extra_packages: [php-yaml, php7.4-gmp]
 use_dns_when_possible: true
 
 

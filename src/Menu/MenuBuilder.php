@@ -19,6 +19,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use T3G\Bundle\Keycloak\Security\KeyCloakUser;
+use T3G\Bundle\TemplateBundle\Utility\AvatarUtility;
 
 /**
  * MenuBuilder
@@ -350,13 +352,15 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             ]
         );
         if ($this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
+            /** @var KeyCloakUser $user */
+            $user = $this->tokenStorage->getToken()->getUser();
             $menu->addChild(
                 'username',
                 [
-                    'label' => $this->tokenStorage->getToken()->getUser()->__toString(),
+                    'label' => $user->getDisplayName(),
                     'uri' => '#',
                     'extras' => [
-                        'icon' => 'user',
+                        'image' => AvatarUtility::getAvatarUrl($user->getEmail(), 32),
                     ],
                 ]
             );
