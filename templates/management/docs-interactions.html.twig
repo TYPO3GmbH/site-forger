@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+{% block title %}Interactions{% endblock %}
+{% block headline %}DocTeam Activity{% endblock %}
+{% block body %}
+    <div class="content-section content-section-small">
+        <div class="container-fluid">
+            <div class="interactions">
+                {% for monthKey, month in aggs %}
+                    <div class="interactions-item">
+                        <div class="datatable">
+                            <table class="datatable-table datatable-table-compact">
+                                <caption class="datatable-caption">{{ monthKey }}</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Name</th>
+                                        <th scope="col"><i class="fas fa-fw fa-laptop-code" aria-hidden="true" data-toggle="tooltip" title="PR opened"></i><span class="sr-only">PR opened</span></th>
+                                        <th scope="col"><i class="fas fa-fw fa-code" aria-hidden="true" data-toggle="tooltip" title="Commit Added"></i><span class="sr-only">Added Commit</span></th>
+                                        <th scope="col"><i class="fas fa-fw fa-eye" aria-hidden="true" data-toggle="tooltip" title="Reviewed"></i><span class="sr-only">Review</span></th>
+                                        <th scope="col"><i class="fas fa-fw fa-code-branch" aria-hidden="true" data-toggle="tooltip" title="PR Closed"></i><span class="sr-only">PR Closed</span></th>
+                                        <th scope="col"><i class="fas fa-fw fa-check" aria-hidden="true" data-toggle="tooltip" title="Issue Closed"></i><span class="sr-only">Issue Closed</span></th>
+                                        <th scope="col"><i class="fas fa-fw fa-comment" aria-hidden="true" data-toggle="tooltip" title="Issue Comment"></i><span class="sr-only">Issue Comment</span></th>
+                                    </tr>
+                                </thead>
+                                {% for committer, reviewTypes in month %}
+                                    <tr>
+                                        <th data-type="title">{{ committer }}</th>
+                                        <td>{{ reviewTypes['github_typo3-documentation_pullrequest_opened'] ?? '' }}</td>
+                                        <td>{{ reviewTypes['github_typo3-documentation_push_generic'] ?? '' }}</td>
+                                        <td>{{ reviewTypes['github_typo3-documentation_pullrequestreview_created'] ?? '' }}</td>
+                                        <td>{{ reviewTypes['github_typo3-documentation_pullrequest_closed'] ?? '' }}</td>
+                                        <td>{{ reviewTypes['github_typo3-documentation_issue_closed'] ?? '' }}</td>
+                                        <td>{{ reviewTypes['github_typo3-documentation_issuecomment_created'] ?? '' }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <form class="mt-3" action="{{ path('management_docs_interactions') }}" method="get" id="contributorList">
+                <div class="form-group">
+                    <select multiple name="taggles[]" id="contributors" data-role="tagsinput">
+                        {%  for member in docTeam %}
+                            <option value="{{ member }}">{{ member }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <input type="submit" class="btn btn-primary" value="Show">
+                <a class="btn btn-secondary" href="{{ path('management_docs_interactions') }}">Reset</a>
+            </form>
+        </div>
+    </div>
+
+{% endblock %}

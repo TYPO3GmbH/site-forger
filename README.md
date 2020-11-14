@@ -28,6 +28,9 @@ Forger allows the following commands to be used on CLI:
 * `bin/console app:import --mode=forgeDelta` will import the latest 100 issues from Redmine
 * `bin/console app:import --mode=reviewFull` will import Gerrit completely
 * `bin/console app:import --mode=reviewDelta` will import the latest 100 Gerrit changes and create interactions from them
+* `bin/console app:import --mode=github --organization=TYPO3-Documentation` will import the given Github Organization and create interactions
+* `bin/console app:import --mode=githubDelta --organization=TYPO3-Documentation` will import the latest 100 Github changes and create interactions
+* `bin/console app:import --mode=githubDelta --organization=TYPO3 --repository=TYPO3.Icons` will import the latest 100 Github changes for the specified repository and create interactions
 
 Using `--sendnotifications` on the commands above will trigger Discord notifications.
 
@@ -43,9 +46,9 @@ Using `--sendnotifications` on the commands above will trigger Discord notificat
 
 Note that for import Discord messages to be sent you need the `DISCORD_ISSUES_WEBHOOK` env variable.
 
-## LDAP
+## Keycloak
 
-To use LDAP two variables are needed in the .env.local file. `LDAP_SEARCH_USER` and `LDAP_SEARCH_PASSWORD`.
+Authentication is done via Keycloak/Gatekeeper.
 
 Following user groups are taken into consideration:
 
