@@ -205,8 +205,18 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         $menu['management']->addChild(
             'management-interactions',
             [
-                'label' => 'Team Interactions',
+                'label' => 'Core Team Interactions',
                 'route' => 'management_interactions',
+                'extras' => [
+                    'icon' => 'users',
+                ],
+            ]
+        );
+        $menu['management']->addChild(
+            'management-docs-interactions',
+            [
+                'label' => 'Doc Team Interactions',
+                'route' => 'management_docs_interactions',
                 'extras' => [
                     'icon' => 'users',
                 ],

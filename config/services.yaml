@@ -30,6 +30,28 @@ parameters:
       core:review:merge-lastpatchset: 10
       core:review:merge-author: 10
       core:review:abandon: 3
+      github:typo3-documentation:issue:closed: 3
+      github:typo3-documentation:pr:merged: 10
+      github:typo3-documentation:pullrequestreviewcomment:created: 3
+      github:typo3-documentation:pullrequestreview:created: 5
+      github:typo3-documentation:push:generic: 10
+      github:typo3-documentation:issuecomment:created: 1
+      github:typo3-documentation:pullrequest:opened: 15
+      github:friendsoftypo3:issue:closed: 3
+      github:friendsoftypo3:pr:merged: 10
+      github:friendsoftypo3:pullrequestreviewcomment:created: 3
+      github:friendsoftypo3:pullrequestreview:created: 5
+      github:friendsoftypo3:push:generic: 5
+      github:friendsoftypo3:issuecomment:created: 1
+      github:friendsoftypo3:pullrequest:opened: 15
+      github:typo3:issue:closed: 3
+      github:typo3:pr:merged: 10
+      github:typo3:pullrequestreviewcomment:created: 3
+      github:typo3:pullrequestreview:created: 5
+      github:typo3:push:generic: 5
+      github:typo3:issuecomment:created: 1
+      github:typo3:pullrequest:opened: 10
+
 
 services:
     # default configuration for services in *this* file
@@ -71,6 +93,14 @@ services:
                   index: '%env(ELASTIC_INDEX)%'
                   username: '%env(ELASTIC_AUTH_USERNAME)%'
                   password: '%env(ELASTIC_AUTH_PASSWORD)%'
+    App\Client\GithubClient:
+        class: App\Client\GithubClient
+        arguments:
+          $config:
+            base_uri: 'https://api.github.com/'
+            auth:
+              - '%env(GITHUB_USERNAME)%'
+              - '%env(GITHUB_ACCESS_TOKEN)%'
     App\Service\DiscordService:
         class: App\Service\DiscordService
         public: true
