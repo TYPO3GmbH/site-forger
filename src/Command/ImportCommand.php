@@ -335,6 +335,10 @@ class ImportCommand extends Command
             $pageOfNames = $this->githubService->getListOfRepositoryNamesForOrganization($organization);
             foreach ($pageOfNames as $repositories) {
                 foreach ($repositories as $repo) {
+                    // we don't want to import the core repo again (and no forks in other orgs either)
+                    if ($repo === 'TYPO3.CMS') {
+                        continue;
+                    }
                     $this->importRepoFromGithub($io, $organization, $repo, $pageCount);
                 }
             }
