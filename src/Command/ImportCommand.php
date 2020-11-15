@@ -12,6 +12,7 @@ namespace App\Command;
 use App\Client\ElasticClient;
 use App\Client\ForgeClient;
 use App\Service\DiscordService;
+use App\Service\GithubService;
 use DateTime;
 use Elastica\Document;
 use Elastica\Exception\NotFoundException;
@@ -40,7 +41,7 @@ class ImportCommand extends Command
 
     protected const BAMBOO_USER_ID = [49454, 51735];
 
-    protected static $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta'];
+    protected static $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta', 'github', 'githubDelta'];
     /**
      * @var ElasticClient
      */
@@ -56,15 +57,17 @@ class ImportCommand extends Command
      */
     private $logger;
 
+    private GithubService $githubService;
+
     protected function configure(): void
     {
         $this
-            ->setDescription('Imports data from both Redmine (forge.typo3.org) and Gerrit (review.typo3.org)')
+            ->setDescription('Imports data from Redmine (forge.typo3.org), Gerrit (review.typo3.org) and Github')
             ->addOption(
                 'mode',
                 null,
                 InputOption::VALUE_REQUIRED,
-                'Import Mode: Allowed values are \'forgeFull\', \'forgeDelta\', \'reviewFull\', \'reviewDelta\''
+                'Import Mode: Allowed values are \'forgeFull\', \'forgeDelta\', \'reviewFull\', \'reviewDelta\', \'github\', \'githubDelta\''
             )
             ->addOption(
                 'startAt',
@@ -79,6 +82,19 @@ class ImportCommand extends Command
                 InputOption::VALUE_OPTIONAL,
                 'Will not send notifications to Discord in silent mode',
                 false
+            )
+            ->addOption(
+                'organization',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                '(mode=github only) Which Github organization to import - defaults to TYPO3-Documentation',
+                'TYPO3-Documentation'
+            )
+            ->addOption(
+                'repository',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                '(mode=github only) Which Github repository to import - if not given complete organization will be imported'
             );
     }
 
@@ -117,6 +133,7 @@ class ImportCommand extends Command
         ForgeClient $forgeClient,
         ElasticClient $elasticClient,
         DiscordService $discordService,
+        GithubService $githubService,
         LoggerInterface $logger,
         string $discordWebhook
     ) {
@@ -127,6 +144,7 @@ class ImportCommand extends Command
         $this->discordService = $discordService;
         $this->discordWebhook = $discordWebhook;
         $this->logger = $logger;
+        $this->githubService = $githubService;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -209,6 +227,31 @@ class ImportCommand extends Command
                     return 0;
                 }
                 break;
+            case 'github':
+                if ($this->lock('github')) {
+                    $organization = $input->getOption('organization');
+                    $repo = $input->hasOption('repository') ? $input->getOption('repository') : null;
+                    $this->importFromGithub($organization, $repo, $io);
+                    $this->release();
+                    return 0;
+                } else {
+                    $output->writeln('Locked by another github import');
+                    return 0;
+                }
+                break;
+            case 'githubDelta':
+                if ($this->lock('github')) {
+                    $organization = $input->getOption('organization');
+                    $repo = $input->hasOption('repository') ? $input->getOption('repository') : null;
+                    $pageCount = 1;
+                    $this->importFromGithub($organization, $repo, $io, $pageCount);
+                    $this->release();
+                    return 0;
+                } else {
+                    $output->writeln('Locked by another github import');
+                    return 0;
+                }
+                break;
         }
     }
 
@@ -284,6 +327,50 @@ class ImportCommand extends Command
         } else {
             $this->addDocumentToElastic($this->injectUserData($issue));
         }
+    }
+
+    protected function importFromGithub(string $organization, ?string $repository, SymfonyStyle $io, ?int $pageCount = null): void
+    {
+        if (null === $repository) {
+            $pageOfNames = $this->githubService->getListOfRepositoryNamesForOrganization($organization);
+            foreach ($pageOfNames as $repositories) {
+                foreach ($repositories as $repo) {
+                    // we don't want to import the core repo again (and no forks in other orgs either)
+                    if ($repo === 'TYPO3.CMS') {
+                        continue;
+                    }
+                    $this->importRepoFromGithub($io, $organization, $repo, $pageCount);
+                }
+            }
+        } else {
+            $this->importRepoFromGithub($io, $organization, $repository, $pageCount);
+        }
+    }
+
+    /**
+     * @param SymfonyStyle $io
+     * @param string $organization
+     * @param $repo
+     * @throws \JsonException
+     */
+    protected function importRepoFromGithub(SymfonyStyle $io, string $organization, string $repo, ?int $pageCount): void
+    {
+        $io->title('Importing data from ' . $organization . ' - Repository: ' . $repo);
+        $io->writeln('');
+        $lastPageOfRepositoryEvents = $pageCount ?? $this->githubService->getLastPageOfRepositoryEvents($organization, $repo);
+        $lastPageOfRepositoryIssueEvents = $pageCount ?? $this->githubService->getLastPageOfRepositoryIssueEvents($organization, $repo);
+        $progressBar = new ProgressBar($io, $lastPageOfRepositoryEvents * 100 + $lastPageOfRepositoryIssueEvents * 100);
+        $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
+        foreach ($this->githubService->getInteractionsForRepository($organization, $repo, $pageCount) as $interaction) {
+            $this->addDocumentToElastic($interaction, 'interactions');
+            $progressBar->advance();
+        }
+        foreach ($this->githubService->getInteractionsForIssuesInRepository($organization, $repo, $pageCount) as $interaction) {
+            $this->addDocumentToElastic($interaction, 'interactions');
+            $progressBar->advance();
+        }
+        $progressBar->finish();
+        $io->newLine(1);
     }
 
     private function injectUserData(array $issue): array

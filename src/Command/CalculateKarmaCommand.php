@@ -189,6 +189,9 @@ class CalculateKarmaCommand extends Command
     {
         $points = $this->parameters->get('karmaPoints');
         $dataArray = $interaction->getSource();
+        if (!isset($points[$dataArray['interaction_type']])) {
+            return;
+        }
         $document = [
             'leaderboard_entry_id' => 'forger:review:' . $interaction->getId(),
             'company' => $this->mapAccountToCompany($dataArray),

@@ -39,6 +39,7 @@ class ManagementController extends AbstractController
         'Benjamin Franzke',
         'Benni Mack',
         'Christian Eßl',
+        'Christian Kuhn',
         'Claus Due',
         'Daniel Goerz',
         'Daniel Siepmann',
@@ -49,9 +50,19 @@ class ManagementController extends AbstractController
         'Oliver Hader',
         'Riccardo De Contardi',
         'Richard Haeser',
-        'Susanne Moog',
         'Tobi Kretschmann',
         'Tymoteusz Motylewski',
+    ];
+
+    private $docTeam = [
+        'Mathias Brodala',
+        'Sybille Peters',
+        'Martin Bless',
+        'Daniel Siepmann',
+        'linawolf',
+        'Alexander Nitsche',
+        'flicstar',
+        'Susanne Moog'
     ];
 
     public function __construct(ElasticClient $elasticClient, ParameterBagInterface $parameters)
@@ -312,6 +323,86 @@ class ManagementController extends AbstractController
         return $this->render('management/interactions.html.twig', [
             'aggs' => $out,
             'coreTeamMergers' => $this->coreMergers
+        ]);
+    }
+
+    /**
+     * @Route("/management/docs-interactions", name="management_docs_interactions")
+     */
+    public function docsInteractions(): Response
+    {
+        if (isset($_GET['taggles'])) {
+            $this->docTeam = $this->sanitizeTaggles($_GET['taggles']);
+            sort($this->docTeam);
+        }
+        $out = [];
+        $fullRequest = [
+            'query' => [
+                'bool' => [
+                    'must' => [
+                        [
+                            'range' => [
+                                'interacted_on' => [
+                                    'gte' => 'now-5M'
+                                ]
+                            ]
+                        ],
+                        [
+                            'terms' => [
+                                'fullname' => $this->docTeam,
+                            ]
+                        ]
+                    ],
+                ],
+            ],
+            'size' => 0,
+            'aggregations' => [
+                'month' => [
+                    'date_histogram' => [
+                        'field' => 'interacted_on',
+                        'interval' => 'month',
+                    ],
+                    'aggregations' => [
+                        'member' => [
+                            'terms' => [
+                                'field' => 'fullname',
+                                'size' => 30,
+                            ],
+                            'aggregations' => [
+                                'interaction_type' => [
+                                    'terms' => [
+                                        'field' => 'interaction_type',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ]
+                ],
+            ],
+        ];
+        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
+        $search->addType('interactions');
+        $resultSet = $search->search();
+        $aggregations = $resultSet->getAggregations();
+        foreach ($aggregations as $aggregation) {
+            foreach ($aggregation['buckets'] as $bucket) {
+                $monthParts = explode('/', $bucket['key_as_string']);
+                $dateIdent = $monthParts[0] . '/' . $monthParts[1];
+                foreach ($this->docTeam as $docMember) {
+                    $out[$dateIdent][$docMember] = [];
+                }
+                foreach ($bucket['member']['buckets'] as $member) {
+                    foreach ($member['interaction_type']['buckets'] as $interactionType) {
+                        $key = str_replace(':', '_', $interactionType['key']);
+                        $out[$dateIdent][$member['key']][$key] = $interactionType['doc_count'];
+                    }
+                }
+            }
+        }
+        krsort($out);
+        return $this->render('management/docs-interactions.html.twig', [
+            'aggs' => $out,
+            'docTeam' => $this->docTeam
         ]);
     }
 
