@@ -23,7 +23,7 @@ Encore
     resolveUrlLoader: false
   })
   .enablePostCssLoader((options) => {
-    options.config = {
+    options.postcssOptions = {
       path: 'config/postcss.config.js'
     };
   })
