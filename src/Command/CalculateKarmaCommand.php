@@ -134,7 +134,8 @@ class CalculateKarmaCommand extends Command
                             'terms' => [
                                 'fullname' => [
                                     'TYPO3com',
-                                    'Mr. Jenkins'
+                                    'Mr. Jenkins',
+                                    'Core CI',
                                 ]
                             ]
                         ]
