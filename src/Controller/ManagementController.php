@@ -59,6 +59,7 @@ class ManagementController extends AbstractController
         'Sybille Peters',
         'Martin Bless',
         'Daniel Siepmann',
+        'David Bruchmann',
         'linawolf',
         'Alexander Nitsche',
         'flicstar',

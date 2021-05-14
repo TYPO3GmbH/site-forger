@@ -39,7 +39,7 @@ class ImportCommand extends Command
 
     protected static $defaultName = 'app:import';
 
-    protected const BAMBOO_USER_ID = [49454, 51735];
+    protected const BAMBOO_USER_ID = [49454, 51735, 52386];
 
     protected static $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta', 'github', 'githubDelta'];
     /**
