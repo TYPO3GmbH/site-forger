@@ -511,7 +511,7 @@ class ManagementController extends AbstractController
                                 'fullname' => [
                                     'TYPO3com',
                                     'Mr. Jenkins',
-                                    'Core CI',
+                                    'core-ci',
                                 ]
                             ]
                         ]
