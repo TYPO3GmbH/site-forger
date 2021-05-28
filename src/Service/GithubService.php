@@ -72,7 +72,7 @@ class GithubService
     {
         $lastPage = $pageCount ?? $this->getLastPageOfRepositoryIssueEvents($organization, $repo);
         for ($page = 1; $page <= $lastPage; $page++) {
-            $response = $this->client->get('repos/TYPO3-Documentation/TYPO3CMS-Reference-CoreApi/issues/events?per_page=100&page=' . $page);
+            $response = $this->client->get('repos/' . $organization . '/' . $repo . '/issues/events?per_page=100&page=' . $page);
             $events = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
             foreach ($events as $event) {
                 $interaction = $this->mapCommonData($event);
