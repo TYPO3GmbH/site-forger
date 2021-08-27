@@ -36,7 +36,6 @@ magephp:
       host_path: /srv/vhosts/forger.typo3.com/site/mage/
       releases: 3
       hosts:
-        - srv001.typo3.com
         - 188.34.182.186
       pre-deploy:
         - exec: { cmd: "echo \"APP_ENV=prod\" >> .env.local"}
@@ -62,7 +61,6 @@ magephp:
       host_path: /srv/vhosts/stage.forger.typo3.com/site/mage/
       releases: 3
       hosts:
-        - srv001.typo3.com
         - 188.34.182.186
       pre-deploy:
         - exec: { cmd: "echo \"APP_ENV=prod\" >> .env.local"}
