@@ -125,11 +125,11 @@ class GithubService
         $parsed = Header::parse($linkHeader);
         $last = array_values(
             array_filter(
-                        $parsed,
-                        static function (array $set): bool {
+                $parsed,
+                static function (array $set): bool {
                             return $set['rel'] === 'last';
                         }
-                    )
+            )
         )[0][0] ?? '&page=1';
         preg_match('#&page=(\d+)#', $last, $matches);
         return (int)$matches[1];

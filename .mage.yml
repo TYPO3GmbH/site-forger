@@ -36,7 +36,6 @@ magephp:
       host_path: /srv/vhosts/forger.typo3.com/site/mage/
       releases: 3
       hosts:
-        - srv001.typo3.com
         - 188.34.182.186
       pre-deploy:
         - exec: { cmd: "echo \"APP_ENV=prod\" >> .env.local"}
@@ -49,7 +48,7 @@ magephp:
       on-release:
       post-release:
         - exec: { cmd: "[ -d ../../../cachetool ] || mkdir -p ../../../cachetool" }
-        - exec: { cmd: "[ -f ../../../cachetool/cachetool.phar ] || curl -o ../../../cachetool/cachetool.phar http://gordalina.github.io/cachetool/downloads/cachetool.phar && chmod +x ../../../cachetool/cachetool.phar" }
+        - exec: { cmd: "[ -f ../../../cachetool/cachetool.phar ] || curl -L -o ../../../cachetool/cachetool.phar https://gordalina.github.io/cachetool/downloads/cachetool.phar && chmod +x ../../../cachetool/cachetool.phar" }
         - exec: { cmd: "php ../../../cachetool/cachetool.phar opcache:reset --fcgi=/var/run/forger.typo3.com_fpm.sock --tmp-dir=/srv/vhosts/forger.typo3.com/site/cachetool" }
         - exec: { cmd: "rm -rf var/cache"}
         - exec: { cmd: "php7.4 ./bin/console doctrine:migrations:migrate --no-interaction"}
@@ -62,7 +61,6 @@ magephp:
       host_path: /srv/vhosts/stage.forger.typo3.com/site/mage/
       releases: 3
       hosts:
-        - srv001.typo3.com
         - 188.34.182.186
       pre-deploy:
         - exec: { cmd: "echo \"APP_ENV=prod\" >> .env.local"}
@@ -75,7 +73,7 @@ magephp:
       on-release:
       post-release:
         - exec: { cmd: "[ -d ../../../cachetool ] || mkdir -p ../../../cachetool" }
-        - exec: { cmd: "[ -f ../../../cachetool/cachetool.phar ] || curl -o ../../../cachetool/cachetool.phar http://gordalina.github.io/cachetool/downloads/cachetool.phar && chmod +x ../../../cachetool/cachetool.phar" }
+        - exec: { cmd: "[ -f ../../../cachetool/cachetool.phar ] || curl -L -o ../../../cachetool/cachetool.phar https://gordalina.github.io/cachetool/downloads/cachetool.phar && chmod +x ../../../cachetool/cachetool.phar" }
         - exec: { cmd: "php ../../../cachetool/cachetool.phar opcache:reset --fcgi=/var/run/stage.forger.typo3.com_fpm.sock --tmp-dir=/srv/vhosts/stage.forger.typo3.com/site/cachetool" }
         - exec: { cmd: "rm -rf var/cache"}
         - exec: { cmd: "php7.4 ./bin/console doctrine:migrations:migrate --no-interaction"}
