@@ -25,6 +25,18 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 class BackportCommand extends Command
 {
     protected static $defaultName = 'app:backports';
+    /**
+     * @var array<string, string>
+     */
+    private static array $versionBranchMap = [
+        'master' => 'master',
+        '6.2' => 'TYPO3_6-2',
+        '7.6' => 'TYPO3_7-6',
+        '8.7' => 'TYPO3_8-7',
+        '9.5' => '9.5',
+        '10.4' => '10.4',
+        '11.5' => '11.5',
+    ];
 
     /**
      * @var OutputInterface
@@ -271,43 +283,10 @@ class BackportCommand extends Command
                 $relatedChange['owner'] = $mergingPerson['fullname'] ?? '';
             }
             unset($relatedChange['mergeable']);
-            switch ($release) {
-                case '6.2':
-                    if ($relatedChange['branch'] === 'TYPO3_6-2') {
-                        return $relatedChange;
-                    }
-                    break;
-                case '7.6':
-                    if ($relatedChange['branch'] === 'TYPO3_7-6') {
-                        return $relatedChange;
-                    }
-                    break;
-                case '8.7':
-                    if ($relatedChange['branch'] === 'TYPO3_8-7') {
-                        return $relatedChange;
-                    }
-                    break;
-                case '9.5':
-                    if ($relatedChange['branch'] === '9.5') {
-                        return $relatedChange;
-                    }
-                    break;
-                case '10.4':
-                    if ($relatedChange['branch'] === '10.4') {
-                        return $relatedChange;
-                    }
-                    break;
-                case '11.5':
-                    if ($relatedChange['branch'] === '11.5') {
-                        return $relatedChange;
-                    }
-                    break;
-                case 'master':
-                    if ($relatedChange['branch'] === 'master') {
-                        return $relatedChange;
-                    }
-                    break;
-                default:
+
+            $branchForRelease = self::$versionBranchMap[$release] ?? null;
+            if ($branchForRelease === $relatedChange['branch']) {
+                return $relatedChange;
             }
         }
         return $returnValue;
