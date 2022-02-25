@@ -158,100 +158,107 @@ class ImportCommand extends Command
             $io->note('Please select one of the modes: "' . implode('" ', self::$importModes) . '"');
         }
 
-        switch ($mode) {
-            case 'forgeFull':
-                if ($this->lock('forge')) {
-                    $this->importFromForge(100, $startAt);
-                    $this->release();
-                } else {
-                    $output->writeln('Locked by another forge import');
-                    return 0;
-                }
-                break;
-            case 'forgeDelta':
-                if ($this->lock('forge')) {
-                    $this->importFromForge(100, $startAt, true);
-                    $this->release();
-                } else {
-                    $output->writeln('Locked by another forge import');
-                    return 0;
-                }
-                break;
-            case 'reviewDelta':
-                if ($this->lock('gerrit')) {
-                    $mainSection = $output->section();
-                    $subSection = $output->section();
-                    $progressBar = new ProgressBar($mainSection, 100);
-                    $subBar = new ProgressBar($subSection);
-                    $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
-                    /** @noinspection PhpUnhandledExceptionInspection */
-                    $result = $this->getReviewBlock(0, 100, $subBar, $progressBar);
-                    foreach ($result as $review) {
+        try {
+            switch ($mode) {
+                case 'forgeFull':
+                    if ($this->lock('forge')) {
+                        $this->importFromForge(100, $startAt);
+                        $this->release();
+                    } else {
+                        $output->writeln('Locked by another forge import');
+                        return 0;
+                    }
+                    break;
+                case 'forgeDelta':
+                    if ($this->lock('forge')) {
+                        $this->importFromForge(100, $startAt, true);
+                        $this->release();
+                    } else {
+                        $output->writeln('Locked by another forge import');
+                        return 0;
+                    }
+                    break;
+                case 'reviewDelta':
+                    if ($this->lock('gerrit')) {
+                        $mainSection = $output->section();
+                        $subSection = $output->section();
+                        $progressBar = new ProgressBar($mainSection, 100);
+                        $subBar = new ProgressBar($subSection);
+                        $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
                         /** @noinspection PhpUnhandledExceptionInspection */
-                        $this->addDocumentToElastic($review, 'review');
-                    }
-                    $this->release();
-                } else {
-                    $output->writeln('Locked by another gerrit import');
-                    return 0;
-                }
-                break;
-            case 'reviewFull':
-                if ($this->lock('gerrit')) {
-                    $totalCount = 30000;
-                    $currentSlot = 0;
-                    if ($startAt > 0) {
-                        $currentSlot = $startAt;
-                    }
-                    $perRun = 100;
-                    $mainSection = $output->section();
-                    $subSection = $output->section();
-                    $progressBar = new ProgressBar($mainSection, $totalCount);
-                    $progressBar->setProgress($currentSlot);
-                    $subBar = new ProgressBar($subSection);
-                    $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
-                    while ($currentSlot <= $totalCount) {
-                        if ($this->moreIssuesFromGerrit) {
+                        $result = $this->getReviewBlock(0, 100, $subBar, $progressBar);
+                        foreach ($result as $review) {
                             /** @noinspection PhpUnhandledExceptionInspection */
-                            $result = $this->getReviewBlock($currentSlot, $perRun, $subBar, $progressBar);
-                            foreach ($result as $review) {
-                                /** @noinspection PhpUnhandledExceptionInspection */
-                                $this->addDocumentToElastic($review, 'review');
-                            }
+                            $this->addDocumentToElastic($review, 'review');
                         }
-                        $currentSlot += $perRun;
+                        $this->release();
+                    } else {
+                        $output->writeln('Locked by another gerrit import');
+                        return 0;
                     }
-                    $this->release();
-                } else {
-                    $output->writeln('Locked by another gerrit import');
-                    return 0;
-                }
-                break;
-            case 'github':
-                if ($this->lock('github')) {
-                    $organization = $input->getOption('organization');
-                    $repo = $input->hasOption('repository') ? $input->getOption('repository') : null;
-                    $this->importFromGithub($organization, $repo, $io);
-                    $this->release();
-                    return 0;
-                } else {
-                    $output->writeln('Locked by another github import');
-                    return 0;
-                }
-                break;
-            case 'githubDelta':
-                if ($this->lock('github')) {
-                    $organization = $input->getOption('organization');
-                    $repo = $input->hasOption('repository') ? $input->getOption('repository') : null;
-                    $pageCount = 1;
-                    $this->importFromGithub($organization, $repo, $io, $pageCount);
-                    $this->release();
-                    return 0;
-                } else {
-                    $output->writeln('Locked by another github import');
-                    return 0;
-                }
-                break;
+                    break;
+                case 'reviewFull':
+                    if ($this->lock('gerrit')) {
+                        $totalCount = 30000;
+                        $currentSlot = 0;
+                        if ($startAt > 0) {
+                            $currentSlot = $startAt;
+                        }
+                        $perRun = 100;
+                        $mainSection = $output->section();
+                        $subSection = $output->section();
+                        $progressBar = new ProgressBar($mainSection, $totalCount);
+                        $progressBar->setProgress($currentSlot);
+                        $subBar = new ProgressBar($subSection);
+                        $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
+                        while ($currentSlot <= $totalCount) {
+                            if ($this->moreIssuesFromGerrit) {
+                                /** @noinspection PhpUnhandledExceptionInspection */
+                                $result = $this->getReviewBlock($currentSlot, $perRun, $subBar, $progressBar);
+                                foreach ($result as $review) {
+                                    /** @noinspection PhpUnhandledExceptionInspection */
+                                    $this->addDocumentToElastic($review, 'review');
+                                }
+                            }
+                            $currentSlot += $perRun;
+                        }
+                        $this->release();
+                    } else {
+                        $output->writeln('Locked by another gerrit import');
+                        return 0;
+                    }
+                    break;
+                case 'github':
+                    if ($this->lock('github')) {
+                        $organization = $input->getOption('organization');
+                        $repo = $input->hasOption('repository') ? $input->getOption('repository') : null;
+                        $this->importFromGithub($organization, $repo, $io);
+                        $this->release();
+                        return 0;
+                    } else {
+                        $output->writeln('Locked by another github import');
+                        return 0;
+                    }
+                    break;
+                case 'githubDelta':
+                    if ($this->lock('github')) {
+                        $organization = $input->getOption('organization');
+                        $repo = $input->hasOption('repository') ? $input->getOption('repository') : null;
+                        $pageCount = 1;
+                        $this->importFromGithub($organization, $repo, $io, $pageCount);
+                        $this->release();
+                        return 0;
+                    } else {
+                        $output->writeln('Locked by another github import');
+                        return 0;
+                    }
+                    break;
+            }
+        } catch (\Exception $exception) {
+            // If any exception occurs, release the lock, else the process will run never again.
+            $this->logger->error($exception->getMessage());
+            $output->writeln('Release lock because of exception: ' . $exception->getMessage());
+            $this->release();
         }
     }
 
