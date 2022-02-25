@@ -6,9 +6,6 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-
     steps:
       - uses: actions/checkout@v2
 
@@ -40,7 +37,7 @@ jobs:
         run: composer t3g:cgl
 
       - name: Yarn install
-        run: yarn install --silent
+        run: yarn install
 
       - name: Yarn build
         run: yarn build
