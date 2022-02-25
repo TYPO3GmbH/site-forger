@@ -127,8 +127,8 @@ class GithubService
             array_filter(
                 $parsed,
                 static function (array $set): bool {
-                            return $set['rel'] === 'last';
-                        }
+                    return $set['rel'] === 'last';
+                }
             )
         )[0][0] ?? '&page=1';
         preg_match('#&page=(\d+)#', $last, $matches);
