@@ -6,11 +6,13 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-
     steps:
       - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+          cache: 'yarn'
 
       - name: Set up PHP Version
         run: |
@@ -40,7 +42,7 @@ jobs:
         run: composer t3g:cgl
 
       - name: Yarn install
-        run: yarn install --silent
+        run: yarn install
 
       - name: Yarn build
         run: yarn build
@@ -61,19 +63,29 @@ jobs:
           ssh-keygen -p -P "${{ secrets.SSH_PASSPHRASE }}" -N "" -f ~/.ssh/deploy_rsa
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           ssh-add ~/.ssh/deploy_rsa
+
       - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+          cache: 'yarn'
+
       - name: Set up PHP Version
         run: |
           sudo update-alternatives --set php /usr/bin/php7.4
+
       - name: Install Magallanes
         run: |
           composer global require "andres-montanez/magallanes" --no-progress
           /home/runner/.composer/vendor/bin/mage version
           mkdir -p ./.mage/logs
+
       - name: Get Environment
         id: environment
         run: |
           echo ::set-output name=target::$(echo ${GITHUB_REF#refs/heads/} | sed 's/\//-/g')
+
       - name: Deployment
         env:
           SSH_AUTH_SOCK: /tmp/ssh-auth.sock
@@ -90,9 +102,14 @@ jobs:
           }'
         run: |
           /home/runner/.composer/vendor/bin/mage deploy ${{ steps.environment.outputs.target }}
+
       - name: Archive Logs
         uses: actions/upload-artifact@v1
         if: always()
         with:
           name: logs
           path: .mage/logs
+
+      - name: Echo logs
+        run: find .mage/logs/ -type f -exec cat {} +
+        if: always()
