@@ -12,7 +12,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: '14'
-          cache: 'yarn'
+          cache: 'npm'
 
       - name: Set up PHP Version
         run: |
@@ -27,25 +27,25 @@ jobs:
         run: composer install --prefer-dist --no-progress --no-suggest --no-interaction
         env:
           COMPOSER_AUTH: '{
-            "http-basic": {
-              "repo.packagist.com": {
-                "username": "token",
-                "password": "${{ secrets.PACKAGIST_AUTH_TOKEN }}"
+              "http-basic": {
+                "repo.packagist.com": {
+                  "username": "token",
+                  "password": "${{ secrets.PACKAGIST_AUTH_TOKEN }}"
+                }
+              },
+              "github-oauth": {
+                "github.com": "${{ secrets.ACTIONS_TOKEN }}"
               }
-            },
-            "github-oauth": {
-              "github.com": "${{ secrets.ACTIONS_TOKEN }}"
-            }
-          }'
+            }'
 
       - name: (CGL) PHP
         run: composer t3g:cgl
 
-      - name: Yarn install
-        run: yarn install
+      - name: NPM install
+        run: npm ci
 
-      - name: Yarn build
-        run: yarn build
+      - name: NPM build
+        run: npm run build
 
   deployment:
     name: Deployment
@@ -69,7 +69,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: '14'
-          cache: 'yarn'
+          cache: 'npm'
 
       - name: Set up PHP Version
         run: |
@@ -90,16 +90,16 @@ jobs:
         env:
           SSH_AUTH_SOCK: /tmp/ssh-auth.sock
           COMPOSER_AUTH: '{
-            "http-basic": {
-              "repo.packagist.com": {
-                "username": "token",
-                "password": "${{ secrets.PACKAGIST_AUTH_TOKEN }}"
+              "http-basic": {
+                "repo.packagist.com": {
+                  "username": "token",
+                  "password": "${{ secrets.PACKAGIST_AUTH_TOKEN }}"
+                }
+              },
+              "github-oauth": {
+                "github.com": "${{ secrets.ACTIONS_TOKEN }}"
               }
-            },
-            "github-oauth": {
-              "github.com": "${{ secrets.ACTIONS_TOKEN }}"
-            }
-          }'
+            }'
         run: |
           /home/runner/.composer/vendor/bin/mage deploy ${{ steps.environment.outputs.target }}
 
