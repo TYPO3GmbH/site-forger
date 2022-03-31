@@ -88,7 +88,7 @@
 
             let restBody = '';
             const forgeRef = 'See :issue:`' + ticketId + '`';
-            let restContent = '.. include:: ../../Includes.txt\n\n';
+            let restContent = '.. include:: /Includes.rst.txt\n\n';
             restContent += sprintf('%s\n%s\n%s\n\n%s', '='.repeat(headline.length), headline, '='.repeat(headline.length), forgeRef);
 
             $('textarea:visible').each(function () {
