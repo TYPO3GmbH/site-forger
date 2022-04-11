@@ -1,13 +1,13 @@
 {
     "devDependencies": {
-        "@symfony/webpack-encore": "^1.1.2",
-        "autoprefixer": "^10.2.5",
-        "core-js": "^3.11.0",
-        "jquery": "^3.5.1",
-        "node-sass": "^5.0.0",
-        "postcss-loader": "^5.2.0",
-        "sass-loader": "^11.0.1",
-        "webpack-notifier": "^1.13.0"
+        "@symfony/webpack-encore": "^1.8.1",
+        "autoprefixer": "^10.4.2",
+        "core-js": "^3.21.1",
+        "jquery": "^3.6.0",
+        "node-sass": "^7.0.1",
+        "postcss-loader": "^6.2.1",
+        "sass-loader": "^12.6.0",
+        "webpack-notifier": "^1.15.0"
     },
     "license": "UNLICENSED",
     "browserslist": [
@@ -22,7 +22,7 @@
         "build": "encore production --progress"
     },
     "dependencies": {
-        "ace-builds": "^1.4.12",
+        "ace-builds": "^1.4.14",
         "sprintf-js": "^1.1.2"
     }
 }

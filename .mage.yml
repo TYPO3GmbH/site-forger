@@ -23,6 +23,7 @@ magephp:
     - composer.lock
     - node_modules
     - package.json
+    - package-lock.json
     - README.md
     - symfony.lock
     - Build
@@ -40,8 +41,8 @@ magephp:
       pre-deploy:
         - exec: { cmd: "echo \"APP_ENV=prod\" >> .env.local"}
         - exec: { cmd: "composer install --no-dev --no-progress --optimize-autoloader"}
-        - exec: { cmd: "yarn install --silent"}
-        - exec: { cmd: "yarn build"}
+        - exec: { cmd: "npm ci"}
+        - exec: { cmd: "npm run build"}
       on-deploy:
         - fs/link: { from: "../../../shared/var", to: "var" }
         - fs/link: { from: "../../../shared/.env.local", to: ".env.local" }
@@ -65,8 +66,8 @@ magephp:
       pre-deploy:
         - exec: { cmd: "echo \"APP_ENV=prod\" >> .env.local"}
         - exec: { cmd: "composer install --no-dev --no-progress --optimize-autoloader"}
-        - exec: { cmd: "yarn install --silent"}
-        - exec: { cmd: "yarn build"}
+        - exec: { cmd: "npm ci"}
+        - exec: { cmd: "npm run build"}
       on-deploy:
         - fs/link: { from: "../../../shared/var", to: "var" }
         - fs/link: { from: "../../../shared/.env.local", to: ".env.local" }

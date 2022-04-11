@@ -12,8 +12,8 @@ Next generation of forger
 * call `composer install`
 * call `ddev ssh` to get into the container
 * call `elasticorn.phar index:init -c /var/www/html/config/Elasticorn` to create indices
-* call `ddev exec yarn install`
-* call `ddev exec yarn build`
+* call `ddev exec npm ci`
+* call `ddev exec npm run build`
 * call `ddev exec bin/console doctrine:schema:create`
 
 ### Add inline scripts to aggregations in elasticsearch
