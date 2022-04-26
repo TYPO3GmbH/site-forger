@@ -16,6 +16,7 @@ use Elastica\Query\BoolQuery;
 use Elastica\Query\Range;
 use Elastica\Query\Term;
 use Elastica\ResultSet;
+use Elastica\Search;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -605,7 +606,7 @@ class ReviewController extends AbstractController
             $fullRequest['post_filter'] = $usedFilters;
         }
         $query = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $query->addType('review');
+        //$query->addType('review');
         $resultSet = $query->search();
         $this->totalHits = $resultSet->getTotalHits();
         if ((int) $this->totalHits <= ($this->currentPage * $this->perPage)) {

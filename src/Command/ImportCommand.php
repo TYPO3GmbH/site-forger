@@ -16,7 +16,7 @@ use App\Service\GithubService;
 use DateTime;
 use Elastica\Document;
 use Elastica\Exception\NotFoundException;
-use Elastica\Type as DocType;
+use Elastica\Index as DocType;
 use Exception;
 use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\GuzzleException;
@@ -750,13 +750,13 @@ class ImportCommand extends Command
                                 $document['focus']['name'] = $customField['value'] ?? '-';
                                 break;
                             default:
-                        }
+                           }
                     }
                 }
                 $document['updated_on'] = $this->fixDateFormat($document['updated_on'], 'Redmine');
                 $document['created_on'] = $this->fixDateFormat($document['created_on'], 'Redmine');
                 unset($document['start_date'], $document['due_date']);
-                $elasticType = new DocType($this->elasticClient->getIndex($this->parameters->get('elastic_index_name')), 'issue');
+                $elasticType = new DocType($this->elasticClient, 'issue');
                 if ($this->sendNotifications) {
                     try {
                         $elasticType->getDocument($document['id']);
@@ -766,13 +766,13 @@ class ImportCommand extends Command
                 }
                 break;
             case 'review':
-                $elasticType = new DocType($this->elasticClient->getIndex($this->parameters->get('elastic_index_name')), 'review');
+                $elasticType = new DocType($this->elasticClient, 'review');
                 break;
             case 'user':
-                $elasticType = new DocType($this->elasticClient->getIndex($this->parameters->get('elastic_index_name')), 'user');
+                $elasticType = new DocType($this->elasticClient, 'user');
                 break;
             case 'interactions':
-                $elasticType = new DocType($this->elasticClient->getIndex($this->parameters->get('elastic_index_name')), 'interactions');
+                $elasticType = new DocType($this->elasticClient, 'interactions');
                 break;
             default:
         }

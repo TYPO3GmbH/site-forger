@@ -16,7 +16,7 @@ class OpenReviews extends ReviewChart
     public function getData(): array
     {
         $search = $this->index->createSearch($this->getFullRequest());
-        $search->addType($this->getDocumentType());
+        //$search->addType($this->getDocumentType());
         $resultSet = $search->search();
         $data = $resultSet->getAggregations();
 

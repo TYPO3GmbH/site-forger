@@ -38,7 +38,7 @@ abstract class AbstractChart
     protected function fetchData(array $query): ResultSet
     {
         $search = $this->index->createSearch($query);
-        $search->addType($this->getDocumentType());
+        //$search->addType($this->getDocumentType());
         return $search->search();
     }
 

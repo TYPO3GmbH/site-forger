@@ -99,6 +99,12 @@
     "erusev/parsedown": {
         "version": "1.7.4"
     },
+    "ezimuel/guzzlestreams": {
+        "version": "3.0.1"
+    },
+    "ezimuel/ringphp": {
+        "version": "1.2.0"
+    },
     "fgrosse/phpasn1": {
         "version": "v2.1.1"
     },
@@ -125,12 +131,6 @@
     },
     "guzzlehttp/psr7": {
         "version": "1.6.1"
-    },
-    "guzzlehttp/ringphp": {
-        "version": "1.1.1"
-    },
-    "guzzlehttp/streams": {
-        "version": "3.0.0"
     },
     "johnstyle/redmine-bundle": {
         "version": "v1.0.1"
@@ -167,6 +167,9 @@
     },
     "nikic/php-parser": {
         "version": "v4.2.2"
+    },
+    "nyholm/dsn": {
+        "version": "2.0.1"
     },
     "nyholm/psr7": {
         "version": "1.0",

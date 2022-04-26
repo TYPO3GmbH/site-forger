@@ -44,7 +44,7 @@ class ApiController extends AbstractController
     public function index(string $type = 'issue', int $documentId = 0): JsonResponse
     {
         try {
-            $output = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->getType($type)->getDocument($documentId);
+            $output = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->getDocument($documentId);
         } catch (Exception $e) {
             return new JsonResponse('Document not found', 404);
         }
@@ -64,11 +64,14 @@ class ApiController extends AbstractController
                     'must_not' => [
                         ['terms' => ['status.name' => ['Closed', 'Rejected', 'Resolved']]],
                     ],
+                    'must' => [
+                         ['type' => 'review']
+                    ],
                 ],
             ],
             'size' => 0,
         ];
-        $openIssues = $index->getType('issue')->search($openIssuesQuery)->getTotalHits();
+        $openIssues = $index->search($openIssuesQuery)->getTotalHits();
 
         $openReviewsQuery = [
             'query' => [
@@ -81,7 +84,8 @@ class ApiController extends AbstractController
             ],
             'size' => 0,
         ];
-        $openReviews = $index->getType('review')->search($openReviewsQuery)->getTotalHits();
+        $openReviews = $index->search($openReviewsQuery)->getTotalHits();
+
 
         return new JsonResponse([
             'forge' => [
