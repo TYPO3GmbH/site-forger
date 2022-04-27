@@ -21,6 +21,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use T3G\ElasticUtility\ElasticUtility;
 
 class ReviewController extends AbstractController
 {
@@ -602,11 +603,10 @@ class ReviewController extends AbstractController
     {
         $viewData = [];
         $usedFilters = $this->addFilters();
-        if (count($usedFilters->toArray()) > 0) {
+        if ($usedFilters->count() > 0 && count($usedFilters->toArray()) > 0) {
             $fullRequest['post_filter'] = $usedFilters;
         }
-        $query = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        //$query->addType('review');
+        $query = ElasticUtility::getIndexByName('review', 'en')->createSearch($fullRequest);
         $resultSet = $query->search();
         $this->totalHits = $resultSet->getTotalHits();
         if ((int) $this->totalHits <= ($this->currentPage * $this->perPage)) {
@@ -837,9 +837,7 @@ class ReviewController extends AbstractController
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
         ];
-        $query = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $query->addType('review');
-
+        $query = ElasticUtility::getIndexByName('review', 'en')->createSearch($fullRequest);
         return $query->search();
     }
 
@@ -885,8 +883,7 @@ class ReviewController extends AbstractController
                 ],
             ],
         ];
-        $query = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $query->addType('issue');
+        $query = ElasticUtility::getIndexByName('review', 'en')->createSearch($fullRequest);
 
         return $query->search();
     }
