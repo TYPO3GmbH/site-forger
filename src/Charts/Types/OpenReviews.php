@@ -11,24 +11,24 @@ namespace App\Charts\Types;
 
 use App\Charts\Colors;
 use Elastica\Index;
+use T3G\ElasticUtility\ElasticUtility;
 
 class OpenReviews extends ReviewChart
 {
     /**
-     * @param Index $index
+     * @var Index
      */
     protected $index;
 
-    public function __construct(Index $index)
+    public function __construct()
     {
-        parent::__construct($index);
-        $this->index = $index;
+        $this->index = ElasticUtility::getIndexByName('review', 'en');
+        parent::__construct($this->index);
     }
 
     public function getData(): array
     {
         $search = $this->index->createSearch($this->getFullRequest());
-        dd($search);
         $resultSet = $search->search();
         $data = $resultSet->getAggregations();
 
@@ -65,7 +65,7 @@ class OpenReviews extends ReviewChart
                 'bool' => [
                     'must_not' => [
                         ['terms' => ['reviewstatus' => ['ABANDONED', 'MERGED']]],
-                        [['term' => ['work_in_progress' => true]]],
+                        ['term' => ['work_in_progress' => true]],
                     ],
                 ],
             ],

@@ -10,6 +10,8 @@
 namespace App\Charts\Types;
 
 use App\Charts\Colors;
+use Elastica\Index;
+use T3G\ElasticUtility\ElasticUtility;
 
 /**
  * Generates a charts about open reviews over time.
@@ -17,6 +19,17 @@ use App\Charts\Colors;
  */
 class ReviewsOverTime extends ReviewChart
 {
+    /**
+     * @var Index
+     */
+    protected $index;
+
+    public function __construct()
+    {
+        $this->index = ElasticUtility::getIndexByName('review', 'en');
+        parent::__construct($this->index);
+    }
+
     private const DATE_FORMAT = 'M Y';
     private const DATE_AGGREGATION_FORMAT = 'quarter';
 
@@ -54,7 +67,7 @@ class ReviewsOverTime extends ReviewChart
 
     private function getOpenedDataSet(): array
     {
-        $resultSet = $this->fetchData($this->getOpenedQuery([
+        $resultSet = $this->fetchData($this->index, $this->getOpenedQuery([
             'bool' => [
                 'must_not' => [
                     ['term' => ['work_in_progress' => true]],
@@ -78,7 +91,7 @@ class ReviewsOverTime extends ReviewChart
 
     private function getClosedDataSet(): array
     {
-        $resultSet = $this->fetchData($this->getClosedQuery([
+        $resultSet = $this->fetchData($this->index, $this->getClosedQuery([
             'bool' => [
                 'must' => [
                     'terms' => ['reviewstatus' => ['MERGED', 'ABANDONED']],

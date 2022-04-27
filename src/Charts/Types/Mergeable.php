@@ -10,9 +10,22 @@
 namespace App\Charts\Types;
 
 use App\Charts\Colors;
+use Elastica\Index;
+use T3G\ElasticUtility\ElasticUtility;
 
 class Mergeable extends ReviewChart
 {
+    /**
+     * @var Index
+     */
+    protected $index;
+
+    public function __construct()
+    {
+        $this->index = ElasticUtility::getIndexByName('review', 'en');
+        parent::__construct($this->index);
+    }
+
     public function getData(): array
     {
         return [
@@ -55,7 +68,6 @@ class Mergeable extends ReviewChart
             ],
         ];
         $search = $this->index->createSearch($query);
-        //$search->addType($this->getDocumentType());
         $resultSet = $search->search();
         $data = $resultSet->getAggregations();
 

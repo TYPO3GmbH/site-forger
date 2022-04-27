@@ -16,6 +16,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
+use T3G\ElasticUtility\ElasticUtility;
 
 class ApiController extends AbstractController
 {
@@ -44,7 +45,7 @@ class ApiController extends AbstractController
     public function index(string $type = 'issue', int $documentId = 0): JsonResponse
     {
         try {
-            $output = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->getDocument($documentId);
+            $output = $this->elasticClient->getIndex($type)->getDocument($documentId);
         } catch (Exception $e) {
             return new JsonResponse('Document not found', 404);
         }
@@ -103,8 +104,9 @@ class ApiController extends AbstractController
      */
     public function chart(string $chartName): JsonResponse
     {
+        $indexName = ($chartName === 'ticket_progress') ? 'issue' : 'review';
         // Todo: Which index is this?
-        $index = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'));
+        $index = ElasticUtility::getIndexByName($indexName, 'en');
         $chartInstance = ChartRegistry::getChartInstance($chartName, $index);
         $data = $chartInstance->getData();
 

@@ -10,9 +10,22 @@
 namespace App\Charts\Types;
 
 use App\Charts\Colors;
+use Elastica\Index;
+use T3G\ElasticUtility\ElasticUtility;
 
 class TicketsOverTime extends IssueChart
 {
+    /**
+     * @var Index
+     */
+    protected $index;
+
+    public function __construct()
+    {
+        $this->index = ElasticUtility::getIndexByName('issue', 'en');
+        parent::__construct($this->index);
+    }
+
     private const DATE_FORMAT = 'M Y';
     private const DATE_AGGREGATION_FORMAT = 'quarter';
 
@@ -50,7 +63,7 @@ class TicketsOverTime extends IssueChart
 
     private function getOpenedDataSet(): array
     {
-        $resultSet = $this->fetchData($this->getOpenedQuery([
+        $resultSet = $this->fetchData($this->index, $this->getOpenedQuery([
             'match_all' => new \stdClass(),
         ], static::DATE_AGGREGATION_FORMAT));
 
@@ -70,7 +83,7 @@ class TicketsOverTime extends IssueChart
 
     private function getClosedDataSet(): array
     {
-        $resultSet = $this->fetchData($this->getClosedQuery([
+        $resultSet = $this->fetchData($this->index, $this->getClosedQuery([
             'bool' => [
                 'must' => [
                     'terms' => ['status.name' => ['Closed', 'Resolved', 'Rejected']],

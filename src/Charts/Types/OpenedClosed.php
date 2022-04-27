@@ -10,9 +10,22 @@
 namespace App\Charts\Types;
 
 use App\Charts\Colors;
+use Elastica\Index;
+use T3G\ElasticUtility\ElasticUtility;
 
 class OpenedClosed extends IssueChart
 {
+    /**
+     * @var Index
+     */
+    protected $index;
+
+    public function __construct()
+    {
+        $this->index = ElasticUtility::getIndexByName('review', 'en');
+        parent::__construct($this->index);
+    }
+
     public function getData(): array
     {
         $openedDataSet = $this->getOpenedDataSet();
@@ -30,7 +43,7 @@ class OpenedClosed extends IssueChart
 
     private function getOpenedDataSet(): array
     {
-        $resultSet = $this->fetchData($this->getOpenedQuery([
+        $resultSet = $this->fetchData($this->index, $this->getOpenedQuery([
             'bool' => [
                 'must_not' => [
                     'range' => ['created_on' => ['lte' => (new \DateTimeImmutable())->sub(new \DateInterval('P1M'))->format('Y/m/d H:i:s')]],
@@ -52,7 +65,7 @@ class OpenedClosed extends IssueChart
 
     private function getClosedDataSet(): array
     {
-        $resultSet = $this->fetchData($this->getClosedQuery([
+        $resultSet = $this->fetchData($this->index, $this->getClosedQuery([
             'bool' => [
                 'must' => [
                     'terms' => ['status.name' => ['Closed', 'Rejected', 'Resolved']],
