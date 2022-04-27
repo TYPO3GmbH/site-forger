@@ -105,7 +105,6 @@ class ApiController extends AbstractController
     public function chart(string $chartName): JsonResponse
     {
         $indexName = ($chartName === 'ticket_progress') ? 'issue' : 'review';
-        // Todo: Which index is this?
         $index = ElasticUtility::getIndexByName($indexName, 'en');
         $chartInstance = ChartRegistry::getChartInstance($chartName, $index);
         $data = $chartInstance->getData();
