@@ -13,7 +13,6 @@ use App\Charts\ChartRegistry;
 use App\Client\ElasticClient;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 use T3G\ElasticUtility\ElasticUtility;
@@ -25,15 +24,9 @@ class ApiController extends AbstractController
      */
     private $elasticClient;
 
-    /**
-     * @var ParameterBagInterface
-     */
-    private $parameters;
-
-    public function __construct(ElasticClient $elasticClient, ParameterBagInterface $parameters)
+    public function __construct(ElasticClient $elasticClient)
     {
         $this->elasticClient = $elasticClient;
-        $this->parameters = $parameters;
     }
 
     /**
@@ -84,7 +77,6 @@ class ApiController extends AbstractController
         ];
         $index = $this->elasticClient->getIndex('review');
         $openReviews = $index->search($openReviewsQuery)->getTotalHits();
-
 
         return new JsonResponse([
             'forge' => [

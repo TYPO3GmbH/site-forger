@@ -9,16 +9,13 @@
 
 namespace App\Controller;
 
-use App\Client\ElasticClient;
 use DateTime;
 use Elastica\Exception\InvalidException;
 use Elastica\Query\BoolQuery;
 use Elastica\Query\Range;
 use Elastica\Query\Term;
 use Elastica\ResultSet;
-use Elastica\Search;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use T3G\ElasticUtility\ElasticUtility;
@@ -45,20 +42,8 @@ class ReviewController extends AbstractController
      */
     private $dateInterval = 'month';
 
-    /**
-     * @var ElasticClient
-     */
-    private $elasticClient;
-
-    /**
-     * @var ParameterBagInterface
-     */
-    private $parameters;
-
-    public function __construct(ElasticClient $elasticClient, ParameterBagInterface $parameters)
+    public function __construct()
     {
-        $this->elasticClient = $elasticClient;
-        $this->parameters = $parameters;
         if (array_key_exists('page', $_GET)) {
             $this->currentPage = (int) $_GET['page'];
         }

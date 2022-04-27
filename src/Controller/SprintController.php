@@ -9,7 +9,6 @@
 
 namespace App\Controller;
 
-use App\Client\ElasticClient;
 use App\Entity\SprintBoard;
 use App\Repository\SprintBoardCategoryRepository;
 use App\Repository\SprintBoardRepository;
@@ -19,7 +18,6 @@ use Exception;
 use InvalidArgumentException;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
@@ -38,29 +36,17 @@ class SprintController extends AbstractController
      */
     private $sprintBoardRepository;
     /**
-     * @var ElasticClient
-     */
-    private $elasticClient;
-    /**
-     * @var ParameterBagInterface
-     */
-    private $parameters;
-    /**
      * @var RequestStack
      */
     private $requestStack;
 
     public function __construct(
         SprintBoardCategoryRepository $sprintBoardCategoryRepository,
-        SprintBoardRepository $sprintBoardRepository,
-        ElasticClient $elasticClient,
-        ParameterBagInterface $parameters,
-        RequestStack $requestStack
+        RequestStack $requestStack,
+        SprintBoardRepository $sprintBoardRepository
     ) {
         $this->sprintBoardCategoryRepository = $sprintBoardCategoryRepository;
         $this->sprintBoardRepository = $sprintBoardRepository;
-        $this->elasticClient = $elasticClient;
-        $this->parameters = $parameters;
         $this->requestStack = $requestStack;
     }
 

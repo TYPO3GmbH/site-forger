@@ -9,30 +9,18 @@
 
 namespace App\Controller;
 
-use App\Client\ElasticClient;
 use App\Entity\Company;
 use App\Entity\TrackerFilters;
 use DateTime;
 use Exception;
 use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use T3G\ElasticUtility\ElasticUtility;
 
 class ManagementController extends AbstractController
 {
-    /**
-     * @var ElasticClient
-     */
-    private $elasticClient;
-
-    /**
-     * @var ParameterBagInterface
-     */
-    private $parameters;
-
     private $coreMergers = [
         'Alexander Schnitzler',
         'Andreas Fernandez',
@@ -66,13 +54,6 @@ class ManagementController extends AbstractController
         'flicstar',
         'Susanne Moog'
     ];
-
-    public function __construct(ElasticClient $elasticClient, ParameterBagInterface $parameters)
-    {
-        // Todo: Remove property as not neeeded after switching to ElasticUtility
-        $this->elasticClient = $elasticClient;
-        $this->parameters = $parameters;
-    }
 
     /**
      * @Route("/management", name="management_index")
