@@ -24,15 +24,10 @@ class ConstrainsYamlValidator extends ConstraintValidator
      * @var ElasticClient
      */
     private $client;
-    /**
-     * @var string
-     */
-    private $elastic_index_name;
 
-    public function __construct(ElasticClient $client, string $elastic_index_name)
+    public function __construct(ElasticClient $client)
     {
         $this->client = $client;
-        $this->elastic_index_name = $elastic_index_name;
     }
 
     /**

@@ -31,6 +31,7 @@
         "symfony/validator": "^4.3",
         "symfony/webpack-encore-bundle": "^1.6",
         "symfony/yaml": "^4.3",
+        "t3g/elastic-utility": "^7.0",
         "t3g/symfony-keycloak-bundle": "^1.0",
         "t3g/symfony-template-bundle": "^2.4",
         "t3g/symfony-usercentrics-bundle": "^1.0",

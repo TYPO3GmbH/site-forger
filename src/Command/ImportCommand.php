@@ -16,7 +16,7 @@ use App\Service\GithubService;
 use DateTime;
 use Elastica\Document;
 use Elastica\Exception\NotFoundException;
-use Elastica\Index as DocType;
+use Elastica\Index;
 use Exception;
 use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\GuzzleException;
@@ -756,7 +756,7 @@ class ImportCommand extends Command
                 $document['updated_on'] = $this->fixDateFormat($document['updated_on'], 'Redmine');
                 $document['created_on'] = $this->fixDateFormat($document['created_on'], 'Redmine');
                 unset($document['start_date'], $document['due_date']);
-                $elasticType = new DocType($this->elasticClient, 'issue');
+                $elasticType = new Index($this->elasticClient, 'issue');
                 if ($this->sendNotifications) {
                     try {
                         $elasticType->getDocument($document['id']);
@@ -766,13 +766,13 @@ class ImportCommand extends Command
                 }
                 break;
             case 'review':
-                $elasticType = new DocType($this->elasticClient, 'review');
+                $elasticType = new Index($this->elasticClient, 'review');
                 break;
             case 'user':
-                $elasticType = new DocType($this->elasticClient, 'user');
+                $elasticType = new Index($this->elasticClient, 'user');
                 break;
             case 'interactions':
-                $elasticType = new DocType($this->elasticClient, 'interactions');
+                $elasticType = new Index($this->elasticClient, 'interactions');
                 break;
             default:
         }

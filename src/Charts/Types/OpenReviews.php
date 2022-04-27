@@ -10,13 +10,25 @@
 namespace App\Charts\Types;
 
 use App\Charts\Colors;
+use Elastica\Index;
 
 class OpenReviews extends ReviewChart
 {
+    /**
+     * @param Index $index
+     */
+    protected $index;
+
+    public function __construct(Index $index)
+    {
+        parent::__construct($index);
+        $this->index = $index;
+    }
+
     public function getData(): array
     {
         $search = $this->index->createSearch($this->getFullRequest());
-        //$search->addType($this->getDocumentType());
+        dd($search);
         $resultSet = $search->search();
         $data = $resultSet->getAggregations();
 

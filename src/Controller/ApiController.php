@@ -57,15 +57,12 @@ class ApiController extends AbstractController
      */
     public function quickStats(): JsonResponse
     {
-        $index = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'));
+        $index = $this->elasticClient->getIndex('issue');
         $openIssuesQuery = [
             'query' => [
                 'bool' => [
                     'must_not' => [
                         ['terms' => ['status.name' => ['Closed', 'Rejected', 'Resolved']]],
-                    ],
-                    'must' => [
-                         ['type' => 'review']
                     ],
                 ],
             ],
@@ -84,6 +81,7 @@ class ApiController extends AbstractController
             ],
             'size' => 0,
         ];
+        $index = $this->elasticClient->getIndex('review');
         $openReviews = $index->search($openReviewsQuery)->getTotalHits();
 
 
@@ -105,6 +103,7 @@ class ApiController extends AbstractController
      */
     public function chart(string $chartName): JsonResponse
     {
+        // Todo: Which index is this?
         $index = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'));
         $chartInstance = ChartRegistry::getChartInstance($chartName, $index);
         $data = $chartInstance->getData();
