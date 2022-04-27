@@ -18,6 +18,7 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use T3G\ElasticUtility\ElasticUtility;
 
 /**
  * @Route("/search", name="search_")
@@ -164,8 +165,7 @@ class SearchController extends AbstractController
      */
     private function findIssue($issueId)
     {
-        $index = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'));
-        $forger = $index->getType('issue');
+        $forger = ElasticUtility::getIndexByName('issue', 'en');
         try {
             $res = $forger->getDocument($issueId);
             $data = $res->getData();
@@ -257,8 +257,7 @@ class SearchController extends AbstractController
             $query['post_filter'] = $usedFilters;
         }
 
-        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($query);
-        $search->addType('issue');
+        $search = ElasticUtility::getIndexByName('issue', 'en')->createSearch($query);
         $search->getQuery()->setSize($this->perPage);
         $search->getQuery()->setFrom(($this->currentPage * $this->perPage) - $this->perPage);
 
