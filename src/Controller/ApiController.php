@@ -20,16 +20,6 @@ use T3G\ElasticUtility\ElasticUtility;
 class ApiController extends AbstractController
 {
     /**
-     * @var ElasticClient
-     */
-    private $elasticClient;
-
-    public function __construct(ElasticClient $elasticClient)
-    {
-        $this->elasticClient = $elasticClient;
-    }
-
-    /**
      * @Route("/api/{type}/{documentId}", name="api")
      * @param string $type
      * @param int $documentId
@@ -38,7 +28,7 @@ class ApiController extends AbstractController
     public function index(string $type = 'issue', int $documentId = 0): JsonResponse
     {
         try {
-            $output = $this->elasticClient->getIndex($type)->getDocument($documentId);
+            $output = ElasticUtility::getIndexByName($type)->getDocument($documentId);
         } catch (Exception $e) {
             return new JsonResponse('Document not found', 404);
         }
@@ -51,7 +41,7 @@ class ApiController extends AbstractController
      */
     public function quickStats(): JsonResponse
     {
-        $index = $this->elasticClient->getIndex('issue');
+        $index = ElasticUtility::getIndexByName('issue');
         $openIssuesQuery = [
             'query' => [
                 'bool' => [
@@ -75,7 +65,7 @@ class ApiController extends AbstractController
             ],
             'size' => 0,
         ];
-        $index = $this->elasticClient->getIndex('review');
+        $index = ElasticUtility::getIndexByName('review');
         $openReviews = $index->search($openReviewsQuery)->getTotalHits();
 
         return new JsonResponse([
