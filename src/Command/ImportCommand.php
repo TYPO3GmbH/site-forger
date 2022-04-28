@@ -9,14 +9,12 @@
 
 namespace App\Command;
 
-use App\Client\ElasticClient;
 use App\Client\ForgeClient;
 use App\Service\DiscordService;
 use App\Service\GithubService;
 use DateTime;
 use Elastica\Document;
 use Elastica\Exception\NotFoundException;
-use Elastica\Index;
 use Exception;
 use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\GuzzleException;
@@ -43,10 +41,6 @@ class ImportCommand extends Command
     protected const BAMBOO_USER_ID = [49454, 51735, 52386];
 
     protected static $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta', 'github', 'githubDelta'];
-    /**
-     * @var ElasticClient
-     */
-    private $elasticClient;
 
     private $userCache = [];
     /**
@@ -132,7 +126,6 @@ class ImportCommand extends Command
     public function __construct(
         ParameterBagInterface $parameters,
         ForgeClient $forgeClient,
-        ElasticClient $elasticClient,
         DiscordService $discordService,
         GithubService $githubService,
         LoggerInterface $logger,
@@ -141,7 +134,6 @@ class ImportCommand extends Command
         parent::__construct();
         $this->parameters = $parameters;
         $this->forgeClient = $forgeClient;
-        $this->elasticClient = $elasticClient;
         $this->discordService = $discordService;
         $this->discordWebhook = $discordWebhook;
         $this->logger = $logger;
@@ -757,7 +749,7 @@ class ImportCommand extends Command
                 $document['updated_on'] = $this->fixDateFormat($document['updated_on'], 'Redmine');
                 $document['created_on'] = $this->fixDateFormat($document['created_on'], 'Redmine');
                 unset($document['start_date'], $document['due_date']);
-                $elasticType = new Index($this->elasticClient, 'issue');
+                $elasticType = ElasticUtility::getIndexByName('issue');
                 if ($this->sendNotifications) {
                     try {
                         $elasticType->getDocument($document['id']);
