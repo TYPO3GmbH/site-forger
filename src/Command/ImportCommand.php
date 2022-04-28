@@ -750,7 +750,7 @@ class ImportCommand extends Command
                                 $document['focus']['name'] = $customField['value'] ?? '-';
                                 break;
                             default:
-                           }
+                       }
                     }
                 }
                 $document['updated_on'] = $this->fixDateFormat($document['updated_on'], 'Redmine');
@@ -766,6 +766,7 @@ class ImportCommand extends Command
                 }
                 break;
             case 'review':
+                // todo: switch to ElasticUtility
                 $elasticType = new Index($this->elasticClient, 'review');
                 break;
             case 'user':

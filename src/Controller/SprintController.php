@@ -40,6 +40,7 @@ class SprintController extends AbstractController
      */
     private $requestStack;
 
+    // Todo: There are still uses of $this->parameters so need to see if it's should be added back
     public function __construct(
         SprintBoardCategoryRepository $sprintBoardCategoryRepository,
         RequestStack $requestStack,
