@@ -5,8 +5,6 @@
 # https://symfony.com/doc/current/best_practices/configuration.html#application-related-configuration
 parameters:
     redmine_project_id: 27
-    # Todo: Remove this as not needed anymore
-    elastic_index_name: '%env(ELASTIC_INDEX)%'
     'StatusMapping':
       'Rejected': 'Done'
       'Closed': 'Done'
@@ -59,8 +57,6 @@ services:
     _defaults:
         autowire: true      # Automatically injects dependencies in your services.
         autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
-        #bind: Todo: should be removed
-        #  $elastic_index_name: '%env(ELASTIC_INDEX)%'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
