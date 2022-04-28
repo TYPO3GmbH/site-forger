@@ -10,7 +10,6 @@
 namespace App\Controller;
 
 use App\Charts\ChartRegistry;
-use App\Client\ElasticClient;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;

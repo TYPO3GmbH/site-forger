@@ -78,18 +78,6 @@ services:
     App\Client\GeneralClient:
         class: App\Client\GeneralClient
         public: true
-    App\Client\ElasticClient:
-        class: App\Client\ElasticClient
-        public: true
-        arguments:
-            $config:
-                  host: '%env(ELASTIC_HOST)%'
-                  port: '%env(ELASTIC_PORT)%'
-                  path: '%env(ELASTIC_PATH)%'
-                  transport: '%env(ELASTIC_TRANSPORT)%'
-                  index: '%env(ELASTIC_INDEX)%'
-                  username: '%env(ELASTIC_AUTH_USERNAME)%'
-                  password: '%env(ELASTIC_AUTH_PASSWORD)%'
     App\Client\GithubClient:
         class: App\Client\GithubClient
         arguments:
