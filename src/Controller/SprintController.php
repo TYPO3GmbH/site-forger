@@ -18,6 +18,7 @@ use Exception;
 use InvalidArgumentException;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
@@ -39,16 +40,21 @@ class SprintController extends AbstractController
      * @var RequestStack
      */
     private $requestStack;
+    /**
+     * @var ParameterBagInterface
+     */
+    private $parameters;
 
-    // Todo: There are still uses of $this->parameters so need to see if it's should be added back
     public function __construct(
         SprintBoardCategoryRepository $sprintBoardCategoryRepository,
         RequestStack $requestStack,
-        SprintBoardRepository $sprintBoardRepository
+        SprintBoardRepository $sprintBoardRepository,
+        ParameterBagInterface $parameters
     ) {
         $this->sprintBoardCategoryRepository = $sprintBoardCategoryRepository;
         $this->sprintBoardRepository = $sprintBoardRepository;
         $this->requestStack = $requestStack;
+        $this->parameters = $parameters;
     }
 
     /**
