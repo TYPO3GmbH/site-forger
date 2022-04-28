@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0b5681513769fb9aac5742077bf533f6",
+    "content-hash": "9e507f0841ec46de3e43e07a20fa21d9",
     "packages": [
         {
             "name": "brick/math",
@@ -9468,16 +9468,16 @@
         },
         {
             "name": "t3g/elastic-utility",
-            "version": "7.0.0",
+            "version": "7.0.1",
             "source": {
                 "type": "git",
                 "url": "git@github.com:TYPO3GmbH/lib-elastic-utility.git",
-                "reference": "c10c30cd947648ee77a802a79c10c764426bf69d"
+                "reference": "e33998a6aa256b4ef72bbce1b419bd21d5b8c2b8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/TYPO3GmbH/lib-elastic-utility/zipball/c10c30cd947648ee77a802a79c10c764426bf69d",
-                "reference": "c10c30cd947648ee77a802a79c10c764426bf69d",
+                "url": "https://api.github.com/repos/TYPO3GmbH/lib-elastic-utility/zipball/e33998a6aa256b4ef72bbce1b419bd21d5b8c2b8",
+                "reference": "e33998a6aa256b4ef72bbce1b419bd21d5b8c2b8",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -9510,10 +9510,10 @@
             ],
             "description": "Utility classes for talking to elasticsearch",
             "support": {
-                "source": "https://github.com/TYPO3GmbH/lib-elastic-utility/tree/7.0.0",
+                "source": "https://github.com/TYPO3GmbH/lib-elastic-utility/tree/7.0.1",
                 "issues": "https://github.com/TYPO3GmbH/lib-elastic-utility/issues"
             },
-            "time": "2022-04-27T09:23:01+00:00"
+            "time": "2022-04-28T06:12:39+00:00"
         },
         {
             "name": "t3g/symfony-keycloak-bundle",

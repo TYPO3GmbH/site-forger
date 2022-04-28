@@ -31,6 +31,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use T3G\ElasticUtility\ElasticUtility;
 use Woeler\DiscordPhp\Message\DiscordEmbedsMessage;
 
 class ImportCommand extends Command
@@ -766,14 +767,13 @@ class ImportCommand extends Command
                 }
                 break;
             case 'review':
-                // todo: switch to ElasticUtility
-                $elasticType = new Index($this->elasticClient, 'review');
+                $elasticType = ElasticUtility::getIndexByName('review');
                 break;
             case 'user':
-                $elasticType = new Index($this->elasticClient, 'user');
+                $elasticType = ElasticUtility::getIndexByName('user');
                 break;
             case 'interactions':
-                $elasticType = new Index($this->elasticClient, 'interactions');
+                $elasticType = ElasticUtility::getIndexByName('interactions');
                 break;
             default:
         }

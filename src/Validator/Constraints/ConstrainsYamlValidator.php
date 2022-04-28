@@ -42,7 +42,7 @@ class ConstrainsYamlValidator extends ConstraintValidator
                 'size' => 10000,
             ];
 
-            $search = ElasticUtility::getIndexByName('issue', 'en')->createSearch($fullRequest);
+            $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
             $search->search();
         } catch (InvalidException | ResponseException $e) {
             $this->context->buildViolation('Your query did not yield any results. Is it correct?')->addViolation();

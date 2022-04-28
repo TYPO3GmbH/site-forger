@@ -22,7 +22,7 @@ class TicketsOverTime extends IssueChart
 
     public function __construct()
     {
-        $this->index = ElasticUtility::getIndexByName('issue', 'en');
+        $this->index = ElasticUtility::getIndexByName('issue');
         parent::__construct($this->index);
     }
 

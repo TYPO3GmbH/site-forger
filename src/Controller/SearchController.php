@@ -151,7 +151,7 @@ class SearchController extends AbstractController
      */
     private function findIssue($issueId)
     {
-        $forger = ElasticUtility::getIndexByName('issue', 'en');
+        $forger = ElasticUtility::getIndexByName('issue');
         try {
             $res = $forger->getDocument($issueId);
             $data = $res->getData();
@@ -243,7 +243,7 @@ class SearchController extends AbstractController
             $query['post_filter'] = $usedFilters;
         }
 
-        $search = ElasticUtility::getIndexByName('issue', 'en')->createSearch($query);
+        $search = ElasticUtility::getIndexByName('issue')->createSearch($query);
         $search->getQuery()->setSize($this->perPage);
         $search->getQuery()->setFrom(($this->currentPage * $this->perPage) - $this->perPage);
 

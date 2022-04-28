@@ -242,7 +242,7 @@ class SprintController extends AbstractController
                     ]
                 ]
             ];
-            $search = ElasticUtility::getIndexByName('review', 'en')->createSearch($fullRequest);
+            $search = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
             $resultSet = $search->search();
             foreach ($resultSet->getResults() as $review) {
                 $getBoardGroup = $this->defineReviewBoardGroup($review->getSource());
@@ -340,7 +340,7 @@ class SprintController extends AbstractController
             'query' => $query,
             'size' => 0,
         ];
-        $search = ElasticUtility::getIndexByName('review', 'en')->createSearch($fullRequest);
+        $search = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
         $resultSet = $search->search();
 
         return $resultSet->getTotalHits();
@@ -486,7 +486,7 @@ class SprintController extends AbstractController
                 ],
             ],
         ];
-        $search = ElasticUtility::getIndexByName('issue', 'en')->createSearch($fullRequest);
+        $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
         $resultSet = $search->search();
         $count = [
             'open' => 0,
@@ -546,7 +546,7 @@ class SprintController extends AbstractController
             'query' => Yaml::parse($sprint->getQuery()),
             'size' => 10000,
         ];
-        $search = ElasticUtility::getIndexByName('issue', 'en')->createSearch($fullRequest);
+        $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
         $resultSet = $search->search();
         foreach ($resultSet->getResults() as $ticket) {
             $status = $ticket->getSource()['status'];
@@ -592,7 +592,7 @@ class SprintController extends AbstractController
             if (!isset($matches['reviewId'])) {
                 throw new InvalidArgumentException('There should be a review id in ' . $notes);
             }
-            $reviewType = ElasticUtility::getIndexByName('review', 'en');
+            $reviewType = ElasticUtility::getIndexByName('review');
 
             try {
                 $item = $reviewType->getDocument($matches['reviewId']);

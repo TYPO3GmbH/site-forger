@@ -127,7 +127,7 @@ class ManagementController extends AbstractController
         if ($trackerFilters->isStory()) {
             $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = 'Story';
         }
-        $search = ElasticUtility::getIndexByName('issue', 'en')->createSearch($fullRequest);
+        $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
         $resultSet = $search->search();
         foreach ($resultSet->getAggregations() as $aggregation) {
             foreach ($aggregation['buckets'] as $bucket) {
@@ -208,7 +208,7 @@ class ManagementController extends AbstractController
                 ],
             ],
         ];
-        $search = ElasticUtility::getIndexByName('issue', 'en')->createSearch($fullRequest);
+        $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
         $resultSet = $search->search();
         $aggregations = $resultSet->getAggregations();
         $viewData = [];
@@ -282,7 +282,7 @@ class ManagementController extends AbstractController
                 ],
             ],
         ];
-        $search = ElasticUtility::getIndexByName('interactions', 'en')->createSearch($fullRequest);
+        $search = ElasticUtility::getIndexByName('interactions')->createSearch($fullRequest);
         $resultSet = $search->search();
         $aggregations = $resultSet->getAggregations();
         foreach ($aggregations as $aggregation) {
@@ -361,7 +361,7 @@ class ManagementController extends AbstractController
                 ],
             ],
         ];
-        $search = ElasticUtility::getIndexByName('interactions', 'en')->createSearch($fullRequest);
+        $search = ElasticUtility::getIndexByName('interactions')->createSearch($fullRequest);
         $resultSet = $search->search();
         $aggregations = $resultSet->getAggregations();
         foreach ($aggregations as $aggregation) {
@@ -526,7 +526,7 @@ class ManagementController extends AbstractController
             ],
         ];
         $out = [];
-        $search = ElasticUtility::getIndexByName('karmapoints', 'en')->createSearch($fullRequest);
+        $search = ElasticUtility::getIndexByName('karmapoints')->createSearch($fullRequest);
         $resultSet = $search->search();
         $aggregations = $resultSet->getAggregations();
         foreach ($aggregations as $month) {

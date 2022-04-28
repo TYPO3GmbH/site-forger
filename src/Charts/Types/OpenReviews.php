@@ -22,7 +22,7 @@ class OpenReviews extends ReviewChart
 
     public function __construct()
     {
-        $this->index = ElasticUtility::getIndexByName('review', 'en');
+        $this->index = ElasticUtility::getIndexByName('review');
         parent::__construct($this->index);
     }
 

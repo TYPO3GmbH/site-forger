@@ -591,7 +591,7 @@ class ReviewController extends AbstractController
         if ($usedFilters->count() > 0 && count($usedFilters->toArray()) > 0) {
             $fullRequest['post_filter'] = $usedFilters;
         }
-        $query = ElasticUtility::getIndexByName('review', 'en')->createSearch($fullRequest);
+        $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
         $resultSet = $query->search();
         $this->totalHits = $resultSet->getTotalHits();
         if ((int) $this->totalHits <= ($this->currentPage * $this->perPage)) {
@@ -822,7 +822,7 @@ class ReviewController extends AbstractController
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
         ];
-        $query = ElasticUtility::getIndexByName('review', 'en')->createSearch($fullRequest);
+        $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
         return $query->search();
     }
 
@@ -868,7 +868,7 @@ class ReviewController extends AbstractController
                 ],
             ],
         ];
-        $query = ElasticUtility::getIndexByName('review', 'en')->createSearch($fullRequest);
+        $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
 
         return $query->search();
     }
