@@ -9,13 +9,11 @@
 
 namespace App\Command;
 
-use App\Client\ElasticClient;
 use App\Repository\EmploymentTimeRepository;
 use DateTime;
 use Elastica\Document;
 use Elastica\Result;
 use Elastica\Scroll;
-use Elastica\Type as DocType;
 use Exception;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
@@ -27,6 +25,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use T3G\ElasticUtility\ElasticUtility;
 
 class CalculateKarmaCommand extends Command
 {
@@ -35,10 +34,6 @@ class CalculateKarmaCommand extends Command
      * @var ParameterBagInterface
      */
     private $parameters;
-    /**
-     * @var ElasticClient
-     */
-    private $elasticClient;
 
     private $companyMapping = [];
 
@@ -48,11 +43,10 @@ class CalculateKarmaCommand extends Command
      */
     private $employmentTimesRepository;
 
-    public function __construct(ParameterBagInterface $parameters, ElasticClient $elasticClient, EmploymentTimeRepository $employmentTimeRepository)
+    public function __construct(ParameterBagInterface $parameters, EmploymentTimeRepository $employmentTimeRepository)
     {
         parent::__construct();
         $this->parameters = $parameters;
-        $this->elasticClient = $elasticClient;
         $this->employmentTimesRepository = $employmentTimeRepository;
         $this->setUpCompanyMapping();
     }
@@ -148,8 +142,7 @@ class CalculateKarmaCommand extends Command
         $mainProgressBar = new ProgressBar($output, $numberOfInteractions);
         $mainProgressBar->setFormat('[%bar%] %current%/%max%  %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
 
-        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $search->addType('interactions');
+        $search = ElasticUtility::getIndexByName('interactions')->createSearch($fullRequest);
 
         $scroll = new Scroll($search, '4h');
         foreach ($scroll as $scrollId => $resultSet) {
@@ -180,8 +173,7 @@ class CalculateKarmaCommand extends Command
     private function getInteractionCount(array $fullRequest): int
     {
         $fullRequest['size'] = 0;
-        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $search->addType('interactions');
+        $search = ElasticUtility::getIndexByName('interactions')->createSearch($fullRequest);
         $resultSet = $search->search();
         return $resultSet->getTotalHits();
     }
@@ -203,7 +195,7 @@ class CalculateKarmaCommand extends Command
             'interaction' => $dataArray['interaction_type'],
             'points' => $points[$dataArray['interaction_type']]
         ];
-        $elasticType = new DocType($this->elasticClient->getIndex($this->parameters->get('elastic_index_name')), 'karmapoints');
+        $elasticType = ElasticUtility::getIndexByName('karmapoints');
         if ($elasticType !== null) {
             $doc = new Document($document['leaderboard_entry_id'], $document);
             $elasticType->addDocument($doc);
