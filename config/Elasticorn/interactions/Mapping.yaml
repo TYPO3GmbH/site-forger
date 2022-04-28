@@ -14,4 +14,4 @@ interaction_type:
 interaction_source:
   type: keyword
 interaction_source_id:
-  type: integer
+  type: keyword

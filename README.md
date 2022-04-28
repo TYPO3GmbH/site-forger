@@ -9,6 +9,7 @@ Next generation of forger
 * clone repository
 * call `ddev start`
 * put your personal redmine access token into `.env.local` with the key `FORGE_ACCESS_TOKEN`
+* put your personal `GITHUB_ACCESS_TOKEN` and `GITHUB_USERNAME` in `.env.local`
 * call `ddev composer install`
 * call `ddev exec /usr/bin/elasticorn.php index:init -c /var/www/html/config/Elasticorn` to create indices
 * call `ddev exec npm ci`
