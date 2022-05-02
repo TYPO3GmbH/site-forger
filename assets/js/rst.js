@@ -81,14 +81,18 @@
 
             const $modal = $(Selectors.modal);
             const ticketId = document.querySelector(Selectors.ticketIdField).value.replace(/\D/g, '');
+            const timestamp = Math.floor(Date.now() / 1000);
             const title = $.trim(document.querySelector(Selectors.ticketTitleField).value);
-            const classification = $.trim(document.querySelector(Selectors.classificationToggle + ':checked').parentElement.textContent);
-            const headline = sprintf('%s: #%d - %s', classification, ticketId, title);
-            const filename = sprintf('%s-%d-%s', classification, ticketId, title.toUpperCamelCase().replace(/[^0-9a-z-_]/gi, '')) + '.rst';
+            const classificationType = document.querySelector(Selectors.classificationToggle + ':checked').value;
+            const classificationTitle = $.trim(document.querySelector(Selectors.classificationToggle + ':checked').parentElement.textContent);
+            const headline = sprintf('%s: #%d - %s', classificationTitle, ticketId, title);
+            const filename = sprintf('%s-%d-%s', classificationTitle, ticketId, title.toUpperCamelCase().replace(/[^0-9a-z-_]/gi, '')) + '.rst';
 
             let restBody = '';
             const forgeRef = 'See :issue:`' + ticketId + '`';
             let restContent = '.. include:: /Includes.rst.txt\n\n';
+            // Add label for the document type being the documentation type (e.g. breaking, important), the ticket ID, and the title
+            restContent += sprintf('.. _%s-%d-%d\n\n', classificationType, ticketId, timestamp);
             restContent += sprintf('%s\n%s\n%s\n\n%s', '='.repeat(headline.length), headline, '='.repeat(headline.length), forgeRef);
 
             $('textarea:visible').each(function () {
@@ -104,7 +108,7 @@
             const checkedTags = Array.from(document.querySelectorAll('input[name="tag[]"]:checked'));
             if (checkedTags.length > 0) {
                 const tags = checkedTags.map(function (tagField) {
-                    if (['Feature', 'Important'].indexOf(classification) > -1
+                    if (['Feature', 'Important'].indexOf(classificationTitle) > -1
                         && ['NotScanned', 'PartiallyScanned', 'FullyScanned'].indexOf(tagField.value) > -1
                     ) {
                         // Filter extension scanner tags in case of being a "Feature" or "Important"
