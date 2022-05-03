@@ -380,7 +380,7 @@ class ImportCommand extends Command
         if (!isset($this->userCache[$userId])) {
             /** @noinspection PhpUndefinedMethodInspection */
             $userRecord = $this->forgeClient->api('user')->show($userId);
-            $this->userCache[$userId] = $userRecord['user']['mail'];
+            $this->userCache[$userId] = $userRecord['user']['mail'] ?? '';
         }
         $issue['author']['email'] = $this->userCache[$userId];
         return $issue;
