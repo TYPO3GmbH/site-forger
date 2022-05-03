@@ -5,6 +5,9 @@
     "clue/stream-filter": {
         "version": "v1.4.1"
     },
+    "composer/package-versions-deprecated": {
+        "version": "1.11.99.4"
+    },
     "composer/semver": {
         "version": "1.5.0"
     },
@@ -153,12 +156,6 @@
     "laminas/laminas-code": {
         "version": "3.4.1"
     },
-    "laminas/laminas-eventmanager": {
-        "version": "3.2.1"
-    },
-    "laminas/laminas-zendframework-bridge": {
-        "version": "1.0.1"
-    },
     "monolog/monolog": {
         "version": "1.25.3"
     },
@@ -182,15 +179,6 @@
         "files": [
             "config/packages/nyholm_psr7.yaml"
         ]
-    },
-    "ocramius/package-versions": {
-        "version": "1.4.0"
-    },
-    "ocramius/proxy-manager": {
-        "version": "2.2.2"
-    },
-    "php": {
-        "version": "7.4"
     },
     "php-cs-fixer/diff": {
         "version": "v1.3.0"
@@ -373,6 +361,9 @@
             "src/Controller/.gitignore",
             "src/Kernel.php"
         ]
+    },
+    "symfony/http-client-contracts": {
+        "version": "v2.5.1"
     },
     "symfony/http-foundation": {
         "version": "v4.3.2"
@@ -619,16 +610,7 @@
     "web-token/jwt-signature-algorithm-rsa": {
         "version": "v2.2.2"
     },
-    "webimpress/safe-writer": {
-        "version": "2.0.0"
-    },
     "woeler/phpdiscord": {
         "version": "v1.1.0"
-    },
-    "zendframework/zend-code": {
-        "version": "3.3.1"
-    },
-    "zendframework/zend-eventmanager": {
-        "version": "3.2.1"
     }
 }
