@@ -1,6 +1,4 @@
-leaderboard_entry_id:
-  type: string
-company:
+interaction_id:
   type: keyword
 account:
   type: keyword
@@ -11,7 +9,9 @@ email:
 interacted_on:
   type: date
   format: yyyy/MM/dd HH:mm:ss
-interaction:
+interaction_type:
   type: keyword
-points:
-  type: integer
+interaction_source:
+  type: keyword
+interaction_source_id:
+  type: keyword

@@ -9,7 +9,6 @@
 
 namespace App\Controller;
 
-use App\Client\ElasticClient;
 use App\Entity\SprintBoard;
 use App\Repository\SprintBoardCategoryRepository;
 use App\Repository\SprintBoardRepository;
@@ -25,6 +24,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Yaml\Yaml;
+use T3G\ElasticUtility\ElasticUtility;
 
 class SprintController extends AbstractController
 {
@@ -37,30 +37,24 @@ class SprintController extends AbstractController
      */
     private $sprintBoardRepository;
     /**
-     * @var ElasticClient
+     * @var RequestStack
      */
-    private $elasticClient;
+    private $requestStack;
     /**
      * @var ParameterBagInterface
      */
     private $parameters;
-    /**
-     * @var RequestStack
-     */
-    private $requestStack;
 
     public function __construct(
         SprintBoardCategoryRepository $sprintBoardCategoryRepository,
+        RequestStack $requestStack,
         SprintBoardRepository $sprintBoardRepository,
-        ElasticClient $elasticClient,
-        ParameterBagInterface $parameters,
-        RequestStack $requestStack
+        ParameterBagInterface $parameters
     ) {
         $this->sprintBoardCategoryRepository = $sprintBoardCategoryRepository;
         $this->sprintBoardRepository = $sprintBoardRepository;
-        $this->elasticClient = $elasticClient;
-        $this->parameters = $parameters;
         $this->requestStack = $requestStack;
+        $this->parameters = $parameters;
     }
 
     /**
@@ -254,8 +248,7 @@ class SprintController extends AbstractController
                     ]
                 ]
             ];
-            $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-            $search->addType('review');
+            $search = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
             $resultSet = $search->search();
             foreach ($resultSet->getResults() as $review) {
                 $getBoardGroup = $this->defineReviewBoardGroup($review->getSource());
@@ -353,8 +346,7 @@ class SprintController extends AbstractController
             'query' => $query,
             'size' => 0,
         ];
-        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $search->addType('review');
+        $search = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
         $resultSet = $search->search();
 
         return $resultSet->getTotalHits();
@@ -500,8 +492,7 @@ class SprintController extends AbstractController
                 ],
             ],
         ];
-        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $search->addType('issue');
+        $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
         $resultSet = $search->search();
         $count = [
             'open' => 0,
@@ -561,8 +552,7 @@ class SprintController extends AbstractController
             'query' => Yaml::parse($sprint->getQuery()),
             'size' => 10000,
         ];
-        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $search->addType('issue');
+        $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
         $resultSet = $search->search();
         foreach ($resultSet->getResults() as $ticket) {
             $status = $ticket->getSource()['status'];
@@ -608,7 +598,7 @@ class SprintController extends AbstractController
             if (!isset($matches['reviewId'])) {
                 throw new InvalidArgumentException('There should be a review id in ' . $notes);
             }
-            $reviewType = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->getType('review');
+            $reviewType = ElasticUtility::getIndexByName('review');
 
             try {
                 $item = $reviewType->getDocument($matches['reviewId']);

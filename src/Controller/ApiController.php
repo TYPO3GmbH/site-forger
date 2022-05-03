@@ -10,31 +10,14 @@
 namespace App\Controller;
 
 use App\Charts\ChartRegistry;
-use App\Client\ElasticClient;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
+use T3G\ElasticUtility\ElasticUtility;
 
 class ApiController extends AbstractController
 {
-    /**
-     * @var ElasticClient
-     */
-    private $elasticClient;
-
-    /**
-     * @var ParameterBagInterface
-     */
-    private $parameters;
-
-    public function __construct(ElasticClient $elasticClient, ParameterBagInterface $parameters)
-    {
-        $this->elasticClient = $elasticClient;
-        $this->parameters = $parameters;
-    }
-
     /**
      * @Route("/api/{type}/{documentId}", name="api")
      * @param string $type
@@ -44,7 +27,7 @@ class ApiController extends AbstractController
     public function index(string $type = 'issue', int $documentId = 0): JsonResponse
     {
         try {
-            $output = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->getType($type)->getDocument($documentId);
+            $output = ElasticUtility::getIndexByName($type)->getDocument($documentId);
         } catch (Exception $e) {
             return new JsonResponse('Document not found', 404);
         }
@@ -57,7 +40,7 @@ class ApiController extends AbstractController
      */
     public function quickStats(): JsonResponse
     {
-        $index = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'));
+        $index = ElasticUtility::getIndexByName('issue');
         $openIssuesQuery = [
             'query' => [
                 'bool' => [
@@ -68,7 +51,7 @@ class ApiController extends AbstractController
             ],
             'size' => 0,
         ];
-        $openIssues = $index->getType('issue')->search($openIssuesQuery)->getTotalHits();
+        $openIssues = $index->search($openIssuesQuery)->getTotalHits();
 
         $openReviewsQuery = [
             'query' => [
@@ -81,7 +64,8 @@ class ApiController extends AbstractController
             ],
             'size' => 0,
         ];
-        $openReviews = $index->getType('review')->search($openReviewsQuery)->getTotalHits();
+        $index = ElasticUtility::getIndexByName('review');
+        $openReviews = $index->search($openReviewsQuery)->getTotalHits();
 
         return new JsonResponse([
             'forge' => [
@@ -101,7 +85,8 @@ class ApiController extends AbstractController
      */
     public function chart(string $chartName): JsonResponse
     {
-        $index = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'));
+        $indexName = ($chartName === 'ticket_progress') ? 'issue' : 'review';
+        $index = ElasticUtility::getIndexByName($indexName, 'en');
         $chartInstance = ChartRegistry::getChartInstance($chartName, $index);
         $data = $chartInstance->getData();
 

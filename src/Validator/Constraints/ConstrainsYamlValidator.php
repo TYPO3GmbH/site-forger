@@ -9,7 +9,6 @@
 
 namespace App\Validator\Constraints;
 
-use App\Client\ElasticClient;
 use Elastica\Exception\InvalidException;
 use Elastica\Exception\ResponseException;
 use Symfony\Component\Validator\Constraint;
@@ -17,24 +16,10 @@ use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
+use T3G\ElasticUtility\ElasticUtility;
 
 class ConstrainsYamlValidator extends ConstraintValidator
 {
-    /**
-     * @var ElasticClient
-     */
-    private $client;
-    /**
-     * @var string
-     */
-    private $elastic_index_name;
-
-    public function __construct(ElasticClient $client, string $elastic_index_name)
-    {
-        $this->client = $client;
-        $this->elastic_index_name = $elastic_index_name;
-    }
-
     /**
      * Checks if the passed value is valid.
      *
@@ -56,8 +41,8 @@ class ConstrainsYamlValidator extends ConstraintValidator
                 'query' => Yaml::parse($value),
                 'size' => 10000,
             ];
-            $search = $this->client->getIndex($this->elastic_index_name)->createSearch($fullRequest);
-            $search->addType('issue');
+
+            $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
             $search->search();
         } catch (InvalidException | ResponseException $e) {
             $this->context->buildViolation('Your query did not yield any results. Is it correct?')->addViolation();

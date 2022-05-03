@@ -9,32 +9,21 @@
 
 namespace App\Command;
 
-use App\Client\ElasticClient;
 use Elastica\Query\MatchAll;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use T3G\ElasticUtility\ElasticUtility;
 
 class TruncateTypeCommand extends Command
 {
     protected static $defaultName = 'app:truncate-type';
-    /**
-     * @var ElasticClient
-     */
-    private $elasticClient;
-    /**
-     * @var ParameterBagInterface
-     */
-    private $parameters;
 
-    public function __construct(ParameterBagInterface $parameters, ElasticClient $elasticClient)
+    public function __construct()
     {
         parent::__construct();
-        $this->parameters = $parameters;
-        $this->elasticClient = $elasticClient;
     }
 
     protected function configure(): void
@@ -51,7 +40,7 @@ class TruncateTypeCommand extends Command
         $type = $input->getArgument('type');
 
         if ($type === 'review' || $type === 'issue' || $type === 'interactions' || $type === 'karmapoints') {
-            $typeToWorkOn = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->getType($type);
+            $typeToWorkOn = ElasticUtility::getIndexByName($type);
             $query = new MatchAll();
             $typeToWorkOn->deleteByQuery($query);
             $io->success('Cleared type "' . $type . '"');
