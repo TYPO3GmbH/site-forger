@@ -588,6 +588,13 @@ class ReviewController extends AbstractController
     {
         $viewData = [];
         $usedFilters = $this->addFilters();
+
+        /**
+         * The reason for this double check is:
+         * $usedFilters before converted to an array, count can be 0, and if so the ->toArray() function
+         * used in the second check is throwing an exception. With only the first check, the filtering with
+         * ->toArray() isn't working correct.
+         */
         if ($usedFilters->count() > 0 && count($usedFilters->toArray()) > 0) {
             $fullRequest['post_filter'] = $usedFilters;
         }
