@@ -399,8 +399,13 @@ class ImportCommand extends Command
     {
         $moreChanges = false;
         $out = [];
-        $json = file_get_contents('https://review.typo3.org/changes/?q=project:Packages/TYPO3.CMS&n=' . $perRun .
-            '&start=' . $current . '&o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_FILES&o=CURRENT_COMMIT&o=MESSAGES&o=DETAILED_ACCOUNTS');
+        try {
+            $json = file_get_contents('https://review.typo3.org/changes/?q=project:Packages/TYPO3.CMS&n=' . $perRun .
+                '&start=' . $current . '&o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_FILES&o=CURRENT_COMMIT&o=MESSAGES&o=DETAILED_ACCOUNTS');
+        } catch (Exception $e) {
+            $this->logger->warning($e->getMessage());
+            return $out;
+        }
         $data = json_decode(str_replace(")]}'", '', $json), true);
         $foo = '';
         foreach ($data as $change) {
