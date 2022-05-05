@@ -9,14 +9,12 @@
 
 namespace App\Command;
 
-use App\Client\ElasticClient;
 use App\Client\ForgeClient;
 use App\Service\DiscordService;
 use App\Service\GithubService;
 use DateTime;
 use Elastica\Document;
 use Elastica\Exception\NotFoundException;
-use Elastica\Type as DocType;
 use Exception;
 use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\GuzzleException;
@@ -31,6 +29,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use T3G\ElasticUtility\ElasticUtility;
 use Woeler\DiscordPhp\Message\DiscordEmbedsMessage;
 
 class ImportCommand extends Command
@@ -42,10 +41,6 @@ class ImportCommand extends Command
     protected const BAMBOO_USER_ID = [49454, 51735, 52386];
 
     protected static $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta', 'github', 'githubDelta'];
-    /**
-     * @var ElasticClient
-     */
-    private $elasticClient;
 
     private $userCache = [];
     /**
@@ -131,7 +126,6 @@ class ImportCommand extends Command
     public function __construct(
         ParameterBagInterface $parameters,
         ForgeClient $forgeClient,
-        ElasticClient $elasticClient,
         DiscordService $discordService,
         GithubService $githubService,
         LoggerInterface $logger,
@@ -140,7 +134,6 @@ class ImportCommand extends Command
         parent::__construct();
         $this->parameters = $parameters;
         $this->forgeClient = $forgeClient;
-        $this->elasticClient = $elasticClient;
         $this->discordService = $discordService;
         $this->discordWebhook = $discordWebhook;
         $this->logger = $logger;
@@ -387,7 +380,7 @@ class ImportCommand extends Command
         if (!isset($this->userCache[$userId])) {
             /** @noinspection PhpUndefinedMethodInspection */
             $userRecord = $this->forgeClient->api('user')->show($userId);
-            $this->userCache[$userId] = $userRecord['user']['mail'];
+            $this->userCache[$userId] = $userRecord['user']['mail'] ?? '';
         }
         $issue['author']['email'] = $this->userCache[$userId];
         return $issue;
@@ -406,8 +399,13 @@ class ImportCommand extends Command
     {
         $moreChanges = false;
         $out = [];
-        $json = file_get_contents('https://review.typo3.org/changes/?q=project:Packages/TYPO3.CMS&n=' . $perRun .
-            '&start=' . $current . '&o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_FILES&o=CURRENT_COMMIT&o=MESSAGES&o=DETAILED_ACCOUNTS');
+        try {
+            $json = file_get_contents('https://review.typo3.org/changes/?q=project:Packages/TYPO3.CMS&n=' . $perRun .
+                '&start=' . $current . '&o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_FILES&o=CURRENT_COMMIT&o=MESSAGES&o=DETAILED_ACCOUNTS');
+        } catch (Exception $e) {
+            $this->logger->warning($e->getMessage());
+            return $out;
+        }
         $data = json_decode(str_replace(")]}'", '', $json), true);
         $foo = '';
         foreach ($data as $change) {
@@ -750,13 +748,13 @@ class ImportCommand extends Command
                                 $document['focus']['name'] = $customField['value'] ?? '-';
                                 break;
                             default:
-                        }
+                       }
                     }
                 }
                 $document['updated_on'] = $this->fixDateFormat($document['updated_on'], 'Redmine');
                 $document['created_on'] = $this->fixDateFormat($document['created_on'], 'Redmine');
                 unset($document['start_date'], $document['due_date']);
-                $elasticType = new DocType($this->elasticClient->getIndex($this->parameters->get('elastic_index_name')), 'issue');
+                $elasticType = ElasticUtility::getIndexByName('issue');
                 if ($this->sendNotifications) {
                     try {
                         $elasticType->getDocument($document['id']);
@@ -766,13 +764,13 @@ class ImportCommand extends Command
                 }
                 break;
             case 'review':
-                $elasticType = new DocType($this->elasticClient->getIndex($this->parameters->get('elastic_index_name')), 'review');
+                $elasticType = ElasticUtility::getIndexByName('review');
                 break;
             case 'user':
-                $elasticType = new DocType($this->elasticClient->getIndex($this->parameters->get('elastic_index_name')), 'user');
+                $elasticType = ElasticUtility::getIndexByName('user');
                 break;
             case 'interactions':
-                $elasticType = new DocType($this->elasticClient->getIndex($this->parameters->get('elastic_index_name')), 'interactions');
+                $elasticType = ElasticUtility::getIndexByName('interactions');
                 break;
             default:
         }

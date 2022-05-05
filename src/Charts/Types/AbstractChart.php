@@ -35,10 +35,9 @@ abstract class AbstractChart
         return $dateTime->format($outputFormat);
     }
 
-    protected function fetchData(array $query): ResultSet
+    protected function fetchData(Index $index, array $query): ResultSet
     {
-        $search = $this->index->createSearch($query);
-        $search->addType($this->getDocumentType());
+        $search = $index->createSearch($query);
         return $search->search();
     }
 
@@ -118,7 +117,7 @@ abstract class AbstractChart
                 ],
             ],
         ];
-        $resultSet = $this->fetchData($query);
+        $resultSet = $this->fetchData($this->index, $query);
         $data = $resultSet->getAggregations();
         $openSum = 0;
         $result = [];

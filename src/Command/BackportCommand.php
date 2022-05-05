@@ -9,10 +9,8 @@
 
 namespace App\Command;
 
-use App\Client\ElasticClient;
 use App\Repository\BackportBlacklistEntryRepository;
 use Elastica\Exception\InvalidException;
-use Elastica\Index;
 use Elastica\Result;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
@@ -21,6 +19,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use T3G\ElasticUtility\ElasticUtility;
 
 class BackportCommand extends Command
 {
@@ -44,10 +43,6 @@ class BackportCommand extends Command
     protected $output;
 
     /**
-     * @var Index
-     */
-    protected $elasticIndex;
-    /**
      * @var ParameterBagInterface
      */
     protected $parameters;
@@ -56,11 +51,10 @@ class BackportCommand extends Command
      */
     private $blackListRepository;
 
-    public function __construct(ParameterBagInterface $parameters, ElasticClient $elasticClient, BackportBlacklistEntryRepository $blacklistEntryRepository)
+    public function __construct(ParameterBagInterface $parameters, BackportBlacklistEntryRepository $blacklistEntryRepository)
     {
         parent::__construct();
         $this->parameters = $parameters;
-        $this->elasticIndex = $elasticClient->getIndex($parameters->get('elastic_index_name'));
         $this->blackListRepository = $blacklistEntryRepository;
     }
 
@@ -149,8 +143,7 @@ class BackportCommand extends Command
                 ],
             ],
         ];
-        $query = $this->elasticIndex->createSearch($fullRequest);
-        $query->addType('interactions');
+        $query = ElasticUtility::getIndexByName('interactions')->createSearch($fullRequest);
         $resultSet = $query->search();
         $results = $resultSet->getResults();
         if (count($results) > 1 && $results[0]->getData()['interaction_source_id'] !== 57284) {
@@ -233,8 +226,7 @@ class BackportCommand extends Command
             ],
             'size' => 5000,
         ];
-        $query = $this->elasticIndex->createSearch($fullRequest);
-        $query->addType('review');
+        $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
         $resultSet = $query->search();
         return $resultSet->getResults();
     }
@@ -261,8 +253,7 @@ class BackportCommand extends Command
             ],
             'size' => 50,
         ];
-        $query = $this->elasticIndex->createSearch($fullRequest);
-        $query->addType('review');
+        $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
         $resultSet = $query->search();
         return $resultSet->getResults();
     }

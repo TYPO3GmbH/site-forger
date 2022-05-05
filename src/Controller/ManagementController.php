@@ -9,29 +9,18 @@
 
 namespace App\Controller;
 
-use App\Client\ElasticClient;
 use App\Entity\Company;
 use App\Entity\TrackerFilters;
 use DateTime;
 use Exception;
 use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use T3G\ElasticUtility\ElasticUtility;
 
 class ManagementController extends AbstractController
 {
-    /**
-     * @var ElasticClient
-     */
-    private $elasticClient;
-
-    /**
-     * @var ParameterBagInterface
-     */
-    private $parameters;
-
     private $coreMergers = [
         'Alexander Schnitzler',
         'Andreas Fernandez',
@@ -65,12 +54,6 @@ class ManagementController extends AbstractController
         'flicstar',
         'Susanne Moog'
     ];
-
-    public function __construct(ElasticClient $elasticClient, ParameterBagInterface $parameters)
-    {
-        $this->elasticClient = $elasticClient;
-        $this->parameters = $parameters;
-    }
 
     /**
      * @Route("/management", name="management_index")
@@ -144,8 +127,7 @@ class ManagementController extends AbstractController
         if ($trackerFilters->isStory()) {
             $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = 'Story';
         }
-        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $search->addType('issue');
+        $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
         $resultSet = $search->search();
         foreach ($resultSet->getAggregations() as $aggregation) {
             foreach ($aggregation['buckets'] as $bucket) {
@@ -226,8 +208,7 @@ class ManagementController extends AbstractController
                 ],
             ],
         ];
-        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $search->addType('issue');
+        $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
         $resultSet = $search->search();
         $aggregations = $resultSet->getAggregations();
         $viewData = [];
@@ -301,8 +282,7 @@ class ManagementController extends AbstractController
                 ],
             ],
         ];
-        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $search->addType('interactions');
+        $search = ElasticUtility::getIndexByName('interactions')->createSearch($fullRequest);
         $resultSet = $search->search();
         $aggregations = $resultSet->getAggregations();
         foreach ($aggregations as $aggregation) {
@@ -381,8 +361,7 @@ class ManagementController extends AbstractController
                 ],
             ],
         ];
-        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $search->addType('interactions');
+        $search = ElasticUtility::getIndexByName('interactions')->createSearch($fullRequest);
         $resultSet = $search->search();
         $aggregations = $resultSet->getAggregations();
         foreach ($aggregations as $aggregation) {
@@ -547,8 +526,7 @@ class ManagementController extends AbstractController
             ],
         ];
         $out = [];
-        $search = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $search->addType('karmapoints');
+        $search = ElasticUtility::getIndexByName('karmapoints')->createSearch($fullRequest);
         $resultSet = $search->search();
         $aggregations = $resultSet->getAggregations();
         foreach ($aggregations as $month) {

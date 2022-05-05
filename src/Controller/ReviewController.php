@@ -9,7 +9,6 @@
 
 namespace App\Controller;
 
-use App\Client\ElasticClient;
 use DateTime;
 use Elastica\Exception\InvalidException;
 use Elastica\Query\BoolQuery;
@@ -17,9 +16,9 @@ use Elastica\Query\Range;
 use Elastica\Query\Term;
 use Elastica\ResultSet;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use T3G\ElasticUtility\ElasticUtility;
 
 class ReviewController extends AbstractController
 {
@@ -43,20 +42,8 @@ class ReviewController extends AbstractController
      */
     private $dateInterval = 'month';
 
-    /**
-     * @var ElasticClient
-     */
-    private $elasticClient;
-
-    /**
-     * @var ParameterBagInterface
-     */
-    private $parameters;
-
-    public function __construct(ElasticClient $elasticClient, ParameterBagInterface $parameters)
+    public function __construct()
     {
-        $this->elasticClient = $elasticClient;
-        $this->parameters = $parameters;
         if (array_key_exists('page', $_GET)) {
             $this->currentPage = (int) $_GET['page'];
         }
@@ -601,11 +588,17 @@ class ReviewController extends AbstractController
     {
         $viewData = [];
         $usedFilters = $this->addFilters();
-        if (count($usedFilters->toArray()) > 0) {
+
+        /**
+         * The reason for this double check is:
+         * $usedFilters before converted to an array, count can be 0, and if so the ->toArray() function
+         * used in the second check is throwing an exception. With only the first check, the filtering with
+         * ->toArray() isn't working correct.
+         */
+        if ($usedFilters->count() > 0 && count($usedFilters->toArray()) > 0) {
             $fullRequest['post_filter'] = $usedFilters;
         }
-        $query = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $query->addType('review');
+        $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
         $resultSet = $query->search();
         $this->totalHits = $resultSet->getTotalHits();
         if ((int) $this->totalHits <= ($this->currentPage * $this->perPage)) {
@@ -836,9 +829,7 @@ class ReviewController extends AbstractController
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
         ];
-        $query = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $query->addType('review');
-
+        $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
         return $query->search();
     }
 
@@ -884,8 +875,7 @@ class ReviewController extends AbstractController
                 ],
             ],
         ];
-        $query = $this->elasticClient->getIndex($this->parameters->get('elastic_index_name'))->createSearch($fullRequest);
-        $query->addType('issue');
+        $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
 
         return $query->search();
     }
