@@ -39,7 +39,7 @@
                 {% endfor %}
             </div>
 
-            <form class="mt-3" action="/management/interactions" method="get" id="contributorList">
+            <form class="mt-3" action="{{ path('management_interactions') }}" method="get" id="contributorList">
                 <div class="form-group">
                     <select multiple name="taggles[]" id="contributors" data-role="tagsinput">
                         {%  for member in coreTeamMergers %}
@@ -48,7 +48,7 @@
                     </select>
                 </div>
                 <input type="submit" class="btn btn-primary" value="Show">
-                <a class="btn btn-secondary" href="/management/interactions/">Reset</a>
+                <a class="btn btn-secondary" href="{{ path('management_interactions') }}">Reset</a>
             </form>
         </div>
     </div>
