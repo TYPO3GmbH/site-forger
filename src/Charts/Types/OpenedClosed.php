@@ -22,7 +22,7 @@ class OpenedClosed extends IssueChart
 
     public function __construct()
     {
-        $this->index = ElasticUtility::getIndexByName('review');
+        $this->index = ElasticUtility::getIndexByName('issue');
         parent::__construct($this->index);
     }
 
