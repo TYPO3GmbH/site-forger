@@ -50,7 +50,6 @@ php_version:
 target_version:
   type: keyword
 isregression:
-  type: keyword
-  index: false
+  type: boolean
 tags:
   type: keyword
