@@ -92,7 +92,7 @@
             const forgeRef = 'See :issue:`' + ticketId + '`';
             let restContent = '.. include:: /Includes.rst.txt\n\n';
             // Add label for the document type being the documentation type (e.g. breaking, important), the ticket ID, and the title
-            restContent += sprintf('.. _%s-%d-%d\n\n', classificationType, ticketId, timestamp);
+            restContent += sprintf('.. _%s-%d-%d:\n\n', classificationType, ticketId, timestamp);
             restContent += sprintf('%s\n%s\n%s\n\n%s', '='.repeat(headline.length), headline, '='.repeat(headline.length), forgeRef);
 
             $('textarea:visible').each(function () {
