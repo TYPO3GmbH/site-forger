@@ -10,6 +10,10 @@
 /vendor/
 .idea/
 .vscode/
+
+/util/vendor/
+/util/bin/
+
 ###< symfony/framework-bundle ###
 
 ###> symfony/webpack-encore-bundle ###

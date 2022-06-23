@@ -11,7 +11,8 @@ Next generation of forger
 * put your personal redmine access token into `.env.local` with the key `FORGE_ACCESS_TOKEN`
 * put your personal `GITHUB_ACCESS_TOKEN` and `GITHUB_USERNAME` in `.env.local`
 * call `ddev composer install`
-* call `ddev exec /usr/bin/elasticorn.php index:init -c /var/www/html/config/Elasticorn` to create indices
+* call `ddev composer install --working-dir=./util`
+* call `ddev exec ./util/bin/elasticorn.php index:init -c /var/www/html/config/Elasticorn` to create indices
 * call `ddev exec npm ci`
 * call `ddev exec npm run build`
 * call `ddev exec bin/console doctrine:schema:create`
