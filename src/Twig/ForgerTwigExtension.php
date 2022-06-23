@@ -57,10 +57,10 @@ class ForgerTwigExtension extends AbstractExtension
         } else {
             $checked = '';
         }
-        $content = '<div class="custom-control custom-checkbox">'
-            . '<input type="checkbox" class="custom-control-input" id="' . $category . '-' . $index . '" name="filters[' . $category . '][' . $key . ']" ' . $checked . ' value="true" onchange="this.form.submit()">'
-            . '<label class="custom-control-label custom-control-label-hascount" for="' . $category . '-' . $index . '">'
-            . '<span class="custom-control-label-title">' . $label . '</span> <span class="custom-control-label-count">' . $docCount . '</span>'
+        $content = '<div class="form-check">'
+            . '<input type="checkbox" class="form-check-input" id="' . $category . '-' . $index . '" name="filters[' . $category . '][' . $key . ']" ' . $checked . ' value="true" onchange="this.form.submit()">'
+            . '<label class="form-check-label form-check-label-hascount" for="' . $category . '-' . $index . '">'
+            . '<span class="form-check-label-title">' . $label . '</span> <span class="form-check-label-count">' . $docCount . '</span>'
             . '</label>'
             . '</div>';
 
