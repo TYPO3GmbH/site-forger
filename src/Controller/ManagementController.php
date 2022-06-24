@@ -22,25 +22,22 @@ use T3G\ElasticUtility\ElasticUtility;
 class ManagementController extends AbstractController
 {
     private $coreMergers = [
-        'Alexander Schnitzler',
         'Andreas Fernandez',
         'Anja Leichsenring',
+        'Annett Jähnichen',
         'Benjamin Franzke',
         'Benni Mack',
-        'Christian Eßl',
         'Christian Kuhn',
-        'Claus Due',
-        'Daniel Goerz',
-        'Daniel Siepmann',
-        'Frank Nägler',
         'Georg Ringer',
         'Helmut Hummel',
+        'Kevin Appelt',
         'Manuel Selbach',
+        'Nikita Hovratov',
+        'Oliver Bartsch',
         'Oliver Hader',
+        'Ralf Zimmermann',
         'Riccardo De Contardi',
-        'Richard Haeser',
-        'Tobi Kretschmann',
-        'Tymoteusz Motylewski',
+        'Stefan Bürk'
     ];
 
     private $docTeam = [
@@ -49,7 +46,8 @@ class ManagementController extends AbstractController
         'Martin Bless',
         'Daniel Siepmann',
         'David Bruchmann',
-        'linawolf',
+        'Lina Wolf',
+        'Tom Warwick',
         'Alexander Nitsche',
         'flicstar',
         'Susanne Moog'
