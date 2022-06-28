@@ -31,7 +31,6 @@ class ManagementController extends AbstractController
         'Georg Ringer',
         'Helmut Hummel',
         'Kevin Appelt',
-        'Manuel Selbach',
         'Nikita Hovratov',
         'Oliver Bartsch',
         'Oliver Hader',
