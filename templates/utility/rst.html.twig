@@ -23,21 +23,21 @@
                             <div class="card-body">
                                 <div class="form-group">
                                     <label>Type</label>
-                                    <div class="custom-control custom-radio">
-                                        <input type="radio" id="classification-breaking" class="custom-control-input" name="classification" autocomplete="off" value="breaking" checked>
-                                        <label class="custom-control-label" for="classification-breaking">Breaking</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" id="classification-breaking" name="classification" autocomplete="off" value="breaking" checked>
+                                        <label class="form-check-label" for="classification-breaking">Breaking</label>
                                     </div>
-                                    <div class="custom-control custom-radio">
-                                        <input type="radio" id="classification-deprecation" class="custom-control-input" name="classification" autocomplete="off" value="deprecation">
-                                        <label class="custom-control-label" for="classification-deprecation">Deprecation</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" id="classification-deprecation"name="classification" autocomplete="off" value="deprecation">
+                                        <label class="form-check-label" for="classification-deprecation">Deprecation</label>
                                     </div>
-                                    <div class="custom-control custom-radio">
-                                        <input type="radio" id="classification-feature" class="custom-control-input" name="classification" autocomplete="off" value="feature">
-                                        <label class="custom-control-label" for="classification-feature">Feature</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" id="classification-feature" name="classification" autocomplete="off" value="feature">
+                                        <label class="form-check-label" for="classification-feature">Feature</label>
                                     </div>
-                                    <div class="custom-control custom-radio">
-                                        <input type="radio" id="classification-important" class="custom-control-input" name="classification" autocomplete="off" value="important">
-                                        <label class="custom-control-label" for="classification-important">Important</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" id="classification-important" name="classification" autocomplete="off" value="important">
+                                        <label class="form-check-label" for="classification-important">Important</label>
                                     </div>
                                 </div>
                             </div>
@@ -76,9 +76,9 @@
                         <div class="form-row">
                             {% for tag in tags %}
                                 <div class="col-sm-3">
-                                    <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" name="tag[]" class="custom-control-input" value="{{ tag }}" id="tag-{{ loop.index }}">
-                                        <label class="custom-control-label" for="tag-{{ loop.index }}">{{ tag }}</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="tag[]" value="{{ tag }}" id="tag-{{ loop.index }}">
+                                        <label class="form-check-label" for="tag-{{ loop.index }}">{{ tag }}</label>
                                     </div>
                                 </div>
                             {% endfor %}
@@ -86,7 +86,7 @@
                     </div>
                     <div hidden class="card-body" data-classified-as="breaking deprecation feature important">
                         <label for="extensionTag">Core Extension</label>
-                        <select name="tag[]" id="extensionTag" class="custom-select" required>
+                        <select name="tag[]" id="extensionTag" class="form-select" required>
                             <option value=""></option>
                             {% for extensionKey in extensionKeys %}
                                 <option value="ext:{{ extensionKey }}">{{ extensionKey }}</option>
@@ -95,17 +95,17 @@
                     </div>
                     <div hidden class="card-body" data-classified-as="breaking deprecation">
                         <label>ExtensionScanner Tags</label>
-                        <div class="custom-control custom-radio">
-                            <input type="radio" id="tag-not-scanned" class="custom-control-input" name="tag[]" autocomplete="off" value="NotScanned" checked>
-                            <label class="custom-control-label" for="tag-not-scanned">Not scanned</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" id="tag-not-scanned" name="tag[]" autocomplete="off" value="NotScanned" checked>
+                            <label class="form-check-label" for="tag-not-scanned">Not scanned</label>
                         </div>
-                        <div class="custom-control custom-radio">
-                            <input type="radio" id="tag-partially-scanned" class="custom-control-input" name="tag[]" autocomplete="off" value="PartiallyScanned" checked>
-                            <label class="custom-control-label" for="tag-partially-scanned">Partially scanned</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" id="tag-partially-scanned" name="tag[]" autocomplete="off" value="PartiallyScanned" checked>
+                            <label class="form-check-label" for="tag-partially-scanned">Partially scanned</label>
                         </div>
-                        <div class="custom-control custom-radio">
-                            <input type="radio" id="tag-fully-scanned" class="custom-control-input" name="tag[]" autocomplete="off" value="FullyScanned" checked>
-                            <label class="custom-control-label" for="tag-fully-scanned">Fully scanned</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" id="tag-fully-scanned" name="tag[]" autocomplete="off" value="FullyScanned" checked>
+                            <label class="form-check-label" for="tag-fully-scanned">Fully scanned</label>
                         </div>
                         <small class="form-text text-muted"><a href="https://docs.typo3.org/typo3cms/CoreApiReference/ApiOverview/ExtensionScanner/Index.html#connection-to-changelog-rst-files" target="_blank" rel="noopener">More information about this tags</a></small>
                     </div>

@@ -6,9 +6,9 @@
             <div class="input-group">
                 <input type="text" name="query" placeholder="{{ searchPlaceholder }}" class="form-control" value="{{ (query is defined) ? query : '' }}">
                 <span class="input-group-text">
-                    <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input" id="customControlAutosizing" type="checkbox" name="searchClosed" value="1" aria-label="Search in closed tickets, too" {{ (searchClosed is defined) ? 'checked="checked"' : '' }}>
-                        <label class="custom-control-label" for="customControlAutosizing">Closed Tickets</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="customControlAutosizing" type="checkbox" name="searchClosed" value="1" aria-label="Search in closed tickets, too" {{ (searchClosed is defined) ? 'checked="checked"' : '' }}>
+                        <label class="form-check-label" for="customControlAutosizing">Closed Tickets</label>
                     </div>
                 </span>
                 <button type="submit" class="btn btn-success"><i class="fas fa-search"></i></button>

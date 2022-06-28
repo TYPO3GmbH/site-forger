@@ -93,9 +93,9 @@ class ForgerTwigExtension extends AbstractExtension
         }
 
         $content = [];
-        $content[] = '<div class="custom-control custom-checkbox">';
-        $content[] = '<input id="checkbox-' . $trackerType . '" type="checkbox" class="custom-control-input" name="trackerFilters[' . $trackerType . ']"' . $checked . ' value="true" />';
-        $content[] = '<label for="checkbox-' . $trackerType . '" class="custom-control-label">' . $label . '</label>';
+        $content[] = '<div class="form-check">';
+        $content[] = '<input class="form-check-input" id="checkbox-' . $trackerType . '" type="checkbox" name="trackerFilters[' . $trackerType . ']"' . $checked . ' value="true" />';
+        $content[] = '<label class="form-check-label" for="checkbox-' . $trackerType . '">' . $label . '</label>';
         $content[] = '</div>';
 
         return implode('', $content);
