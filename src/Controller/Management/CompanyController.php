@@ -33,31 +33,35 @@ class CompanyController extends AbstractController
 
     /**
      * @Route("/companies/management", name="management_companies")
+     *
      * @return JsonResponse
      */
     public function companies(): Response
     {
         return $this->render('management/company/list.html.twig', [
-            'companies' => $this->companyRepository->findAll()
+            'companies' => $this->companyRepository->findAll(),
         ]);
     }
 
     /**
      * @Route("/companies/management/manage/{id}", name="management_companies_manage")
-     * @param Request $request
+     *
+     * @param Request                $request
      * @param EntityManagerInterface $entityManager
-     * @param int $id
+     * @param int                    $id
+     *
      * @return Response
      */
     public function manageCompanyEntry(Request $request, EntityManagerInterface $entityManager, int $id = 0): Response
     {
-        if ($id === 0) {
+        if (0 === $id) {
             $entry = new Company();
         } else {
             $entry = $this->companyRepository->find($id);
 
-            if ($entry === null) {
+            if (null === $entry) {
                 $this->addFlash('danger', 'Invalid company requested.');
+
                 return $this->redirectToRoute('management_companies');
             }
         }
@@ -76,7 +80,7 @@ class CompanyController extends AbstractController
         return $this->render(
             'management/company/form.html.twig',
             [
-                'edit' => $entry->getId() !== null,
+                'edit' => null !== $entry->getId(),
                 'form' => $form->createView(),
             ]
         );
@@ -85,15 +89,16 @@ class CompanyController extends AbstractController
     /**
      * @Route("/companies/management/delete/{id}", name="management_company_delete")
      *
-     * @param int $id
+     * @param int                    $id
      * @param EntityManagerInterface $entityManager
+     *
      * @return Response
      */
     public function deleteCompany(int $id, EntityManagerInterface $entityManager): Response
     {
         $company = $this->companyRepository->findOneBy(['id' => $id]);
 
-        if ($company !== null) {
+        if (null !== $company) {
             $entityManager->remove($company);
             $entityManager->flush();
             $this->addFlash('success', 'Company "' . $company->getName() . '" deleted.');

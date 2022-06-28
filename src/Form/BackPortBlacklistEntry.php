@@ -26,7 +26,7 @@ class BackPortBlacklistEntry extends AbstractType
                 SubmitType::class,
                 [
                     'label' => 'Save',
-                    'attr' => ['class' => 'btn btn-primary pull-right'
+                    'attr' => ['class' => 'btn btn-primary pull-right',
                     ],
                 ]
             );
@@ -36,7 +36,7 @@ class BackPortBlacklistEntry extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => \App\Entity\BackportBlacklistEntry::class,
-            'csrf_protection' => getenv('APP_ENV') !== 'test',
+            'csrf_protection' => 'test' !== getenv('APP_ENV'),
             'entity_manager' => null,
         ]);
     }

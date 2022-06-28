@@ -145,8 +145,8 @@ class ImportCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $this->output = $output;
         $mode = $input->getOption('mode');
-        $startAt = (int)$input->getOption('startAt');
-        $this->sendNotifications = ($input->getOption('sendnotifications') !== false);
+        $startAt = (int) $input->getOption('startAt');
+        $this->sendNotifications = (false !== $input->getOption('sendnotifications'));
         if (!in_array($mode, self::$importModes, true)) {
             $io->note('Please select one of the modes: "' . implode('" ', self::$importModes) . '"');
         }
@@ -159,6 +159,7 @@ class ImportCommand extends Command
                         $this->release();
                     } else {
                         $output->writeln('Locked by another forge import');
+
                         return 0;
                     }
                     break;
@@ -168,6 +169,7 @@ class ImportCommand extends Command
                         $this->release();
                     } else {
                         $output->writeln('Locked by another forge import');
+
                         return 0;
                     }
                     break;
@@ -181,12 +183,13 @@ class ImportCommand extends Command
                         /** @noinspection PhpUnhandledExceptionInspection */
                         $result = $this->getReviewBlock(0, 100, $subBar, $progressBar);
                         foreach ($result as $review) {
-                            /** @noinspection PhpUnhandledExceptionInspection */
+                            /* @noinspection PhpUnhandledExceptionInspection */
                             $this->addDocumentToElastic($review, 'review');
                         }
                         $this->release();
                     } else {
                         $output->writeln('Locked by another gerrit import');
+
                         return 0;
                     }
                     break;
@@ -209,7 +212,7 @@ class ImportCommand extends Command
                                 /** @noinspection PhpUnhandledExceptionInspection */
                                 $result = $this->getReviewBlock($currentSlot, $perRun, $subBar, $progressBar);
                                 foreach ($result as $review) {
-                                    /** @noinspection PhpUnhandledExceptionInspection */
+                                    /* @noinspection PhpUnhandledExceptionInspection */
                                     $this->addDocumentToElastic($review, 'review');
                                 }
                             }
@@ -218,6 +221,7 @@ class ImportCommand extends Command
                         $this->release();
                     } else {
                         $output->writeln('Locked by another gerrit import');
+
                         return 0;
                     }
                     break;
@@ -227,9 +231,11 @@ class ImportCommand extends Command
                         $repo = $input->hasOption('repository') ? $input->getOption('repository') : null;
                         $this->importFromGithub($organization, $repo, $io);
                         $this->release();
+
                         return 0;
                     } else {
                         $output->writeln('Locked by another github import');
+
                         return 0;
                     }
                     break;
@@ -240,9 +246,11 @@ class ImportCommand extends Command
                         $pageCount = 1;
                         $this->importFromGithub($organization, $repo, $io, $pageCount);
                         $this->release();
+
                         return 0;
                     } else {
                         $output->writeln('Locked by another github import');
+
                         return 0;
                     }
                     break;
@@ -274,7 +282,7 @@ class ImportCommand extends Command
         if ($importDelta) {
             $totalCount = $perRun;
         } else {
-            $totalCount = (int)$data['total_count'];
+            $totalCount = (int) $data['total_count'];
         }
         $progressBar = new ProgressBar($this->output, $totalCount - $currentSlot);
         $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
@@ -291,7 +299,7 @@ class ImportCommand extends Command
                 ]
             );
             // break a soon as the API returns no more issues
-            if (count($result['issues']) === 0) {
+            if (0 === count($result['issues'])) {
                 break;
             }
             foreach ($result['issues'] as $doc) {
@@ -299,7 +307,7 @@ class ImportCommand extends Command
                     $this->getTicketAndJournal($doc);
                 } catch (Exception $e) {
                 }
-                /** @noinspection DisconnectedForeachInstructionInspection */
+                /* @noinspection DisconnectedForeachInstructionInspection */
                 $progressBar->advance();
             }
             $currentSlot += $perRun;
@@ -318,7 +326,7 @@ class ImportCommand extends Command
     private function getTicketAndJournal(array $issue): void
     {
         //import journals only if issue status is "Under review" (ID: 8)
-        if (isset($issue['status']['id']) && (int) $issue['status']['id'] === 8) {
+        if (isset($issue['status']['id']) && 8 === (int) $issue['status']['id']) {
             /** @noinspection PhpUndefinedMethodInspection */
             $issueWithJournals = $this->forgeClient->api('issue')->show($issue['id'], ['include' => ['journals']]);
             if (is_array($issueWithJournals)) {
@@ -336,7 +344,7 @@ class ImportCommand extends Command
             foreach ($pageOfNames as $repositories) {
                 foreach ($repositories as $repo) {
                     // we don't want to import the core repo again (and no forks in other orgs either)
-                    if ($repo === 'TYPO3.CMS') {
+                    if ('TYPO3.CMS' === $repo) {
                         continue;
                     }
                     $this->importRepoFromGithub($io, $organization, $repo, $pageCount);
@@ -349,8 +357,9 @@ class ImportCommand extends Command
 
     /**
      * @param SymfonyStyle $io
-     * @param string $organization
+     * @param string       $organization
      * @param $repo
+     *
      * @throws \JsonException
      */
     protected function importRepoFromGithub(SymfonyStyle $io, string $organization, string $repo, ?int $pageCount): void
@@ -383,19 +392,21 @@ class ImportCommand extends Command
             $this->userCache[$userId] = $userRecord['user']['mail'] ?? '';
         }
         $issue['author']['email'] = $this->userCache[$userId];
+
         return $issue;
     }
 
     /**
-     * @param int $current
-     * @param int $perRun
+     * @param int         $current
+     * @param int         $perRun
      * @param ProgressBar $subBar
      * @param ProgressBar $mainProgressbar
+     *
      * @return array
      *
      * @throws Exception
      */
-    protected function getReviewBlock(int $current, int $perRun, ProgressBar $subBar, ProgressBar $mainProgressbar) : array
+    protected function getReviewBlock(int $current, int $perRun, ProgressBar $subBar, ProgressBar $mainProgressbar): array
     {
         $moreChanges = false;
         $out = [];
@@ -404,12 +415,13 @@ class ImportCommand extends Command
                 '&start=' . $current . '&o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_FILES&o=CURRENT_COMMIT&o=MESSAGES&o=DETAILED_ACCOUNTS');
         } catch (Exception $e) {
             $this->logger->warning($e->getMessage());
+
             return $out;
         }
         $data = json_decode(str_replace(")]}'", '', $json), true);
         $foo = '';
         foreach ($data as $change) {
-            /** @noinspection DisconnectedForeachInstructionInspection */
+            /* @noinspection DisconnectedForeachInstructionInspection */
             $mainProgressbar->advance();
             $labels = $this->extractLabels($change['labels']);
             if (!array_key_exists('mergeable', $change)) {
@@ -509,27 +521,27 @@ class ImportCommand extends Command
                     }
                 } catch (Exception $e) {
                     if (
-                        strpos($message['message'], 'Change could not be merged due to a path conflict') === false
+                        false === strpos($message['message'], 'Change could not be merged due to a path conflict')
                         &&
-                        strpos($message['message'], 'The change could not be merged due to a path conflict') === false
+                        false === strpos($message['message'], 'The change could not be merged due to a path conflict')
                         &&
-                        strpos($message['message'], 'Your change could not be merged due to a path conflict') === false
+                        false === strpos($message['message'], 'Your change could not be merged due to a path conflict')
                         &&
-                        strpos($message['message'], 'Change has been successfully pushed into branch sandbox') === false
+                        false === strpos($message['message'], 'Change has been successfully pushed into branch sandbox')
                         &&
-                        strpos($message['message'], 'Change could not be merged because of a missing dependency') === false
+                        false === strpos($message['message'], 'Change could not be merged because of a missing dependency')
                     ) {
                         throw new RuntimeException($e->getMessage());
                     }
                 }
-                /** @noinspection DisconnectedForeachInstructionInspection */
+                /* @noinspection DisconnectedForeachInstructionInspection */
                 $subBar->advance();
             }
 
             $author = $change['revisions'][$change['current_revision']]['commit']['author']['name'];
             $authorEmail = $change['revisions'][$change['current_revision']]['commit']['author']['email'];
             $filesInPatchset = array_keys($change['revisions'][$change['current_revision']]['files']);
-            if ((int)$change['_number'] === 11918) {
+            if (11918 === (int) $change['_number']) {
                 $change['revisions'][$change['current_revision']]['commit']['message'] = '6.0';
             }
 
@@ -542,7 +554,7 @@ class ImportCommand extends Command
                 'subject' => $change['subject'],
                 'branch' => $change['branch'],
                 'topic' => array_key_exists('topic', $change) ? $change['topic'] : 'no topic',
-                'mergeable' => ($change['mergeable'] === true) ? 'yes' : 'no',
+                'mergeable' => (true === $change['mergeable']) ? 'yes' : 'no',
                 'affected_files' => count($change['revisions'][$change['current_revision']]['files']),
                 'insertions' => $change['insertions'],
                 'deletions' => $change['deletions'],
@@ -566,9 +578,10 @@ class ImportCommand extends Command
                 $moreChanges = true;
             }
         }
-        if ($moreChanges === false) {
+        if (false === $moreChanges) {
             $this->moreIssuesFromGerrit = false;
         }
+
         return $out;
     }
 
@@ -576,10 +589,10 @@ class ImportCommand extends Command
      * @param string $message
      *
      * @return array
-     *@throws Exception
      *
+     *@throws Exception
      */
-    protected function extractReleases($message) : array
+    protected function extractReleases($message): array
     {
         // Fix fucked up lines in message
         $searches = ['Release: ',  '7,6'];
@@ -617,10 +630,10 @@ class ImportCommand extends Command
      * @param array $labels
      *
      * @return array
-     *@throws Exception
      *
+     *@throws Exception
      */
-    protected function extractLabels(array $labels) : array
+    protected function extractLabels(array $labels): array
     {
         $out = [
             'positive_reviews' => 0,
@@ -680,6 +693,7 @@ class ImportCommand extends Command
                 $patchTags[] = $match[1];
             }
         }
+
         return $patchTags;
     }
 
@@ -690,10 +704,10 @@ class ImportCommand extends Command
      * @param string $delim             Delimiter string to explode with
      * @param string $string            The string to explode
      * @param bool   $removeEmptyValues If set, all empty values will be removed in output
-
+     *
      * @return array Exploded values
      */
-    public function trimExplode($delim, $string, $removeEmptyValues = false) : array
+    public function trimExplode($delim, $string, $removeEmptyValues = false): array
     {
         $explodedValues = explode($delim, $string);
 
@@ -702,7 +716,7 @@ class ImportCommand extends Command
         if ($removeEmptyValues) {
             $temp = [];
             foreach ($result as $value) {
-                if ($value !== '') {
+                if ('' !== $value) {
                     $temp[] = $value;
                 }
             }
@@ -774,7 +788,7 @@ class ImportCommand extends Command
                 break;
             default:
         }
-        if ($elasticType !== null) {
+        if (null !== $elasticType) {
             if (isset($document['interaction_id'])) {
                 $doc = new Document($document['interaction_id'] . '-' . $document['interaction_type'], $document);
             } else {
@@ -789,10 +803,11 @@ class ImportCommand extends Command
      * @param string $source
      *
      * @return string
+     *
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    protected function fixDateFormat(string $dateTimeString, string $source) : string
+    protected function fixDateFormat(string $dateTimeString, string $source): string
     {
         switch ($source) {
             case 'Redmine':
@@ -809,6 +824,7 @@ class ImportCommand extends Command
         if (!$dateTime) {
             throw new InvalidArgumentException('Date format for "' . $dateTimeString . '" could not be parsed');
         }
+
         return $dateTime->format('Y/m/d H:i:s');
     }
 
@@ -834,30 +850,35 @@ class ImportCommand extends Command
     private function checkIfMessageIsCodeReview(string $message): bool
     {
         $pattern = '^Patch\sSet\s\d{1,4}:\s.*(Code-Review)(-|\+)(1|2)';
+
         return $this->checkRegex($message, $pattern);
     }
 
     private function checkIfMessageIsVerification(string $message): bool
     {
         $pattern = '^Patch\sSet\s\d{1,4}:\s.*(Verified)(-|\+)(1|2)';
+
         return $this->checkRegex($message, $pattern);
     }
 
     private function checkIfMessageIsAbandoning(string $message): bool
     {
         $pattern = '^Abandoned';
+
         return $this->checkRegex($message, $pattern);
     }
 
     private function checkIfMessageIsMerge(string $message): bool
     {
         $pattern = 'Change has been successfully cherry-picked as \b[0-9a-f]{40}\b';
+
         return $this->checkRegex($message, $pattern);
     }
 
     private function checkIfMessageIsBackport(string $message): bool
     {
         $pattern = 'This patchset was cherry picked to branch.*? as commit \b[0-9a-f]{40}\b';
+
         return $this->checkRegex($message, $pattern);
     }
 
@@ -867,13 +888,15 @@ class ImportCommand extends Command
         if (isset($matches[0])) {
             return true;
         }
+
         return false;
     }
 
     /**
-     * @param array $data
+     * @param array  $data
      * @param string $interactionType
      * @param string $messageId
+     *
      * @return array
      */
     private function buildRevisionArray(array $data, string $interactionType, string $messageId): array
@@ -904,7 +927,7 @@ class ImportCommand extends Command
             ->addField('Status', $data['status']['name'], true)
             ->addField('Tracker', $data['tracker']['name'], true)
             ->setColorWithHexValue('32CD32');
-        if ($data['tracker']['name'] === 'Bug') {
+        if ('Bug' === $data['tracker']['name']) {
             $message->setColorWithHexValue('B22222');
         }
         $message->setUsername('Forger');
@@ -916,7 +939,7 @@ class ImportCommand extends Command
                 'Could not deliver message to Discord',
                 [
                     'statusCode' => $e->getResponse()->getStatusCode(),
-                    'responseBody' => (string)$e->getResponse()->getBody(),
+                    'responseBody' => (string) $e->getResponse()->getBody(),
                 ]
             );
         } catch (GuzzleException $e) {

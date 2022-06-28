@@ -101,6 +101,7 @@ class Mergeable extends ReviewChart
 
         $search = $this->index->createSearch($query);
         $resultSet = $search->search();
+
         return $resultSet->getTotalHits();
     }
 }

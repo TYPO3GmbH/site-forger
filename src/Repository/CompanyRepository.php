@@ -28,7 +28,7 @@ class CompanyRepository extends ServiceEntityRepository
     /**
      * Finds all entities in the repository.
      *
-     * @return array The entities.
+     * @return array the entities
      */
     public function findAll()
     {

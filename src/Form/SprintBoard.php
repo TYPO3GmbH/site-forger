@@ -32,7 +32,7 @@ class SprintBoard extends AbstractType
                 [
                     'required' => true,
                     'label' => 'Identifier (only allowed lodwer case and -)',
-                    'attr' => ['pattern' => '^[a-z0-9]+(?:-[a-z0-9]+)*$']
+                    'attr' => ['pattern' => '^[a-z0-9]+(?:-[a-z0-9]+)*$'],
                 ]
             )
             ->add(
@@ -43,7 +43,7 @@ class SprintBoard extends AbstractType
                     'required' => true,
                     'mapped' => false,
                     'label' => 'Category',
-                    'attr' => ['class' => 'form-control']
+                    'attr' => ['class' => 'form-control'],
                 ]
             )
             ->add(
@@ -53,8 +53,8 @@ class SprintBoard extends AbstractType
                     'attr' => [
                         'class' => 'form-control text-monospace',
                         'rows' => 20,
-                        'data-editor' => 'yaml'
-                    ]
+                        'data-editor' => 'yaml',
+                    ],
                 ]
             )
             ->add(
@@ -62,7 +62,7 @@ class SprintBoard extends AbstractType
                 SubmitType::class,
                 [
                     'label' => 'Save',
-                    'attr' => ['class' => 'btn btn-primary pull-right'
+                    'attr' => ['class' => 'btn btn-primary pull-right',
                 ],
             ]
             );
@@ -72,7 +72,7 @@ class SprintBoard extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => \App\Entity\SprintBoard::class,
-            'csrf_protection' => getenv('APP_ENV') !== 'test',
+            'csrf_protection' => 'test' !== getenv('APP_ENV'),
             'entity_manager' => null,
         ]);
     }

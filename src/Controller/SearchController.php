@@ -38,8 +38,11 @@ class SearchController extends AbstractController
 
     /**
      * @Route(name="search")
+     *
      * @param Request $request
+     *
      * @return Response
+     *
      * @throws Exception
      */
     public function searchAction(Request $request): Response
@@ -47,7 +50,7 @@ class SearchController extends AbstractController
         $viewData = [];
         $query = $request->get('query');
         $searchClosed = false;
-        if ($request->get('searchClosed') && (int)$request->get('searchClosed') === 1) {
+        if ($request->get('searchClosed') && 1 === (int) $request->get('searchClosed')) {
             $searchClosed = true;
         }
         $results = [];
@@ -74,6 +77,7 @@ class SearchController extends AbstractController
             $viewData['filters'] = $_GET['filters'];
         }
         $viewData['routeName'] = 'search_search';
+
         return $this->render('search/search.html.twig', $viewData);
     }
 
@@ -82,7 +86,7 @@ class SearchController extends AbstractController
      *
      * @return bool
      */
-    protected function checkIfQueryIsIssue($query) : bool
+    protected function checkIfQueryIsIssue($query): bool
     {
         $result = false;
         $pattern = '(^[0-9]{4,6}$)';
@@ -102,7 +106,7 @@ class SearchController extends AbstractController
      *
      * @throws Exception
      */
-    private function findDupes($issueId, $searchInClosedIssues = false) : array
+    private function findDupes($issueId, $searchInClosedIssues = false): array
     {
         $query = [
             'query' => [
@@ -155,6 +159,7 @@ class SearchController extends AbstractController
         try {
             $res = $forger->getDocument($issueId);
             $data = $res->getData();
+
             return $data;
         } catch (Exception $e) {
             $data = [
@@ -173,7 +178,7 @@ class SearchController extends AbstractController
      *
      * @throws Exception
      */
-    private function findByQuery($searchTerms, $searchInClosedIssues = false) : array
+    private function findByQuery($searchTerms, $searchInClosedIssues = false): array
     {
         $searchTerms = $this->escape($searchTerms);
         $query = [
@@ -215,7 +220,7 @@ class SearchController extends AbstractController
      *
      * @return string
      */
-    public function escape($value) : string
+    public function escape($value): string
     {
         //list taken from http://lucene.apache.org/java/docs/queryparsersyntax.html#Escaping%20Special%20Characters
         $pattern = '/(\+|-|&&|\|\||!|\(|\)|\{|}|\[|]|\^|"|~|\*|\?|:|\\\)/';
@@ -233,7 +238,7 @@ class SearchController extends AbstractController
      *
      * @throws Exception
      */
-    public function doSearch(array $query) : array
+    public function doSearch(array $query): array
     {
         if (array_key_exists('page', $_GET)) {
             $this->currentPage = (int) $_GET['page'];
@@ -291,16 +296,16 @@ class SearchController extends AbstractController
             $filterCatCount = 0;
             $filterPart = new Query\BoolQuery();
             foreach ($filterValue as $term => $enabled) {
-                if ($enabled === 'true') {
+                if ('true' === $enabled) {
                     $term = str_replace('_', ' ', $term);
                     $filter = new Query\Term();
-                    if ($key === 'tracker'
-                        || $key === 'project'
-                        || $key === 'category'
-                        || $key === 'status'
-                        || $key === 'author'
-                        || $key === 'priority'
-                        || $key === 'fixed_version'
+                    if ('tracker' === $key
+                        || 'project' === $key
+                        || 'category' === $key
+                        || 'status' === $key
+                        || 'author' === $key
+                        || 'priority' === $key
+                        || 'fixed_version' === $key
                     ) {
                         $filter->setTerm($key . '.name', $term);
                     } else {
@@ -314,6 +319,7 @@ class SearchController extends AbstractController
                 $filters->addMust($filterPart);
             }
         }
+
         return $filters;
     }
 
@@ -378,13 +384,11 @@ class SearchController extends AbstractController
     /**
      * @return array
      */
-    protected function getPages() : array
+    protected function getPages(): array
     {
         $numPages = ceil($this->totalHits / $this->perPage);
         $i = 0;
-        /*
-         *
-         */
+
         $maxPages = $numPages;
         if ($numPages > 15 && $this->currentPage <= 7) {
             $numPages = 15;
