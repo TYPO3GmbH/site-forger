@@ -36,21 +36,21 @@ class EmploymentTime extends AbstractType
                 'choice_value' => 'id',
                 'choice_label' => 'name',
                 'attr' => [
-                    'class' => 'form-control'
+                    'class' => 'form-control',
                 ],
             ])
             ->add('employed_from', DateType::class, [
                 'required' => true,
                 'widget' => 'single_text',
                 'attr' => [
-                    'class' => 'form-control'
+                    'class' => 'form-control',
                 ],
             ])
             ->add('employed_to', DateType::class, [
                 'required' => false,
                 'widget' => 'single_text',
                 'attr' => [
-                    'class' => 'form-control'
+                    'class' => 'form-control',
                 ],
             ])
             ->add(
@@ -70,6 +70,7 @@ class EmploymentTime extends AbstractType
                 if ($employedFrom instanceof \DateTimeInterface) {
                     $employedFrom->setTime(0, 0);
                 }
+
                 return $employedFrom;
             }
         ));
@@ -81,6 +82,7 @@ class EmploymentTime extends AbstractType
                 if ($employedTo instanceof \DateTimeInterface) {
                     $employedTo->setTime(23, 59, 59);
                 }
+
                 return $employedTo;
             }
         ));
@@ -90,7 +92,7 @@ class EmploymentTime extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => \App\Entity\EmploymentTime::class,
-            'csrf_protection' => getenv('APP_ENV') !== 'test',
+            'csrf_protection' => 'test' !== getenv('APP_ENV'),
             'entity_manager' => null,
         ]);
     }

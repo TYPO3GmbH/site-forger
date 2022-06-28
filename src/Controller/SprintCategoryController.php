@@ -57,12 +57,13 @@ class SprintCategoryController extends AbstractController
      * @IsGranted("ROLE_ADMIN")
      *
      * @param Request $request
+     *
      * @return Response
      */
     public function create(Request $request): Response
     {
         $category = new SprintBoardCategory();
-        $form =  $this->createForm(SprintBoardCategoryType::class, $category);
+        $form = $this->createForm(SprintBoardCategoryType::class, $category);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -82,7 +83,8 @@ class SprintCategoryController extends AbstractController
      * @IsGranted("ROLE_ADMIN")
      *
      * @param Request $request
-     * @param int $categoryId
+     * @param int     $categoryId
+     *
      * @return Response
      */
     public function edit(Request $request, int $categoryId): Response
@@ -91,7 +93,7 @@ class SprintCategoryController extends AbstractController
         if (null === $category) {
             return $this->redirectToRoute('sprintcategory_create');
         }
-        $form =  $this->createForm(SprintBoardCategoryType::class, $category);
+        $form = $this->createForm(SprintBoardCategoryType::class, $category);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -111,7 +113,8 @@ class SprintCategoryController extends AbstractController
      * @IsGranted("ROLE_ADMIN")
      *
      * @param Request $request
-     * @param int $categoryId
+     * @param int     $categoryId
+     *
      * @return Response
      */
     public function delete(Request $request, int $categoryId): Response

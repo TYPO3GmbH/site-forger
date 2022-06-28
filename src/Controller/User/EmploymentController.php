@@ -42,11 +42,13 @@ class EmploymentController extends AbstractController
 
     /**
      * @Route("/user/employment", name="user_employment")
+     *
      * @return Response
      */
     public function companyEmployment(): Response
     {
         $employmentTimes = $this->employmentTimeRepository->findByUsername($this->tokenStorage->getToken()->getUsername());
+
         return $this->render('user/employment/list.html.twig', [
             'employmentTimes' => $employmentTimes,
         ]);
@@ -54,21 +56,24 @@ class EmploymentController extends AbstractController
 
     /**
      * @Route("/user/employment/manage/{id}", name="user_employment_manage")
-     * @param Request $request
+     *
+     * @param Request                $request
      * @param EntityManagerInterface $entityManager
-     * @param int $id
+     * @param int                    $id
+     *
      * @return Response
      */
     public function manageCompanyEmployment(Request $request, EntityManagerInterface $entityManager, int $id = 0): Response
     {
-        if ($id === 0) {
+        if (0 === $id) {
             $entry = new EmploymentTime();
             $entry->setAccount($this->tokenStorage->getToken()->getUsername());
         } else {
             $entry = $this->employmentTimeRepository->findOneBy(['id' => $id, 'account' => $this->tokenStorage->getToken()->getUsername()]);
 
-            if ($entry === null) {
+            if (null === $entry) {
                 $this->addFlash('danger', 'Invalid employment given or not permitted.');
+
                 return $this->redirectToRoute('user_employment');
             }
         }
@@ -81,13 +86,14 @@ class EmploymentController extends AbstractController
             $entityManager->flush();
 
             $this->addFlash('success', 'Employment for company "' . $entry->getCompany()->getName() . '" saved.');
+
             return $this->redirectToRoute('user_employment');
         }
 
         return $this->render(
             'user/employment/form.html.twig',
             [
-                'edit' => $entry->getId() === null,
+                'edit' => null === $entry->getId(),
                 'form' => $form->createView(),
             ]
         );
@@ -97,15 +103,16 @@ class EmploymentController extends AbstractController
      * @Route("/user/employment/delete/{id}", name="user_employment_delete")
      * @IsGranted("ROLE_ADMIN")
      *
-     * @param int $id
+     * @param int                    $id
      * @param EntityManagerInterface $entityManager
+     *
      * @return Response
      */
     public function deleteCompanyEmployment(int $id, EntityManagerInterface $entityManager): Response
     {
         $employment = $this->employmentTimeRepository->findOneBy(['id' => $id, 'account' => $this->tokenStorage->getToken()->getUsername()]);
 
-        if ($employment !== null) {
+        if (null !== $employment) {
             $entityManager->remove($employment);
             $entityManager->flush();
             $this->addFlash('success', 'Employment for company "' . $employment->getCompany()->getName() . '" deleted.');

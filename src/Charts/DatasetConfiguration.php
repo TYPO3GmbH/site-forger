@@ -31,6 +31,7 @@ final class DatasetConfiguration
     public function setData(array $data): self
     {
         $this->data = $data;
+
         return $this;
     }
 
@@ -38,7 +39,7 @@ final class DatasetConfiguration
     {
         return array_merge([
             'label' => $this->label,
-            'data' => $this->data
+            'data' => $this->data,
         ], $this->options);
     }
 }

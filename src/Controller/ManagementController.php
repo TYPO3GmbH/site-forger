@@ -50,7 +50,7 @@ class ManagementController extends AbstractController
         'Tom Warwick',
         'Alexander Nitsche',
         'flicstar',
-        'Susanne Moog'
+        'Susanne Moog',
     ];
 
     /**
@@ -158,6 +158,7 @@ class ManagementController extends AbstractController
             }
         }
         $viewData['aggs'] = $out;
+
         return $this->render('management/index.html.twig', $viewData);
     }
 
@@ -194,7 +195,7 @@ class ManagementController extends AbstractController
                 'category' => [
                     'terms' => [
                         'field' => 'category.name',
-                        'size' => 1000
+                        'size' => 1000,
                     ],
                     'aggregations' => [
                         'tracker' => [
@@ -216,13 +217,14 @@ class ManagementController extends AbstractController
                 'Feature' => 0,
                 'Task' => 0,
                 'Story' => 0,
-                'Epic' => 0
+                'Epic' => 0,
             ];
             foreach ($category['tracker']['buckets'] as $tracker) {
                 $viewData[$category['key']][$tracker['key']] = $tracker['doc_count'];
             }
             ksort($viewData);
         }
+
         return $this->render('management/bycategory.html.twig', ['data' => $viewData]);
     }
 
@@ -243,15 +245,15 @@ class ManagementController extends AbstractController
                         [
                             'range' => [
                                 'interacted_on' => [
-                                    'gte' => 'now-5M'
-                                ]
-                            ]
+                                    'gte' => 'now-5M',
+                                ],
+                            ],
                         ],
                         [
                             'terms' => [
                                 'fullname' => $this->coreMergers,
-                            ]
-                        ]
+                            ],
+                        ],
                     ],
                 ],
             ],
@@ -276,7 +278,7 @@ class ManagementController extends AbstractController
                                 ],
                             ],
                         ],
-                    ]
+                    ],
                 ],
             ],
         ];
@@ -299,9 +301,10 @@ class ManagementController extends AbstractController
             }
         }
         krsort($out);
+
         return $this->render('management/interactions.html.twig', [
             'aggs' => $out,
-            'coreTeamMergers' => $this->coreMergers
+            'coreTeamMergers' => $this->coreMergers,
         ]);
     }
 
@@ -322,15 +325,15 @@ class ManagementController extends AbstractController
                         [
                             'range' => [
                                 'interacted_on' => [
-                                    'gte' => 'now-5M'
-                                ]
-                            ]
+                                    'gte' => 'now-5M',
+                                ],
+                            ],
                         ],
                         [
                             'terms' => [
                                 'fullname' => $this->docTeam,
-                            ]
-                        ]
+                            ],
+                        ],
                     ],
                 ],
             ],
@@ -355,7 +358,7 @@ class ManagementController extends AbstractController
                                 ],
                             ],
                         ],
-                    ]
+                    ],
                 ],
             ],
         ];
@@ -378,9 +381,10 @@ class ManagementController extends AbstractController
             }
         }
         krsort($out);
+
         return $this->render('management/docs-interactions.html.twig', [
             'aggs' => $out,
-            'docTeam' => $this->docTeam
+            'docTeam' => $this->docTeam,
         ]);
     }
 
@@ -397,8 +401,10 @@ class ManagementController extends AbstractController
      *     },
      *     name="management_leaderboard"
      * )
-     * @param string $type The type of board to show. Possible values are "individual" and "company"
+     *
+     * @param string $type      The type of board to show. Possible values are "individual" and "company"
      * @param string $dateRange
+     *
      * @return Response
      */
     public function leaderBoard(string $type, string $dateRange): Response
@@ -408,34 +414,34 @@ class ManagementController extends AbstractController
             'individual' => [
                 'title' => 'Individual contribution',
                 'active' => false,
-                'type' => 'individual'
+                'type' => 'individual',
             ],
             'company' => [
                 'title' => 'Company contribution',
                 'active' => false,
-                'type' => 'company'
-            ]
+                'type' => 'company',
+            ],
         ];
         $dateNav = [
             'week' => [
                 'title' => 'per week',
                 'active' => false,
-                'type' => 'week'
+                'type' => 'week',
             ],
             'month' => [
                 'title' => 'per month',
                 'active' => false,
-                'type' => 'month'
+                'type' => 'month',
             ],
             'quarter' => [
                 'title' => 'per quarter',
                 'active' => false,
-                'type' => 'quarter'
+                'type' => 'quarter',
             ],
             'year' => [
                 'title' => 'per year',
                 'active' => false,
-                'type' => 'year'
+                'type' => 'year',
             ],
         ];
         // Set active states
@@ -445,7 +451,7 @@ class ManagementController extends AbstractController
         // Set fields to aggregate on
         $aggregationTypeField = 'fullname';
         $title = 'Individual contribution';
-        if ($type === 'company') {
+        if ('company' === $type) {
             $aggregationTypeField = 'company';
             $title = 'Company contribution';
         }
@@ -478,8 +484,8 @@ class ManagementController extends AbstractController
                             'range' => [
                                 'interacted_on' => [
                                     'gte' => $dateStart,
-                                ]
-                            ]
+                                ],
+                            ],
                         ],
                     ],
                     'must_not' => [
@@ -489,10 +495,10 @@ class ManagementController extends AbstractController
                                     'TYPO3com',
                                     'Mr. Jenkins',
                                     'core-ci',
-                                ]
-                            ]
-                        ]
-                    ]
+                                ],
+                            ],
+                        ],
+                    ],
                 ],
             ],
             'size' => 0,
@@ -508,8 +514,8 @@ class ManagementController extends AbstractController
                                 'field' => $aggregationTypeField,
                                 'size' => 20,
                                 'order' => [
-                                    'points' => 'desc'
-                                ]
+                                    'points' => 'desc',
+                                ],
                             ],
                             'aggregations' => [
                                 'points' => [
@@ -538,13 +544,14 @@ class ManagementController extends AbstractController
             }
         }
         krsort($out);
+
         return $this->render('management/leaderboard.html.twig', [
             'aggs' => $out,
             'headline' => $title,
             'typeMenu' => $typeNav,
             'dateMenu' => $dateNav,
             'type' => $type,
-            'dateRange' => $dateRange
+            'dateRange' => $dateRange,
         ]);
     }
 
@@ -589,6 +596,7 @@ class ManagementController extends AbstractController
                 $dateRangeIdentifier = $monthParts[0];
                 break;
         }
+
         return $dateRangeIdentifier;
     }
 
@@ -600,10 +608,11 @@ class ManagementController extends AbstractController
                 throw new InvalidArgumentException('Taggles need to be strings');
             }
             $result = preg_replace("/[^[:alnum:][:space:][ß]-.']/u", '', html_entity_decode($taggle));
-            if (trim($result) !== '') {
+            if ('' !== trim($result)) {
                 $sanitizedArray[$index] = $result;
             }
         }
+
         return $sanitizedArray;
     }
 }

@@ -96,7 +96,7 @@ class BackportCommand extends Command
                 $hasAllBackports = false;
             } else {
                 foreach ($workingArray[$changeId]['releases'] as $review) {
-                    if (is_array($review) && $review['reviewstatus'] === 'NEW') {
+                    if (is_array($review) && 'NEW' === $review['reviewstatus']) {
                         $hasAllBackports = false;
                     }
                 }
@@ -104,7 +104,7 @@ class BackportCommand extends Command
             if ($hasAllBackports) {
                 unset($workingArray[$changeId]);
             }
-            /** @noinspection DisconnectedForeachInstructionInspection */
+            /* @noinspection DisconnectedForeachInstructionInspection */
             $progressBar->advance();
         }
         $finalFilePath = $this->parameters->get('kernel.project_dir') . '/var/backports.json';
@@ -115,7 +115,9 @@ class BackportCommand extends Command
 
     /**
      * @param int $changeId
+     *
      * @return array
+     *
      * @throws RuntimeException
      * @throws InvalidException
      */
@@ -146,12 +148,13 @@ class BackportCommand extends Command
         $query = ElasticUtility::getIndexByName('interactions')->createSearch($fullRequest);
         $resultSet = $query->search();
         $results = $resultSet->getResults();
-        if (count($results) > 1 && $results[0]->getData()['interaction_source_id'] !== 57284) {
+        if (count($results) > 1 && 57284 !== $results[0]->getData()['interaction_source_id']) {
             throw new RuntimeException('More than one merger found?');
         }
         if (count($results) > 0) {
             return $results[0]->getSource();
         }
+
         return [];
     }
 
@@ -228,11 +231,13 @@ class BackportCommand extends Command
         ];
         $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
         $resultSet = $query->search();
+
         return $resultSet->getResults();
     }
 
     /**
      * @param string $changeId
+     *
      * @return Result[]
      */
     protected function getReviewsByChangeId(string $changeId): array
@@ -255,13 +260,16 @@ class BackportCommand extends Command
         ];
         $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
         $resultSet = $query->search();
+
         return $resultSet->getResults();
     }
 
     /**
      * @param string $release
-     * @param array $relatedChanges
+     * @param array  $relatedChanges
+     *
      * @return mixed|string
+     *
      * @throws InvalidException
      */
     protected function compareReleaseAndRelatedChanges(string $release, array $relatedChanges)
@@ -269,7 +277,7 @@ class BackportCommand extends Command
         $returnValue = 'missing';
         foreach ($relatedChanges as $relatedChange) {
             $relatedChange = $relatedChange->getSource();
-            if ($relatedChange['reviewstatus'] === 'MERGED') {
+            if ('MERGED' === $relatedChange['reviewstatus']) {
                 $mergingPerson = $this->getPersonWhoMergedTheChange($relatedChange['id']);
                 $relatedChange['owner'] = $mergingPerson['fullname'] ?? '';
             }
@@ -280,6 +288,7 @@ class BackportCommand extends Command
                 return $relatedChange;
             }
         }
+
         return $returnValue;
     }
 }
