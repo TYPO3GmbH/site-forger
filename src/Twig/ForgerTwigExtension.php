@@ -33,11 +33,11 @@ class ForgerTwigExtension extends AbstractExtension
         $activeCount = 0;
         foreach ($buckets as $bucket) {
             $key = $this->fixWording($bucket['key'], false);
-            if (isset($_GET['filters'][$category][$key]) && $_GET['filters'][$category][$key] === 'true') {
+            if (isset($_GET['filters'][$category][$key]) && 'true' === $_GET['filters'][$category][$key]) {
                 ++$activeCount;
             }
         }
-        if ($activeCount === 0) {
+        if (0 === $activeCount) {
             return '';
         }
 
@@ -52,7 +52,7 @@ class ForgerTwigExtension extends AbstractExtension
         $key = $this->fixWording($bucket['key'], false);
 
         // check if checkbox has been set
-        if (isset($_GET['filters'][$category][$key]) && $_GET['filters'][$category][$key] === 'true') {
+        if (isset($_GET['filters'][$category][$key]) && 'true' === $_GET['filters'][$category][$key]) {
             $checked = ' checked';
         } else {
             $checked = '';
@@ -80,6 +80,7 @@ class ForgerTwigExtension extends AbstractExtension
          * Kill off all attributes because we don't want them
          */
         $parsedText = preg_replace('/<([a-z][a-z0-9]*)[^>]*?(\/?)>/i', '<$1$2>', $parsedText);
+
         return $parsedText;
     }
 
@@ -120,9 +121,10 @@ class ForgerTwigExtension extends AbstractExtension
      * @param string $year
      * @param string $month
      * @param string $status
+     *
      * @return string
      */
-    public function forgeLink(string $year, string $month, $status = 'o') : string
+    public function forgeLink(string $year, string $month, $status = 'o'): string
     {
         $redmineUrl = 'https://forge.typo3.org/projects/typo3cms-core/issues?set_filter=1';
         // @todo figure out how to work with the server-team forger here
@@ -142,7 +144,7 @@ class ForgerTwigExtension extends AbstractExtension
      *
      * @return string
      */
-    protected function getLastDayOfMonth($year = '', $month = '') : string
+    protected function getLastDayOfMonth($year = '', $month = ''): string
     {
         $dateString = $year . '-' . $month . '-16';
 
@@ -152,7 +154,7 @@ class ForgerTwigExtension extends AbstractExtension
     /**
      * @return string
      */
-    protected function getColumnsString() : string
+    protected function getColumnsString(): string
     {
         $string = '';
         $columns = [
@@ -179,7 +181,7 @@ class ForgerTwigExtension extends AbstractExtension
      *
      * @return string
      */
-    protected function getFiltersString($year, $month, $statusId, TrackerFilters $trackerFilters = null) : string
+    protected function getFiltersString($year, $month, $statusId, TrackerFilters $trackerFilters = null): string
     {
         if (!$trackerFilters) {
             $trackerFilters = new TrackerFilters();
@@ -224,7 +226,7 @@ class ForgerTwigExtension extends AbstractExtension
         if (!$trackerFilters->isStory()) {
             $filters['tracker_id']['values'][] = '6';
         }
-        if ($statusId === 'o') {
+        if ('o' === $statusId) {
             $filters['status_id']['type'] = 'o';
             $filters['status_id']['values'] = [];
         }

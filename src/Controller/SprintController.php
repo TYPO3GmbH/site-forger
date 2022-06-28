@@ -73,13 +73,17 @@ class SprintController extends AbstractController
 
     /**
      * @Route("/sprint/reviews/{reviewType}", defaults={"reviewType"="bugfix"}, name="sprint_reviews")
+     *
      * @param string $reviewType
+     *
      * @return Response
+     *
      * @throws Exception
      */
     public function reviewSprintAction(string $reviewType): Response
     {
         $reviewBoardData = $this->getReviewBoardData($reviewType);
+
         return $this->render('sprint/review.html.twig', [
             'menu' => $this->makeReviewMenu($reviewType),
             'cards' => $reviewBoardData,
@@ -90,8 +94,9 @@ class SprintController extends AbstractController
      * @Route("/sprint/create", name="sprint_create")
      * @IsGranted("ROLE_ADMIN")
      *
-     * @param Request $request
+     * @param Request                $request
      * @param EntityManagerInterface $entityManager
+     *
      * @return Response
      */
     public function createSprint(
@@ -127,9 +132,10 @@ class SprintController extends AbstractController
      * @Route("/sprint/edit/{sprintId}", name="sprint_edit")
      * @IsGranted("ROLE_ADMIN")
      *
-     * @param Request $request
-     * @param int $sprintId
+     * @param Request                $request
+     * @param int                    $sprintId
      * @param EntityManagerInterface $entityManager
+     *
      * @return Response
      */
     public function editSprint(
@@ -172,9 +178,10 @@ class SprintController extends AbstractController
      * @Route("/sprint/delete/{sprintId}", name="sprint_delete")
      * @IsGranted("ROLE_ADMIN")
      *
-     * @param Request $request
-     * @param int $sprintId
+     * @param Request                $request
+     * @param int                    $sprintId
      * @param EntityManagerInterface $entityManager
+     *
      * @return Response
      */
     public function deleteSprint(
@@ -198,7 +205,8 @@ class SprintController extends AbstractController
      * @IsGranted("ROLE_ADMIN")
      *
      * @param Request $request
-     * @param int $sprintId
+     * @param int     $sprintId
+     *
      * @return Response
      */
     public function deleteSprintConfirm(
@@ -223,6 +231,7 @@ class SprintController extends AbstractController
      * @param string $boardId
      *
      * @return array
+     *
      * @throws \Exception
      */
     protected function getReviewBoardData($boardId = ''): array
@@ -243,10 +252,10 @@ class SprintController extends AbstractController
                 'sort' => [
                     [
                         'updated_on' => [
-                            'order' => 'asc'
-                        ]
-                    ]
-                ]
+                            'order' => 'asc',
+                        ],
+                    ],
+                ],
             ];
             $search = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
             $resultSet = $search->search();
@@ -257,6 +266,7 @@ class SprintController extends AbstractController
 
             return $out;
         }
+
         return [];
     }
 
@@ -265,7 +275,7 @@ class SprintController extends AbstractController
      *
      * @return array
      */
-    protected function getReviewBoardQuery($boardId) : array
+    protected function getReviewBoardQuery($boardId): array
     {
         $query = [
             'bool' => [
@@ -273,8 +283,8 @@ class SprintController extends AbstractController
                     [
                         'terms' => [
                             'reviewtags' => [
-                                strtoupper($boardId)
-                            ]
+                                strtoupper($boardId),
+                            ],
                         ],
                     ],
                     [
@@ -307,7 +317,7 @@ class SprintController extends AbstractController
      *
      * @throws InvalidException
      */
-    protected function makeReviewMenu($active = '') : array
+    protected function makeReviewMenu($active = ''): array
     {
         $out = [
             [
@@ -340,7 +350,7 @@ class SprintController extends AbstractController
      *
      * @throws InvalidException
      */
-    protected function getReviewsByBoardQuery(array $query) : string
+    protected function getReviewsByBoardQuery(array $query): string
     {
         $fullRequest = [
             'query' => $query,
@@ -359,39 +369,35 @@ class SprintController extends AbstractController
      *
      * @return string
      */
-    protected function defineReviewBoardGroup(array $review) : string
+    protected function defineReviewBoardGroup(array $review): string
     {
         switch (true) {
             // Blocked or merge conflict
-            case $review['mergeable'] === 'no':
+            case 'no' === $review['mergeable']:
                 $metaStatus = 'mergeConflict';
                 break;
-            case
-                $review['positive_reviews'] === 0
-                && $review['positive_verifications'] === 0
-                && $review['negative_reviews'] === 0
-                && $review['negative_verifications'] === 0:
+            case 0 === $review['positive_reviews']
+                && 0 === $review['positive_verifications']
+                && 0 === $review['negative_reviews']
+                && 0 === $review['negative_verifications']:
                 $metaStatus = 'missesBoth';
                 break;
-            case
-                $review['positive_reviews'] > 0
-                && $review['positive_verifications'] === 0
-                && $review['negative_reviews'] === 0
-                && $review['negative_verifications'] === 0:
+            case $review['positive_reviews'] > 0
+                && 0 === $review['positive_verifications']
+                && 0 === $review['negative_reviews']
+                && 0 === $review['negative_verifications']:
                 $metaStatus = 'missesTesting';
                 break;
-            case
-                $review['positive_reviews'] === 0
+            case 0 === $review['positive_reviews']
                 && $review['positive_verifications'] > 0
-                && $review['negative_reviews'] === 0
-                && $review['negative_verifications'] === 0:
+                && 0 === $review['negative_reviews']
+                && 0 === $review['negative_verifications']:
                 $metaStatus = 'missesCodeReview';
                 break;
-            case
-                $review['positive_reviews'] > 0
+            case $review['positive_reviews'] > 0
                 && $review['positive_verifications'] > 0
-                && $review['negative_reviews'] === 0
-                && $review['negative_verifications'] === 0:
+                && 0 === $review['negative_reviews']
+                && 0 === $review['negative_verifications']:
                 $metaStatus = 'hasPlusOne';
                 break;
             default:
@@ -403,15 +409,18 @@ class SprintController extends AbstractController
 
     /**
      * @Route("/sprint/{category}/{sprintId}", defaults={"category"="index"}, name="sprint")
-     * @param string $category
+     *
+     * @param string   $category
      * @param int|null $sprintId
+     *
      * @return Response
+     *
      * @throws Exception
      */
     public function index(string $category, int $sprintId = null): Response
     {
         $sprintCategory = $this->sprintBoardCategoryRepository->findOneBy([
-            'identifier' => $category
+            'identifier' => $category,
         ]);
         // Exit early if no category could be found
         if (!$sprintCategory) {
@@ -443,6 +452,7 @@ class SprintController extends AbstractController
                 $progress = $this->calculateProgressBars($ticketCount);
             }
         }
+
         return $this->render('sprint/index.html.twig', [
             'menu' => $this->createMenu($sprints, $activeSprintId),
             'cards' => $cards,
@@ -463,11 +473,12 @@ class SprintController extends AbstractController
                 'id' => $sprint->getId(),
                 'title' => $sprint->getName(),
                 'active' => $activeId === $sprint->getId(),
-                'count' => $resultCount
+                'count' => $resultCount,
 
             ];
             $menu[] = $menuItem;
         }
+
         return $menu;
     }
 
@@ -478,7 +489,7 @@ class SprintController extends AbstractController
      *
      * @throws InvalidException
      */
-    private function getTicketByBoardQuery(string $query) : array
+    private function getTicketByBoardQuery(string $query): array
     {
         $query = Yaml::parse($query);
         $fullRequest = [
@@ -501,7 +512,7 @@ class SprintController extends AbstractController
             'review' => 0,
             'total' => 0,
         ];
-        foreach ((array)$resultSet->getAggregation('status')['buckets'] as $bucket) {
+        foreach ((array) $resultSet->getAggregation('status')['buckets'] as $bucket) {
             switch ($bucket['key']) {
                 case 3:
                 case 5:
@@ -541,11 +552,12 @@ class SprintController extends AbstractController
 
     /**
      * @param SprintBoard $sprint
+     *
      * @return array
      *
      * @throws Exception
      */
-    private function getBoardData(SprintBoard $sprint) : array
+    private function getBoardData(SprintBoard $sprint): array
     {
         $out = $this->parameters->get('ColumnOrder');
         $fullRequest = [
@@ -557,13 +569,14 @@ class SprintController extends AbstractController
         foreach ($resultSet->getResults() as $ticket) {
             $status = $ticket->getSource()['status'];
             $getBoardGroup = $this->defineBoardGroup($status['name']);
-            if ($getBoardGroup === 'Review') {
+            if ('Review' === $getBoardGroup) {
                 $out[$getBoardGroup][] = $this->getReviewCard($ticket->getData());
             } else {
                 $ticketInfo = $ticket->getData();
                 $out[$getBoardGroup][] = $ticketInfo;
             }
         }
+
         return $out;
     }
 
@@ -576,11 +589,11 @@ class SprintController extends AbstractController
      *
      * @throws Exception
      */
-    private function getReviewCard(array $ticket) : array
+    private function getReviewCard(array $ticket): array
     {
         $notes = '';
         if (isset($ticket['journals'])) {
-            foreach ((array)$ticket['journals'] as $journalEntry) {
+            foreach ((array) $ticket['journals'] as $journalEntry) {
                 if (isset($journalEntry['notes']) && (
                     false !== strpos($journalEntry['notes'], 'It is available at http://review.typo3.org/')
                         ||
@@ -590,7 +603,7 @@ class SprintController extends AbstractController
                     $notes = $journalEntry['notes'];
                 }
             }
-            if ($notes === '') {
+            if ('' === $notes) {
                 return $ticket;
             }
             $pattern = '|.*https:\/\/review\.typo3\.org\/(?>(c\/)?)(?>Packages\/TYPO3\.CMS\/\+\/)?(?<reviewId>[\d]{2,6})|';
@@ -620,7 +633,7 @@ class SprintController extends AbstractController
      *
      * @return string
      */
-    private function defineBoardGroup($status) : string
+    private function defineBoardGroup($status): string
     {
         return array_key_exists($status, $this->parameters->get('StatusMapping'))
             ? $this->parameters->get('StatusMapping')[$status]
@@ -632,7 +645,7 @@ class SprintController extends AbstractController
      *
      * @return array
      */
-    private function calculateProgressBars(array $data) : array
+    private function calculateProgressBars(array $data): array
     {
         $out = [];
         $fullCount = array_sum($data);
@@ -641,7 +654,7 @@ class SprintController extends AbstractController
         foreach ($data as $key => $count) {
             $lowerKey = strtolower($key);
             $out['sections'][$lowerKey]['classes'] = $lowerKey;
-            if ($key === 'WIP') {
+            if ('WIP' === $key) {
                 $out['sections'][$lowerKey]['classes'] = 'wip active progress-bar-striped';
             }
 

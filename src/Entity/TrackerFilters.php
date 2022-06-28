@@ -116,7 +116,7 @@ class TrackerFilters
     /**
      * @return bool
      */
-    public function isStory() : bool
+    public function isStory(): bool
     {
         return $this->story;
     }

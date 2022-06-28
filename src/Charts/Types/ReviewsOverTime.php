@@ -15,7 +15,7 @@ use T3G\ElasticUtility\ElasticUtility;
 
 /**
  * Generates a charts about open reviews over time.
- * Only data created after Janruary 2014 is taken into consideration since Gerrit has junk data in its database, creating weird charts
+ * Only data created after Janruary 2014 is taken into consideration since Gerrit has junk data in its database, creating weird charts.
  */
 class ReviewsOverTime extends ReviewChart
 {
@@ -42,6 +42,7 @@ class ReviewsOverTime extends ReviewChart
         $dateToFilter = (new \DateTimeImmutable())->sub(new \DateInterval('P3Y'));
         $mergedDataSets = array_filter($mergedDataSets, static function (string $key) use ($dateToFilter) {
             $date = \DateTimeImmutable::createFromFormat(static::DATE_FORMAT, $key);
+
             return $date > $dateToFilter;
         }, ARRAY_FILTER_USE_KEY);
 

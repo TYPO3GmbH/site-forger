@@ -32,7 +32,7 @@ class Company
     private $name;
 
     /**
-     * Bidirectional - One-To-Many (INVERSE SIDE)
+     * Bidirectional - One-To-Many (INVERSE SIDE).
      *
      * @ORM\OneToMany(targetEntity="EmploymentTime", mappedBy="company", cascade={"remove"})
      */
@@ -63,6 +63,7 @@ class Company
     public function setEmploymentTimes(array $employmentTimes): self
     {
         $this->employmentTimes = $employmentTimes;
+
         return $this;
     }
 }

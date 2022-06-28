@@ -61,6 +61,7 @@ class UtilityController extends AbstractController
             }
             $viewData['sum'] = count($backports);
         }
+
         return $this->render('utility/backport.html.twig', $viewData);
     }
 
@@ -68,8 +69,9 @@ class UtilityController extends AbstractController
      * @Route("/backport/create", name="backport_create")
      * @IsGranted("ROLE_CORE_COMPONENT")
      *
-     * @param Request $request
+     * @param Request                $request
      * @param EntityManagerInterface $entityManager
+     *
      * @return Response
      */
     public function createBackportBlacklistEntry(
@@ -89,7 +91,7 @@ class UtilityController extends AbstractController
             return $this->redirectToRoute('dashboard_index');
         }
 
-        if ($request->get('changeId') !== null) {
+        if (null !== $request->get('changeId')) {
             $form->get('changeId')->setData($request->get('changeId'));
         }
 
@@ -105,9 +107,10 @@ class UtilityController extends AbstractController
      * @Route("/backport/quickcreate/{changeId}", name="backport_quickcreate")
      * @IsGranted("ROLE_CORE_COMPONENT")
      *
-     * @param Request $request
-     * @param string $changeId
+     * @param Request                $request
+     * @param string                 $changeId
      * @param EntityManagerInterface $entityManager
+     *
      * @return Response
      */
     public function quickCreateBackportBlacklistEntry(
@@ -129,9 +132,10 @@ class UtilityController extends AbstractController
      * @Route("/backport/edit/{entryId}", name="backport_edit")
      * @IsGranted("ROLE_CORE_COMPONENT")
      *
-     * @param Request $request
-     * @param int $entryId
+     * @param Request                $request
+     * @param int                    $entryId
      * @param EntityManagerInterface $entityManager
+     *
      * @return Response
      */
     public function editBackportBlacklistEntry(
@@ -170,9 +174,10 @@ class UtilityController extends AbstractController
      * @Route("/backport/delete/{changeId}", name="backport_delete")
      * @IsGranted("ROLE_CORE_COMPONENT")
      *
-     * @param Request $request
-     * @param string $changeId
+     * @param Request                $request
+     * @param string                 $changeId
      * @param EntityManagerInterface $entityManager
+     *
      * @return Response
      */
     public function deleteBackportBlacklistEntry(
@@ -269,6 +274,7 @@ class UtilityController extends AbstractController
             'tags' => $tags,
             'extensionKeys' => $extensionKeys,
         ];
+
         return $this->render('utility/rst.html.twig', $viewData);
     }
 

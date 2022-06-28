@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /*
@@ -24,7 +25,7 @@ use T3G\Bundle\Keycloak\Security\KeyCloakUser;
 use T3G\Bundle\TemplateBundle\Utility\AvatarUtility;
 
 /**
- * MenuBuilder
+ * MenuBuilder.
  */
 class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
 {
@@ -274,8 +275,8 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'route' => 'sprint',
                     'routeParameters' => ['category' => $category->getIdentifier()],
                     'extras' => [
-                        'icon' => $category->getIcon()
-                    ]
+                        'icon' => $category->getIcon(),
+                    ],
                 ]
             );
         }
@@ -337,6 +338,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
 
     /**
      * @param array $options
+     *
      * @return MenuItem
      */
     public function mainProfile(array $options): ItemInterface
@@ -397,6 +399,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 ]
             )->setLinkAttribute('class', 'btn btn-primary');
         }
+
         return $menu;
     }
 }

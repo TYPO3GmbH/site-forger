@@ -93,6 +93,7 @@ class ReviewController extends AbstractController
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_index';
         $viewData['headline'] = 'Status';
+
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
@@ -146,6 +147,7 @@ class ReviewController extends AbstractController
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_hasverifications';
         $viewData['headline'] = 'Merge Ready';
+
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
@@ -199,6 +201,7 @@ class ReviewController extends AbstractController
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_missesverifications';
         $viewData['headline'] = 'Needs Verification';
+
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
@@ -252,6 +255,7 @@ class ReviewController extends AbstractController
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_missesreview';
         $viewData['headline'] = 'Needs Review';
+
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
@@ -298,13 +302,14 @@ class ReviewController extends AbstractController
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_rebase';
         $viewData['headline'] = 'Needs Rebase';
+
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
     /**
      * @Route("/gerrit/files", name="gerrit_files")
      */
-    public function getFiles() : Response
+    public function getFiles(): Response
     {
         $viewData['routeName'] = 'gerrit_files';
         $viewData['searchRouteName'] = 'gerrit_files';
@@ -312,7 +317,7 @@ class ReviewController extends AbstractController
         $viewData['results'] = [];
         if (array_key_exists('query', $_GET)) {
             $searchClosed = false;
-            if (array_key_exists('searchClosed', $_GET) && $_GET['searchClosed'] === '1') {
+            if (array_key_exists('searchClosed', $_GET) && '1' === $_GET['searchClosed']) {
                 $searchClosed = true;
             }
             $fullRequest = [
@@ -356,6 +361,7 @@ class ReviewController extends AbstractController
             }
             $viewData['query'] = htmlspecialchars($_GET['query']);
         }
+
         return $this->render('review/files.html.twig', $viewData);
     }
 
@@ -417,6 +423,7 @@ class ReviewController extends AbstractController
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_negative_vote_cleanup';
         $viewData['headline'] = 'Negative Vote Cleanup';
+
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
@@ -461,11 +468,12 @@ class ReviewController extends AbstractController
             ],
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $aggregations
+            'aggregations' => $aggregations,
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_wip';
         $viewData['headline'] = 'Work in Progress';
+
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
@@ -544,6 +552,7 @@ class ReviewController extends AbstractController
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_coreteam_merge';
         $viewData['headline'] = 'Core Team Action Required';
+
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
@@ -562,7 +571,7 @@ class ReviewController extends AbstractController
                 if (isset($journal['notes'])) {
                     preg_match_all($re, $journal['notes'], $matches);
                     $id = $matches['reviewId'][0] ?? null;
-                    if ($id !== null && $id !== '') {
+                    if (null !== $id && '' !== $id) {
                         $reviewIds[] = $id;
                     }
                 }
@@ -575,6 +584,7 @@ class ReviewController extends AbstractController
         }
         $viewData['issues'] = $staleIssues;
         $viewData['routeName'] = 'gerrit_stale_issues';
+
         return $this->render('review/stale_issues.html.twig', $viewData);
     }
 
@@ -582,6 +592,7 @@ class ReviewController extends AbstractController
      * @param array $fullRequest
      *
      * @return array
+     *
      * @throws InvalidException
      */
     protected function search(array $fullRequest): array
@@ -624,6 +635,7 @@ class ReviewController extends AbstractController
         } else {
             $viewData['query'] = '';
         }
+
         return $viewData;
     }
 
@@ -634,7 +646,7 @@ class ReviewController extends AbstractController
      *
      * @return string
      */
-    protected function fixTime($in) : string
+    protected function fixTime($in): string
     {
         return str_replace('/', '-', substr($in, 0, 10));
     }
@@ -650,9 +662,9 @@ class ReviewController extends AbstractController
             $filterPart = new BoolQuery();
             $filterCatCount = 0;
             foreach ($filterValue as $term => $enabled) {
-                if ($enabled === 'true') {
+                if ('true' === $enabled) {
                     $term = str_replace('_', ' ', $term);
-                    if ($key === 'updated_on') {
+                    if ('updated_on' === $key) {
                         $filter = new Range();
                         $startDate = DateTime::createFromFormat('U', (int) $term / 1000);
                         $endDate = DateTime::createFromFormat('U', (int) $term / 1000)->modify('+1 month -1 second');
@@ -665,13 +677,13 @@ class ReviewController extends AbstractController
                         );
                     } else {
                         $filter = new Term();
-                        if ($key === 'tracker'
-                            || $key === 'project'
-                            || $key === 'category'
-                            || $key === 'status'
-                            || $key === 'author'
-                            || $key === 'priority'
-                            || $key === 'fixed_version'
+                        if ('tracker' === $key
+                            || 'project' === $key
+                            || 'category' === $key
+                            || 'status' === $key
+                            || 'author' === $key
+                            || 'priority' === $key
+                            || 'fixed_version' === $key
                         ) {
                             $filter->setTerm($key . '.name', $term);
                         } else {
@@ -694,7 +706,7 @@ class ReviewController extends AbstractController
     /**
      * @return array
      */
-    protected function queryAggregations() : array
+    protected function queryAggregations(): array
     {
         return [
             'Releases' => [
@@ -746,7 +758,7 @@ class ReviewController extends AbstractController
      *
      * @return array
      */
-    protected function querySort() : array
+    protected function querySort(): array
     {
         return [
             'updated_on' => 'desc',
@@ -761,13 +773,11 @@ class ReviewController extends AbstractController
      *
      * @return array
      */
-    protected function getPages() : array
+    protected function getPages(): array
     {
         $numPages = ceil($this->totalHits / $this->perPage);
         $i = 0;
-        /*
-         *
-         */
+
         $maxPages = $numPages;
         if ($numPages > 15 && $this->currentPage <= 7) {
             $numPages = 15;
@@ -794,7 +804,7 @@ class ReviewController extends AbstractController
         return $out;
     }
 
-    protected function getOpenReviewsByIds(array $ids) : ResultSet
+    protected function getOpenReviewsByIds(array $ids): ResultSet
     {
         $filter = [];
         foreach ($ids as $reviewId) {
@@ -817,7 +827,7 @@ class ReviewController extends AbstractController
                             ],
                         ],
                     ],
-                    'should' => $filter
+                    'should' => $filter,
                 ],
             ],
             'sort' => [
@@ -830,6 +840,7 @@ class ReviewController extends AbstractController
             'from' => $this->currentPage * $this->perPage - $this->perPage,
         ];
         $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
+
         return $query->search();
     }
 
@@ -838,7 +849,7 @@ class ReviewController extends AbstractController
      *
      * @throws InvalidException
      */
-    protected function getUnderReviewIssues() : ResultSet
+    protected function getUnderReviewIssues(): ResultSet
     {
         $fullRequest = [
             'query' => [

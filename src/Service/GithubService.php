@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 /*
  * This file is part of the package t3g/forger.
@@ -31,9 +31,9 @@ class GithubService
     {
         $currentPage = 0;
         do {
-            $currentPage++;
+            ++$currentPage;
             $response = $this->client->get('orgs/' . $organization . '/repos?per_page=100&page=' . $currentPage);
-            $repoData = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+            $repoData = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
             yield array_column($repoData, 'name');
         } while ($currentPage < $this->parseLinkHeader($response));
     }
@@ -41,21 +41,23 @@ class GithubService
     public function getLastPageOfRepositoryEvents(string $organization, string $repo): int
     {
         $headResponse = $this->client->head('repos/' . $organization . '/' . $repo . '/events?per_page=100');
+
         return $this->parseLinkHeader($headResponse);
     }
 
     public function getLastPageOfRepositoryIssueEvents(string $organization, string $repo): int
     {
         $headResponse = $this->client->head('repos/' . $organization . '/' . $repo . '/issues/events?per_page=100');
+
         return $this->parseLinkHeader($headResponse);
     }
 
     public function getInteractionsForRepository(string $organization, string $repo, ?int $pageCount): \Generator
     {
         $lastPage = $pageCount ?? $this->getLastPageOfRepositoryEvents($organization, $repo);
-        for ($page = 1; $page <= $lastPage; $page++) {
+        for ($page = 1; $page <= $lastPage; ++$page) {
             $response = $this->client->get('repos/' . $organization . '/' . $repo . '/events?per_page=100&page=' . $page);
-            $events = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+            $events = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
             foreach ($events as $event) {
                 $interaction = $this->mapCommonData($event);
 
@@ -71,9 +73,9 @@ class GithubService
     public function getInteractionsForIssuesInRepository(string $organization, string $repo, ?int $pageCount): \Generator
     {
         $lastPage = $pageCount ?? $this->getLastPageOfRepositoryIssueEvents($organization, $repo);
-        for ($page = 1; $page <= $lastPage; $page++) {
+        for ($page = 1; $page <= $lastPage; ++$page) {
             $response = $this->client->get('repos/' . $organization . '/' . $repo . '/issues/events?per_page=100&page=' . $page);
-            $events = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+            $events = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
             foreach ($events as $event) {
                 $interaction = $this->mapCommonData($event);
 
@@ -82,7 +84,7 @@ class GithubService
                 $interaction['interaction_type'] = 'github:' . strtolower($organization) . ':' . $type . ':' . $event['event'];
                 yield $interaction;
             }
-            $page++;
+            ++$page;
         }
     }
 
@@ -91,7 +93,7 @@ class GithubService
         if (!isset($this->usersCache[$event['actor']['login']])) {
             try {
                 $response = $this->client->get($event['actor']['url']);
-                $userData = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+                $userData = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
             } catch (ClientException $exception) {
                 $userData = [];
             }
@@ -108,12 +110,14 @@ class GithubService
         }
         $interaction['interacted_on'] = $dateTime->format('Y/m/d H:i:s');
         $interaction['account'] = $event['actor']['login'];
+
         return $interaction;
     }
 
     /**
      * @param \Psr\Http\Message\ResponseInterface $headResponse
      * @param $matches
+     *
      * @return int
      */
     private function parseLinkHeader(\Psr\Http\Message\ResponseInterface $headResponse): int
@@ -127,11 +131,12 @@ class GithubService
             array_filter(
                 $parsed,
                 static function (array $set): bool {
-                    return $set['rel'] === 'last';
+                    return 'last' === $set['rel'];
                 }
             )
         )[0][0] ?? '&page=1';
         preg_match('#&page=(\d+)#', $last, $matches);
-        return (int)$matches[1];
+
+        return (int) $matches[1];
     }
 }

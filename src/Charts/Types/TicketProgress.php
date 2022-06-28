@@ -16,7 +16,7 @@ class TicketProgress extends IssueChart
     public function getData(): array
     {
         $currentPeriodStart = new \DateTimeImmutable();
-        $currentYear = (int)$currentPeriodStart->format('Y');
+        $currentYear = (int) $currentPeriodStart->format('Y');
 
         $dataSetCurrentYear = $this->getCumulativeTicketsToDate($currentYear, 'current', 'month');
         $dataSetPreviousYear = $this->getCumulativeTicketsToDate($currentYear - 1, 'previous', 'month');

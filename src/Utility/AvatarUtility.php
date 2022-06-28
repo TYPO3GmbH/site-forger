@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /*
@@ -17,7 +18,8 @@ class AvatarUtility
 {
     /**
      * @param string $email
-     * @param int $size
+     * @param int    $size
+     *
      * @return string
      */
     public static function getAvatar($email, $size = 80): string
@@ -39,7 +41,8 @@ class AvatarUtility
 
     /**
      * @param string $email
-     * @param int $size
+     * @param int    $size
+     *
      * @return string
      */
     public static function getAvatarUrl($email, $size = 80): string

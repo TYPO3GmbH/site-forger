@@ -28,7 +28,8 @@ class EmploymentTimeRepository extends ServiceEntityRepository
 
     /**
      * @param string $username
-     * @param array $orderBy
+     * @param array  $orderBy
+     *
      * @return EmploymentTime[]
      */
     public function findByUsername(string $username, array $orderBy = ['employedFrom' => 'desc']): array
