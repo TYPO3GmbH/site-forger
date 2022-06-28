@@ -27,7 +27,7 @@ class DiscordService
 
     /**
      * @param AbstractDiscordMessage $message
-     * @param string $url
+     * @param string                 $url
      */
     public function sendMessage(AbstractDiscordMessage $message, string $url): void
     {
@@ -50,12 +50,12 @@ class DiscordService
                 );
             } catch (BadResponseException $e) {
                 // We don't want to break on 429 too many requests
-                if ($e->getResponse()->getStatusCode() !== 429) {
+                if (429 !== $e->getResponse()->getStatusCode()) {
                     throw $e;
                 }
             }
 
-            $result = json_decode((string)$response->getBody(), true);
+            $result = json_decode((string) $response->getBody(), true);
             if (isset($result['retry_after'])) {
                 $sleep = $result['retry_after'];
             } else {

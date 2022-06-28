@@ -34,7 +34,7 @@ class Company extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => \App\Entity\Company::class,
-            'csrf_protection' => getenv('APP_ENV') !== 'test',
+            'csrf_protection' => 'test' !== getenv('APP_ENV'),
             'entity_manager' => null,
         ]);
     }

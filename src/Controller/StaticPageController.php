@@ -15,7 +15,6 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class StaticPageController extends AbstractController
 {
-
     /**
      * @Route("/help", name="static_help")
      */

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /*
@@ -13,9 +14,10 @@ namespace App\Menu;
 use App\Entity\SprintBoardCategory;
 use App\Repository\SprintBoardCategoryRepository;
 use Knp\Menu\FactoryInterface;
+use Knp\Menu\ItemInterface;
 use Knp\Menu\Matcher\MatcherInterface;
 use Knp\Menu\MenuItem;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -23,7 +25,7 @@ use T3G\Bundle\Keycloak\Security\KeyCloakUser;
 use T3G\Bundle\TemplateBundle\Utility\AvatarUtility;
 
 /**
- * MenuBuilder
+ * MenuBuilder.
  */
 class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
 {
@@ -32,17 +34,8 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
      */
     private $categoryRepository;
 
-    /**
-     * @param ContainerInterface $container
-     * @param FactoryInterface $factory
-     * @param MatcherInterface $matcher
-     * @param AuthorizationCheckerInterface $authorizationChecker
-     * @param TokenStorageInterface $tokenStorage
-     * @param TranslatorInterface $translator
-     * @param SprintBoardCategoryRepository $sprintBoardCategoryRepository
-     */
     public function __construct(
-        ContainerInterface $container,
+        ParameterBagInterface $parameters,
         FactoryInterface $factory,
         MatcherInterface $matcher,
         AuthorizationCheckerInterface $authorizationChecker,
@@ -50,15 +43,14 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         TranslatorInterface $translator,
         SprintBoardCategoryRepository $sprintBoardCategoryRepository
     ) {
-        parent::__construct($container, $factory, $matcher, $authorizationChecker, $tokenStorage, $translator);
+        parent::__construct($parameters, $factory, $matcher, $authorizationChecker, $tokenStorage, $translator);
         $this->categoryRepository = $sprintBoardCategoryRepository;
     }
 
     /**
      * @param array $options
-     * @return \Knp\Menu\ItemInterface
      */
-    public function mainDefault(array $options): \Knp\Menu\ItemInterface
+    public function mainDefault(array $options): ItemInterface
     {
         $categories = $this->categoryRepository->findAll();
         $menu = $this->factory->createItem('root');
@@ -283,8 +275,8 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'route' => 'sprint',
                     'routeParameters' => ['category' => $category->getIdentifier()],
                     'extras' => [
-                        'icon' => $category->getIcon()
-                    ]
+                        'icon' => $category->getIcon(),
+                    ],
                 ]
             );
         }
@@ -346,9 +338,10 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
 
     /**
      * @param array $options
+     *
      * @return MenuItem
      */
-    public function mainProfile(array $options): MenuItem
+    public function mainProfile(array $options): ItemInterface
     {
         $menu = $this->factory->createItem('root');
         $menu->addChild(
@@ -406,6 +399,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 ]
             )->setLinkAttribute('class', 'btn btn-primary');
         }
+
         return $menu;
     }
 }

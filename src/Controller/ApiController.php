@@ -20,8 +20,10 @@ class ApiController extends AbstractController
 {
     /**
      * @Route("/api/{type}/{documentId}", name="api")
+     *
      * @param string $type
-     * @param int $documentId
+     * @param int    $documentId
+     *
      * @return JsonResponse
      */
     public function index(string $type = 'issue', int $documentId = 0): JsonResponse
@@ -31,11 +33,13 @@ class ApiController extends AbstractController
         } catch (Exception $e) {
             return new JsonResponse('Document not found', 404);
         }
+
         return new JsonResponse($output->getData());
     }
 
     /**
      * @Route("/quick_stats", name="quick_stats")
+     *
      * @return JsonResponse
      */
     public function quickStats(): JsonResponse
@@ -80,12 +84,14 @@ class ApiController extends AbstractController
 
     /**
      * @Route("/chart/{chartName}", name="chart")
+     *
      * @param string $chartName
+     *
      * @return JsonResponse
      */
     public function chart(string $chartName): JsonResponse
     {
-        $indexName = ($chartName === 'ticket_progress') ? 'issue' : 'review';
+        $indexName = ('ticket_progress' === $chartName) ? 'issue' : 'review';
         $index = ElasticUtility::getIndexByName($indexName, 'en');
         $chartInstance = ChartRegistry::getChartInstance($chartName, $index);
         $data = $chartInstance->getData();

@@ -65,7 +65,7 @@ class CalculateKarmaCommand extends Command
     {
         $employmentTimes = $this->employmentTimesRepository->findAll();
         foreach ($employmentTimes as $employmentTime) {
-            if ($employmentTime->getEmployedTo() === null) {
+            if (null === $employmentTime->getEmployedTo()) {
                 $employmentTime->setEmployedTo(new DateTime('now'));
             }
             $account = $employmentTime->getAccount();
@@ -77,7 +77,7 @@ class CalculateKarmaCommand extends Command
             $name = $company->getName();
             $this->companyMapping[$account][$name] = [
                 'from' => $employmentTime->getEmployedFrom(),
-                'to' => $employmentTime->getEmployedTo()
+                'to' => $employmentTime->getEmployedTo(),
             ];
         }
     }
@@ -85,33 +85,33 @@ class CalculateKarmaCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $io = new SymfonyStyle($input, $output);
-        $year = (int)$input->getArgument('year');
-        $yearTo = $year+1;
+        $year = (int) $input->getArgument('year');
+        $yearTo = $year + 1;
         $finalConstraints = [];
         $constraints['dateRange'] = [
             'range' => [
                 'interacted_on' => [
                     'gte' => $year . '/01/01 00:00:00',
-                    'lte' => $yearTo . '/01/01 00:00:00'
-                ]
-            ]
+                    'lte' => $yearTo . '/01/01 00:00:00',
+                ],
+            ],
         ];
-        if ($year === 0) {
+        if (0 === $year) {
             $constraints['dateRange'] = [
                 'range' => [
                     'interacted_on' => [
                         'gte' => 'now-3d',
-                    ]
-                ]
+                    ],
+                ],
             ];
         }
 
         $accountName = $input->getOption('account');
-        if ($accountName !== null) {
+        if (null !== $accountName) {
             $constraints['account'] = [
                 'terms' => [
-                    'account' => [$accountName]
-                ]
+                    'account' => [$accountName],
+                ],
             ];
         }
         foreach ($constraints as $constraint) {
@@ -130,13 +130,13 @@ class CalculateKarmaCommand extends Command
                                     'TYPO3com',
                                     'Mr. Jenkins',
                                     'core-ci',
-                                ]
-                            ]
-                        ]
-                    ]
+                                ],
+                            ],
+                        ],
+                    ],
                 ],
             ],
-            'size' => 1000
+            'size' => 1000,
         ];
         $numberOfInteractions = $this->getInteractionCount($fullRequest);
         $mainProgressBar = new ProgressBar($output, $numberOfInteractions);
@@ -148,7 +148,7 @@ class CalculateKarmaCommand extends Command
         foreach ($scroll as $scrollId => $resultSet) {
             foreach ($resultSet->getResults() as $interaction) {
                 $this->setPointsForInteraction($interaction);
-                /** @noinspection DisconnectedForeachInstructionInspection */
+                /* @noinspection DisconnectedForeachInstructionInspection */
                 $mainProgressBar->advance();
             }
         }
@@ -161,9 +161,9 @@ class CalculateKarmaCommand extends Command
                 $table->addRow([
                     $counter,
                     $unmappedAccount[0],
-                    $unmappedAccount[1]
+                    $unmappedAccount[1],
                 ]);
-                $counter++;
+                ++$counter;
             }
             $table->render();
         }
@@ -175,6 +175,7 @@ class CalculateKarmaCommand extends Command
         $fullRequest['size'] = 0;
         $search = ElasticUtility::getIndexByName('interactions')->createSearch($fullRequest);
         $resultSet = $search->search();
+
         return $resultSet->getTotalHits();
     }
 
@@ -193,10 +194,10 @@ class CalculateKarmaCommand extends Command
             'email' => $dataArray['email'],
             'interacted_on' => $dataArray['interacted_on'],
             'interaction' => $dataArray['interaction_type'],
-            'points' => $points[$dataArray['interaction_type']]
+            'points' => $points[$dataArray['interaction_type']],
         ];
         $elasticType = ElasticUtility::getIndexByName('karmapoints');
-        if ($elasticType !== null) {
+        if (null !== $elasticType) {
             $doc = new Document($document['leaderboard_entry_id'], $document);
             $elasticType->addDocument($doc);
         }
@@ -208,8 +209,9 @@ class CalculateKarmaCommand extends Command
         if (!array_key_exists($interaction['account'], $this->companyMapping)) {
             $this->unmappedAccounts[$interaction['account']] = [
                 $interaction['account'],
-                $interaction['fullname']
+                $interaction['fullname'],
             ];
+
             return 'unmapped';
         }
         try {
@@ -222,6 +224,7 @@ class CalculateKarmaCommand extends Command
                 return $company;
             }
         }
+
         return 'unmapped';
     }
 }

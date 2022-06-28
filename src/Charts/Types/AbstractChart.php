@@ -32,12 +32,14 @@ abstract class AbstractChart
     protected function convertDateToFormat(string $input, string $outputFormat = 'Y-m-d'): string
     {
         $dateTime = new \DateTimeImmutable($input);
+
         return $dateTime->format($outputFormat);
     }
 
     protected function fetchData(Index $index, array $query): ResultSet
     {
         $search = $index->createSearch($query);
+
         return $search->search();
     }
 
@@ -82,7 +84,7 @@ abstract class AbstractChart
                 'Resolved',
             ],
         ];
-        if ($this->getDocumentType() === 'review') {
+        if ('review' === $this->getDocumentType()) {
             $terms = [
                 'reviewstatus' => [
                     'ABANDONED',
@@ -100,10 +102,10 @@ abstract class AbstractChart
                                 'updated_on' => [
                                     'gte' => $year,
                                     'lt' => $year + 1,
-                                    'format' => 'yyyy'
+                                    'format' => 'yyyy',
                                 ],
                             ],
-                        ]
+                        ],
                     ],
                 ],
             ],

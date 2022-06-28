@@ -18,7 +18,7 @@ final class Colors
     public const RED = 'red';
     public const YELLOW = 'yellow';
 
-    protected static $colors = [
+    private static $colors = [
         self::BLUE => [39, 162, 252],
         self::GREEN => [55, 189, 116],
         self::GREY => [210, 210, 210],

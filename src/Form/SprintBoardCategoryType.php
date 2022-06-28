@@ -28,7 +28,7 @@ class SprintBoardCategoryType extends AbstractType
                 [
                     'required' => true,
                     'label' => 'Identifier (only allowed lodwer case and -)',
-                    'attr' => ['pattern' => '^[a-z0-9]+(?:-[a-z0-9]+)*$']
+                    'attr' => ['pattern' => '^[a-z0-9]+(?:-[a-z0-9]+)*$'],
                 ]
             )
             ->add('icon', TextType::class, ['required' => true, 'label' => 'Icon (FontAwesome identifier)'])
@@ -37,7 +37,7 @@ class SprintBoardCategoryType extends AbstractType
                 SubmitType::class,
                 [
                     'label' => 'Save',
-                    'attr' => ['class' => 'btn btn-primary pull-right'
+                    'attr' => ['class' => 'btn btn-primary pull-right',
                     ],
                 ]
             );

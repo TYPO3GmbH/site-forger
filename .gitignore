@@ -10,6 +10,10 @@
 /vendor/
 .idea/
 .vscode/
+
+/util/vendor/
+/util/bin/
+
 ###< symfony/framework-bundle ###
 
 ###> symfony/webpack-encore-bundle ###
@@ -21,7 +25,7 @@ yarn-error.log
 
 ###> friendsofphp/php-cs-fixer ###
 /.php_cs
-/.php_cs.cache
+/.php-cs-fixer.cache
 ###< friendsofphp/php-cs-fixer ###
 /auth.json
 /.ddev/keycloak-gatekeeper.conf

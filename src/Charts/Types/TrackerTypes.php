@@ -70,7 +70,7 @@ class TrackerTypes extends IssueChart
                     $datasets[$issueType['key']] = [
                         'label' => $issueType['key'],
                         'data' => [],
-                        'backgroundColor' => $typeColors[$issueType['key']] ?? Colors::getAsRgb(Colors::GREY)
+                        'backgroundColor' => $typeColors[$issueType['key']] ?? Colors::getAsRgb(Colors::GREY),
                     ];
                     $flatData[$type['key']][$issueType['key']] = $issueType['doc_count'];
                 }
@@ -85,6 +85,7 @@ class TrackerTypes extends IssueChart
             $datasets[$key]['data'] = array_values($datasets[$key]['data']);
         }
         $datasets = array_values($datasets);
+
         return [
             'labels' => $labels,
             'datasets' => $datasets,

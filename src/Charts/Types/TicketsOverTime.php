@@ -38,6 +38,7 @@ class TicketsOverTime extends IssueChart
         $dateToFilter = (new \DateTimeImmutable())->sub(new \DateInterval('P3Y'));
         $mergedDataSets = array_filter($mergedDataSets, static function (string $key) use ($dateToFilter) {
             $date = \DateTimeImmutable::createFromFormat(static::DATE_FORMAT, $key);
+
             return $date > $dateToFilter;
         }, ARRAY_FILTER_USE_KEY);
 

@@ -1,5 +1,5 @@
 client-id: forger-typo3-com
-client-secret: Something
+client-secret: <secret>
 discovery-url: https://login.typo3.com/auth/realms/TYPO3
 enable-default-deny: true
 enable-refresh-tokens: true
@@ -31,4 +31,6 @@ resources:
 - uri: /help
   white-listed: true
 - uri: /utilities/*
+  white-listed: true
+- uri: /_wdt/*
   white-listed: true

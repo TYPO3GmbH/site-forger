@@ -270,6 +270,9 @@
             "config/packages/sensio_framework_extra.yaml"
         ]
     },
+    "setasign/fpdi": {
+        "version": "v2.3.6"
+    },
     "spomky-labs/base64url": {
         "version": "v2.0.3"
     },
@@ -585,6 +588,9 @@
     },
     "t3g/symfony-usercentrics-bundle": {
         "version": "dev-master"
+    },
+    "tecnickcom/tcpdf": {
+        "version": "6.4.4"
     },
     "twig/twig": {
         "version": "v2.11.3"
