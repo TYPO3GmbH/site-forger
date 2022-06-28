@@ -113,7 +113,7 @@
 
 
                 <div hidden class="form-group" data-classified-as="breaking deprecation feature important">
-                    {{ macros.submit('Create ReST manual', 'primary', '', {toggle: 'modal', target: '#changelogModal'}) }}
+                    {{ macros.submit('Create ReST manual', 'primary', '', {'bs-toggle': 'modal', 'bs-target': '#changelogModal'}) }}
                 </div>
             </form>
         </div>
@@ -124,9 +124,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="changelogModalLabel"></h5>
-                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <textarea class="form-control" rows="20" style="font-family:monospace;" readonly></textarea>
