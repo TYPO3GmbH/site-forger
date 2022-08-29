@@ -36,7 +36,7 @@ class ManagementController extends AbstractController
         'Oliver Hader',
         'Ralf Zimmermann',
         'Riccardo De Contardi',
-        'Stefan Bürk'
+        'Stefan Bürk',
     ];
 
     private $docTeam = [

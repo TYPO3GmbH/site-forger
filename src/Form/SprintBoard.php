@@ -11,8 +11,9 @@ namespace App\Form;
 
 use App\Entity\SprintBoardCategory;
 use App\Repository\SprintBoardCategoryRepository;
+use Doctrine\ORM\EntityRepository;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -31,17 +32,21 @@ class SprintBoard extends AbstractType
                 TextType::class,
                 [
                     'required' => true,
-                    'label' => 'Identifier (only allowed lodwer case and -)',
+                    'label' => 'Identifier (only allowed lower case and -)',
                     'attr' => ['pattern' => '^[a-z0-9]+(?:-[a-z0-9]+)*$'],
                 ]
             )
             ->add(
-                'categoryId',
-                ChoiceType::class,
+                'category',
+                EntityType::class,
                 [
-                    'choices' => $this->buildCategoriesArray($categoryRepository),
+                    'class' => SprintBoardCategory::class,
+                    'query_builder' => function (EntityRepository $er) {
+                        return $er->createQueryBuilder('sb')
+                            ->orderBy('sb.name', 'ASC');
+                    },
+                    'choice_label' => 'name',
                     'required' => true,
-                    'mapped' => false,
                     'label' => 'Category',
                     'attr' => ['class' => 'form-control'],
                 ]
@@ -80,15 +85,12 @@ class SprintBoard extends AbstractType
     private function buildCategoriesArray(SprintBoardCategoryRepository $categoryRepository): array
     {
         $categories = [];
-
-        /** @var SprintBoardCategory $category */
         foreach ($categoryRepository->findAll() as $category) {
             $categories[$category->getId()] = $category->getName();
         }
 
         asort($categories);
-        $categories = array_flip($categories);
 
-        return $categories;
+        return array_flip($categories);
     }
 }

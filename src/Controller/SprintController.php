@@ -13,14 +13,12 @@ use App\Entity\SprintBoard;
 use App\Repository\SprintBoardCategoryRepository;
 use App\Repository\SprintBoardRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Elastica\Exception\InvalidException;
 use Exception;
 use InvalidArgumentException;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Yaml\Yaml;
@@ -28,32 +26,19 @@ use T3G\ElasticUtility\ElasticUtility;
 
 class SprintController extends AbstractController
 {
-    /**
-     * @var SprintBoardCategoryRepository
-     */
-    private $sprintBoardCategoryRepository;
-    /**
-     * @var SprintBoardRepository
-     */
-    private $sprintBoardRepository;
-    /**
-     * @var RequestStack
-     */
-    private $requestStack;
-    /**
-     * @var ParameterBagInterface
-     */
-    private $parameters;
+    private SprintBoardCategoryRepository $sprintBoardCategoryRepository;
+
+    private SprintBoardRepository $sprintBoardRepository;
+
+    private ParameterBagInterface $parameters;
 
     public function __construct(
         SprintBoardCategoryRepository $sprintBoardCategoryRepository,
-        RequestStack $requestStack,
         SprintBoardRepository $sprintBoardRepository,
         ParameterBagInterface $parameters
     ) {
         $this->sprintBoardCategoryRepository = $sprintBoardCategoryRepository;
         $this->sprintBoardRepository = $sprintBoardRepository;
-        $this->requestStack = $requestStack;
         $this->parameters = $parameters;
     }
 
@@ -63,12 +48,9 @@ class SprintController extends AbstractController
      */
     public function list(): Response
     {
-        return $this->render(
-            'management/sprint/index.html.twig',
-            [
-                'items' => $this->sprintBoardRepository->findAll(),
-            ]
-        );
+        return $this->render('management/sprint/index.html.twig', [
+            'items' => $this->sprintBoardRepository->findAll(),
+        ]);
     }
 
     /**
@@ -120,12 +102,9 @@ class SprintController extends AbstractController
             }
         }
 
-        return $this->render(
-            'sprint/form.html.twig',
-            [
-                'form' => $form->createView(),
-            ]
-        );
+        return $this->render('sprint/form.html.twig', [
+            'form' => $form->createView(),
+        ]);
     }
 
     /**
@@ -146,46 +125,37 @@ class SprintController extends AbstractController
         $sprint = $this->sprintBoardRepository->find($sprintId);
 
         if (null === $sprint) {
-            $this->redirectToRoute('sprint_create');
+            return $this->redirectToRoute('sprint_create');
         }
 
         $form = $this->createForm(\App\Form\SprintBoard::class, $sprint, ['entity_manager' => $this->getDoctrine()->getManager()]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $category = $this->sprintBoardCategoryRepository->find($request->get('sprint_board')['categoryId']);
-            if (null !== $category) {
-                $sprint->setCategory($category);
-                $entityManager->persist($sprint);
-                $entityManager->flush();
+            $entityManager->persist($sprint);
+            $entityManager->flush();
 
-                $this->addFlash('success', 'Sprint board edited.');
+            $this->addFlash('success', 'Sprint board edited.');
 
-                return $this->redirectToRoute('sprint', ['category' => $category->getIdentifier(), 'sprintId' => $sprint->getId()]);
-            }
+            return $this->redirectToRoute('sprint', ['category' => $sprint->getCategory()->getIdentifier(), 'sprintId' => $sprint->getId()]);
         }
 
-        return $this->render(
-            'sprint/form.html.twig',
-            [
-                'form' => $form->createView(),
-                'edit' => true,
-            ]
-        );
+        return $this->render('sprint/form.html.twig', [
+            'form' => $form->createView(),
+            'edit' => true,
+        ]);
     }
 
     /**
      * @Route("/sprint/delete/{sprintId}", name="sprint_delete")
      * @IsGranted("ROLE_ADMIN")
      *
-     * @param Request                $request
      * @param int                    $sprintId
      * @param EntityManagerInterface $entityManager
      *
      * @return Response
      */
     public function deleteSprint(
-        Request $request,
         int $sprintId,
         EntityManagerInterface $entityManager
     ): Response {
@@ -204,37 +174,25 @@ class SprintController extends AbstractController
      * @Route("/sprint/delete/{sprintId}/confirm", name="sprint_delete_confirm")
      * @IsGranted("ROLE_ADMIN")
      *
-     * @param Request $request
-     * @param int     $sprintId
+     * @param int $sprintId
      *
      * @return Response
      */
     public function deleteSprintConfirm(
-        Request $request,
         int $sprintId
     ): Response {
         $sprint = $this->sprintBoardRepository->find($sprintId);
 
         if (null !== $sprint) {
-            return $this->render(
-                'sprint/delete_confirm.html.twig',
-                [
-                    'sprint' => $sprint,
-                ]
-            );
+            return $this->render('sprint/delete_confirm.html.twig', [
+                'sprint' => $sprint,
+            ]);
         }
 
         return $this->redirectToRoute('dashboard_index');
     }
 
-    /**
-     * @param string $boardId
-     *
-     * @return array
-     *
-     * @throws \Exception
-     */
-    protected function getReviewBoardData($boardId = ''): array
+    protected function getReviewBoardData(string $boardId = ''): array
     {
         if (in_array($boardId, ['bugfix', 'feature', 'task'], true)) {
             $query = $this->getReviewBoardQuery($boardId);
@@ -257,8 +215,8 @@ class SprintController extends AbstractController
                     ],
                 ],
             ];
-            $search = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
-            $resultSet = $search->search();
+            $resultSet = ElasticUtility::getIndexByName('review')
+                ->createSearch($fullRequest)->search();
             foreach ($resultSet->getResults() as $review) {
                 $getBoardGroup = $this->defineReviewBoardGroup($review->getSource());
                 $out[$getBoardGroup][] = $review->getSource();
@@ -268,143 +226,6 @@ class SprintController extends AbstractController
         }
 
         return [];
-    }
-
-    /**
-     * @param string $boardId
-     *
-     * @return array
-     */
-    protected function getReviewBoardQuery($boardId): array
-    {
-        $query = [
-            'bool' => [
-                'must' => [
-                    [
-                        'terms' => [
-                            'reviewtags' => [
-                                strtoupper($boardId),
-                            ],
-                        ],
-                    ],
-                    [
-                        'query_string' => [
-                            'default_field' => 'reviewstatus',
-                            'query' => 'NEW',
-                        ],
-                    ],
-                ],
-                'must_not' => [
-                    [
-                        'term' => [
-                            'work_in_progress' => true,
-                        ],
-                    ],
-                ],
-
-            ],
-        ];
-
-        return $query;
-    }
-
-    /**
-     * Generates a list of boards to link to.
-     *
-     * @param string $active
-     *
-     * @return array
-     *
-     * @throws InvalidException
-     */
-    protected function makeReviewMenu($active = ''): array
-    {
-        $out = [
-            [
-                'id' => 'bugfix',
-                'count' => $this->getReviewsByBoardQuery($this->getReviewBoardQuery('bugfix')),
-                'name' => 'Bugfixes',
-                'active' => 'bugfix' === $active,
-            ],
-            [
-                'id' => 'task',
-                'count' => $this->getReviewsByBoardQuery($this->getReviewBoardQuery('task')),
-                'name' => 'Tasks',
-                'active' => 'task' === $active,
-            ],
-            [
-                'id' => 'feature',
-                'count' => $this->getReviewsByBoardQuery($this->getReviewBoardQuery('feature')),
-                'name' => 'Features',
-                'active' => 'feature' === $active,
-            ],
-        ];
-
-        return $out;
-    }
-
-    /**
-     * @param array $query
-     *
-     * @return string
-     *
-     * @throws InvalidException
-     */
-    protected function getReviewsByBoardQuery(array $query): string
-    {
-        $fullRequest = [
-            'query' => $query,
-            'size' => 0,
-        ];
-        $search = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
-        $resultSet = $search->search();
-
-        return $resultSet->getTotalHits();
-    }
-
-    /**
-     * Defines board columns.
-     *
-     * @param array $review
-     *
-     * @return string
-     */
-    protected function defineReviewBoardGroup(array $review): string
-    {
-        switch (true) {
-            // Blocked or merge conflict
-            case 'no' === $review['mergeable']:
-                $metaStatus = 'mergeConflict';
-                break;
-            case 0 === $review['positive_reviews']
-                && 0 === $review['positive_verifications']
-                && 0 === $review['negative_reviews']
-                && 0 === $review['negative_verifications']:
-                $metaStatus = 'missesBoth';
-                break;
-            case $review['positive_reviews'] > 0
-                && 0 === $review['positive_verifications']
-                && 0 === $review['negative_reviews']
-                && 0 === $review['negative_verifications']:
-                $metaStatus = 'missesTesting';
-                break;
-            case 0 === $review['positive_reviews']
-                && $review['positive_verifications'] > 0
-                && 0 === $review['negative_reviews']
-                && 0 === $review['negative_verifications']:
-                $metaStatus = 'missesCodeReview';
-                break;
-            case $review['positive_reviews'] > 0
-                && $review['positive_verifications'] > 0
-                && 0 === $review['negative_reviews']
-                && 0 === $review['negative_verifications']:
-                $metaStatus = 'hasPlusOne';
-                break;
-            default:
-                $metaStatus = 'blocked';
-        }
-
-        return $metaStatus;
     }
 
     /**
@@ -463,6 +284,114 @@ class SprintController extends AbstractController
         ]);
     }
 
+    protected function getReviewBoardQuery(string $boardId): array
+    {
+        return [
+            'bool' => [
+                'must' => [
+                    [
+                        'terms' => [
+                            'reviewtags' => [
+                                strtoupper($boardId),
+                            ],
+                        ],
+                    ],
+                    [
+                        'query_string' => [
+                            'default_field' => 'reviewstatus',
+                            'query' => 'NEW',
+                        ],
+                    ],
+                ],
+                'must_not' => [
+                    [
+                        'term' => [
+                            'work_in_progress' => true,
+                        ],
+                    ],
+                ],
+
+            ],
+        ];
+    }
+
+    /**
+     * Generates a list of boards to link to.
+     */
+    protected function makeReviewMenu(string $active = ''): array
+    {
+        return [
+            [
+                'id' => 'bugfix',
+                'count' => $this->getReviewsByBoardQuery($this->getReviewBoardQuery('bugfix')),
+                'name' => 'Bugfixes',
+                'active' => 'bugfix' === $active,
+            ],
+            [
+                'id' => 'task',
+                'count' => $this->getReviewsByBoardQuery($this->getReviewBoardQuery('task')),
+                'name' => 'Tasks',
+                'active' => 'task' === $active,
+            ],
+            [
+                'id' => 'feature',
+                'count' => $this->getReviewsByBoardQuery($this->getReviewBoardQuery('feature')),
+                'name' => 'Features',
+                'active' => 'feature' === $active,
+            ],
+        ];
+    }
+
+    protected function getReviewsByBoardQuery(array $query): string
+    {
+        $fullRequest = [
+            'query' => $query,
+            'size' => 0,
+        ];
+        $resultSet = ElasticUtility::getIndexByName('review')
+            ->createSearch($fullRequest)->search();
+
+        return $resultSet->getTotalHits();
+    }
+
+    protected function defineReviewBoardGroup(array $review): string
+    {
+        switch (true) {
+            // Blocked or merge conflict
+            case 'no' === $review['mergeable']:
+                $metaStatus = 'mergeConflict';
+                break;
+            case 0 === $review['positive_reviews']
+                && 0 === $review['positive_verifications']
+                && 0 === $review['negative_reviews']
+                && 0 === $review['negative_verifications']:
+                $metaStatus = 'missesBoth';
+                break;
+            case $review['positive_reviews'] > 0
+                && 0 === $review['positive_verifications']
+                && 0 === $review['negative_reviews']
+                && 0 === $review['negative_verifications']:
+                $metaStatus = 'missesTesting';
+                break;
+            case 0 === $review['positive_reviews']
+                && $review['positive_verifications'] > 0
+                && 0 === $review['negative_reviews']
+                && 0 === $review['negative_verifications']:
+                $metaStatus = 'missesCodeReview';
+                break;
+            case $review['positive_reviews'] > 0
+                && $review['positive_verifications'] > 0
+                && 0 === $review['negative_reviews']
+                && 0 === $review['negative_verifications']:
+                $metaStatus = 'hasPlusOne';
+                break;
+            default:
+                $metaStatus = 'blocked';
+        }
+
+        return $metaStatus;
+    }
+
     private function createMenu(array $sprints, int $activeId): array
     {
         $menu = [];
@@ -482,13 +411,6 @@ class SprintController extends AbstractController
         return $menu;
     }
 
-    /**
-     * @param string $query
-     *
-     * @return array
-     *
-     * @throws InvalidException
-     */
     private function getTicketByBoardQuery(string $query): array
     {
         $query = Yaml::parse($query);
@@ -503,8 +425,8 @@ class SprintController extends AbstractController
                 ],
             ],
         ];
-        $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
-        $resultSet = $search->search();
+        $resultSet = ElasticUtility::getIndexByName('issue')
+            ->createSearch($fullRequest)->search();
         $count = [
             'open' => 0,
             'closed' => 0,
@@ -550,55 +472,40 @@ class SprintController extends AbstractController
         return $count;
     }
 
-    /**
-     * @param SprintBoard $sprint
-     *
-     * @return array
-     *
-     * @throws Exception
-     */
     private function getBoardData(SprintBoard $sprint): array
     {
+        /** @var array $out */
         $out = $this->parameters->get('ColumnOrder');
         $fullRequest = [
             'query' => Yaml::parse($sprint->getQuery()),
             'size' => 10000,
         ];
-        $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
-        $resultSet = $search->search();
+        $resultSet = ElasticUtility::getIndexByName('issue')
+            ->createSearch($fullRequest)->search();
         foreach ($resultSet->getResults() as $ticket) {
             $status = $ticket->getSource()['status'];
             $getBoardGroup = $this->defineBoardGroup($status['name']);
             if ('Review' === $getBoardGroup) {
                 $out[$getBoardGroup][] = $this->getReviewCard($ticket->getData());
             } else {
-                $ticketInfo = $ticket->getData();
-                $out[$getBoardGroup][] = $ticketInfo;
+                $out[$getBoardGroup][] = $ticket->getData();
             }
         }
 
         return $out;
     }
 
-    /**
-     * Special handling for review cards.
-     *
-     * @param array $ticket
-     *
-     * @return array
-     *
-     * @throws Exception
-     */
     private function getReviewCard(array $ticket): array
     {
         $notes = '';
         if (isset($ticket['journals'])) {
             foreach ((array) $ticket['journals'] as $journalEntry) {
-                if (isset($journalEntry['notes']) && (
-                    false !== strpos($journalEntry['notes'], 'It is available at http://review.typo3.org/')
+                if (isset($journalEntry['notes'])
+                    && (
+                        str_contains($journalEntry['notes'], 'It is available at http://review.typo3.org/')
                         ||
-                        false !== strpos($journalEntry['notes'], 'It is available at https://review.typo3.org/')
-                )
+                        str_contains($journalEntry['notes'], 'It is available at https://review.typo3.org/')
+                    )
                 ) {
                     $notes = $journalEntry['notes'];
                 }
@@ -628,29 +535,18 @@ class SprintController extends AbstractController
         return $returnValue;
     }
 
-    /**
-     * @param string $status
-     *
-     * @return string
-     */
-    private function defineBoardGroup($status): string
+    private function defineBoardGroup(string $status): string
     {
         return array_key_exists($status, $this->parameters->get('StatusMapping'))
             ? $this->parameters->get('StatusMapping')[$status]
             : $this->parameters->get('StatusMapping')['DefaultState'];
     }
 
-    /**
-     * @param array $data
-     *
-     * @return array
-     */
     private function calculateProgressBars(array $data): array
     {
         $out = [];
         $fullCount = array_sum($data);
-        $percentage = $fullCount / 100;
-        $percentage = $percentage ?: 1;
+        $percentage = ($fullCount / 100) ?: 1;
         foreach ($data as $key => $count) {
             $lowerKey = strtolower($key);
             $out['sections'][$lowerKey]['classes'] = $lowerKey;
