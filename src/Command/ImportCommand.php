@@ -19,7 +19,7 @@ use Exception;
 use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\GuzzleException;
 use InvalidArgumentException;
-use Psr\Log\LoggerInterface;
+use Psr\Log\LoggerAwareTrait;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Command\LockableTrait;
@@ -35,22 +35,17 @@ use Woeler\DiscordPhp\Message\DiscordEmbedsMessage;
 class ImportCommand extends Command
 {
     use LockableTrait;
+    use LoggerAwareTrait;
 
     protected static $defaultName = 'app:import';
 
     protected const BAMBOO_USER_ID = [49454, 51735, 52386];
 
-    protected static $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta', 'github', 'githubDelta'];
+    protected static array $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta', 'github', 'githubDelta'];
 
-    private $userCache = [];
-    /**
-     * @var bool
-     */
-    private $moreIssuesFromGerrit = true;
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
+    private array $userCache = [];
+
+    private bool $moreIssuesFromGerrit = true;
 
     private GithubService $githubService;
 
@@ -93,42 +88,23 @@ class ImportCommand extends Command
             );
     }
 
-    /**
-     * @var ParameterBagInterface
-     */
-    protected $parameters;
+    protected ParameterBagInterface $parameters;
 
-    /**
-     * @var ForgeClient
-     */
-    protected $forgeClient;
+    protected ForgeClient $forgeClient;
 
-    /**
-     * @var DiscordService
-     */
-    private $discordService;
+    private DiscordService $discordService;
 
-    /**
-     * @var string
-     */
-    private $discordWebhook;
+    private string $discordWebhook;
 
-    /**
-     * @var OutputInterface
-     */
-    protected $output;
+    protected OutputInterface $output;
 
-    /**
-     * @var bool
-     */
-    private $sendNotifications = false;
+    private bool $sendNotifications = false;
 
     public function __construct(
         ParameterBagInterface $parameters,
         ForgeClient $forgeClient,
         DiscordService $discordService,
         GithubService $githubService,
-        LoggerInterface $logger,
         string $discordWebhook
     ) {
         parent::__construct();
@@ -136,7 +112,6 @@ class ImportCommand extends Command
         $this->forgeClient = $forgeClient;
         $this->discordService = $discordService;
         $this->discordWebhook = $discordWebhook;
-        $this->logger = $logger;
         $this->githubService = $githubService;
     }
 
@@ -180,10 +155,8 @@ class ImportCommand extends Command
                         $progressBar = new ProgressBar($mainSection, 100);
                         $subBar = new ProgressBar($subSection);
                         $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
-                        /** @noinspection PhpUnhandledExceptionInspection */
                         $result = $this->getReviewBlock(0, 100, $subBar, $progressBar);
                         foreach ($result as $review) {
-                            /* @noinspection PhpUnhandledExceptionInspection */
                             $this->addDocumentToElastic($review, 'review');
                         }
                         $this->release();
@@ -209,10 +182,8 @@ class ImportCommand extends Command
                         $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
                         while ($currentSlot <= $totalCount) {
                             if ($this->moreIssuesFromGerrit) {
-                                /** @noinspection PhpUnhandledExceptionInspection */
                                 $result = $this->getReviewBlock($currentSlot, $perRun, $subBar, $progressBar);
                                 foreach ($result as $review) {
-                                    /* @noinspection PhpUnhandledExceptionInspection */
                                     $this->addDocumentToElastic($review, 'review');
                                 }
                             }
@@ -231,13 +202,10 @@ class ImportCommand extends Command
                         $repo = $input->hasOption('repository') ? $input->getOption('repository') : null;
                         $this->importFromGithub($organization, $repo, $io);
                         $this->release();
-
-                        return 0;
                     } else {
                         $output->writeln('Locked by another github import');
-
-                        return 0;
                     }
+                    return 0;
                     break;
                 case 'githubDelta':
                     if ($this->lock('github')) {
@@ -246,13 +214,10 @@ class ImportCommand extends Command
                         $pageCount = 1;
                         $this->importFromGithub($organization, $repo, $io, $pageCount);
                         $this->release();
-
-                        return 0;
                     } else {
                         $output->writeln('Locked by another github import');
-
-                        return 0;
                     }
+                    return 0;
                     break;
             }
         } catch (\Exception $exception) {
@@ -263,41 +228,20 @@ class ImportCommand extends Command
         }
     }
 
-    private function importFromForge(int $perRun, int $startOffset = 0, bool $importDelta = false): void
+    private function importFromForge(int $limit, int $startOffset = 0, bool $importDelta = false): void
     {
-        $currentSlot = 0;
+        $offset = 0;
         if ($startOffset > 0) {
-            $currentSlot = $startOffset;
+            $offset = $startOffset;
         }
-        /** @noinspection PhpUndefinedMethodInspection */
-        $data = $this->forgeClient->api('issue')->all(
-            [
-                'limit' => $perRun,
-                'offset' => $currentSlot,
-                'project_id' => $this->parameters->get('redmine_project_id'),
-                'status_id' => '*',
-                'sort' => 'updated_on:desc',
-            ]
-        );
-        if ($importDelta) {
-            $totalCount = $perRun;
-        } else {
-            $totalCount = (int) $data['total_count'];
-        }
-        $progressBar = new ProgressBar($this->output, $totalCount - $currentSlot);
+
+        $data = $this->getAllForgeIssuesPaginated($limit, $offset);
+        $totalCount = $importDelta ? $limit : (int) $data['total_count'];
+        $progressBar = new ProgressBar($this->output, $totalCount - $offset);
         $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
 
-        while ($currentSlot < $totalCount) {
-            /** @noinspection PhpUndefinedMethodInspection */
-            $result = $this->forgeClient->api('issue')->all(
-                [
-                    'limit' => $perRun,
-                    'offset' => $currentSlot,
-                    'project_id' => $this->parameters->get('redmine_project_id'),
-                    'status_id' => '*',
-                    'sort' => 'updated_on:desc',
-                ]
-            );
+        while ($offset < $totalCount) {
+            $result = $this->getAllForgeIssuesPaginated($limit, $offset);
             // break a soon as the API returns no more issues
             if (0 === count($result['issues'])) {
                 break;
@@ -307,10 +251,9 @@ class ImportCommand extends Command
                     $this->getTicketAndJournal($doc);
                 } catch (Exception $e) {
                 }
-                /* @noinspection DisconnectedForeachInstructionInspection */
                 $progressBar->advance();
             }
-            $currentSlot += $perRun;
+            $offset += $limit;
         }
     }
 
@@ -327,7 +270,6 @@ class ImportCommand extends Command
     {
         //import journals only if issue status is "Under review" (ID: 8)
         if (isset($issue['status']['id']) && 8 === (int) $issue['status']['id']) {
-            /** @noinspection PhpUndefinedMethodInspection */
             $issueWithJournals = $this->forgeClient->api('issue')->show($issue['id'], ['include' => ['journals']]);
             if (is_array($issueWithJournals)) {
                 $this->addDocumentToElastic($this->injectUserData($issueWithJournals['issue']));
@@ -357,8 +299,8 @@ class ImportCommand extends Command
 
     /**
      * @param SymfonyStyle $io
-     * @param string       $organization
-     * @param $repo
+     * @param string $organization
+     * @param string $repo
      *
      * @throws \JsonException
      */
@@ -370,13 +312,20 @@ class ImportCommand extends Command
         $lastPageOfRepositoryIssueEvents = $pageCount ?? $this->githubService->getLastPageOfRepositoryIssueEvents($organization, $repo);
         $progressBar = new ProgressBar($io, $lastPageOfRepositoryEvents * 100 + $lastPageOfRepositoryIssueEvents * 100);
         $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
-        foreach ($this->githubService->getInteractionsForRepository($organization, $repo, $pageCount) as $interaction) {
-            $this->addDocumentToElastic($interaction, 'interactions');
-            $progressBar->advance();
-        }
-        foreach ($this->githubService->getInteractionsForIssuesInRepository($organization, $repo, $pageCount) as $interaction) {
-            $this->addDocumentToElastic($interaction, 'interactions');
-            $progressBar->advance();
+        try {
+            foreach ($this->githubService->getInteractionsForRepository($organization, $repo, $pageCount) as $interaction) {
+                $this->addDocumentToElastic($interaction, 'interactions');
+                $progressBar->advance();
+            }
+            foreach ($this->githubService->getInteractionsForIssuesInRepository($organization, $repo, $pageCount) as $interaction) {
+                $this->addDocumentToElastic($interaction, 'interactions');
+                $progressBar->advance();
+            }
+        } catch (\Exception $e) {
+            // GitHub respond sometimes with 500 errors, so we have to catch them and continue
+            // A very wired case is that page 3 and 4 throw 500 errors, but page 5 and higher work again.
+            // It looks like the GitHub API is not stable and have a bug 😳
+            $io->error($e->getMessage());
         }
         $progressBar->finish();
         $io->newLine(1);
@@ -385,13 +334,13 @@ class ImportCommand extends Command
     private function injectUserData(array $issue): array
     {
         //@todo maybe the runtime cache ain't the smartest thing here
-        $userId = $issue['author']['id'];
-        if (!isset($this->userCache[$userId])) {
-            /** @noinspection PhpUndefinedMethodInspection */
+        // The author could be empty, so we have to check for that
+        $userId = $issue['author']['id'] ?? null;
+        if (null !== $userId && !isset($this->userCache[$userId])) {
             $userRecord = $this->forgeClient->api('user')->show($userId);
             $this->userCache[$userId] = $userRecord['user']['mail'] ?? '';
         }
-        $issue['author']['email'] = $this->userCache[$userId];
+        $issue['author']['email'] = $this->userCache[$userId] ?? '';
 
         return $issue;
     }
@@ -418,10 +367,8 @@ class ImportCommand extends Command
 
             return $out;
         }
-        $data = json_decode(str_replace(")]}'", '', $json), true);
-        $foo = '';
+        $data = json_decode(str_replace(")]}'", '', $json), true, 512, JSON_THROW_ON_ERROR);
         foreach ($data as $change) {
-            /* @noinspection DisconnectedForeachInstructionInspection */
             $mainProgressbar->advance();
             $labels = $this->extractLabels($change['labels']);
             if (!array_key_exists('mergeable', $change)) {
@@ -521,20 +468,19 @@ class ImportCommand extends Command
                     }
                 } catch (Exception $e) {
                     if (
-                        false === strpos($message['message'], 'Change could not be merged due to a path conflict')
+                        !str_contains($message['message'], 'Change could not be merged due to a path conflict')
                         &&
-                        false === strpos($message['message'], 'The change could not be merged due to a path conflict')
+                        !str_contains($message['message'], 'The change could not be merged due to a path conflict')
                         &&
-                        false === strpos($message['message'], 'Your change could not be merged due to a path conflict')
+                        !str_contains($message['message'], 'Your change could not be merged due to a path conflict')
                         &&
-                        false === strpos($message['message'], 'Change has been successfully pushed into branch sandbox')
+                        !str_contains($message['message'], 'Change has been successfully pushed into branch sandbox')
                         &&
-                        false === strpos($message['message'], 'Change could not be merged because of a missing dependency')
+                        !str_contains($message['message'], 'Change could not be merged because of a missing dependency')
                     ) {
                         throw new RuntimeException($e->getMessage());
                     }
                 }
-                /* @noinspection DisconnectedForeachInstructionInspection */
                 $subBar->advance();
             }
 
@@ -606,18 +552,18 @@ class ImportCommand extends Command
         /*
          * fix Stuff
          */
-        if (false !== strpos($matches[1], 'master.')) {
+        if (str_contains($matches[1], 'master.')) {
             $matches[1] = str_replace('master.', 'master,', $matches[1]);
         }
-        if (false !== strpos($matches[1], '4.7.')) {
+        if (str_contains($matches[1], '4.7.')) {
             $matches[1] = str_replace('4.7.', '4.7,', $matches[1]);
         }
-        if (false !== strpos($matches[1], '4.5 LTS')) {
+        if (str_contains($matches[1], '4.5 LTS')) {
             $matches[1] = str_replace('4.5 LTS', '4.5', $matches[1]);
         }
         $releaseArray = $this->trimExplode(',', $matches[1]);
         foreach ($releaseArray as $key => $release) {
-            if (false !== strpos($release, ' ')) {
+            if (str_contains($release, ' ')) {
                 throw new InvalidArgumentException('Release contains space? ' . $message);
             }
             $releaseArray[$key] = strtolower($release);
@@ -707,7 +653,7 @@ class ImportCommand extends Command
      *
      * @return array Exploded values
      */
-    public function trimExplode($delim, $string, $removeEmptyValues = false): array
+    public function trimExplode(string $delim, string $string, bool $removeEmptyValues = false): array
     {
         $explodedValues = explode($delim, $string);
 
@@ -732,7 +678,7 @@ class ImportCommand extends Command
      *
      * @throws Exception
      */
-    protected function addDocumentToElastic(array $document, $type = 'issue'): void
+    protected function addDocumentToElastic(array $document, string $type = 'issue'): void
     {
         $elasticType = null;
         switch ($type) {
@@ -885,11 +831,7 @@ class ImportCommand extends Command
     private function checkRegex(string $string, string $pattern, $modifier = 'm'): bool
     {
         preg_match('/' . $pattern . '/' . $modifier, $string, $matches);
-        if (isset($matches[0])) {
-            return true;
-        }
-
-        return false;
+        return isset($matches[0]);
     }
 
     /**
@@ -905,7 +847,7 @@ class ImportCommand extends Command
         $interaction['interaction_type'] = $interactionType;
         $interaction['account'] = $data['uploader']['username'];
         $interaction['fullname'] = $data['uploader']['name'];
-        if (isset($mergeRevision['uploader']['email'])) {
+        if (isset($data['uploader']['email'])) {
             $interaction['email'] = $data['uploader']['email'];
         } else {
             $interaction['email'] = 'Unknown';
@@ -944,5 +886,16 @@ class ImportCommand extends Command
             );
         } catch (GuzzleException $e) {
         }
+    }
+
+    private function getAllForgeIssuesPaginated(int $limit, int $offset): array
+    {
+        return $this->forgeClient->api('issue')->all([
+            'limit' => $limit,
+            'offset' => $offset,
+            'project_id' => $this->parameters->get('redmine_project_id'),
+            'status_id' => '*',
+            'sort' => 'updated_on:desc',
+        ]);
     }
 }
