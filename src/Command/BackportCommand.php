@@ -183,6 +183,7 @@ class BackportCommand extends Command
                             'terms' => [
                                 'branch' => [
                                     'master',
+                                    'main'
                                 ],
                             ],
                         ],
