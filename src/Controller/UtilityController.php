@@ -230,6 +230,7 @@ class UtilityController extends AbstractController
             'TCA',
             'TSConfig',
             'TypoScript',
+            'YAML',
         ];
 
         $extensionKeys = [
