@@ -29,6 +29,7 @@ class BackportCommand extends Command
      */
     private static array $versionBranchMap = [
         'master' => 'master',
+        'main' => 'main',
         '6.2' => 'TYPO3_6-2',
         '7.6' => 'TYPO3_7-6',
         '8.7' => 'TYPO3_8-7',
@@ -183,7 +184,7 @@ class BackportCommand extends Command
                             'terms' => [
                                 'branch' => [
                                     'master',
-                                    'main'
+                                    'main',
                                 ],
                             ],
                         ],

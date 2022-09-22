@@ -205,6 +205,7 @@ class ImportCommand extends Command
                     } else {
                         $output->writeln('Locked by another github import');
                     }
+
                     return 0;
                     break;
                 case 'githubDelta':
@@ -217,6 +218,7 @@ class ImportCommand extends Command
                     } else {
                         $output->writeln('Locked by another github import');
                     }
+
                     return 0;
                     break;
             }
@@ -299,8 +301,8 @@ class ImportCommand extends Command
 
     /**
      * @param SymfonyStyle $io
-     * @param string $organization
-     * @param string $repo
+     * @param string       $organization
+     * @param string       $repo
      *
      * @throws \JsonException
      */
@@ -831,6 +833,7 @@ class ImportCommand extends Command
     private function checkRegex(string $string, string $pattern, $modifier = 'm'): bool
     {
         preg_match('/' . $pattern . '/' . $modifier, $string, $matches);
+
         return isset($matches[0]);
     }
 
