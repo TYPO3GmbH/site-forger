@@ -49,9 +49,8 @@ class UtilityController extends AbstractController
         $viewData['backports'] = [];
         $viewData['sum'] = 0;
         $finalFilePath = $this->parameters->get('kernel.project_dir') . '/var/backports.json';
-        $entries = $this->backportBlacklistEntryRepository->findAll();
         if (is_file($finalFilePath)) {
-            $backports = json_decode(file_get_contents($finalFilePath), true);
+            $backports = json_decode(file_get_contents($finalFilePath), true, 512, JSON_THROW_ON_ERROR);
             $viewData['backports'] = $backports;
             foreach ($viewData['backports'] as $key => $value) {
                 $blacklist = $this->backportBlacklistEntryRepository->findOneBy(['changeId' => $key]);

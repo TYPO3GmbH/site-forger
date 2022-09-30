@@ -12,14 +12,18 @@
                     <col style="width: calc(100% / 3)">
                 </colgroup>
                 <tr>
-                    <th>master</th>
+                    <th>main</th>
                     <th>11.5</th>
                     <th>10.4</th>
                 </tr>
                 {% for backport in backports %}
                     <tr>
                         <td>
-                            {% include '_partials/review_card.html.twig' with {'card': backport.releases.t3_master, 'mode': 'backport'} only %}
+                            {% if backport.releases.t3_main == 'missing' %}
+                                {% include '_partials/review_card.html.twig' with {'card': null, 'mode': 'backport'} only %}
+                            {% elseif backport.releases.t3_main.id is defined %}
+                                {% include '_partials/review_card.html.twig' with {'card': backport.releases.t3_main, 'mode': 'backport'} only %}
+                            {% endif %}
                         </td>
                         <td>
                             {% if backport.releases.t3_115 == 'missing' %}
