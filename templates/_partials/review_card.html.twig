@@ -33,7 +33,7 @@
             <div class="review-title">
                 <a href="https://review.typo3.org/c/Packages/TYPO3.CMS/+/{{ card.id }}/" target="gerrit{}{{ card.id }}">{{card.subject}}</a>
             </div>
-            {% if card.branch != 'master' %}
+            {% if card.branch != 'main' %}
                 <div class="review-branch">
                     <span class="badge badge-danger">{{ card.branch }}</span>
                 </div>

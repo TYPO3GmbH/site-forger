@@ -25,7 +25,7 @@
         <div class="review-title">
             <a href="https://review.typo3.org/c/Packages/TYPO3.CMS/+/{{ review._source.id }}/" target="gerrit{}{{ review._source.id }}">{{review._source.subject}}</a>
         </div>
-         {% if review._source.branch != 'master' %}
+         {% if review._source.branch != 'main' %}
             <div class="review-branch">
                 <span class="badge badge-danger">{{review._source.branch}}</span>
             </div>
@@ -40,11 +40,11 @@
             <span class="review-data-item-label">Target Release</span>
             <span class="review-data-item-value">
                 {% for release in review._source.releases %}
-                    {% if release == 'master' %}
-                        <span class="badge badge-success">master</span>
-                    {% elseif release == '9.5' %}
+                    {% if release == 'main' %}
+                        <span class="badge badge-success">main</span>
+                    {% elseif release == '11.5' %}
                         <span class="badge badge-info">{{release}}</span>
-                    {% elseif release == '8.7' %}
+                    {% elseif release == '10.4' %}
                         <span class="badge badge-warning">{{release}}</span>
                     {% else %}
                         <span class="badge badge-danger">{{release}}</span>

@@ -93,9 +93,9 @@ services:
     class: App\Command\ImportCommand
     public: true
     arguments:
+      $client: '@guzzle.client.gerrit'
       $discordWebhook: '%env(DISCORD_ISSUES_WEBHOOK)%'
-  #        tags:
-  #            - testDouble
+
   App\Menu\MenuBuilder:
     tags:
       - name: 'knp_menu.menu_builder'
@@ -120,3 +120,9 @@ services:
       - '%env(APP_URL)%'
     tags:
       - { name: kernel.event_subscriber }
+
+  guzzle.client.gerrit:
+    class: GuzzleHttp\Client
+    arguments:
+      $config:
+        base_uri: 'https://review.typo3.org/'

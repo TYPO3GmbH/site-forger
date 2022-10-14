@@ -28,7 +28,7 @@ class BackportCommand extends Command
      * @var array<string, string>
      */
     private static array $versionBranchMap = [
-        'master' => 'master',
+        'main' => 'main',
         '6.2' => 'TYPO3_6-2',
         '7.6' => 'TYPO3_7-6',
         '8.7' => 'TYPO3_8-7',
@@ -37,19 +37,8 @@ class BackportCommand extends Command
         '11.5' => '11.5',
     ];
 
-    /**
-     * @var OutputInterface
-     */
-    protected $output;
-
-    /**
-     * @var ParameterBagInterface
-     */
-    protected $parameters;
-    /**
-     * @var BackportBlacklistEntryRepository
-     */
-    private $blackListRepository;
+    protected ParameterBagInterface $parameters;
+    private BackportBlacklistEntryRepository $blackListRepository;
 
     public function __construct(ParameterBagInterface $parameters, BackportBlacklistEntryRepository $blacklistEntryRepository)
     {
@@ -77,7 +66,7 @@ class BackportCommand extends Command
             $workingArray[$changeId] = [
                 'mainReviewId' => $backport->getSource()['id'],
                 'releases' => [
-                    't3_master' => 'tbd',
+                    't3_main' => 'tbd',
                     't3_62' => 'notTargeted',
                     't3_76' => 'notTargeted',
                     't3_87' => 'notTargeted',
@@ -88,6 +77,7 @@ class BackportCommand extends Command
 
             ];
             foreach ($releases as $release) {
+                $release = str_replace('master', 'main', $release);
                 $workingArray[$changeId]['releases']['t3_' . str_replace('.', '', strtolower($release))] = $this->compareReleaseAndRelatedChanges($release, $relatedChanges);
             }
             // Remove entry completely if all branches have backports
@@ -108,7 +98,7 @@ class BackportCommand extends Command
             $progressBar->advance();
         }
         $finalFilePath = $this->parameters->get('kernel.project_dir') . '/var/backports.json';
-        file_put_contents($finalFilePath, json_encode($workingArray));
+        file_put_contents($finalFilePath, json_encode($workingArray, JSON_THROW_ON_ERROR));
 
         $io->success('Wrote backports to ' . $finalFilePath);
     }
@@ -182,7 +172,7 @@ class BackportCommand extends Command
                         [
                             'terms' => [
                                 'branch' => [
-                                    'master',
+                                    'main',
                                 ],
                             ],
                         ],
