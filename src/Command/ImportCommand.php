@@ -16,9 +16,13 @@ use DateTime;
 use Elastica\Document;
 use Elastica\Exception\NotFoundException;
 use Exception;
+use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\ServerException;
 use InvalidArgumentException;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
@@ -32,7 +36,7 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use T3G\ElasticUtility\ElasticUtility;
 use Woeler\DiscordPhp\Message\DiscordEmbedsMessage;
 
-class ImportCommand extends Command
+class ImportCommand extends Command implements LoggerAwareInterface
 {
     use LockableTrait;
     use LoggerAwareTrait;
@@ -89,13 +93,10 @@ class ImportCommand extends Command
     }
 
     protected ParameterBagInterface $parameters;
-
     protected ForgeClient $forgeClient;
-
     private DiscordService $discordService;
-
+    private ClientInterface $client;
     private string $discordWebhook;
-
     protected OutputInterface $output;
 
     private bool $sendNotifications = false;
@@ -105,14 +106,16 @@ class ImportCommand extends Command
         ForgeClient $forgeClient,
         DiscordService $discordService,
         GithubService $githubService,
+        ClientInterface $client,
         string $discordWebhook
     ) {
         parent::__construct();
         $this->parameters = $parameters;
         $this->forgeClient = $forgeClient;
         $this->discordService = $discordService;
-        $this->discordWebhook = $discordWebhook;
         $this->githubService = $githubService;
+        $this->client = $client;
+        $this->discordWebhook = $discordWebhook;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -206,7 +209,6 @@ class ImportCommand extends Command
                         $output->writeln('Locked by another github import');
                     }
                     return 0;
-                    break;
                 case 'githubDelta':
                     if ($this->lock('github')) {
                         $organization = $input->getOption('organization');
@@ -218,7 +220,6 @@ class ImportCommand extends Command
                         $output->writeln('Locked by another github import');
                     }
                     return 0;
-                    break;
             }
         } catch (\Exception $exception) {
             // If any exception occurs, release the lock, else the process will run never again.
@@ -360,14 +361,13 @@ class ImportCommand extends Command
         $moreChanges = false;
         $out = [];
         try {
-            $json = file_get_contents('https://review.typo3.org/changes/?q=project:Packages/TYPO3.CMS&n=' . $perRun .
-                '&start=' . $current . '&o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_FILES&o=CURRENT_COMMIT&o=MESSAGES&o=DETAILED_ACCOUNTS');
+            $response = $this->getCommitsFromGerrit($perRun, $current);
+            $data = json_decode(str_replace(")]}'", '', (string) $response->getBody()), true, 512, JSON_THROW_ON_ERROR);
         } catch (Exception $e) {
             $this->logger->warning($e->getMessage());
 
             return $out;
         }
-        $data = json_decode(str_replace(")]}'", '', $json), true, 512, JSON_THROW_ON_ERROR);
         foreach ($data as $change) {
             $mainProgressbar->advance();
             $labels = $this->extractLabels($change['labels']);
@@ -396,7 +396,7 @@ class ImportCommand extends Command
                         $message['_revision_number'] = $patchSetNumber;
                     }
 
-                    // Check if is merge
+                    // Check if is merge-commit
                     if ($this->checkIfMessageIsMerge($message['message'])) {
                         $revisions = $change['revisions'];
                         usort($revisions, function ($a, $b) {
@@ -498,7 +498,7 @@ class ImportCommand extends Command
                 'change_id' => $change['change_id'],
                 'reviewstatus' => $change['status'],
                 'subject' => $change['subject'],
-                'branch' => $change['branch'],
+                'branch' => $change['branch'] === 'master' ? 'main' : $change['branch'],
                 'topic' => array_key_exists('topic', $change) ? $change['topic'] : 'no topic',
                 'mergeable' => (true === $change['mergeable']) ? 'yes' : 'no',
                 'affected_files' => count($change['revisions'][$change['current_revision']]['files']),
@@ -552,15 +552,9 @@ class ImportCommand extends Command
         /*
          * fix Stuff
          */
-        if (str_contains($matches[1], 'master.')) {
-            $matches[1] = str_replace('master.', 'master,', $matches[1]);
-        }
-        if (str_contains($matches[1], '4.7.')) {
-            $matches[1] = str_replace('4.7.', '4.7,', $matches[1]);
-        }
-        if (str_contains($matches[1], '4.5 LTS')) {
-            $matches[1] = str_replace('4.5 LTS', '4.5', $matches[1]);
-        }
+        $search = ['master.', 'master', '4.7.', '4.5 LTS'];
+        $replaces = ['master,', 'main', '4.7,', '4.5'];
+        $matches[1] = str_replace($search, $replaces, $matches[1]);
         $releaseArray = $this->trimExplode(',', $matches[1]);
         foreach ($releaseArray as $key => $release) {
             if (str_contains($release, ' ')) {
@@ -649,27 +643,14 @@ class ImportCommand extends Command
      *
      * @param string $delim             Delimiter string to explode with
      * @param string $string            The string to explode
-     * @param bool   $removeEmptyValues If set, all empty values will be removed in output
      *
      * @return array Exploded values
      */
-    public function trimExplode(string $delim, string $string, bool $removeEmptyValues = false): array
+    public function trimExplode(string $delim, string $string): array
     {
         $explodedValues = explode($delim, $string);
 
-        $result = array_map('trim', $explodedValues);
-
-        if ($removeEmptyValues) {
-            $temp = [];
-            foreach ($result as $value) {
-                if ('' !== $value) {
-                    $temp[] = $value;
-                }
-            }
-            $result = $temp;
-        }
-
-        return $result;
+        return array_map('trim', $explodedValues);
     }
 
     /**
@@ -890,12 +871,47 @@ class ImportCommand extends Command
 
     private function getAllForgeIssuesPaginated(int $limit, int $offset): array
     {
-        return $this->forgeClient->api('issue')->all([
+        return $this->forgeClient->getApi('issue')->all([
             'limit' => $limit,
             'offset' => $offset,
             'project_id' => $this->parameters->get('redmine_project_id'),
             'status_id' => '*',
             'sort' => 'updated_on:desc',
         ]);
+    }
+
+    private function getCommitsFromGerrit(int $perRun, string $current, $retry = 0): ResponseInterface
+    {
+        try {
+            $httpQueryData = [
+                'q' => 'project:Packages/TYPO3.CMS',
+                'n' => $perRun,
+                'start' => $current,
+                'o' => ['DETAILED_LABELS', 'ALL_REVISIONS', 'ALL_FILES', 'CURRENT_COMMIT', 'MESSAGES', 'DETAILED_ACCOUNTS'],
+            ];
+            $query = [];
+            // http_build_query() doesn't work as it generates o[0]=a&o[1]=b&o[2]=c instead of o=a&o=b&o=c
+            foreach ($httpQueryData as $name => $value) {
+                $value = (array) $value;
+                array_walk_recursive($value, static function($value) use (&$query, $name) {
+                    $query[] = urlencode($name) . '=' . urlencode($value);
+                });
+            }
+            $httpQuery = implode('&', $query);
+            $url = sprintf('/changes/?%s', $httpQuery);
+            return $this->client->request('GET', $url);
+        } catch (ServerException $e) {
+            if ($retry <= 3) {
+                $retry++;
+                // Give Gerrit some time to relax
+                $sleepTime = 5 * $retry;
+                $this->logger->warning(sprintf('Failed to fetch data from Gerrit, retrying in %d seconds...', $sleepTime));
+                sleep($sleepTime);
+
+                return $this->getCommitsFromGerrit($perRun, $current, $retry);
+            }
+
+            throw $e;
+        }
     }
 }
