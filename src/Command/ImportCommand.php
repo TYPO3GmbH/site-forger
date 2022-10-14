@@ -552,19 +552,9 @@ class ImportCommand extends Command implements LoggerAwareInterface
         /*
          * fix Stuff
          */
-        if (str_contains($matches[1], 'master.')) {
-            $matches[1] = str_replace('master.', 'master,', $matches[1]);
-        }
-        if (str_contains($matches[1], 'master')) {
-            // Replace "master" with "main"
-            $matches[1] = str_replace('master', 'main', $matches[1]);
-        }
-        if (str_contains($matches[1], '4.7.')) {
-            $matches[1] = str_replace('4.7.', '4.7,', $matches[1]);
-        }
-        if (str_contains($matches[1], '4.5 LTS')) {
-            $matches[1] = str_replace('4.5 LTS', '4.5', $matches[1]);
-        }
+        $search = ['master.', 'master', '4.7.', '4.5 LTS'];
+        $replaces = ['master,', 'main', '4.7,', '4.5'];
+        $matches[1] = str_replace($search, $replaces, $matches[1]);
         $releaseArray = $this->trimExplode(',', $matches[1]);
         foreach ($releaseArray as $key => $release) {
             if (str_contains($release, ' ')) {
@@ -893,7 +883,22 @@ class ImportCommand extends Command implements LoggerAwareInterface
     private function getCommitsFromGerrit(int $perRun, string $current, $retry = 0): ResponseInterface
     {
         try {
-            $url = sprintf('/changes/?q=project:Packages/TYPO3.CMS&n=%d&start=%s&o=DETAILED_LABELS&o=ALL_REVISIONS&o=ALL_FILES&o=CURRENT_COMMIT&o=MESSAGES&o=DETAILED_ACCOUNTS', $perRun, $current);
+            $httpQueryData = [
+                'q' => 'project:Packages/TYPO3.CMS',
+                'n' => $perRun,
+                'start' => $current,
+                'o' => ['DETAILED_LABELS', 'ALL_REVISIONS', 'ALL_FILES', 'CURRENT_COMMIT', 'MESSAGES', 'DETAILED_ACCOUNTS'],
+            ];
+            $query = [];
+            // http_build_query() doesn't work as it generates o[0]=a&o[1]=b&o[2]=c instead of o=a&o=b&o=c
+            foreach ($httpQueryData as $name => $value) {
+                $value = (array) $value;
+                array_walk_recursive($value, static function($value) use (&$query, $name) {
+                    $query[] = urlencode($name) . '=' . urlencode($value);
+                });
+            }
+            $httpQuery = implode('&', $query);
+            $url = sprintf('/changes/?%s', $httpQuery);
             return $this->client->request('GET', $url);
         } catch (ServerException $e) {
             if ($retry <= 3) {
