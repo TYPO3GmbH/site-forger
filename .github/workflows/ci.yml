@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
           node-version: '14'
           cache: 'npm'
@@ -31,7 +31,7 @@ jobs:
       - name: Get Composer Cache Directory
         id: composer-cache
         run: |
-          echo "::set-output name=dir::$(composer config cache-files-dir)"
+          echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - uses: actions/cache@v3
         with:
@@ -101,7 +101,7 @@ jobs:
       - name: Get Environment
         id: environment
         run: |
-          echo ::set-output name=target::$(echo ${GITHUB_REF#refs/heads/} | sed 's/\//-/g')
+          echo "target=$(echo ${GITHUB_REF#refs/heads/} | sed 's/\//-/g')" >> $GITHUB_OUTPUT
 
       - name: Deployment
         env:
