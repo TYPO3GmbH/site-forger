@@ -42,16 +42,38 @@ class ImportCommand extends Command implements LoggerAwareInterface
     use LoggerAwareTrait;
 
     protected static $defaultName = 'app:import';
-
     protected const BAMBOO_USER_ID = [49454, 51735, 52386];
 
     protected static array $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta', 'github', 'githubDelta'];
 
-    private array $userCache = [];
-
-    private bool $moreIssuesFromGerrit = true;
-
+    protected ParameterBagInterface $parameters;
+    protected ForgeClient $forgeClient;
+    private DiscordService $discordService;
     private GithubService $githubService;
+    private ClientInterface $client;
+    private string $discordWebhook;
+    private array $userCache = [];
+    private bool $moreIssuesFromGerrit = true;
+    protected OutputInterface $output;
+
+    private bool $sendNotifications = false;
+
+    public function __construct(
+        ParameterBagInterface $parameters,
+        ForgeClient $forgeClient,
+        DiscordService $discordService,
+        GithubService $githubService,
+        ClientInterface $client,
+        string $discordWebhook
+    ) {
+        parent::__construct();
+        $this->parameters = $parameters;
+        $this->forgeClient = $forgeClient;
+        $this->discordService = $discordService;
+        $this->githubService = $githubService;
+        $this->client = $client;
+        $this->discordWebhook = $discordWebhook;
+    }
 
     protected function configure(): void
     {
@@ -92,32 +114,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
             );
     }
 
-    protected ParameterBagInterface $parameters;
-    protected ForgeClient $forgeClient;
-    private DiscordService $discordService;
-    private ClientInterface $client;
-    private string $discordWebhook;
-    protected OutputInterface $output;
-
-    private bool $sendNotifications = false;
-
-    public function __construct(
-        ParameterBagInterface $parameters,
-        ForgeClient $forgeClient,
-        DiscordService $discordService,
-        GithubService $githubService,
-        ClientInterface $client,
-        string $discordWebhook
-    ) {
-        parent::__construct();
-        $this->parameters = $parameters;
-        $this->forgeClient = $forgeClient;
-        $this->discordService = $discordService;
-        $this->githubService = $githubService;
-        $this->client = $client;
-        $this->discordWebhook = $discordWebhook;
-    }
-
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $io = new SymfonyStyle($input, $output);
@@ -133,8 +129,11 @@ class ImportCommand extends Command implements LoggerAwareInterface
             switch ($mode) {
                 case 'forgeFull':
                     if ($this->lock('forge')) {
-                        $this->importFromForge(100, $startAt);
-                        $this->release();
+                        try {
+                            $this->importFromForge(100, $startAt);
+                        } finally {
+                            $this->release();
+                        }
                     } else {
                         $output->writeln('Locked by another forge import');
 
@@ -143,26 +142,33 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     break;
                 case 'forgeDelta':
                     if ($this->lock('forge')) {
-                        $this->importFromForge(100, $startAt, true);
-                        $this->release();
+                        try {
+                            $this->importFromForge(100, $startAt, true);
+                        } finally {
+                            $this->release();
+                        }
                     } else {
                         $output->writeln('Locked by another forge import');
 
                         return 0;
                     }
+
                     break;
                 case 'reviewDelta':
                     if ($this->lock('gerrit')) {
-                        $mainSection = $output->section();
-                        $subSection = $output->section();
-                        $progressBar = new ProgressBar($mainSection, 100);
-                        $subBar = new ProgressBar($subSection);
-                        $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
-                        $result = $this->getReviewBlock(0, 100, $subBar, $progressBar);
-                        foreach ($result as $review) {
-                            $this->addDocumentToElastic($review, 'review');
+                        try {
+                            $mainSection = $output->section();
+                            $subSection = $output->section();
+                            $progressBar = new ProgressBar($mainSection, 100);
+                            $subBar = new ProgressBar($subSection);
+                            $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
+                            $result = $this->getReviewBlock(0, 100, $subBar, $progressBar);
+                            foreach ($result as $review) {
+                                $this->addDocumentToElastic($review, 'review');
+                            }
+                        } finally {
+                            $this->release();
                         }
-                        $this->release();
                     } else {
                         $output->writeln('Locked by another gerrit import');
 
@@ -171,28 +177,31 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     break;
                 case 'reviewFull':
                     if ($this->lock('gerrit')) {
-                        $totalCount = 30000;
-                        $currentSlot = 0;
-                        if ($startAt > 0) {
-                            $currentSlot = $startAt;
-                        }
-                        $perRun = 100;
-                        $mainSection = $output->section();
-                        $subSection = $output->section();
-                        $progressBar = new ProgressBar($mainSection, $totalCount);
-                        $progressBar->setProgress($currentSlot);
-                        $subBar = new ProgressBar($subSection);
-                        $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
-                        while ($currentSlot <= $totalCount) {
-                            if ($this->moreIssuesFromGerrit) {
-                                $result = $this->getReviewBlock($currentSlot, $perRun, $subBar, $progressBar);
-                                foreach ($result as $review) {
-                                    $this->addDocumentToElastic($review, 'review');
-                                }
+                        try {
+                            $totalCount = 30000;
+                            $currentSlot = 0;
+                            if ($startAt > 0) {
+                                $currentSlot = $startAt;
                             }
-                            $currentSlot += $perRun;
+                            $perRun = 100;
+                            $mainSection = $output->section();
+                            $subSection = $output->section();
+                            $progressBar = new ProgressBar($mainSection, $totalCount);
+                            $progressBar->setProgress($currentSlot);
+                            $subBar = new ProgressBar($subSection);
+                            $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
+                            while ($currentSlot <= $totalCount) {
+                                if ($this->moreIssuesFromGerrit) {
+                                    $result = $this->getReviewBlock($currentSlot, $perRun, $subBar, $progressBar);
+                                    foreach ($result as $review) {
+                                        $this->addDocumentToElastic($review, 'review');
+                                    }
+                                }
+                                $currentSlot += $perRun;
+                            }
+                        } finally {
+                            $this->release();
                         }
-                        $this->release();
                     } else {
                         $output->writeln('Locked by another gerrit import');
 
@@ -201,21 +210,27 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     break;
                 case 'github':
                     if ($this->lock('github')) {
-                        $organization = $input->getOption('organization');
-                        $repo = $input->hasOption('repository') ? $input->getOption('repository') : null;
-                        $this->importFromGithub($organization, $repo, $io);
-                        $this->release();
+                        try {
+                            $organization = $input->getOption('organization');
+                            $repo = $input->hasOption('repository') ? $input->getOption('repository') : null;
+                            $this->importFromGithub($organization, $repo, $io);
+                        } finally {
+                            $this->release();
+                        }
                     } else {
                         $output->writeln('Locked by another github import');
                     }
                     return 0;
                 case 'githubDelta':
                     if ($this->lock('github')) {
-                        $organization = $input->getOption('organization');
-                        $repo = $input->hasOption('repository') ? $input->getOption('repository') : null;
-                        $pageCount = 1;
-                        $this->importFromGithub($organization, $repo, $io, $pageCount);
-                        $this->release();
+                        try {
+                            $organization = $input->getOption('organization');
+                            $repo = $input->hasOption('repository') ? $input->getOption('repository') : null;
+                            $pageCount = 1;
+                            $this->importFromGithub($organization, $repo, $io, $pageCount);
+                        } finally {
+                            $this->release();
+                        }
                     } else {
                         $output->writeln('Locked by another github import');
                     }
@@ -250,6 +265,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
             foreach ($result['issues'] as $doc) {
                 try {
                     $this->getTicketAndJournal($doc);
+                    $this->refreshLock();
                 } catch (Exception $e) {
                 }
                 $progressBar->advance();
@@ -482,6 +498,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     }
                 }
                 $subBar->advance();
+                $this->refreshLock();
             }
 
             $author = $change['revisions'][$change['current_revision']]['commit']['author']['name'];
@@ -912,6 +929,16 @@ class ImportCommand extends Command implements LoggerAwareInterface
             }
 
             throw $e;
+        }
+    }
+
+    /**
+     * Refreshes the lock to avoid a too-early expiration of its TTL
+     */
+    private function refreshLock(): void
+    {
+        if ($this->lock) {
+            $this->lock->refresh();
         }
     }
 }
