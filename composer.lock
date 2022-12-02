@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6f186804e19480f9ba0266f046b9b111",
+    "content-hash": "3878553fe1bff2f2da0bd906f11eec4b",
     "packages": [
         {
             "name": "brick/math",
@@ -9850,16 +9850,16 @@
         },
         {
             "name": "t3g/symfony-template-bundle",
-            "version": "3.4.0",
+            "version": "3.5.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/TYPO3GmbH/symfony-template-bundle.git",
-                "reference": "e19118c8a5614da4550faa9d602c5fadbdd1c6ea"
+                "reference": "1b7c44d166110517119f3d53a45dcf746b0fd9ce"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/TYPO3GmbH/symfony-template-bundle/zipball/e19118c8a5614da4550faa9d602c5fadbdd1c6ea",
-                "reference": "e19118c8a5614da4550faa9d602c5fadbdd1c6ea",
+                "url": "https://api.github.com/repos/TYPO3GmbH/symfony-template-bundle/zipball/1b7c44d166110517119f3d53a45dcf746b0fd9ce",
+                "reference": "1b7c44d166110517119f3d53a45dcf746b0fd9ce",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -9942,10 +9942,10 @@
                 "Templates"
             ],
             "support": {
-                "source": "https://github.com/TYPO3GmbH/symfony-template-bundle/tree/3.4.0",
+                "source": "https://github.com/TYPO3GmbH/symfony-template-bundle/tree/3.5.0",
                 "issues": "https://github.com/TYPO3GmbH/symfony-template-bundle/issues"
             },
-            "time": "2022-06-23T10:54:35+00:00"
+            "time": "2022-12-02T09:20:56+00:00"
         },
         {
             "name": "t3g/symfony-usercentrics-bundle",
@@ -12006,5 +12006,5 @@
     "platform-overrides": {
         "php": "7.4"
     },
-    "plugin-api-version": "2.2.0"
+    "plugin-api-version": "2.3.0"
 }

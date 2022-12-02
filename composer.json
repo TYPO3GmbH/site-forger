@@ -38,7 +38,7 @@
         "symfony/yaml": "^4.3",
         "t3g/elastic-utility": "^7.0.1",
         "t3g/symfony-keycloak-bundle": "^1.0",
-        "t3g/symfony-template-bundle": "^3.3",
+        "t3g/symfony-template-bundle": "^3.5.0",
         "t3g/symfony-usercentrics-bundle": "^1.0",
         "twig/twig": "^3.4.3",
         "woeler/phpdiscord": "^1.1"
