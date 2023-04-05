@@ -220,6 +220,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     } else {
                         $output->writeln('Locked by another github import');
                     }
+
                     return 0;
                 case 'githubDelta':
                     if ($this->lock('github')) {
@@ -234,6 +235,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     } else {
                         $output->writeln('Locked by another github import');
                     }
+
                     return 0;
             }
         } catch (\Exception $exception) {
@@ -316,8 +318,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
 
     /**
      * @param SymfonyStyle $io
-     * @param string $organization
-     * @param string $repo
+     * @param string       $organization
+     * @param string       $repo
      *
      * @throws \JsonException
      */
@@ -515,7 +517,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 'change_id' => $change['change_id'],
                 'reviewstatus' => $change['status'],
                 'subject' => $change['subject'],
-                'branch' => $change['branch'] === 'master' ? 'main' : $change['branch'],
+                'branch' => 'master' === $change['branch'] ? 'main' : $change['branch'],
                 'topic' => array_key_exists('topic', $change) ? $change['topic'] : 'no topic',
                 'mergeable' => (true === $change['mergeable']) ? 'yes' : 'no',
                 'affected_files' => count($change['revisions'][$change['current_revision']]['files']),
@@ -658,8 +660,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
      * Explodes a string and trims all values for whitespace in the ends.
      * If $onlyNonEmptyValues is set, then all blank ('') values are removed.
      *
-     * @param string $delim             Delimiter string to explode with
-     * @param string $string            The string to explode
+     * @param string $delim  Delimiter string to explode with
+     * @param string $string The string to explode
      *
      * @return array Exploded values
      */
@@ -829,6 +831,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
     private function checkRegex(string $string, string $pattern, $modifier = 'm'): bool
     {
         preg_match('/' . $pattern . '/' . $modifier, $string, $matches);
+
         return isset($matches[0]);
     }
 
@@ -910,16 +913,17 @@ class ImportCommand extends Command implements LoggerAwareInterface
             // http_build_query() doesn't work as it generates o[0]=a&o[1]=b&o[2]=c instead of o=a&o=b&o=c
             foreach ($httpQueryData as $name => $value) {
                 $value = (array) $value;
-                array_walk_recursive($value, static function($value) use (&$query, $name) {
+                array_walk_recursive($value, static function ($value) use (&$query, $name) {
                     $query[] = urlencode($name) . '=' . urlencode($value);
                 });
             }
             $httpQuery = implode('&', $query);
             $url = sprintf('/changes/?%s', $httpQuery);
+
             return $this->client->request('GET', $url);
         } catch (ServerException $e) {
             if ($retry <= 3) {
-                $retry++;
+                ++$retry;
                 // Give Gerrit some time to relax
                 $sleepTime = 5 * $retry;
                 $this->logger->warning(sprintf('Failed to fetch data from Gerrit, retrying in %d seconds...', $sleepTime));
@@ -933,7 +937,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
     }
 
     /**
-     * Refreshes the lock to avoid a too-early expiration of its TTL
+     * Refreshes the lock to avoid a too-early expiration of its TTL.
      */
     private function refreshLock(): void
     {
