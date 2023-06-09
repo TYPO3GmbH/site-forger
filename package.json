@@ -5,7 +5,7 @@
         "core-js": "^3.30.2",
         "jquery": "^3.7.0",
         "node-sass": "^8.0.0",
-        "postcss-loader": "^7.2.4",
+        "postcss-loader": "^7.3.2",
         "sass-loader": "^13.2.2",
         "webpack-notifier": "^1.15.0"
     },
