@@ -580,6 +580,9 @@
     "t3g/elastic-utility": {
         "version": "7.0.0"
     },
+    "t3g/symfony-datahub-bundle": {
+        "version": "2.0.4"
+    },
     "t3g/symfony-keycloak-bundle": {
         "version": "1.0.3"
     },
