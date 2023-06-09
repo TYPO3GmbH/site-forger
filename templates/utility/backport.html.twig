@@ -13,8 +13,8 @@
                 </colgroup>
                 <tr>
                     <th>main</th>
+                    <th>12.4</th>
                     <th>11.5</th>
-                    <th>10.4</th>
                 </tr>
                 {% for backport in backports %}
                     <tr>
@@ -26,17 +26,17 @@
                             {% endif %}
                         </td>
                         <td>
+                            {% if backport.releases.t3_124 == 'missing' %}
+                                {% include '_partials/review_card.html.twig' with {'card': null, 'mode': 'backport'} only %}
+                            {% elseif backport.releases.t3_124.id is defined %}
+                                {% include '_partials/review_card.html.twig' with {'card': backport.releases.t3_124, 'mode': 'backport'} only %}
+                            {% endif %}
+                        </td>
+                        <td>
                             {% if backport.releases.t3_115 == 'missing' %}
                                 {% include '_partials/review_card.html.twig' with {'card': null, 'mode': 'backport'} only %}
                             {% elseif backport.releases.t3_115.id is defined %}
                                 {% include '_partials/review_card.html.twig' with {'card': backport.releases.t3_115, 'mode': 'backport'} only %}
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if backport.releases.t3_104 == 'missing' %}
-                                {% include '_partials/review_card.html.twig' with {'card': null, 'mode': 'backport'} only %}
-                            {% elseif backport.releases.t3_104.id is defined %}
-                                {% include '_partials/review_card.html.twig' with {'card': backport.releases.t3_104, 'mode': 'backport'} only %}
                             {% endif %}
                         </td>
                     </tr>

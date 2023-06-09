@@ -18,29 +18,39 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '14'
-          cache: 'npm'
-
       - name: Setup PHP 7.4
         uses: shivammathur/setup-php@v2
         with:
           php-version: 7.4
 
-      - name: Get Composer Cache Directory
+      - name: Setup Composer cache
         id: composer-cache
         run: |
           echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v3
+      - name: Setup npm cache
+        id: npm-cache-dir
+        shell: bash
+        run: |
+          echo "dir=$(npm config get cache)" >> ${GITHUB_OUTPUT}
+
+      - name: Recover Composer caches
+        uses: actions/cache@v3
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock', '**/composer.json') }}
           restore-keys: |
             ${{ runner.os }}-composer-
 
-      - name: (COMPOSER) Install dependencies
+      - name: Recover npm caches
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies (Composer)
         run: composer install --no-progress --no-interaction --ansi
         env:
           COMPOSER_AUTH: '{
@@ -55,14 +65,19 @@ jobs:
               }
             }'
 
-      - name: (CGL) PHP
+      - name: PHP CGL
         run: composer t3g:cgl
 
-      - name: NPM install
+      - name: Install dependencies (npm)
         run: npm ci
 
-      - name: NPM build
+      - name: Build frontend artifacts
         run: npm run build
+
+      - name: Build is clean
+        run: |
+          git status
+          git status | grep -q "nothing to commit, working tree clean"
 
   deployment:
     name: Deployment
@@ -83,15 +98,37 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v2
-        with:
-          node-version: '14'
-          cache: 'npm'
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: 7.4
+
+      - name: Setup Composer cache
+        id: composer-cache
+        run: |
+          echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Setup npm cache
+        id: npm-cache-dir
+        shell: bash
+        run: |
+          echo "dir=$(npm config get cache)" >> ${GITHUB_OUTPUT}
+
+      - name: Recover Composer caches
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock', '**/composer.json') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Recover npm caches
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Install Magallanes
         run: |
@@ -122,7 +159,7 @@ jobs:
           /home/runner/.composer/vendor/bin/mage deploy ${{ steps.environment.outputs.target }}
 
       - name: Archive Logs
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         if: always()
         with:
           name: logs

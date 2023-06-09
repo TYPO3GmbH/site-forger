@@ -112,7 +112,10 @@
             "assets:install %PUBLIC_DIR%": "symfony-cmd"
         },
         "t3g:cgl": [
-            "mkdir -p var/php-cs-fixer/; php-cs-fixer fix --config .php-cs-fixer.dist.php --format=junit > var/php-cs-fixer/php-cs-fixer.xml"
+            "php-cs-fixer fix --config .php-cs-fixer.dist.php -v --dry-run --diff"
+        ],
+        "t3g:cgl:fix": [
+            "php-cs-fixer fix --config .php-cs-fixer.dist.php"
         ]
     }
 }
