@@ -35,6 +35,7 @@ class BackportCommand extends Command
         '9.5' => '9.5',
         '10.4' => '10.4',
         '11.5' => '11.5',
+        '12.4' => '12.4',
     ];
 
     protected ParameterBagInterface $parameters;
@@ -73,6 +74,7 @@ class BackportCommand extends Command
                     't3_95' => 'notTargeted',
                     't3_104' => 'notTargeted',
                     't3_115' => 'notTargeted',
+                    't3_124' => 'notTargeted',
                 ],
 
             ];
@@ -181,8 +183,8 @@ class BackportCommand extends Command
                         [
                             'terms' => [
                                 'releases' => [
-                                    '10.4',
                                     '11.5',
+                                    '12.4',
                                 ],
                             ],
                         ],
