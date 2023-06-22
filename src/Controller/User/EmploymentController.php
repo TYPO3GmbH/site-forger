@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -19,57 +21,31 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
-/**
- * @IsGranted("ROLE_USER")
- */
+#[IsGranted('ROLE_USER')]
 class EmploymentController extends AbstractController
 {
-    /**
-     * @var TokenStorageInterface
-     */
-    private $tokenStorage;
-
-    /**
-     * @var EmploymentTimeRepository
-     */
-    private $employmentTimeRepository;
-
-    public function __construct(TokenStorageInterface $tokenStorage, EmploymentTimeRepository $employmentTimeRepository)
+    public function __construct(private readonly TokenStorageInterface $tokenStorage, private readonly EmploymentTimeRepository $employmentTimeRepository)
     {
-        $this->tokenStorage = $tokenStorage;
-        $this->employmentTimeRepository = $employmentTimeRepository;
     }
 
-    /**
-     * @Route("/user/employment", name="user_employment")
-     *
-     * @return Response
-     */
+    #[Route(path: '/user/employment', name: 'user_employment')]
     public function companyEmployment(): Response
     {
-        $employmentTimes = $this->employmentTimeRepository->findByUsername($this->tokenStorage->getToken()->getUsername());
+        $employmentTimes = $this->employmentTimeRepository->findByUsername($this->tokenStorage->getToken()->getUserIdentifier());
 
         return $this->render('user/employment/list.html.twig', [
             'employmentTimes' => $employmentTimes,
         ]);
     }
 
-    /**
-     * @Route("/user/employment/manage/{id}", name="user_employment_manage")
-     *
-     * @param Request                $request
-     * @param EntityManagerInterface $entityManager
-     * @param int                    $id
-     *
-     * @return Response
-     */
+    #[Route(path: '/user/employment/manage/{id}', name: 'user_employment_manage')]
     public function manageCompanyEmployment(Request $request, EntityManagerInterface $entityManager, int $id = 0): Response
     {
         if (0 === $id) {
             $entry = new EmploymentTime();
-            $entry->setAccount($this->tokenStorage->getToken()->getUsername());
+            $entry->setAccount($this->tokenStorage->getToken()->getUserIdentifier());
         } else {
-            $entry = $this->employmentTimeRepository->findOneBy(['id' => $id, 'account' => $this->tokenStorage->getToken()->getUsername()]);
+            $entry = $this->employmentTimeRepository->findOneBy(['id' => $id, 'account' => $this->tokenStorage->getToken()->getUserIdentifier()]);
 
             if (null === $entry) {
                 $this->addFlash('danger', 'Invalid employment given or not permitted.');
@@ -99,18 +75,11 @@ class EmploymentController extends AbstractController
         );
     }
 
-    /**
-     * @Route("/user/employment/delete/{id}", name="user_employment_delete")
-     * @IsGranted("ROLE_ADMIN")
-     *
-     * @param int                    $id
-     * @param EntityManagerInterface $entityManager
-     *
-     * @return Response
-     */
+    #[Route(path: '/user/employment/delete/{id}', name: 'user_employment_delete')]
+    #[IsGranted('ROLE_ADMIN')]
     public function deleteCompanyEmployment(int $id, EntityManagerInterface $entityManager): Response
     {
-        $employment = $this->employmentTimeRepository->findOneBy(['id' => $id, 'account' => $this->tokenStorage->getToken()->getUsername()]);
+        $employment = $this->employmentTimeRepository->findOneBy(['id' => $id, 'account' => $this->tokenStorage->getToken()->getUserIdentifier()]);
 
         if (null !== $employment) {
             $entityManager->remove($employment);

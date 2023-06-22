@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -11,16 +13,13 @@ namespace App\Charts;
 
 final class DatasetConfiguration
 {
-    private $label;
-    private $options;
-    private $query;
-    private $data = [];
+    private array $data = [];
 
-    public function __construct(string $label, array $options, array $query)
-    {
-        $this->label = $label;
-        $this->options = $options;
-        $this->query = $query;
+    public function __construct(
+        private readonly string $label,
+        private readonly array $options,
+        private readonly array $query
+    ) {
     }
 
     public function getQuery(): array

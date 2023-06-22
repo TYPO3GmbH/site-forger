@@ -16,32 +16,19 @@ use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Routing\RequestContextAwareInterface;
 
-class HostAwareRouteSubscriber implements EventSubscriberInterface
+readonly class HostAwareRouteSubscriber implements EventSubscriberInterface
 {
-    private RequestContextAwareInterface $router;
-    private string $appUrl;
-
-    /**
-     * @param RequestContextAwareInterface $router
-     * @param string                       $appUrl
-     */
-    public function __construct(RequestContextAwareInterface $router, string $appUrl)
-    {
-        $this->router = $router;
-        $this->appUrl = $appUrl;
+    public function __construct(
+        private RequestContextAwareInterface $router,
+        private string $appUrl
+    ) {
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public static function getSubscribedEvents(): array
     {
         return [KernelEvents::REQUEST => 'onRequest'];
     }
 
-    /**
-     * @param RequestEvent $event
-     */
     public function onRequest(RequestEvent $event): void
     {
         $this->router->getContext()->setHost($this->appUrl);

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -9,22 +11,15 @@
 
 namespace App\Command;
 
-use App\Client\ForgeClient;
-use App\Service\DiscordService;
 use App\Service\GithubService;
-use DateTime;
 use Elastica\Document;
-use Elastica\Exception\NotFoundException;
 use Exception;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\BadResponseException;
-use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ServerException;
-use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
-use RuntimeException;
+use Redmine\Client\Client;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Command\LockableTrait;
 use Symfony\Component\Console\Helper\ProgressBar;
@@ -34,51 +29,31 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use T3G\ElasticUtility\ElasticUtility;
-use Woeler\DiscordPhp\Message\DiscordEmbedsMessage;
 
 class ImportCommand extends Command implements LoggerAwareInterface
 {
     use LockableTrait;
     use LoggerAwareTrait;
-
     protected static $defaultName = 'app:import';
+    protected static $defaultDescription = 'Imports data from Redmine (forge.typo3.org), Gerrit (review.typo3.org) and Github';
     protected const BAMBOO_USER_ID = [49454, 51735, 52386];
-
     protected static array $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta', 'github', 'githubDelta'];
-
-    protected ParameterBagInterface $parameters;
-    protected ForgeClient $forgeClient;
-    private DiscordService $discordService;
-    private GithubService $githubService;
-    private ClientInterface $client;
-    private string $discordWebhook;
     private array $userCache = [];
     private bool $moreIssuesFromGerrit = true;
     protected OutputInterface $output;
 
-    private bool $sendNotifications = false;
-
     public function __construct(
-        ParameterBagInterface $parameters,
-        ForgeClient $forgeClient,
-        DiscordService $discordService,
-        GithubService $githubService,
-        ClientInterface $client,
-        string $discordWebhook
+        private readonly ParameterBagInterface $parameters,
+        private readonly Client $forgeClient,
+        private readonly GithubService $githubService,
+        private readonly ClientInterface $client
     ) {
         parent::__construct();
-        $this->parameters = $parameters;
-        $this->forgeClient = $forgeClient;
-        $this->discordService = $discordService;
-        $this->githubService = $githubService;
-        $this->client = $client;
-        $this->discordWebhook = $discordWebhook;
     }
 
     protected function configure(): void
     {
         $this
-            ->setDescription('Imports data from Redmine (forge.typo3.org), Gerrit (review.typo3.org) and Github')
             ->addOption(
                 'mode',
                 null,
@@ -91,13 +66,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 InputOption::VALUE_OPTIONAL,
                 'at which line should the script start',
                 0
-            )
-            ->addOption(
-                'sendnotifications',
-                null,
-                InputOption::VALUE_OPTIONAL,
-                'Will not send notifications to Discord in silent mode',
-                false
             )
             ->addOption(
                 'organization',
@@ -114,13 +82,12 @@ class ImportCommand extends Command implements LoggerAwareInterface
             );
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $this->output = $output;
         $mode = $input->getOption('mode');
         $startAt = (int) $input->getOption('startAt');
-        $this->sendNotifications = (false !== $input->getOption('sendnotifications'));
         if (!in_array($mode, self::$importModes, true)) {
             $io->note('Please select one of the modes: "' . implode('" ', self::$importModes) . '"');
         }
@@ -137,7 +104,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     } else {
                         $output->writeln('Locked by another forge import');
 
-                        return 0;
+                        return Command::SUCCESS;
                     }
                     break;
                 case 'forgeDelta':
@@ -150,7 +117,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     } else {
                         $output->writeln('Locked by another forge import');
 
-                        return 0;
+                        return Command::SUCCESS;
                     }
 
                     break;
@@ -172,7 +139,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     } else {
                         $output->writeln('Locked by another gerrit import');
 
-                        return 0;
+                        return Command::SUCCESS;
                     }
                     break;
                 case 'reviewFull':
@@ -205,7 +172,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     } else {
                         $output->writeln('Locked by another gerrit import');
 
-                        return 0;
+                        return Command::SUCCESS;
                     }
                     break;
                 case 'github':
@@ -221,7 +188,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                         $output->writeln('Locked by another github import');
                     }
 
-                    return 0;
+                    return Command::SUCCESS;
                 case 'githubDelta':
                     if ($this->lock('github')) {
                         try {
@@ -236,14 +203,18 @@ class ImportCommand extends Command implements LoggerAwareInterface
                         $output->writeln('Locked by another github import');
                     }
 
-                    return 0;
+                    return Command::SUCCESS;
             }
         } catch (\Exception $exception) {
             // If any exception occurs, release the lock, else the process will run never again.
             $this->logger->error($exception->getMessage());
             $output->writeln('Release lock because of exception: ' . $exception->getMessage());
             $this->release();
+
+            return Command::FAILURE;
         }
+
+        return Command::SUCCESS;
     }
 
     private function importFromForge(int $limit, int $startOffset = 0, bool $importDelta = false): void
@@ -261,14 +232,14 @@ class ImportCommand extends Command implements LoggerAwareInterface
         while ($offset < $totalCount) {
             $result = $this->getAllForgeIssuesPaginated($limit, $offset);
             // break a soon as the API returns no more issues
-            if (0 === count($result['issues'])) {
+            if (0 === (is_countable($result['issues']) ? count($result['issues']) : 0)) {
                 break;
             }
             foreach ($result['issues'] as $doc) {
                 try {
                     $this->getTicketAndJournal($doc);
                     $this->refreshLock();
-                } catch (Exception $e) {
+                } catch (Exception) {
                 }
                 $progressBar->advance();
             }
@@ -280,16 +251,14 @@ class ImportCommand extends Command implements LoggerAwareInterface
      * Imports a single ticket.
      * A sleep(1) might be useful here to not hammer forge.
      *
-     * @param array $issue
-     *
-     * @throws InvalidArgumentException
-     * @throws Exception
+     * @throws \InvalidArgumentException
+     * @throws \Exception
      */
     private function getTicketAndJournal(array $issue): void
     {
-        //import journals only if issue status is "Under review" (ID: 8)
+        // import journals only if issue status is "Under review" (ID: 8)
         if (isset($issue['status']['id']) && 8 === (int) $issue['status']['id']) {
-            $issueWithJournals = $this->forgeClient->api('issue')->show($issue['id'], ['include' => ['journals']]);
+            $issueWithJournals = $this->forgeClient->getApi('issue')->show($issue['id'], ['include' => ['journals']]);
             if (is_array($issueWithJournals)) {
                 $this->addDocumentToElastic($this->injectUserData($issueWithJournals['issue']));
             }
@@ -298,7 +267,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         }
     }
 
-    protected function importFromGithub(string $organization, ?string $repository, SymfonyStyle $io, ?int $pageCount = null): void
+    protected function importFromGithub(string $organization, ?string $repository, SymfonyStyle $io, int $pageCount = null): void
     {
         if (null === $repository) {
             $pageOfNames = $this->githubService->getListOfRepositoryNamesForOrganization($organization);
@@ -317,10 +286,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
     }
 
     /**
-     * @param SymfonyStyle $io
-     * @param string       $organization
-     * @param string       $repo
-     *
      * @throws \JsonException
      */
     protected function importRepoFromGithub(SymfonyStyle $io, string $organization, string $repo, ?int $pageCount): void
@@ -352,11 +317,11 @@ class ImportCommand extends Command implements LoggerAwareInterface
 
     private function injectUserData(array $issue): array
     {
-        //@todo maybe the runtime cache ain't the smartest thing here
+        // @todo maybe the runtime cache ain't the smartest thing here
         // The author could be empty, so we have to check for that
         $userId = $issue['author']['id'] ?? null;
         if (null !== $userId && !isset($this->userCache[$userId])) {
-            $userRecord = $this->forgeClient->api('user')->show($userId);
+            $userRecord = $this->forgeClient->getApi('user')->show($userId);
             $this->userCache[$userId] = $userRecord['user']['mail'] ?? '';
         }
         $issue['author']['email'] = $this->userCache[$userId] ?? '';
@@ -365,14 +330,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
     }
 
     /**
-     * @param int         $current
-     * @param int         $perRun
-     * @param ProgressBar $subBar
-     * @param ProgressBar $mainProgressbar
-     *
-     * @return array
-     *
-     * @throws Exception
+     * @throws \Exception
      */
     protected function getReviewBlock(int $current, int $perRun, ProgressBar $subBar, ProgressBar $mainProgressbar): array
     {
@@ -381,7 +339,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         try {
             $response = $this->getCommitsFromGerrit($perRun, $current);
             $data = json_decode(str_replace(")]}'", '', (string) $response->getBody()), true, 512, JSON_THROW_ON_ERROR);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $this->logger->warning($e->getMessage());
 
             return $out;
@@ -399,7 +357,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
 
             $patchSetNumber = 0;
             $interaction = [];
-            $subBar->start(count($change['messages']));
+            $subBar->start(is_countable($change['messages']) ? count($change['messages']) : 0);
             foreach ($change['messages'] as $message) {
                 $interaction['fullname'] = '';
                 $interaction['email'] = '';
@@ -418,14 +376,10 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     if ($this->checkIfMessageIsMerge($message['message'])) {
                         $revisions = $change['revisions'];
                         usort($revisions, function ($a, $b) {
-                            $a = new DateTime($this->fixDateFormat($a['created'], 'Gerrit'));
-                            $b = new DateTime($this->fixDateFormat($b['created'], 'Gerrit'));
+                            $a = new \DateTime($this->fixDateFormat($a['created'], 'Gerrit'));
+                            $b = new \DateTime($this->fixDateFormat($b['created'], 'Gerrit'));
 
-                            if ($a->getTimestamp() === $b->getTimestamp()) {
-                                return 0;
-                            }
-
-                            return ($a->getTimestamp() < $b->getTimestamp()) ? -1 : 1;
+                            return $a->getTimestamp() <=> $b->getTimestamp();
                         });
 
                         $mergeRevision = $revisions[array_key_last($revisions)];
@@ -433,7 +387,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
 
                         // If there is more than one revision, we want to give credit to both the original author
                         // and the person that patched this change with improvements (in case that is a different person)
-                        if (count($revisions) > 1) {
+                        if ((is_countable($revisions) ? count($revisions) : 0) > 1) {
                             $firstRevision = $revisions[array_key_first($revisions)];
                             // Only applicable if the first and merge revision was done by different people
                             if ($firstRevision['uploader']['_account_id'] !== $mergeRevision['uploader']['_account_id']) {
@@ -484,19 +438,15 @@ class ImportCommand extends Command implements LoggerAwareInterface
                             $this->addDocumentToElastic($interaction, 'interactions');
                         }
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     if (
-                        !str_contains($message['message'], 'Change could not be merged due to a path conflict')
-                        &&
-                        !str_contains($message['message'], 'The change could not be merged due to a path conflict')
-                        &&
-                        !str_contains($message['message'], 'Your change could not be merged due to a path conflict')
-                        &&
-                        !str_contains($message['message'], 'Change has been successfully pushed into branch sandbox')
-                        &&
-                        !str_contains($message['message'], 'Change could not be merged because of a missing dependency')
+                        !str_contains((string) $message['message'], 'Change could not be merged due to a path conflict')
+                        && !str_contains((string) $message['message'], 'The change could not be merged due to a path conflict')
+                        && !str_contains((string) $message['message'], 'Your change could not be merged due to a path conflict')
+                        && !str_contains((string) $message['message'], 'Change has been successfully pushed into branch sandbox')
+                        && !str_contains((string) $message['message'], 'Change could not be merged because of a missing dependency')
                     ) {
-                        throw new RuntimeException($e->getMessage());
+                        throw new \RuntimeException($e->getMessage());
                     }
                 }
                 $subBar->advance();
@@ -520,7 +470,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 'branch' => 'master' === $change['branch'] ? 'main' : $change['branch'],
                 'topic' => array_key_exists('topic', $change) ? $change['topic'] : 'no topic',
                 'mergeable' => (true === $change['mergeable']) ? 'yes' : 'no',
-                'affected_files' => count($change['revisions'][$change['current_revision']]['files']),
+                'affected_files' => is_countable($change['revisions'][$change['current_revision']]['files']) ? count($change['revisions'][$change['current_revision']]['files']) : 0,
                 'insertions' => $change['insertions'],
                 'deletions' => $change['deletions'],
                 'reviewtags' => $reviewTags,
@@ -551,13 +501,9 @@ class ImportCommand extends Command implements LoggerAwareInterface
     }
 
     /**
-     * @param string $message
-     *
-     * @return array
-     *
-     *@throws Exception
+     * @throws \Exception
      */
-    protected function extractReleases($message): array
+    protected function extractReleases(string $message): array
     {
         // Fix fucked up lines in message
         $searches = ['Release: ',  '7,6'];
@@ -568,29 +514,23 @@ class ImportCommand extends Command implements LoggerAwareInterface
         if (!isset($matches[1])) {
             return ['omitted'];
         }
-        /*
-         * fix Stuff
-         */
+
         $search = ['master.', 'master', '4.7.', '4.5 LTS'];
         $replaces = ['master,', 'main', '4.7,', '4.5'];
         $matches[1] = str_replace($search, $replaces, $matches[1]);
-        $releaseArray = $this->trimExplode(',', $matches[1]);
+        $releaseArray = array_map('trim', explode(',', $matches[1]));
         foreach ($releaseArray as $key => $release) {
-            if (str_contains($release, ' ')) {
-                throw new InvalidArgumentException('Release contains space? ' . $message);
+            if (str_contains((string) $release, ' ')) {
+                throw new \InvalidArgumentException('Release contains space? ' . $message);
             }
-            $releaseArray[$key] = strtolower($release);
+            $releaseArray[$key] = strtolower((string) $release);
         }
 
         return $releaseArray;
     }
 
     /**
-     * @param array $labels
-     *
-     * @return array
-     *
-     *@throws Exception
+     * @throws \Exception
      */
     protected function extractLabels(array $labels): array
     {
@@ -602,16 +542,11 @@ class ImportCommand extends Command implements LoggerAwareInterface
 
         ];
         foreach ($labels as $labelType => $subRow) {
-            switch ($labelType) {
-                case 'Verified':
-                    $key = '_verifications';
-                    break;
-                case 'Code-Review':
-                    $key = '_reviews';
-                    break;
-                default:
-                    throw new InvalidArgumentException('Unknown Label type ' . $labelType);
-            }
+            $key = match ($labelType) {
+                'Verified' => '_verifications',
+                'Code-Review' => '_reviews',
+                default => throw new \InvalidArgumentException('Unknown Label type ' . $labelType),
+            };
             if (array_key_exists('all', $subRow)) {
                 foreach ($subRow['all'] as $vote) {
                     if (isset($vote['value']) && !in_array($vote['_account_id'], self::BAMBOO_USER_ID, true)) {
@@ -632,7 +567,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                                 // nothing to do here
                                 break;
                             default:
-                                throw new InvalidArgumentException('Unknown Vote Type');
+                                throw new \InvalidArgumentException('Unknown Vote Type');
                         }
                     }
                 }
@@ -644,41 +579,16 @@ class ImportCommand extends Command implements LoggerAwareInterface
 
     protected function extractReviewTags(string $message): array
     {
-        $patchTags = [];
         $pattern = '/\[([a-zA-Z0-9]*)\]/';
         preg_match_all($pattern, $message, $matches, PREG_SET_ORDER);
-        if (is_array($matches)) {
-            foreach ($matches as $index => $match) {
-                $patchTags[] = $match[1];
-            }
-        }
 
-        return $patchTags;
+        return array_map(static fn (array $match) => $match[1], $matches);
     }
 
     /**
-     * Explodes a string and trims all values for whitespace in the ends.
-     * If $onlyNonEmptyValues is set, then all blank ('') values are removed.
-     *
-     * @param string $delim  Delimiter string to explode with
-     * @param string $string The string to explode
-     *
-     * @return array Exploded values
+     * @throws \Exception
      */
-    public function trimExplode(string $delim, string $string): array
-    {
-        $explodedValues = explode($delim, $string);
-
-        return array_map('trim', $explodedValues);
-    }
-
-    /**
-     * @param array  $document
-     * @param string $type
-     *
-     * @throws Exception
-     */
-    protected function addDocumentToElastic(array $document, string $type = 'issue'): void
+    private function addDocumentToElastic(array $document, string $type = 'issue'): void
     {
         $elasticType = null;
         switch ($type) {
@@ -688,7 +598,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                         switch ($customField['id']) {
                             case 3:
                                 if (!empty($customField['value'])) {
-                                    $document['tags'] = array_map('trim', explode(',', $customField['value']));
+                                    $document['tags'] = array_map('trim', explode(',', (string) $customField['value']));
                                 }
                                 break;
                             case 4:
@@ -708,20 +618,13 @@ class ImportCommand extends Command implements LoggerAwareInterface
                                 $document['focus']['name'] = $customField['value'] ?? '-';
                                 break;
                             default:
-                       }
+                        }
                     }
                 }
                 $document['updated_on'] = $this->fixDateFormat($document['updated_on'], 'Redmine');
                 $document['created_on'] = $this->fixDateFormat($document['created_on'], 'Redmine');
                 unset($document['start_date'], $document['due_date']);
                 $elasticType = ElasticUtility::getIndexByName('issue');
-                if ($this->sendNotifications) {
-                    try {
-                        $elasticType->getDocument($document['id']);
-                    } catch (NotFoundException $e) {
-                        $this->sendDiscordMessage($document);
-                    }
-                }
                 break;
             case 'review':
                 $elasticType = ElasticUtility::getIndexByName('review');
@@ -738,40 +641,31 @@ class ImportCommand extends Command implements LoggerAwareInterface
             if (isset($document['interaction_id'])) {
                 $doc = new Document($document['interaction_id'] . '-' . $document['interaction_type'], $document);
             } else {
-                $doc = new Document($document['id'], $document);
+                $doc = new Document((string) $document['id'], $document);
             }
             $elasticType->addDocument($doc);
         }
     }
 
     /**
-     * @param string $dateTimeString
-     * @param string $source
-     *
-     * @return string
-     *
-     * @throws InvalidArgumentException
-     * @throws Exception
+     * @throws \InvalidArgumentException
+     * @throws \Exception
      */
-    protected function fixDateFormat(string $dateTimeString, string $source): string
+    private function fixDateFormat(string $dateTimeString, string $source): string
     {
         switch ($source) {
             case 'Redmine':
                 break;
             case 'Gerrit':
                 $subString = substr($dateTimeString, 0, 19);
-                $dateTimeString = is_string($subString) ? $subString : $dateTimeString;
+                $dateTimeString = $subString;
                 break;
             default:
-                throw new InvalidArgumentException('Value of $source has to be either "Redmine" or "Gerrit"');
+                throw new \InvalidArgumentException('Value of $source has to be either "Redmine" or "Gerrit"');
 
         }
-        $dateTime = new DateTime($dateTimeString);
-        if (!$dateTime) {
-            throw new InvalidArgumentException('Date format for "' . $dateTimeString . '" could not be parsed');
-        }
 
-        return $dateTime->format('Y/m/d H:i:s');
+        return (new \DateTime($dateTimeString))->format('Y/m/d H:i:s');
     }
 
     private function checkIfMessageIsComment(string $message): bool
@@ -835,15 +729,9 @@ class ImportCommand extends Command implements LoggerAwareInterface
         return isset($matches[0]);
     }
 
-    /**
-     * @param array  $data
-     * @param string $interactionType
-     * @param string $messageId
-     *
-     * @return array
-     */
     private function buildRevisionArray(array $data, string $interactionType, string $messageId): array
     {
+        $interaction = [];
         $interaction['interaction_id'] = $messageId . '-' . $interactionType;
         $interaction['interaction_type'] = $interactionType;
         $interaction['account'] = $data['uploader']['username'];
@@ -857,38 +745,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
         return $interaction;
     }
 
-    /**
-     * @param array $data
-     */
-    private function sendDiscordMessage(array $data): void
-    {
-        $message = (new DiscordEmbedsMessage())
-            ->setTitle('Forger found a new issue')
-            ->setAuthorName($data['author']['name'] ?? 'Unknown')
-            ->setDescription('[' . $data['subject'] . '](https://forge.typo3.org/issues/' . $data['id'] . ')'
-                . PHP_EOL . PHP_EOL . substr(strip_tags($data['description']), 0, 1500))
-            ->addField('Status', $data['status']['name'], true)
-            ->addField('Tracker', $data['tracker']['name'], true)
-            ->setColorWithHexValue('32CD32');
-        if ('Bug' === $data['tracker']['name']) {
-            $message->setColorWithHexValue('B22222');
-        }
-        $message->setUsername('Forger');
-
-        try {
-            $this->discordService->sendMessage($message, $this->discordWebhook);
-        } catch (BadResponseException $e) {
-            $this->logger->warning(
-                'Could not deliver message to Discord',
-                [
-                    'statusCode' => $e->getResponse()->getStatusCode(),
-                    'responseBody' => (string) $e->getResponse()->getBody(),
-                ]
-            );
-        } catch (GuzzleException $e) {
-        }
-    }
-
     private function getAllForgeIssuesPaginated(int $limit, int $offset): array
     {
         return $this->forgeClient->getApi('issue')->all([
@@ -900,7 +756,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         ]);
     }
 
-    private function getCommitsFromGerrit(int $perRun, string $current, $retry = 0): ResponseInterface
+    private function getCommitsFromGerrit(int $perRun, int $current, $retry = 0): ResponseInterface
     {
         try {
             $httpQueryData = [
@@ -914,7 +770,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
             foreach ($httpQueryData as $name => $value) {
                 $value = (array) $value;
                 array_walk_recursive($value, static function ($value) use (&$query, $name) {
-                    $query[] = urlencode($name) . '=' . urlencode($value);
+                    $query[] = urlencode($name) . '=' . urlencode((string) $value);
                 });
             }
             $httpQuery = implode('&', $query);
@@ -941,8 +797,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
      */
     private function refreshLock(): void
     {
-        if ($this->lock) {
-            $this->lock->refresh();
-        }
+        $this->lock?->refresh();
     }
 }

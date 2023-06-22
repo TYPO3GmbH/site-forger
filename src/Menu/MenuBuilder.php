@@ -16,7 +16,6 @@ use App\Repository\SprintBoardCategoryRepository;
 use Knp\Menu\FactoryInterface;
 use Knp\Menu\ItemInterface;
 use Knp\Menu\Matcher\MatcherInterface;
-use Knp\Menu\MenuItem;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
@@ -29,11 +28,6 @@ use T3G\Bundle\TemplateBundle\Utility\AvatarUtility;
  */
 class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
 {
-    /**
-     * @var SprintBoardCategoryRepository
-     */
-    private $categoryRepository;
-
     public function __construct(
         ParameterBagInterface $parameters,
         FactoryInterface $factory,
@@ -41,15 +35,11 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         AuthorizationCheckerInterface $authorizationChecker,
         TokenStorageInterface $tokenStorage,
         TranslatorInterface $translator,
-        SprintBoardCategoryRepository $sprintBoardCategoryRepository
+        private readonly SprintBoardCategoryRepository $categoryRepository
     ) {
         parent::__construct($parameters, $factory, $matcher, $authorizationChecker, $tokenStorage, $translator);
-        $this->categoryRepository = $sprintBoardCategoryRepository;
     }
 
-    /**
-     * @param array $options
-     */
     public function mainDefault(array $options): ItemInterface
     {
         $categories = $this->categoryRepository->findAll();
@@ -336,11 +326,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         return $menu;
     }
 
-    /**
-     * @param array $options
-     *
-     * @return MenuItem
-     */
     public function mainProfile(array $options): ItemInterface
     {
         $menu = $this->factory->createItem('root');

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -18,37 +20,23 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use T3G\ElasticUtility\ElasticUtility;
 
-/**
- * @Route("/search", name="search_")
- */
+#[Route(path: '/search', name: 'search_')]
 class SearchController extends AbstractController
 {
-    protected $perPage = 25;
-
-    protected $currentPage = 1;
-
-    protected $totalHits;
-
-    public function __construct()
-    {
-        if (array_key_exists('page', $_GET)) {
-            $this->currentPage = (int) $_GET['page'];
-        }
-    }
+    protected int $perPage = 25;
+    protected int $currentPage = 1;
+    protected int $totalHits = 0;
 
     /**
-     * @Route(name="search")
-     *
-     * @param Request $request
-     *
-     * @return Response
-     *
-     * @throws Exception
+     * @throws \Exception
      */
+    #[Route(name: 'search')]
     public function searchAction(Request $request): Response
     {
+        $this->currentPage = (int) $request->query->get('page', 1);
+        $query = (string) $request->query->get('query');
+
         $viewData = [];
-        $query = $request->get('query');
         $searchClosed = false;
         if ($request->get('searchClosed') && 1 === (int) $request->get('searchClosed')) {
             $searchClosed = true;
@@ -72,24 +60,16 @@ class SearchController extends AbstractController
         if ($searchClosed) {
             $viewData['searchClosed'] = '1';
         }
-        $viewData['filters'] = [];
-        if (array_key_exists('filters', $_GET)) {
-            $viewData['filters'] = $_GET['filters'];
-        }
+        $viewData['filters'] = $request->get('filters') ?? [];
         $viewData['routeName'] = 'search_search';
 
         return $this->render('search/search.html.twig', $viewData);
     }
 
-    /**
-     * @param $query
-     *
-     * @return bool
-     */
-    protected function checkIfQueryIsIssue($query): bool
+    private function checkIfQueryIsIssue(string $query): bool
     {
         $result = false;
-        $pattern = '(^[0-9]{4,6}$)';
+        $pattern = '/^\d{4,6}$/';
         preg_match($pattern, $query, $matches);
         if (count($matches) > 0) {
             $result = true;
@@ -99,14 +79,9 @@ class SearchController extends AbstractController
     }
 
     /**
-     * @param int  $issueId
-     * @param bool $searchInClosedIssues
-     *
-     * @return array
-     *
-     * @throws Exception
+     * @throws \Exception
      */
-    private function findDupes($issueId, $searchInClosedIssues = false): array
+    private function findDupes(int $issueId, bool $searchInClosedIssues = false): array
     {
         $query = [
             'query' => [
@@ -148,20 +123,12 @@ class SearchController extends AbstractController
         return $this->doSearch($query);
     }
 
-    /**
-     * @param int $issueId
-     *
-     * @return array|string
-     */
-    private function findIssue($issueId)
+    private function findIssue(int|string $issueId): array|string
     {
         $forger = ElasticUtility::getIndexByName('issue');
         try {
-            $res = $forger->getDocument($issueId);
-            $data = $res->getData();
-
-            return $data;
-        } catch (Exception $e) {
+            return $forger->getDocument($issueId)->getData();
+        } catch (Exception) {
             $data = [
                 'error' => 'Issue #' . $issueId . ' was not found.',
             ];
@@ -171,14 +138,9 @@ class SearchController extends AbstractController
     }
 
     /**
-     * @param string $searchTerms
-     * @param bool   $searchInClosedIssues
-     *
-     * @return array
-     *
-     * @throws Exception
+     * @throws \Exception
      */
-    private function findByQuery($searchTerms, $searchInClosedIssues = false): array
+    private function findByQuery(string $searchTerms, bool $searchInClosedIssues = false): array
     {
         $searchTerms = $this->escape($searchTerms);
         $query = [
@@ -215,34 +177,22 @@ class SearchController extends AbstractController
     /**
      * Escape a value for special query characters such as ':', '(', ')', '*', '?', etc.
      * NOTE: inside a phrase fewer characters need escaped, use {@link Apache_Solr_Service::escapePhrase()} instead.
-     *
-     * @param string $value
-     *
-     * @return string
      */
-    public function escape($value): string
+    public function escape(string $value): string
     {
-        //list taken from http://lucene.apache.org/java/docs/queryparsersyntax.html#Escaping%20Special%20Characters
+        // list taken from http://lucene.apache.org/java/docs/queryparsersyntax.html#Escaping%20Special%20Characters
         $pattern = '/(\+|-|&&|\|\||!|\(|\)|\{|}|\[|]|\^|"|~|\*|\?|:|\\\)/';
         $replace = '\\\$1';
         $escapedString = preg_replace($pattern, $replace, $value);
-        $escapedString = str_replace('/', '\/', $escapedString);
 
-        return $escapedString;
+        return str_replace('/', '\/', $escapedString);
     }
 
     /**
-     * @param array $query
-     *
-     * @return array
-     *
-     * @throws Exception
+     * @throws \Exception
      */
-    public function doSearch(array $query): array
+    private function doSearch(array $query): array
     {
-        if (array_key_exists('page', $_GET)) {
-            $this->currentPage = (int) $_GET['page'];
-        }
         $usedFilters = $this->addFilters();
         if (count($usedFilters) > 0) {
             $query['post_filter'] = $usedFilters;
@@ -281,10 +231,8 @@ class SearchController extends AbstractController
 
     /**
      * Adds filters based on get parameters.
-     *
-     * @return Query|Query\BoolQuery
      */
-    private function addFilters()
+    private function addFilters(): Query|Query\BoolQuery
     {
         $filters = new Query\BoolQuery();
 
@@ -297,7 +245,7 @@ class SearchController extends AbstractController
             $filterPart = new Query\BoolQuery();
             foreach ($filterValue as $term => $enabled) {
                 if ('true' === $enabled) {
-                    $term = str_replace('_', ' ', $term);
+                    $term = str_replace('_', ' ', (string) $term);
                     $filter = new Query\Term();
                     if ('tracker' === $key
                         || 'project' === $key
@@ -325,19 +273,13 @@ class SearchController extends AbstractController
 
     private function mapFilterNames(string $key): string
     {
-        switch ($key) {
-            case 'target_version':
-                return 'fixed_version.name';
-                break;
-            default:
-                return $key;
-        }
+        return match ($key) {
+            'target_version' => 'fixed_version.name',
+            default => $key,
+        };
     }
 
-    /**
-     * @param Query $elasticaQuery
-     */
-    private function addAggregations($elasticaQuery): void
+    private function addAggregations(Query $elasticaQuery): void
     {
         $catAggregation = new Terms('Category');
         $catAggregation->setField('category.name');
@@ -381,9 +323,6 @@ class SearchController extends AbstractController
         $elasticaQuery->addAggregation($age);*/
     }
 
-    /**
-     * @return array
-     */
     protected function getPages(): array
     {
         $numPages = ceil($this->totalHits / $this->perPage);

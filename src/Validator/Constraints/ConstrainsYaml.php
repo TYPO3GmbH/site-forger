@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -11,15 +13,13 @@ namespace App\Validator\Constraints;
 
 use Symfony\Component\Validator\Constraint;
 
-/**
- * @Annotation
- */
+#[\Attribute(\Attribute::TARGET_PROPERTY | \Attribute::TARGET_METHOD | \Attribute::IS_REPEATABLE)]
 class ConstrainsYaml extends Constraint
 {
-    public $message = 'The YAML you entered is not valid.';
+    public string $message = 'The YAML you entered is not valid.';
 
-    public function validatedBy()
+    public function validatedBy(): string
     {
-        return \get_class($this) . 'Validator';
+        return static::class . 'Validator';
     }
 }

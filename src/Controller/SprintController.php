@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -14,7 +16,6 @@ use App\Repository\SprintBoardCategoryRepository;
 use App\Repository\SprintBoardRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
-use InvalidArgumentException;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -26,26 +27,12 @@ use T3G\ElasticUtility\ElasticUtility;
 
 class SprintController extends AbstractController
 {
-    private SprintBoardCategoryRepository $sprintBoardCategoryRepository;
-
-    private SprintBoardRepository $sprintBoardRepository;
-
-    private ParameterBagInterface $parameters;
-
-    public function __construct(
-        SprintBoardCategoryRepository $sprintBoardCategoryRepository,
-        SprintBoardRepository $sprintBoardRepository,
-        ParameterBagInterface $parameters
-    ) {
-        $this->sprintBoardCategoryRepository = $sprintBoardCategoryRepository;
-        $this->sprintBoardRepository = $sprintBoardRepository;
-        $this->parameters = $parameters;
+    public function __construct(private readonly SprintBoardCategoryRepository $sprintBoardCategoryRepository, private readonly SprintBoardRepository $sprintBoardRepository, private readonly ParameterBagInterface $parameters)
+    {
     }
 
-    /**
-     * @Route("/sprint/list", name="sprint_list")
-     * @IsGranted("ROLE_ADMIN")
-     */
+    #[Route(path: '/sprint/list', name: 'sprint_list')]
+    #[IsGranted('ROLE_ADMIN')]
     public function list(): Response
     {
         return $this->render('management/sprint/index.html.twig', [
@@ -53,15 +40,7 @@ class SprintController extends AbstractController
         ]);
     }
 
-    /**
-     * @Route("/sprint/reviews/{reviewType}", defaults={"reviewType"="bugfix"}, name="sprint_reviews")
-     *
-     * @param string $reviewType
-     *
-     * @return Response
-     *
-     * @throws Exception
-     */
+    #[Route(path: '/sprint/reviews/{reviewType}', defaults: ['reviewType' => 'bugfix'], name: 'sprint_reviews')]
     public function reviewSprintAction(string $reviewType): Response
     {
         $reviewBoardData = $this->getReviewBoardData($reviewType);
@@ -72,15 +51,8 @@ class SprintController extends AbstractController
         ]);
     }
 
-    /**
-     * @Route("/sprint/create", name="sprint_create")
-     * @IsGranted("ROLE_ADMIN")
-     *
-     * @param Request                $request
-     * @param EntityManagerInterface $entityManager
-     *
-     * @return Response
-     */
+    #[Route(path: '/sprint/create', name: 'sprint_create')]
+    #[IsGranted('ROLE_ADMIN')]
     public function createSprint(
         Request $request,
         EntityManagerInterface $entityManager
@@ -107,16 +79,8 @@ class SprintController extends AbstractController
         ]);
     }
 
-    /**
-     * @Route("/sprint/edit/{sprintId}", name="sprint_edit")
-     * @IsGranted("ROLE_ADMIN")
-     *
-     * @param Request                $request
-     * @param int                    $sprintId
-     * @param EntityManagerInterface $entityManager
-     *
-     * @return Response
-     */
+    #[Route(path: '/sprint/edit/{sprintId}', name: 'sprint_edit')]
+    #[IsGranted('ROLE_ADMIN')]
     public function editSprint(
         Request $request,
         int $sprintId,
@@ -146,15 +110,8 @@ class SprintController extends AbstractController
         ]);
     }
 
-    /**
-     * @Route("/sprint/delete/{sprintId}", name="sprint_delete")
-     * @IsGranted("ROLE_ADMIN")
-     *
-     * @param int                    $sprintId
-     * @param EntityManagerInterface $entityManager
-     *
-     * @return Response
-     */
+    #[Route(path: '/sprint/delete/{sprintId}', name: 'sprint_delete')]
+    #[IsGranted('ROLE_ADMIN')]
     public function deleteSprint(
         int $sprintId,
         EntityManagerInterface $entityManager
@@ -170,14 +127,8 @@ class SprintController extends AbstractController
         return $this->redirectToRoute('sprint_list');
     }
 
-    /**
-     * @Route("/sprint/delete/{sprintId}/confirm", name="sprint_delete_confirm")
-     * @IsGranted("ROLE_ADMIN")
-     *
-     * @param int $sprintId
-     *
-     * @return Response
-     */
+    #[Route(path: '/sprint/delete/{sprintId}/confirm', name: 'sprint_delete_confirm')]
+    #[IsGranted('ROLE_ADMIN')]
     public function deleteSprintConfirm(
         int $sprintId
     ): Response {
@@ -229,15 +180,9 @@ class SprintController extends AbstractController
     }
 
     /**
-     * @Route("/sprint/{category}/{sprintId}", defaults={"category"="index"}, name="sprint")
-     *
-     * @param string   $category
-     * @param int|null $sprintId
-     *
-     * @return Response
-     *
-     * @throws Exception
+     * @throws \Exception
      */
+    #[Route(path: '/sprint/{category}/{sprintId}', name: 'sprint', defaults: ['category' => 'index'])]
     public function index(string $category, int $sprintId = null): Response
     {
         $sprintCategory = $this->sprintBoardCategoryRepository->findOneBy([
@@ -268,7 +213,7 @@ class SprintController extends AbstractController
                 $boardInfo = $currentSprint->getName();
                 $ticketCount = [];
                 foreach ($cards as $status => $tickets) {
-                    $ticketCount[$status] = ($tickets ? count($tickets) : 0);
+                    $ticketCount[$status] = ($tickets ? is_countable($tickets) ? count($tickets) : 0 : 0);
                 }
                 $progress = $this->calculateProgressBars($ticketCount);
             }
@@ -356,38 +301,26 @@ class SprintController extends AbstractController
 
     protected function defineReviewBoardGroup(array $review): string
     {
-        switch (true) {
-            // Blocked or merge conflict
-            case 'no' === $review['mergeable']:
-                $metaStatus = 'mergeConflict';
-                break;
-            case 0 === $review['positive_reviews']
+        $metaStatus = match (true) {
+            'no' === $review['mergeable'] => 'mergeConflict',
+            0 === $review['positive_reviews']
                 && 0 === $review['positive_verifications']
                 && 0 === $review['negative_reviews']
-                && 0 === $review['negative_verifications']:
-                $metaStatus = 'missesBoth';
-                break;
-            case $review['positive_reviews'] > 0
+                && 0 === $review['negative_verifications'] => 'missesBoth',
+            $review['positive_reviews'] > 0
                 && 0 === $review['positive_verifications']
                 && 0 === $review['negative_reviews']
-                && 0 === $review['negative_verifications']:
-                $metaStatus = 'missesTesting';
-                break;
-            case 0 === $review['positive_reviews']
+                && 0 === $review['negative_verifications'] => 'missesTesting',
+            0 === $review['positive_reviews']
                 && $review['positive_verifications'] > 0
                 && 0 === $review['negative_reviews']
-                && 0 === $review['negative_verifications']:
-                $metaStatus = 'missesCodeReview';
-                break;
-            case $review['positive_reviews'] > 0
+                && 0 === $review['negative_verifications'] => 'missesCodeReview',
+            $review['positive_reviews'] > 0
                 && $review['positive_verifications'] > 0
                 && 0 === $review['negative_reviews']
-                && 0 === $review['negative_verifications']:
-                $metaStatus = 'hasPlusOne';
-                break;
-            default:
-                $metaStatus = 'blocked';
-        }
+                && 0 === $review['negative_verifications'] => 'hasPlusOne',
+            default => 'blocked',
+        };
 
         return $metaStatus;
     }
@@ -435,23 +368,12 @@ class SprintController extends AbstractController
             'total' => 0,
         ];
         foreach ((array) $resultSet->getAggregation('status')['buckets'] as $bucket) {
-            switch ($bucket['key']) {
-                case 3:
-                case 5:
-                case 6:
-                    $count['closed'] += $bucket['doc_count'];
-                    break;
-                case 8:
-                    $count['review'] += $bucket['doc_count'];
-                    break;
-                case 4:
-                case 7:
-                    $count['blocked'] += $bucket['doc_count'];
-                    break;
-                default:
-                    $count['open'] += $bucket['doc_count'];
-                    break;
-            }
+            match ($bucket['key']) {
+                3, 5, 6 => $count['closed'] += $bucket['doc_count'],
+                8 => $count['review'] += $bucket['doc_count'],
+                4, 7 => $count['blocked'] += $bucket['doc_count'],
+                default => $count['open'] += $bucket['doc_count'],
+            };
             $count['total'] += $bucket['doc_count'];
         }
         if ($count['total'] > 0) {
@@ -497,14 +419,14 @@ class SprintController extends AbstractController
 
     private function getReviewCard(array $ticket): array
     {
+        $returnValue = [];
         $notes = '';
         if (isset($ticket['journals'])) {
             foreach ((array) $ticket['journals'] as $journalEntry) {
                 if (isset($journalEntry['notes'])
                     && (
-                        str_contains($journalEntry['notes'], 'It is available at http://review.typo3.org/')
-                        ||
-                        str_contains($journalEntry['notes'], 'It is available at https://review.typo3.org/')
+                        str_contains((string) $journalEntry['notes'], 'It is available at http://review.typo3.org/')
+                        || str_contains((string) $journalEntry['notes'], 'It is available at https://review.typo3.org/')
                     )
                 ) {
                     $notes = $journalEntry['notes'];
@@ -514,15 +436,15 @@ class SprintController extends AbstractController
                 return $ticket;
             }
             $pattern = '|.*https:\/\/review\.typo3\.org\/(?>(c\/)?)(?>Packages\/TYPO3\.CMS\/\+\/)?(?<reviewId>[\d]{2,6})|';
-            preg_match($pattern, $notes, $matches);
+            preg_match($pattern, (string) $notes, $matches);
             if (!isset($matches['reviewId'])) {
-                throw new InvalidArgumentException('There should be a review id in ' . $notes);
+                throw new \InvalidArgumentException('There should be a review id in ' . $notes);
             }
             $reviewType = ElasticUtility::getIndexByName('review');
 
             try {
                 $item = $reviewType->getDocument($matches['reviewId']);
-            } catch (Exception $e) {
+            } catch (Exception) {
                 return $ticket;
             }
             $returnValue = $item->getData();

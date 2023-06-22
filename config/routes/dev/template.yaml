@@ -1,0 +1,3 @@
+_template:
+  resource: '@TemplateBundle/Resources/config/routes.yaml'
+  prefix: /_template

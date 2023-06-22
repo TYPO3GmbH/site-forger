@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -7,10 +9,13 @@
  * LICENSE file that was distributed with this source code.
  */
 
-namespace App\Client;
+namespace App\Enum;
 
-use Redmine\Client;
-
-class ForgeClient extends Client
+enum TrackerIdEnum: string
 {
+    case BUG = '1';
+    case EPIC = '10';
+    case FEATURE = '2';
+    case STORY = '6';
+    case TASK = '4';
 }

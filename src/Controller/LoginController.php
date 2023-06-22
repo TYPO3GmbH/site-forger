@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -15,11 +17,7 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class LoginController extends AbstractController
 {
-    /**
-     * @Route("/login", name="login")
-     *
-     * @return Response
-     */
+    #[Route(path: '/login', name: 'login')]
     public function index(): Response
     {
         return $this->redirectToRoute('dashboard_index');

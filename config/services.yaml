@@ -64,37 +64,47 @@ services:
     resource: '../src/*'
     exclude: '../src/{DependencyInjection,Entity,Migrations,Tests,Kernel.php}'
 
+  redmine.client.forge:
+    class: Redmine\Client\NativeCurlClient
+    arguments:
+      $url: '%env(FORGE_ENDPOINT)%'
+      $apikeyOrUsername: '%env(FORGE_ACCESS_TOKEN)%'
+
+  guzzle.client.general:
+    class: GuzzleHttp\Client
+
+  guzzle.client.gerrit:
+    class: GuzzleHttp\Client
+    arguments:
+      $config:
+        base_uri: 'https://review.typo3.org/'
+
+  guzzle.client.github:
+    class: GuzzleHttp\Client
+    arguments:
+      $config:
+        headers:
+          User-Agent: 'TYPO3 Forger'
+          Authorization: 'token %env(GITHUB_ACCESS_TOKEN)%'
+        base_uri: 'https://api.github.com/'
+
+  App\Charts\Types\TrackerTypes:
+    class: App\Charts\Types\TrackerTypes
+    tags:
+      - { name: 'chart_type', key: 'tracker_types' }
+
   # controllers are imported separately to make sure services can be injected
   # as action arguments even if you don't extend any base controller class
   App\Controller\:
     resource: '../src/Controller'
     tags: ['controller.service_arguments']
-  App\Client\ForgeClient:
-    class: App\Client\ForgeClient
-    public: true
-    arguments:
-      $url: '%env(FORGE_ENDPOINT)%'
-      $apikeyOrUsername: '%env(FORGE_ACCESS_TOKEN)%'
-  App\Client\GeneralClient:
-    class: App\Client\GeneralClient
-    public: true
-  App\Client\GithubClient:
-    class: App\Client\GithubClient
-    arguments:
-      $config:
-        base_uri: 'https://api.github.com/'
-        auth:
-          - '%env(GITHUB_USERNAME)%'
-          - '%env(GITHUB_ACCESS_TOKEN)%'
-  App\Service\DiscordService:
-    class: App\Service\DiscordService
-    public: true
+
   App\Command\ImportCommand:
     class: App\Command\ImportCommand
     public: true
     arguments:
+      $forgeClient: '@redmine.client.forge'
       $client: '@guzzle.client.gerrit'
-      $discordWebhook: '%env(DISCORD_ISSUES_WEBHOOK)%'
 
   App\Menu\MenuBuilder:
     tags:
@@ -114,6 +124,11 @@ services:
       $urlService: '@datahub.typo3.com.urlService'
       $appUrl: '%env(APP_URL)%'
 
+  App\Service\GithubService:
+    class: App\Service\GithubService
+    arguments:
+      $client: '@guzzle.client.github'
+
   App\Subscriber\HostAwareRouteSubscriber:
     class: App\Subscriber\HostAwareRouteSubscriber
     arguments:
@@ -121,9 +136,3 @@ services:
       - '%env(APP_URL)%'
     tags:
       - { name: kernel.event_subscriber }
-
-  guzzle.client.gerrit:
-    class: GuzzleHttp\Client
-    arguments:
-      $config:
-        base_uri: 'https://review.typo3.org/'

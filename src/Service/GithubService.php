@@ -11,22 +11,23 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Client\GithubClient;
-use DateTime;
+use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Psr7\Header;
-use InvalidArgumentException;
+use Psr\Http\Message\ResponseInterface;
 
 class GithubService
 {
-    private GithubClient $client;
-    private $usersCache = [];
+    private array $usersCache = [];
 
-    public function __construct(GithubClient $client)
-    {
-        $this->client = $client;
+    public function __construct(
+        private readonly ClientInterface $client
+    ) {
     }
 
+    /**
+     * @return \Generator<string[]>
+     */
     public function getListOfRepositoryNamesForOrganization(string $organization): \Generator
     {
         $currentPage = 0;
@@ -62,7 +63,7 @@ class GithubService
                 $interaction = $this->mapCommonData($event);
 
                 $interaction['interaction_source_id'] = $event['id'];
-                $type = str_replace('event', '', strtolower($event['type']));
+                $type = str_replace('event', '', strtolower((string) $event['type']));
                 $action = strtolower($event['payload']['action'] ?? 'generic');
                 $interaction['interaction_type'] = 'github:' . strtolower($organization) . ':' . $type . ':' . $action;
                 yield $interaction;
@@ -94,7 +95,7 @@ class GithubService
             try {
                 $response = $this->client->get($event['actor']['url']);
                 $userData = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
-            } catch (ClientException $exception) {
+            } catch (ClientException) {
                 $userData = [];
             }
             $this->usersCache[$event['actor']['login']] = $userData;
@@ -104,9 +105,9 @@ class GithubService
         $interaction['email'] = $this->usersCache[$event['actor']['login']]['email'] ?? '';
         $interaction['interaction_id'] = $event['id'];
         $interaction['interaction_source'] = 'Github';
-        $dateTime = new DateTime($event['created_at']);
+        $dateTime = new \DateTime($event['created_at']);
         if (!$dateTime) {
-            throw new InvalidArgumentException('Date format for "' . $event['created_at'] . '" could not be parsed');
+            throw new \InvalidArgumentException('Date format for "' . $event['created_at'] . '" could not be parsed');
         }
         $interaction['interacted_on'] = $dateTime->format('Y/m/d H:i:s');
         $interaction['account'] = $event['actor']['login'];
@@ -114,13 +115,7 @@ class GithubService
         return $interaction;
     }
 
-    /**
-     * @param \Psr\Http\Message\ResponseInterface $headResponse
-     * @param $matches
-     *
-     * @return int
-     */
-    private function parseLinkHeader(\Psr\Http\Message\ResponseInterface $headResponse): int
+    private function parseLinkHeader(ResponseInterface $headResponse): int
     {
         $linkHeader = $headResponse->getHeader('Link');
         if (empty($linkHeader)) {
@@ -130,12 +125,10 @@ class GithubService
         $last = array_values(
             array_filter(
                 $parsed,
-                static function (array $set): bool {
-                    return 'last' === $set['rel'];
-                }
+                static fn (array $set): bool => 'last' === $set['rel']
             )
         )[0][0] ?? '&page=1';
-        preg_match('#&page=(\d+)#', $last, $matches);
+        preg_match('#&page=(\d+)#', (string) $last, $matches);
 
         return (int) $matches[1];
     }

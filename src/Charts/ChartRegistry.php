@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -14,7 +16,7 @@ use Elastica\Index;
 
 final class ChartRegistry
 {
-    private static $charts = [
+    private static array $charts = [
         'mergeable' => Types\Mergeable::class,
         'open_reviews' => Types\OpenReviews::class,
         'opened_closed' => Types\OpenedClosed::class,
@@ -24,11 +26,10 @@ final class ChartRegistry
         'ticket_progress' => Types\TicketProgress::class,
         'tracker_types' => Types\TrackerTypes::class,
     ];
-
     public static function getChartInstance(string $identifier, Index $index): ChartInterface
     {
-        if (isset(static::$charts[$identifier])) {
-            return new static::$charts[$identifier]($index);
+        if (isset(self::$charts[$identifier])) {
+            return new self::$charts[$identifier]($index);
         }
 
         throw new \InvalidArgumentException('Chart "' . $identifier . '" is unknown', 1565269002);
