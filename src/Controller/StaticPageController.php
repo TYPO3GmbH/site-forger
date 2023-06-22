@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -15,9 +17,7 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class StaticPageController extends AbstractController
 {
-    /**
-     * @Route("/help", name="static_help")
-     */
+    #[Route(path: '/help', name: 'static_help')]
     public function helpAction(): Response
     {
         return $this->render('static_page/help.html.twig');

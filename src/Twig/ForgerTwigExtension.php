@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -9,21 +11,27 @@
 
 namespace App\Twig;
 
-use App\Entity\TrackerFilters;
+use App\DTO\TrackerFilters;
+use App\Enum\TrackerIdEnum;
 use Netcarver\Textile\Parser;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
 class ForgerTwigExtension extends AbstractExtension
 {
+    public function __construct(
+        private readonly RequestStack $requestStack
+    ) {
+    }
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('bucketCounter', [$this, 'bucketCounter'], ['is_safe' => ['html']]),
-            new TwigFunction('aggregationBucket', [$this, 'aggregationBucket'], ['is_safe' => ['html']]),
-            new TwigFunction('textile', [$this, 'textile'], ['is_safe' => ['html']]),
-            new TwigFunction('trackerCheckbox', [$this, 'trackerCheckbox'], ['is_safe' => ['html']]),
-            new TwigFunction('forgeLink', [$this, 'forgeLink']),
+            new TwigFunction('bucketCounter', $this->bucketCounter(...), ['is_safe' => ['html']]),
+            new TwigFunction('aggregationBucket', $this->aggregationBucket(...), ['is_safe' => ['html']]),
+            new TwigFunction('textile', $this->textile(...), ['is_safe' => ['html']]),
+            new TwigFunction('trackerCheckbox', $this->trackerCheckbox(...), ['is_safe' => ['html']]),
+            new TwigFunction('forgeLink', $this->forgeLink(...)),
         ];
     }
 
@@ -32,8 +40,14 @@ class ForgerTwigExtension extends AbstractExtension
         $category = $this->fixWording($category);
         $activeCount = 0;
         foreach ($buckets as $bucket) {
-            $key = $this->fixWording($bucket['key'], false);
-            if (isset($_GET['filters'][$category][$key]) && 'true' === $_GET['filters'][$category][$key]) {
+            if (is_string($bucket['key'])) {
+                $key = $this->fixWording($bucket['key'], false);
+            } else {
+                $key = $bucket['key'];
+            }
+
+            $filters = $this->requestStack->getMainRequest()?->get('filters');
+            if (isset($filters[$category][$key]) && 'true' === $filters[$category][$key]) {
                 ++$activeCount;
             }
         }
@@ -49,46 +63,43 @@ class ForgerTwigExtension extends AbstractExtension
         $label = $bucket['key_as_string'] ?? $bucket['key'];
         $docCount = $bucket['doc_count'];
         $category = $this->fixWording($category);
-        $key = $this->fixWording($bucket['key'], false);
+        if (is_string($bucket['key'])) {
+            $key = $this->fixWording($bucket['key'], false);
+        } else {
+            $key = $bucket['key'];
+        }
 
-        // check if checkbox has been set
-        if (isset($_GET['filters'][$category][$key]) && 'true' === $_GET['filters'][$category][$key]) {
+        $filters = $this->requestStack->getMainRequest()?->get('filters');
+        if (isset($filters[$category][$key]) && 'true' === $filters[$category][$key]) {
             $checked = ' checked';
         } else {
             $checked = '';
         }
-        $content = '<div class="form-check">'
+
+        return '<div class="form-check">'
             . '<input type="checkbox" class="form-check-input" id="' . $category . '-' . $index . '" name="filters[' . $category . '][' . $key . ']" ' . $checked . ' value="true" onchange="this.form.submit()">'
             . '<label class="form-check-label form-check-label-hascount" for="' . $category . '-' . $index . '">'
             . '<span class="form-check-label-title">' . $label . '</span> <span class="form-check-label-count">' . $docCount . '</span>'
             . '</label>'
             . '</div>';
-
-        return $content;
     }
 
-    public function textile(string $markup)
+    public function textile(string $markup): string
     {
         $parser = new Parser();
         $parsedText = $parser->parse($markup);
-        /*
-         * Keep only whitelisted tags
-         */
+        // Keep only whitelisted tags
         $parsedText = strip_tags($parsedText, '<h1><h2><h3><h4><h5><h6><ul><li><ol><pre><code><p>');
 
-        /*
-         * Kill off all attributes because we don't want them
-         */
-        $parsedText = preg_replace('/<([a-z][a-z0-9]*)[^>]*?(\/?)>/i', '<$1$2>', $parsedText);
-
-        return $parsedText;
+        // Kill off all attributes because we don't want them
+        return preg_replace('/<([a-z][a-z0-9]*)[^>]*?(\/?)>/i', '<$1$2>', $parsedText);
     }
 
     public function trackerCheckbox(string $trackerType, string $label): string
     {
         $checked = '';
-        $trackerFilters = new TrackerFilters();
-        if ($trackerFilters->$trackerType === true) {
+        $trackerFilters = new TrackerFilters($this->requestStack->getMainRequest());
+        if ($trackerFilters->{$trackerType}) {
             $checked = ' checked="checked';
         }
 
@@ -101,15 +112,9 @@ class ForgerTwigExtension extends AbstractExtension
         return implode('', $content);
     }
 
-    /**
-     * @param      $in
-     * @param bool $lowerCase
-     *
-     * @return mixed|string
-     */
-    private function fixWording($in, $lowerCase = true)
+    private function fixWording(string|\Stringable $in, bool $lowerCase = true): string
     {
-        $in = str_replace(' ', '_', $in);
+        $in = str_replace(' ', '_', (string) $in);
         if ($lowerCase) {
             $in = strtolower($in);
         }
@@ -117,14 +122,7 @@ class ForgerTwigExtension extends AbstractExtension
         return $in;
     }
 
-    /**
-     * @param string $year
-     * @param string $month
-     * @param string $status
-     *
-     * @return string
-     */
-    public function forgeLink(string $year, string $month, $status = 'o'): string
+    public function forgeLink(int|string $year, int|string $month, string $status = 'o'): string
     {
         $redmineUrl = 'https://forge.typo3.org/projects/typo3cms-core/issues?set_filter=1';
         // @todo figure out how to work with the server-team forger here
@@ -133,27 +131,17 @@ class ForgerTwigExtension extends AbstractExtension
         //     $redmineUrl = 'https://forge.typo3.org/projects/team-server-public/issues?set_filter=1';
         // }
         $filtersString = $this->getFiltersString($year, $month, $status);
-        $content = $redmineUrl . $filtersString . '&f[]=' . $this->getColumnsString() . '&group_by=';
 
-        return $content;
+        return $redmineUrl . $filtersString . '&f[]=' . $this->getColumnsString() . '&group_by=';
     }
 
-    /**
-     * @param string $year
-     * @param string $month
-     *
-     * @return string
-     */
-    protected function getLastDayOfMonth($year = '', $month = ''): string
+    protected function getLastDayOfMonth(int|string $year, int|string $month): string
     {
         $dateString = $year . '-' . $month . '-16';
 
         return date('Y-m-t', strtotime($dateString));
     }
 
-    /**
-     * @return string
-     */
     protected function getColumnsString(): string
     {
         $string = '';
@@ -173,18 +161,10 @@ class ForgerTwigExtension extends AbstractExtension
         return $string;
     }
 
-    /**
-     * @param string         $year
-     * @param string         $month
-     * @param string         $statusId
-     * @param TrackerFilters $trackerFilters
-     *
-     * @return string
-     */
-    protected function getFiltersString($year, $month, $statusId, TrackerFilters $trackerFilters = null): string
+    protected function getFiltersString(int|string $year, int|string $month, string $statusId, TrackerFilters $trackerFilters = null): string
     {
         if (!$trackerFilters) {
-            $trackerFilters = new TrackerFilters();
+            $trackerFilters = new TrackerFilters($this->requestStack->getMainRequest());
         }
         $end = $this->getLastDayOfMonth($year, $month);
         $string = '';
@@ -211,20 +191,20 @@ class ForgerTwigExtension extends AbstractExtension
         /*
          * Tracker Filters
          */
-        if (!$trackerFilters->isFeature()) {
-            $filters['tracker_id']['values'][] = '2';
+        if (!$trackerFilters->feature) {
+            $filters['tracker_id']['values'][] = TrackerIdEnum::FEATURE->value;
         }
-        if (!$trackerFilters->isTask()) {
-            $filters['tracker_id']['values'][] = '4';
+        if (!$trackerFilters->task) {
+            $filters['tracker_id']['values'][] = TrackerIdEnum::TASK->value;
         }
-        if (!$trackerFilters->isBug()) {
-            $filters['tracker_id']['values'][] = '1';
+        if (!$trackerFilters->bug) {
+            $filters['tracker_id']['values'][] = TrackerIdEnum::BUG->value;
         }
-        if (!$trackerFilters->isEpic()) {
-            $filters['tracker_id']['values'][] = '10';
+        if (!$trackerFilters->epic) {
+            $filters['tracker_id']['values'][] = TrackerIdEnum::EPIC->value;
         }
-        if (!$trackerFilters->isStory()) {
-            $filters['tracker_id']['values'][] = '6';
+        if (!$trackerFilters->story) {
+            $filters['tracker_id']['values'][] = TrackerIdEnum::STORY->value;
         }
         if ('o' === $statusId) {
             $filters['status_id']['type'] = 'o';

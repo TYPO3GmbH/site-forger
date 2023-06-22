@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -10,12 +12,10 @@
 namespace App\Command;
 
 use App\Repository\EmploymentTimeRepository;
-use DateTime;
 use Elastica\Document;
 use Elastica\Result;
 use Elastica\Scroll;
 use Exception;
-use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Helper\Table;
@@ -30,31 +30,21 @@ use T3G\ElasticUtility\ElasticUtility;
 class CalculateKarmaCommand extends Command
 {
     protected static $defaultName = 'app:calculate-karma';
-    /**
-     * @var ParameterBagInterface
-     */
-    private $parameters;
+    protected static $defaultDescription = 'Calculate Karma point based on the data from forger';
+    private array $companyMapping = [];
+    private array $unmappedAccounts = [];
 
-    private $companyMapping = [];
-
-    private $unmappedAccounts = [];
-    /**
-     * @var EmploymentTimeRepository
-     */
-    private $employmentTimesRepository;
-
-    public function __construct(ParameterBagInterface $parameters, EmploymentTimeRepository $employmentTimeRepository)
-    {
+    public function __construct(
+        private readonly ParameterBagInterface $parameters,
+        private readonly EmploymentTimeRepository $employmentTimesRepository
+    ) {
         parent::__construct();
-        $this->parameters = $parameters;
-        $this->employmentTimesRepository = $employmentTimeRepository;
         $this->setUpCompanyMapping();
     }
 
     protected function configure(): void
     {
         $this
-            ->setDescription('Calculate Karma point based on the data from forger')
             ->addArgument('year', InputArgument::OPTIONAL, 'the year to import')
             ->addOption('account', 'a', InputOption::VALUE_OPTIONAL, 'which account to update')
 
@@ -66,12 +56,12 @@ class CalculateKarmaCommand extends Command
         $employmentTimes = $this->employmentTimesRepository->findAll();
         foreach ($employmentTimes as $employmentTime) {
             if (null === $employmentTime->getEmployedTo()) {
-                $employmentTime->setEmployedTo(new DateTime('now'));
+                $employmentTime->setEmployedTo(new \DateTime('now'));
             }
             $account = $employmentTime->getAccount();
             try {
                 $company = $employmentTime->getCompany();
-            } catch (Exception $e) {
+            } catch (Exception) {
                 $company = 'broken-relation';
             }
             $name = $company->getName();
@@ -82,8 +72,9 @@ class CalculateKarmaCommand extends Command
         }
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $constraints = [];
         $io = new SymfonyStyle($input, $output);
         $year = (int) $input->getArgument('year');
         $yearTo = $year + 1;
@@ -168,15 +159,16 @@ class CalculateKarmaCommand extends Command
             $table->render();
         }
         $io->success('Done importing karma points');
+
+        return Command::SUCCESS;
     }
 
     private function getInteractionCount(array $fullRequest): int
     {
         $fullRequest['size'] = 0;
         $search = ElasticUtility::getIndexByName('interactions')->createSearch($fullRequest);
-        $resultSet = $search->search();
 
-        return $resultSet->getTotalHits();
+        return $search->search()->getTotalHits();
     }
 
     private function setPointsForInteraction(Result $interaction): void
@@ -197,10 +189,8 @@ class CalculateKarmaCommand extends Command
             'points' => $points[$dataArray['interaction_type']],
         ];
         $elasticType = ElasticUtility::getIndexByName('karmapoints');
-        if (null !== $elasticType) {
-            $doc = new Document($document['leaderboard_entry_id'], $document);
-            $elasticType->addDocument($doc);
-        }
+        $doc = new Document($document['leaderboard_entry_id'], $document);
+        $elasticType->addDocument($doc);
     }
 
     private function mapAccountToCompany(array $interaction): string
@@ -215,9 +205,9 @@ class CalculateKarmaCommand extends Command
             return 'unmapped';
         }
         try {
-            $interactionTime = new DateTime($interaction['interacted_on']);
-        } catch (Exception $e) {
-            throw new RuntimeException('Interaction does not appear to be a parsable date');
+            $interactionTime = new \DateTime($interaction['interacted_on']);
+        } catch (Exception) {
+            throw new \RuntimeException('Interaction does not appear to be a parsable date');
         }
         foreach ($this->companyMapping[$interaction['account']] as $company => $timeFrames) {
             if ($interactionTime < $timeFrames['to'] && $interactionTime > $timeFrames['from']) {

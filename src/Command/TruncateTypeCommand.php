@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -20,6 +22,7 @@ use T3G\ElasticUtility\ElasticUtility;
 class TruncateTypeCommand extends Command
 {
     protected static $defaultName = 'app:truncate-type';
+    protected static $defaultDescription = 'Clears a type in the current index';
 
     public function __construct()
     {
@@ -29,12 +32,11 @@ class TruncateTypeCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setDescription('Clears a type in the current index')
             ->addArgument('type', InputArgument::REQUIRED, 'Type to truncate. Allowed values are "review", "interactions" and "issue"')
         ;
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $type = $input->getArgument('type');
@@ -47,5 +49,7 @@ class TruncateTypeCommand extends Command
         } else {
             $io->error('Please provide a proper type to truncate. You provided "' . $type . '"');
         }
+
+        return Command::SUCCESS;
     }
 }

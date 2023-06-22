@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -9,43 +11,32 @@
 
 namespace App\Entity;
 
+use App\Repository\EmploymentTimeRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
-/**
- * @ORM\Entity(repositoryClass="App\Repository\EmploymentTimeRepository")
- */
+#[ORM\Entity(repositoryClass: EmploymentTimeRepository::class)]
 class EmploymentTime
 {
-    /**
-     * @ORM\Id()
-     * @ORM\GeneratedValue()
-     * @ORM\Column(type="integer")
-     */
-    private $id;
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: 'integer')]
+    private readonly int $id;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\Company", inversedBy="employmentTimes")
-     * @ORM\JoinColumn(nullable=false)
-     */
-    private $company;
+    #[ORM\ManyToOne(targetEntity: Company::class, inversedBy: 'employmentTimes')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Company $company = null;
 
-    /**
-     * @ORM\Column(type="datetime")
-     * @Assert\LessThan("tomorrow")
-     */
-    private $employedFrom;
+    #[ORM\Column(type: 'datetime')]
+    #[Assert\LessThan('tomorrow')]
+    private ?\DateTimeInterface $employedFrom = null;
 
-    /**
-     * @ORM\Column(type="datetime", nullable=true)
-     * @Assert\LessThan("tomorrow")
-     */
-    private $employedTo;
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[Assert\LessThan('tomorrow')]
+    private ?\DateTimeInterface $employedTo = null;
 
-    /**
-     * @ORM\Column(type="string", length=255)
-     */
-    private $account;
+    #[ORM\Column(type: 'string', length: 255)]
+    private ?string $account = null;
 
     public function getId(): ?int
     {

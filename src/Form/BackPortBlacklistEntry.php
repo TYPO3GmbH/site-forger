@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -16,7 +18,13 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class BackPortBlacklistEntry extends AbstractType
 {
-    public function buildForm(FormBuilderInterface $builder, array $options)
+    /**
+     * @template T
+     *
+     * @param FormBuilderInterface<T> $builder
+     * @param array<mixed>            $options
+     */
+    public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
             ->add('changeId', null, ['required' => true, 'attr' => ['class' => 'form-control']])

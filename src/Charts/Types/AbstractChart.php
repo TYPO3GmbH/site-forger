@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -17,16 +19,10 @@ abstract class AbstractChart
     protected const BORDER_WIDTH = 1;
     protected const POINT_RADIUS = 2;
 
-    /**
-     * @var Index
-     */
-    protected $index;
-
     abstract protected function getDocumentType(): string;
 
-    public function __construct(Index $index)
+    public function __construct(private readonly Index $index)
     {
-        $this->index = $index;
     }
 
     protected function convertDateToFormat(string $input, string $outputFormat = 'Y-m-d'): string
@@ -126,16 +122,11 @@ abstract class AbstractChart
         if (is_array($data['over_time']['buckets'])) {
             foreach ($data['over_time']['buckets'] as $frame) {
                 $openSum += $frame['doc_count'];
-                switch ($key) {
-                    case 'previous':
-                        $date = str_replace($year, $year + 1, $this->convertDateToFormat($frame['key_as_string'], 'M'));
-                        break;
-                    case 'previous2':
-                        $date = str_replace($year, $year + 2, $this->convertDateToFormat($frame['key_as_string'], 'M'));
-                        break;
-                    default:
-                        $date = $this->convertDateToFormat($frame['key_as_string'], 'M');
-                }
+                $date = match ($key) {
+                    'previous' => str_replace((string) $year, (string) ($year + 1), $this->convertDateToFormat($frame['key_as_string'], 'M')),
+                    'previous2' => str_replace((string) $year, (string) ($year + 2), $this->convertDateToFormat($frame['key_as_string'], 'M')),
+                    default => $this->convertDateToFormat($frame['key_as_string'], 'M'),
+                };
                 $result[$date] = $openSum;
             }
         }

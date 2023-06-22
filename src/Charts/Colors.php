@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -17,8 +19,7 @@ final class Colors
     public const ORANGE = 'orange';
     public const RED = 'red';
     public const YELLOW = 'yellow';
-
-    private static $colors = [
+    private static array $colors = [
         self::BLUE => [39, 162, 252],
         self::GREEN => [55, 189, 116],
         self::GREY => [210, 210, 210],
@@ -29,11 +30,11 @@ final class Colors
 
     public static function getAsRgb(string $color): string
     {
-        return 'rgb(' . implode(',', static::$colors[$color]) . ')';
+        return 'rgb(' . implode(',', self::$colors[$color]) . ')';
     }
 
     public static function getAsRgba(string $color, float $transparency = 0.6): string
     {
-        return 'rgba(' . implode(',', static::$colors[$color]) . ',' . max(0, min(1, $transparency)) . ')';
+        return 'rgba(' . implode(',', self::$colors[$color]) . ',' . max(0, min(1, $transparency)) . ')';
     }
 }

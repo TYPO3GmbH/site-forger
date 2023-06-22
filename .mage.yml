@@ -3,33 +3,30 @@ magephp:
   composer:
     path: composer
   exclude:
-    - .ddev
-    - .git
-    - .gitattributes
-    - .gitignore
-    - .github
-    - .mage
-    - .vscode
-    - .editorconfig
-    - .env.local
-    - .mage.yml
-    - assets
-    - var
-    - .php_cs.cache
-    - .php_cs.dist
-    - auth.json
-    - phpunit.xml.dist
-    - composer.json
-    - composer.lock
-    - node_modules
-    - package.json
-    - package-lock.json
-    - README.md
-    - symfony.lock
-    - Build
-    - webpack.config.js
-    - yarn.lock
-    - LICENSE
+    - /.ddev
+    - /.git
+    - /.gitattributes
+    - /.gitignore
+    - /.github
+    - /.mage
+    - /.vscode
+    - /.editorconfig
+    - /.env.local
+    - /.mage.yml
+    - /assets
+    - /var
+    - /.php_cs.cache
+    - /.php_cs.dist
+    - /auth.json
+    - /phpunit.xml.dist
+    - /node_modules
+    - /package.json
+    - /package-lock.json
+    - /README.md
+    - /symfony.lock
+    - /Build
+    - /webpack.config.js
+    - /LICENSE
   environments:
     master:
       user: forger.typo3.com
@@ -52,8 +49,8 @@ magephp:
         - exec: { cmd: "[ -f ../../../cachetool/cachetool.phar ] || curl -L -o ../../../cachetool/cachetool.phar https://gordalina.github.io/cachetool/downloads/cachetool-7.1.0.phar && chmod +x ../../../cachetool/cachetool.phar" }
         - exec: { cmd: "php ../../../cachetool/cachetool.phar opcache:reset --fcgi=/var/run/forger.typo3.com_fpm.sock --tmp-dir=/srv/vhosts/forger.typo3.com/site/cachetool" }
         - exec: { cmd: "rm -rf var/cache"}
-        - exec: { cmd: "php7.4 ./bin/console doctrine:migrations:migrate --no-interaction"}
-        - exec: { cmd: "php7.4 ./bin/console cache:warmup"}
+        - exec: { cmd: "php8.2 ./bin/console doctrine:migrations:migrate --no-interaction"}
+        - exec: { cmd: "php8.2 ./bin/console cache:warmup"}
       post-deploy:
 
     develop:
@@ -77,6 +74,6 @@ magephp:
         - exec: { cmd: "[ -f ../../../cachetool/cachetool.phar ] || curl -L -o ../../../cachetool/cachetool.phar https://gordalina.github.io/cachetool/downloads/cachetool-7.1.0.phar && chmod +x ../../../cachetool/cachetool.phar" }
         - exec: { cmd: "php ../../../cachetool/cachetool.phar opcache:reset --fcgi=/var/run/stage.forger.typo3.com_fpm.sock --tmp-dir=/srv/vhosts/stage.forger.typo3.com/site/cachetool" }
         - exec: { cmd: "rm -rf var/cache"}
-        - exec: { cmd: "php7.4 ./bin/console doctrine:migrations:migrate --no-interaction"}
-        - exec: { cmd: "php7.4 ./bin/console cache:warmup"}
+        - exec: { cmd: "php8.2 ./bin/console doctrine:migrations:migrate --no-interaction"}
+        - exec: { cmd: "php8.2 ./bin/console cache:warmup"}
       post-deploy:

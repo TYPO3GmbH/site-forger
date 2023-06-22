@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -9,7 +11,6 @@
 
 namespace App\Controller;
 
-use DateTime;
 use Elastica\Exception\InvalidException;
 use Elastica\Query\BoolQuery;
 use Elastica\Query\Range;
@@ -22,25 +23,16 @@ use T3G\ElasticUtility\ElasticUtility;
 
 class ReviewController extends AbstractController
 {
-    /**
-     * @var int
-     */
-    private $perPage = 25;
-
-    /**
-     * @var int
-     */
-    private $currentPage = 1;
-
-    /**
-     * @var
-     */
-    private $totalHits;
-
-    /**
-     * @var string
-     */
-    private $dateInterval = 'month';
+    private const QUERY_SORTING = [
+        'updated_on' => 'desc',
+        'insertions' => 'asc',
+        'deletions' => 'asc',
+        'patchsets' => 'desc',
+    ];
+    private int $perPage = 25;
+    private int $currentPage = 1;
+    private ?int $totalHits = null;
+    private string $dateInterval = 'month';
 
     public function __construct()
     {
@@ -49,9 +41,7 @@ class ReviewController extends AbstractController
         }
     }
 
-    /**
-     * @Route("/gerrit/status", name="gerrit_index")
-     */
+    #[Route(path: '/gerrit/status', name: 'gerrit_index')]
     public function status(): Response
     {
         $fullRequest = [
@@ -85,7 +75,7 @@ class ReviewController extends AbstractController
                     ],
                 ],
             ],
-            'sort' => $this->querySort(),
+            'sort' => static::QUERY_SORTING,
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
             'aggregations' => $this->queryAggregations(),
@@ -97,9 +87,7 @@ class ReviewController extends AbstractController
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
-    /**
-     * @Route("/gerrit/merge-ready", name="gerrit_hasverifications")
-     */
+    #[Route(path: '/gerrit/merge-ready', name: 'gerrit_hasverifications')]
     public function hasVerifications(): Response
     {
         $fullRequest = [
@@ -139,7 +127,7 @@ class ReviewController extends AbstractController
                     ],
                 ],
             ],
-            'sort' => $this->querySort(),
+            'sort' => static::QUERY_SORTING,
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
             'aggregations' => $this->queryAggregations(),
@@ -151,9 +139,7 @@ class ReviewController extends AbstractController
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
-    /**
-     * @Route("/gerrit/misses-verification", name="gerrit_missesverifications")
-     */
+    #[Route(path: '/gerrit/misses-verification', name: 'gerrit_missesverifications')]
     public function missesVerifications(): Response
     {
         $fullRequest = [
@@ -193,7 +179,7 @@ class ReviewController extends AbstractController
                     ],
                 ],
             ],
-            'sort' => $this->querySort(),
+            'sort' => static::QUERY_SORTING,
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
             'aggregations' => $this->queryAggregations(),
@@ -205,9 +191,7 @@ class ReviewController extends AbstractController
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
-    /**
-     * @Route("/gerrit/misses-review", name="gerrit_missesreview")
-     */
+    #[Route(path: '/gerrit/misses-review', name: 'gerrit_missesreview')]
     public function missesReview(): Response
     {
         $fullRequest = [
@@ -247,7 +231,7 @@ class ReviewController extends AbstractController
                     ],
                 ],
             ],
-            'sort' => $this->querySort(),
+            'sort' => static::QUERY_SORTING,
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
             'aggregations' => $this->queryAggregations(),
@@ -259,9 +243,7 @@ class ReviewController extends AbstractController
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
-    /**
-     * @Route("/gerrit/rebase", name="gerrit_rebase")
-     */
+    #[Route(path: '/gerrit/rebase', name: 'gerrit_rebase')]
     public function rebase(): Response
     {
         $aggs = $this->queryAggregations();
@@ -294,7 +276,7 @@ class ReviewController extends AbstractController
                     ],
                 ],
             ],
-            'sort' => $this->querySort(),
+            'sort' => static::QUERY_SORTING,
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
             'aggregations' => $aggs,
@@ -306,11 +288,10 @@ class ReviewController extends AbstractController
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
-    /**
-     * @Route("/gerrit/files", name="gerrit_files")
-     */
+    #[Route(path: '/gerrit/files', name: 'gerrit_files')]
     public function getFiles(): Response
     {
+        $viewData = [];
         $viewData['routeName'] = 'gerrit_files';
         $viewData['searchRouteName'] = 'gerrit_files';
         $viewData['searchPlaceholder'] = 'full relative path in GIT repo';
@@ -327,7 +308,7 @@ class ReviewController extends AbstractController
                             [
                                 'terms' => [
                                     'files' => [
-                                        htmlspecialchars($_GET['query']),
+                                        htmlspecialchars((string) $_GET['query']),
                                     ],
                                 ],
 
@@ -346,7 +327,7 @@ class ReviewController extends AbstractController
                         ],
                     ],
                 ],
-                'sort' => $this->querySort(),
+                'sort' => static::QUERY_SORTING,
                 'size' => $this->perPage,
                 'from' => $this->currentPage * $this->perPage - $this->perPage,
                 'aggregations' => $this->queryAggregations(),
@@ -359,15 +340,13 @@ class ReviewController extends AbstractController
             if ($searchClosed) {
                 $viewData['searchClosed'] = '1';
             }
-            $viewData['query'] = htmlspecialchars($_GET['query']);
+            $viewData['query'] = htmlspecialchars((string) $_GET['query']);
         }
 
         return $this->render('review/files.html.twig', $viewData);
     }
 
-    /**
-     * @Route("/gerrit/negative-vote-cleanup", name="gerrit_negative_vote_cleanup")
-     */
+    #[Route(path: '/gerrit/negative-vote-cleanup', name: 'gerrit_negative_vote_cleanup')]
     public function negativeVoteCleanup(): Response
     {
         $aggregations = $this->queryAggregations();
@@ -415,7 +394,7 @@ class ReviewController extends AbstractController
                     ],
                 ],
             ],
-            'sort' => $this->querySort(),
+            'sort' => static::QUERY_SORTING,
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
             'aggregations' => $aggregations,
@@ -427,9 +406,7 @@ class ReviewController extends AbstractController
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
-    /**
-     * @Route("/gerrit/wip", name="gerrit_wip")
-     */
+    #[Route(path: '/gerrit/wip', name: 'gerrit_wip')]
     public function wip(): Response
     {
         $aggregations = $this->queryAggregations();
@@ -477,9 +454,7 @@ class ReviewController extends AbstractController
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
-    /**
-     * @Route("/gerrit/core-team-merge", name="gerrit_coreteam_merge")
-     */
+    #[Route(path: '/gerrit/core-team-merge', name: 'gerrit_coreteam_merge')]
     public function coreTeamActionRequired(): Response
     {
         $aggregations = $this->queryAggregations();
@@ -544,7 +519,7 @@ class ReviewController extends AbstractController
                     ],
                 ],
             ],
-            'sort' => $this->querySort(),
+            'sort' => static::QUERY_SORTING,
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
             'aggregations' => $aggregations,
@@ -556,11 +531,10 @@ class ReviewController extends AbstractController
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
 
-    /**
-     * @Route("/gerrit/stale-issues", name="gerrit_stale_issues")
-     */
+    #[Route(path: '/gerrit/stale-issues', name: 'gerrit_stale_issues')]
     public function staleIssues(): Response
     {
+        $viewData = [];
         $re = '|.*https:\/\/review\.typo3\.org\/(?>(c\/)?)(?>Packages\/TYPO3\.CMS\/\+\/)?(?<reviewId>[\d]{2,6})|';
         $staleIssues = [];
 
@@ -569,7 +543,7 @@ class ReviewController extends AbstractController
             $reviewIds = [];
             foreach ($result->getData()['journals'] as $journal) {
                 if (isset($journal['notes'])) {
-                    preg_match_all($re, $journal['notes'], $matches);
+                    preg_match_all($re, (string) $journal['notes'], $matches);
                     $id = $matches['reviewId'][0] ?? null;
                     if (null !== $id && '' !== $id) {
                         $reviewIds[] = $id;
@@ -589,10 +563,6 @@ class ReviewController extends AbstractController
     }
 
     /**
-     * @param array $fullRequest
-     *
-     * @return array
-     *
      * @throws InvalidException
      */
     protected function search(array $fullRequest): array
@@ -641,10 +611,6 @@ class ReviewController extends AbstractController
 
     /**
      * Makes the date string from elastic JS compatible.
-     *
-     * @param string $in
-     *
-     * @return string
      */
     protected function fixTime($in): string
     {
@@ -663,11 +629,11 @@ class ReviewController extends AbstractController
             $filterCatCount = 0;
             foreach ($filterValue as $term => $enabled) {
                 if ('true' === $enabled) {
-                    $term = str_replace('_', ' ', $term);
+                    $term = str_replace('_', ' ', (string) $term);
                     if ('updated_on' === $key) {
                         $filter = new Range();
-                        $startDate = DateTime::createFromFormat('U', (int) $term / 1000);
-                        $endDate = DateTime::createFromFormat('U', (int) $term / 1000)->modify('+1 month -1 second');
+                        $startDate = \DateTime::createFromFormat('U', (int) $term / 1000);
+                        $endDate = \DateTime::createFromFormat('U', (int) $term / 1000)->modify('+1 month -1 second');
                         $filter->addField(
                             $key,
                             [
@@ -703,9 +669,6 @@ class ReviewController extends AbstractController
         return $filters;
     }
 
-    /**
-     * @return array
-     */
     protected function queryAggregations(): array
     {
         return [
@@ -754,24 +717,7 @@ class ReviewController extends AbstractController
     }
 
     /**
-     * Query sorting.
-     *
-     * @return array
-     */
-    protected function querySort(): array
-    {
-        return [
-            'updated_on' => 'desc',
-            'insertions' => 'asc',
-            'deletions' => 'asc',
-            'patchsets' => 'desc',
-        ];
-    }
-
-    /**
      * Returns an array of linkable pages.
-     *
-     * @return array
      */
     protected function getPages(): array
     {
@@ -845,8 +791,6 @@ class ReviewController extends AbstractController
     }
 
     /**
-     * @return ResultSet
-     *
      * @throws InvalidException
      */
     protected function getUnderReviewIssues(): ResultSet

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -14,28 +16,18 @@ use App\Repository\CompanyRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-/**
- * @IsGranted("ROLE_ADMIN")
- */
+#[IsGranted('ROLE_ADMIN')]
 class CompanyController extends AbstractController
 {
-    private $companyRepository;
-
-    public function __construct(CompanyRepository $companyRepository)
+    public function __construct(private readonly CompanyRepository $companyRepository)
     {
-        $this->companyRepository = $companyRepository;
     }
 
-    /**
-     * @Route("/companies/management", name="management_companies")
-     *
-     * @return JsonResponse
-     */
+    #[Route(path: '/companies/management', name: 'management_companies')]
     public function companies(): Response
     {
         return $this->render('management/company/list.html.twig', [
@@ -43,15 +35,7 @@ class CompanyController extends AbstractController
         ]);
     }
 
-    /**
-     * @Route("/companies/management/manage/{id}", name="management_companies_manage")
-     *
-     * @param Request                $request
-     * @param EntityManagerInterface $entityManager
-     * @param int                    $id
-     *
-     * @return Response
-     */
+    #[Route(path: '/companies/management/manage/{id}', name: 'management_companies_manage')]
     public function manageCompanyEntry(Request $request, EntityManagerInterface $entityManager, int $id = 0): Response
     {
         if (0 === $id) {
@@ -86,14 +70,7 @@ class CompanyController extends AbstractController
         );
     }
 
-    /**
-     * @Route("/companies/management/delete/{id}", name="management_company_delete")
-     *
-     * @param int                    $id
-     * @param EntityManagerInterface $entityManager
-     *
-     * @return Response
-     */
+    #[Route(path: '/companies/management/delete/{id}', name: 'management_company_delete')]
     public function deleteCompany(int $id, EntityManagerInterface $entityManager): Response
     {
         $company = $this->companyRepository->findOneBy(['id' => $id]);

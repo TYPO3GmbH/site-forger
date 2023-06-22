@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -25,12 +27,7 @@ class CompanyRepository extends ServiceEntityRepository
         parent::__construct($registry, Company::class);
     }
 
-    /**
-     * Finds all entities in the repository.
-     *
-     * @return array the entities
-     */
-    public function findAll()
+    public function findAll(): array
     {
         return $this->findBy([], ['name' => 'asc']);
     }

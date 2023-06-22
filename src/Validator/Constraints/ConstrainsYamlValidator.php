@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -26,7 +28,7 @@ class ConstrainsYamlValidator extends ConstraintValidator
      * @param mixed      $value      The value that should be validated
      * @param Constraint $constraint
      */
-    public function validate($value, Constraint $constraint)
+    public function validate($value, Constraint $constraint): void
     {
         if (!$constraint instanceof ConstrainsYaml) {
             throw new UnexpectedTypeException($constraint, ConstrainsYaml::class);
@@ -44,9 +46,9 @@ class ConstrainsYamlValidator extends ConstraintValidator
 
             $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
             $search->search();
-        } catch (InvalidException|ResponseException $e) {
+        } catch (InvalidException|ResponseException) {
             $this->context->buildViolation('Your query did not yield any results. Is it correct?')->addViolation();
-        } catch (ParseException $e) {
+        } catch (ParseException) {
             $this->context->buildViolation($constraint->message)->addViolation();
         }
     }
