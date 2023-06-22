@@ -27,8 +27,11 @@ use T3G\ElasticUtility\ElasticUtility;
 
 class SprintController extends AbstractController
 {
-    public function __construct(private readonly SprintBoardCategoryRepository $sprintBoardCategoryRepository, private readonly SprintBoardRepository $sprintBoardRepository, private readonly ParameterBagInterface $parameters)
-    {
+    public function __construct(
+        private readonly SprintBoardCategoryRepository $sprintBoardCategoryRepository,
+        private readonly SprintBoardRepository $sprintBoardRepository,
+        private readonly ParameterBagInterface $parameters
+    ) {
     }
 
     #[Route(path: '/sprint/list', name: 'sprint_list')]
@@ -40,7 +43,7 @@ class SprintController extends AbstractController
         ]);
     }
 
-    #[Route(path: '/sprint/reviews/{reviewType}', defaults: ['reviewType' => 'bugfix'], name: 'sprint_reviews')]
+    #[Route(path: '/sprint/reviews/{reviewType}', name: 'sprint_reviews', defaults: ['reviewType' => 'bugfix'])]
     public function reviewSprintAction(string $reviewType): Response
     {
         $reviewBoardData = $this->getReviewBoardData($reviewType);
@@ -287,7 +290,7 @@ class SprintController extends AbstractController
         ];
     }
 
-    protected function getReviewsByBoardQuery(array $query): string
+    private function getReviewsByBoardQuery(array $query): int
     {
         $fullRequest = [
             'query' => $query,
@@ -299,9 +302,9 @@ class SprintController extends AbstractController
         return $resultSet->getTotalHits();
     }
 
-    protected function defineReviewBoardGroup(array $review): string
+    private function defineReviewBoardGroup(array $review): string
     {
-        $metaStatus = match (true) {
+        return match (true) {
             'no' === $review['mergeable'] => 'mergeConflict',
             0 === $review['positive_reviews']
                 && 0 === $review['positive_verifications']
@@ -321,8 +324,6 @@ class SprintController extends AbstractController
                 && 0 === $review['negative_verifications'] => 'hasPlusOne',
             default => 'blocked',
         };
-
-        return $metaStatus;
     }
 
     private function createMenu(array $sprints, int $activeId): array
