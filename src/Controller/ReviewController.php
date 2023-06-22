@@ -632,8 +632,8 @@ class ReviewController extends AbstractController
                     $term = str_replace('_', ' ', (string) $term);
                     if ('updated_on' === $key) {
                         $filter = new Range();
-                        $startDate = \DateTime::createFromFormat('U', (int) $term / 1000);
-                        $endDate = \DateTime::createFromFormat('U', (int) $term / 1000)->modify('+1 month -1 second');
+                        $startDate = new \DateTime('@' . (int) ($term / 1000));
+                        $endDate = (new \DateTime('@' . (int) ($term / 1000)))->modify('+1 month -1 second');
                         $filter->addField(
                             $key,
                             [
