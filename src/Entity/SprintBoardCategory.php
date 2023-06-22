@@ -13,6 +13,7 @@ namespace App\Entity;
 
 use App\Repository\SprintBoardCategoryRepository;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -44,7 +45,7 @@ class SprintBoardCategory
 
     #[ORM\OneToMany(mappedBy: 'category', targetEntity: SprintBoard::class, orphanRemoval: true)]
     #[ORM\OrderBy(['name' => 'ASC'])]
-    private readonly ArrayCollection $sprintBoards;
+    private readonly Collection $sprintBoards;
 
     public function __construct()
     {
@@ -105,9 +106,9 @@ class SprintBoardCategory
     }
 
     /**
-     * @return ArrayCollection<int, SprintBoard>
+     * @return Collection<int, SprintBoard>
      */
-    public function getSprintBoards(): ArrayCollection
+    public function getSprintBoards(): Collection
     {
         return $this->sprintBoards;
     }
