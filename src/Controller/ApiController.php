@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -18,30 +20,19 @@ use T3G\ElasticUtility\ElasticUtility;
 
 class ApiController extends AbstractController
 {
-    /**
-     * @Route("/api/{type}/{documentId}", name="api")
-     *
-     * @param string $type
-     * @param int    $documentId
-     *
-     * @return JsonResponse
-     */
+    #[Route(path: '/api/{type}/{documentId}', name: 'api')]
     public function index(string $type = 'issue', int $documentId = 0): JsonResponse
     {
         try {
             $output = ElasticUtility::getIndexByName($type)->getDocument($documentId);
-        } catch (Exception $e) {
-            return new JsonResponse('Document not found', 404);
+        } catch (Exception) {
+            return new JsonResponse('Document not found', \Symfony\Component\HttpFoundation\Response::HTTP_NOT_FOUND);
         }
 
         return new JsonResponse($output->getData());
     }
 
-    /**
-     * @Route("/quick_stats", name="quick_stats")
-     *
-     * @return JsonResponse
-     */
+    #[Route(path: '/quick_stats', name: 'quick_stats')]
     public function quickStats(): JsonResponse
     {
         $index = ElasticUtility::getIndexByName('issue');
@@ -82,13 +73,7 @@ class ApiController extends AbstractController
         ]);
     }
 
-    /**
-     * @Route("/chart/{chartName}", name="chart")
-     *
-     * @param string $chartName
-     *
-     * @return JsonResponse
-     */
+    #[Route(path: '/chart/{chartName}', name: 'chart')]
     public function chart(string $chartName): JsonResponse
     {
         $indexName = ('ticket_progress' === $chartName) ? 'issue' : 'review';

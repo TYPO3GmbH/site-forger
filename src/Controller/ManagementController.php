@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -9,56 +11,56 @@
 
 namespace App\Controller;
 
-use App\Entity\Company;
-use App\Entity\TrackerFilters;
-use DateTime;
+use App\DTO\TrackerFilters;
 use Exception;
-use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use T3G\ElasticUtility\ElasticUtility;
 
 class ManagementController extends AbstractController
 {
-    private $coreMergers = [
+    private array $coreMergers = [
         'Andreas Fernandez',
+        'Andreas Nedbal',
         'Anja Leichsenring',
         'Annett Jähnichen',
         'Benjamin Franzke',
+        'Benjamin Kott',
         'Benni Mack',
         'Christian Kuhn',
         'Georg Ringer',
         'Helmut Hummel',
+        'Jasmina Ließmann',
         'Kevin Appelt',
+        'Lina Wolf',
         'Nikita Hovratov',
         'Oliver Bartsch',
         'Oliver Hader',
-        'Ralf Zimmermann',
         'Riccardo De Contardi',
+        'Simon Praetorius',
         'Stefan Bürk',
     ];
-
-    private $docTeam = [
-        'Mathias Brodala',
-        'Sybille Peters',
-        'Martin Bless',
+    private array $docTeam = [
+        'Alexander Nitsche',
         'Daniel Siepmann',
         'David Bruchmann',
         'Lina Wolf',
-        'Tom Warwick',
-        'Alexander Nitsche',
-        'flicstar',
+        'Martin Bless',
+        'Mathias Brodala',
         'Susanne Moog',
+        'Sybille Peters',
+        'Tom Warwick',
+        'flicstar',
     ];
 
-    /**
-     * @Route("/management", name="management_index")
-     */
-    public function index(): Response
+    #[Route(path: '/management', name: 'management_index')]
+    public function index(Request $request): Response
     {
+        $viewData = [];
         $viewData['routeName'] = 'management_index';
-        $trackerFilters = new TrackerFilters();
+        $trackerFilters = new TrackerFilters($request);
         $viewData['trackerFilters'] = $trackerFilters;
         $out = [];
         $fullRequest = [
@@ -109,31 +111,31 @@ class ManagementController extends AbstractController
                 ],
             ],
         ];
-        if ($trackerFilters->isFeature()) {
+        if ($trackerFilters->feature) {
             $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = 'Feature';
         }
-        if ($trackerFilters->isTask()) {
+        if ($trackerFilters->task) {
             $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = 'Task';
         }
-        if ($trackerFilters->isBug()) {
+        if ($trackerFilters->bug) {
             $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = 'Bug';
         }
-        if ($trackerFilters->isEpic()) {
+        if ($trackerFilters->epic) {
             $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = 'Epic';
         }
-        if ($trackerFilters->isStory()) {
+        if ($trackerFilters->story) {
             $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = 'Story';
         }
         $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
         $resultSet = $search->search();
         foreach ($resultSet->getAggregations() as $aggregation) {
             foreach ($aggregation['buckets'] as $bucket) {
-                $dateParts = explode('/', $bucket['key_as_string']);
+                $dateParts = explode('/', (string) $bucket['key_as_string']);
                 $yearName = $dateParts[0];
                 // prefill array with 12 index, for 12 month
                 $months = array_fill(0, 12, []);
                 foreach ($bucket['month']['buckets'] as $month) {
-                    $dateParts = explode('/', $month['key_as_string']);
+                    $dateParts = explode('/', (string) $month['key_as_string']);
                     $monthName = $dateParts[1];
                     $stati = [];
                     foreach ($month['status']['buckets'] as $status) {
@@ -161,9 +163,7 @@ class ManagementController extends AbstractController
         return $this->render('management/index.html.twig', $viewData);
     }
 
-    /**
-     * @Route("/management/bycategory", name="management_bycategory")
-     */
+    #[Route(path: '/management/bycategory', name: 'management_bycategory')]
     public function byCategory(): Response
     {
         $fullRequest = [
@@ -227,9 +227,7 @@ class ManagementController extends AbstractController
         return $this->render('management/bycategory.html.twig', ['data' => $viewData]);
     }
 
-    /**
-     * @Route("/management/interactions", name="management_interactions")
-     */
+    #[Route(path: '/management/interactions', name: 'management_interactions')]
     public function interactions(): Response
     {
         if (isset($_GET['taggles'])) {
@@ -286,14 +284,14 @@ class ManagementController extends AbstractController
         $aggregations = $resultSet->getAggregations();
         foreach ($aggregations as $aggregation) {
             foreach ($aggregation['buckets'] as $bucket) {
-                $monthParts = explode('/', $bucket['key_as_string']);
+                $monthParts = explode('/', (string) $bucket['key_as_string']);
                 $dateIdent = $monthParts[0] . '/' . $monthParts[1];
                 foreach ($this->coreMergers as $coreMember) {
                     $out[$dateIdent][$coreMember] = [];
                 }
                 foreach ($bucket['member']['buckets'] as $member) {
                     foreach ($member['interaction_type']['buckets'] as $interactionType) {
-                        $key = str_replace(':', '_', $interactionType['key']);
+                        $key = str_replace(':', '_', (string) $interactionType['key']);
                         $out[$dateIdent][$member['key']][$key] = $interactionType['doc_count'];
                     }
                 }
@@ -307,9 +305,7 @@ class ManagementController extends AbstractController
         ]);
     }
 
-    /**
-     * @Route("/management/docs-interactions", name="management_docs_interactions")
-     */
+    #[Route(path: '/management/docs-interactions', name: 'management_docs_interactions')]
     public function docsInteractions(): Response
     {
         if (isset($_GET['taggles'])) {
@@ -366,14 +362,14 @@ class ManagementController extends AbstractController
         $aggregations = $resultSet->getAggregations();
         foreach ($aggregations as $aggregation) {
             foreach ($aggregation['buckets'] as $bucket) {
-                $monthParts = explode('/', $bucket['key_as_string']);
+                $monthParts = explode('/', (string) $bucket['key_as_string']);
                 $dateIdent = $monthParts[0] . '/' . $monthParts[1];
                 foreach ($this->docTeam as $docMember) {
                     $out[$dateIdent][$docMember] = [];
                 }
                 foreach ($bucket['member']['buckets'] as $member) {
                     foreach ($member['interaction_type']['buckets'] as $interactionType) {
-                        $key = str_replace(':', '_', $interactionType['key']);
+                        $key = str_replace(':', '_', (string) $interactionType['key']);
                         $out[$dateIdent][$member['key']][$key] = $interactionType['doc_count'];
                     }
                 }
@@ -387,25 +383,7 @@ class ManagementController extends AbstractController
         ]);
     }
 
-    /**
-     * @Route(
-     *     "/management/leaderboard/{type}/{dateRange}",
-     *     defaults={
-     *       "type"="company",
-     *       "dateRange"="quarter"
-     *     },
-     *     requirements={
-     *       "type"="(individual|company)",
-     *       "dateRange"="(week|month|quarter|year)"
-     *     },
-     *     name="management_leaderboard"
-     * )
-     *
-     * @param string $type      The type of board to show. Possible values are "individual" and "company"
-     * @param string $dateRange
-     *
-     * @return Response
-     */
+    #[Route(path: '/management/leaderboard/{type}/{dateRange}', name: 'management_leaderboard', requirements: ['type' => '(individual|company)', 'dateRange' => '(week|month|quarter|year)'], defaults: ['type' => 'company', 'dateRange' => 'quarter'])]
     public function leaderBoard(string $type, string $dateRange): Response
     {
         // Create Navs
@@ -560,9 +538,9 @@ class ManagementController extends AbstractController
         switch ($dateRangeType) {
             case 'week':
                 try {
-                    $time = new DateTime($bucketKey);
-                } catch (Exception $e) {
-                    $time = new DateTime('now');
+                    $time = new \DateTime($bucketKey);
+                } catch (Exception) {
+                    $time = new \DateTime('now');
                 }
                 $dateRangeIdentifier = $time->format('Y / \C\W W');
                 break;
@@ -572,22 +550,13 @@ class ManagementController extends AbstractController
                 break;
             case 'quarter':
                 $monthParts = explode('/', $bucketKey);
-                switch ($monthParts[1]) {
-                    case '01':
-                        $quarterIdentifier = 'Q1';
-                        break;
-                    case '04':
-                        $quarterIdentifier = 'Q2';
-                        break;
-                    case '07':
-                        $quarterIdentifier = 'Q3';
-                        break;
-                    case '10':
-                        $quarterIdentifier = 'Q4';
-                        break;
-                    default:
-                        $quarterIdentifier = 'dafuq?';
-                }
+                $quarterIdentifier = match ($monthParts[1]) {
+                    '01' => 'Q1',
+                    '04' => 'Q2',
+                    '07' => 'Q3',
+                    '10' => 'Q4',
+                    default => 'dafuq?',
+                };
                 $dateRangeIdentifier = $monthParts[0] . '/' . $quarterIdentifier;
                 break;
             case 'year':
@@ -604,7 +573,7 @@ class ManagementController extends AbstractController
         $sanitizedArray = [];
         foreach ($taggles as $index => $taggle) {
             if (!is_string($taggle)) {
-                throw new InvalidArgumentException('Taggles need to be strings');
+                throw new \InvalidArgumentException('Taggles need to be strings');
             }
             $result = preg_replace("/[^[:alnum:][:space:][ß]-.']/u", '', html_entity_decode($taggle));
             if ('' !== trim($result)) {

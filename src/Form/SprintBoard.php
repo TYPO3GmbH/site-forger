@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -10,7 +12,6 @@
 namespace App\Form;
 
 use App\Entity\SprintBoardCategory;
-use App\Repository\SprintBoardCategoryRepository;
 use Doctrine\ORM\EntityRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
@@ -22,9 +23,14 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class SprintBoard extends AbstractType
 {
-    public function buildForm(FormBuilderInterface $builder, array $options)
+    /**
+     * @template T
+     *
+     * @param FormBuilderInterface<T> $builder
+     * @param array<mixed>            $options
+     */
+    public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $categoryRepository = $options['entity_manager']->getRepository(SprintBoardCategory::class);
         $builder
             ->add('name', null, ['required' => true, 'attr' => ['class' => 'form-control']])
             ->add(
@@ -41,10 +47,8 @@ class SprintBoard extends AbstractType
                 EntityType::class,
                 [
                     'class' => SprintBoardCategory::class,
-                    'query_builder' => function (EntityRepository $er) {
-                        return $er->createQueryBuilder('sb')
-                            ->orderBy('sb.name', 'ASC');
-                    },
+                    'query_builder' => fn (EntityRepository $er) => $er->createQueryBuilder('sb')
+                        ->orderBy('sb.name', 'ASC'),
                     'choice_label' => 'name',
                     'required' => true,
                     'label' => 'Category',
@@ -80,17 +84,5 @@ class SprintBoard extends AbstractType
             'csrf_protection' => 'test' !== getenv('APP_ENV'),
             'entity_manager' => null,
         ]);
-    }
-
-    private function buildCategoriesArray(SprintBoardCategoryRepository $categoryRepository): array
-    {
-        $categories = [];
-        foreach ($categoryRepository->findAll() as $category) {
-            $categories[$category->getId()] = $category->getName();
-        }
-
-        asort($categories);
-
-        return array_flip($categories);
     }
 }

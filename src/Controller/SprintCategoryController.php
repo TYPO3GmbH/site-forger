@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -21,27 +23,12 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class SprintCategoryController extends AbstractController
 {
-    /**
-     * @var EntityManagerInterface
-     */
-    private $entityManager;
-    /**
-     * @var SprintBoardCategoryRepository
-     */
-    private $sprintBoardCategoryRepository;
-
-    public function __construct(EntityManagerInterface $entityManager, SprintBoardCategoryRepository $sprintBoardCategoryRepository)
+    public function __construct(private readonly EntityManagerInterface $entityManager, private readonly SprintBoardCategoryRepository $sprintBoardCategoryRepository)
     {
-        $this->entityManager = $entityManager;
-        $this->sprintBoardCategoryRepository = $sprintBoardCategoryRepository;
     }
 
-    /**
-     * @Route("/sprintcategory", name="sprintcategory_index")
-     * @IsGranted("ROLE_ADMIN")
-     *
-     * @return Response
-     */
+    #[Route(path: '/sprintcategory', name: 'sprintcategory_index')]
+    #[IsGranted('ROLE_ADMIN')]
     public function index(): Response
     {
         return $this->render(
@@ -52,14 +39,8 @@ class SprintCategoryController extends AbstractController
         );
     }
 
-    /**
-     * @Route("/sprintcategory/create", name="sprintcategory_create")
-     * @IsGranted("ROLE_ADMIN")
-     *
-     * @param Request $request
-     *
-     * @return Response
-     */
+    #[Route(path: '/sprintcategory/create', name: 'sprintcategory_create')]
+    #[IsGranted('ROLE_ADMIN')]
     public function create(Request $request): Response
     {
         $category = new SprintBoardCategory();
@@ -78,15 +59,8 @@ class SprintCategoryController extends AbstractController
         return $this->render('sprintcategory/form.html.twig', ['form' => $form->createView()]);
     }
 
-    /**
-     * @Route("/sprintcategory/edit/{categoryId}", name="sprintcategory_edit")
-     * @IsGranted("ROLE_ADMIN")
-     *
-     * @param Request $request
-     * @param int     $categoryId
-     *
-     * @return Response
-     */
+    #[Route(path: '/sprintcategory/edit/{categoryId}', name: 'sprintcategory_edit')]
+    #[IsGranted('ROLE_ADMIN')]
     public function edit(Request $request, int $categoryId): Response
     {
         $category = $this->sprintBoardCategoryRepository->find($categoryId);
@@ -108,16 +82,9 @@ class SprintCategoryController extends AbstractController
         return $this->render('sprintcategory/form.html.twig', ['form' => $form->createView(), 'edit' => true]);
     }
 
-    /**
-     * @Route("/sprintcategory/delete/{categoryId}", name="sprintcategory_delete")
-     * @IsGranted("ROLE_ADMIN")
-     *
-     * @param Request $request
-     * @param int     $categoryId
-     *
-     * @return Response
-     */
-    public function delete(Request $request, int $categoryId): Response
+    #[Route(path: '/sprintcategory/delete/{categoryId}', name: 'sprintcategory_delete')]
+    #[IsGranted('ROLE_ADMIN')]
+    public function delete(int $categoryId): Response
     {
         $category = $this->sprintBoardCategoryRepository->find($categoryId);
         if (null !== $category) {

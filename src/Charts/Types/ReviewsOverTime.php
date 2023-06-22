@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -19,10 +21,7 @@ use T3G\ElasticUtility\ElasticUtility;
  */
 class ReviewsOverTime extends ReviewChart
 {
-    /**
-     * @var Index
-     */
-    protected $index;
+    protected readonly Index $index;
 
     public function __construct()
     {
@@ -47,9 +46,7 @@ class ReviewsOverTime extends ReviewChart
         }, ARRAY_FILTER_USE_KEY);
 
         $labels = array_keys($mergedDataSets);
-        $chartData = array_map(static function (array $metrics): int {
-            return $metrics['open'] - ($metrics['closed'] ?? 0);
-        }, $mergedDataSets);
+        $chartData = array_map(static fn (array $metrics): int => $metrics['open'] - ($metrics['closed'] ?? 0), $mergedDataSets);
 
         return [
             'labels' => $labels,

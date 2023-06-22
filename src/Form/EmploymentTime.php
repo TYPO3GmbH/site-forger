@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -20,14 +22,17 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class EmploymentTime extends AbstractType
 {
-    private $companyRepository;
-
-    public function __construct(CompanyRepository $companyRepository)
+    public function __construct(private readonly CompanyRepository $companyRepository)
     {
-        $this->companyRepository = $companyRepository;
     }
 
-    public function buildForm(FormBuilderInterface $builder, array $options)
+    /**
+     * @template T
+     *
+     * @param FormBuilderInterface<T> $builder
+     * @param array<mixed>            $options
+     */
+    public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
             ->add('company', ChoiceType::class, [
@@ -63,9 +68,7 @@ class EmploymentTime extends AbstractType
             );
 
         $builder->get('employed_from')->addModelTransformer(new CallbackTransformer(
-            static function ($employedFrom) {
-                return $employedFrom;
-            },
+            static fn ($employedFrom) => $employedFrom,
             static function ($employedFrom) {
                 if ($employedFrom instanceof \DateTimeInterface) {
                     $employedFrom->setTime(0, 0);
@@ -75,9 +78,7 @@ class EmploymentTime extends AbstractType
             }
         ));
         $builder->get('employed_to')->addModelTransformer(new CallbackTransformer(
-            static function ($employedTo) {
-                return $employedTo;
-            },
+            static fn ($employedTo) => $employedTo,
             static function ($employedTo) {
                 if ($employedTo instanceof \DateTimeInterface) {
                     $employedTo->setTime(23, 59, 59);

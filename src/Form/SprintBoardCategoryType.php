@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -18,7 +20,13 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class SprintBoardCategoryType extends AbstractType
 {
-    public function buildForm(FormBuilderInterface $builder, array $options)
+    /**
+     * @template T
+     *
+     * @param FormBuilderInterface<T> $builder
+     * @param array<mixed>            $options
+     */
+    public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
             ->add('name', TextType::class, ['required' => true])
@@ -43,7 +51,7 @@ class SprintBoardCategoryType extends AbstractType
             );
     }
 
-    public function configureOptions(OptionsResolver $resolver)
+    public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
             'data_class' => SprintBoardCategory::class,

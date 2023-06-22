@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -27,9 +29,6 @@ class EmploymentTimeRepository extends ServiceEntityRepository
     }
 
     /**
-     * @param string $username
-     * @param array  $orderBy
-     *
      * @return EmploymentTime[]
      */
     public function findByUsername(string $username, array $orderBy = ['employedFrom' => 'desc']): array

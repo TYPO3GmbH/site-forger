@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -9,53 +11,40 @@
 
 namespace App\Entity;
 
+use App\Repository\SprintBoardCategoryRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
-/**
- * @ORM\Entity(repositoryClass="App\Repository\SprintBoardCategoryRepository")
- * @UniqueEntity("identifier")
- */
+#[ORM\Entity(repositoryClass: SprintBoardCategoryRepository::class)]
+#[UniqueEntity('identifier')]
 class SprintBoardCategory
 {
-    /**
-     * @ORM\Id()
-     * @ORM\GeneratedValue()
-     * @ORM\Column(type="integer")
-     */
-    private $id;
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: 'integer')]
+    private readonly int $id;
 
-    /**
-     * @ORM\Column(type="string", length=255)
-     * @Assert\Length(min = 1, max = 200)
-     */
-    private $name;
+    #[ORM\Column(type: 'string', length: 255)]
+    #[Assert\Length(min: 1, max: 200)]
+    private ?string $name = null;
 
-    /**
-     * @ORM\Column(type="string", length=255)
-     * @Assert\Length(min = 1, max = 200)
-     * @Assert\Regex(pattern="/^[a-z0-9]+(?:-[a-z0-9]+)*$/",htmlPattern="^[a-z0-9]+(?:-[a-z0-9]+)*$")
-     */
-    private $identifier;
+    #[ORM\Column(type: 'string', length: 255)]
+    #[Assert\Length(min: 1, max: 200)]
+    #[Assert\Regex(pattern: '/^[a-z0-9]+(?:-[a-z0-9]+)*$/', htmlPattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$')]
+    private ?string $identifier = null;
 
-    /**
-     * @ORM\Column(type="string", length=255)
-     * @Assert\Length(min = 1, max = 200)
-     */
-    private $icon;
+    #[ORM\Column(type: 'string', length: 255)]
+    #[Assert\Length(min: 1, max: 200)]
+    private ?string $icon = null;
 
-    /**
-     * @ORM\Column(type="integer", nullable=true)
-     */
-    private $sorting;
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $sorting = null;
 
-    /**
-     * @ORM\OneToMany(targetEntity="App\Entity\SprintBoard", mappedBy="category", orphanRemoval=true)
-     * @ORM\OrderBy({"name" = "ASC"})
-     */
-    private $sprintBoards;
+    #[ORM\OneToMany(mappedBy: 'category', targetEntity: SprintBoard::class, orphanRemoval: true)]
+    #[ORM\OrderBy(['name' => 'ASC'])]
+    private readonly ArrayCollection $sprintBoards;
 
     public function __construct()
     {
@@ -116,9 +105,9 @@ class SprintBoardCategory
     }
 
     /**
-     * @return ArrayCollection|SprintBoard[]
+     * @return ArrayCollection<int, SprintBoard>
      */
-    public function getSprintBoards()
+    public function getSprintBoards(): ArrayCollection
     {
         return $this->sprintBoards;
     }

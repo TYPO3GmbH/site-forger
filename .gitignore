@@ -24,8 +24,7 @@ yarn-error.log
 ###< symfony/webpack-encore-bundle ###
 
 ###> friendsofphp/php-cs-fixer ###
-/.php_cs
-/.php-cs-fixer.cache
+.php-cs-fixer.cache
 ###< friendsofphp/php-cs-fixer ###
 /auth.json
 /.ddev/keycloak-gatekeeper.conf

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -9,34 +11,25 @@
 
 namespace App\Entity;
 
+use App\Repository\CompanyRepository;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
-/**
- * @ORM\Entity(repositoryClass="App\Repository\CompanyRepository")
- */
+#[ORM\Entity(repositoryClass: CompanyRepository::class)]
 class Company
 {
-    /**
-     * @ORM\Id()
-     * @ORM\GeneratedValue()
-     * @ORM\Column(type="integer")
-     */
-    private $id;
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: 'integer')]
+    private readonly int $id;
 
-    /**
-     * @ORM\Column(type="string", length=255)
-     * @Assert\Length(min = 1, max = 200)
-     */
-    private $name;
+    #[ORM\Column(type: 'string', length: 255)]
+    #[Assert\Length(min: 1, max: 200)]
+    private ?string $name = null;
 
-    /**
-     * Bidirectional - One-To-Many (INVERSE SIDE).
-     *
-     * @ORM\OneToMany(targetEntity="EmploymentTime", mappedBy="company", cascade={"remove"})
-     */
-    private $employmentTimes;
+    #[ORM\OneToMany(mappedBy: 'company', targetEntity: EmploymentTime::class, cascade: ['remove'])]
+    private Collection $employmentTimes;
 
     public function getId(): ?int
     {

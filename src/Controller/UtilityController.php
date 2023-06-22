@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -19,30 +21,16 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-/**
- * @Route("/utilities", name="utilities_")
- */
+#[Route(path: '/utilities', name: 'utilities_')]
 class UtilityController extends AbstractController
 {
-    /**
-     * @var ParameterBagInterface
-     */
-    protected $parameters;
-
-    /**
-     * @var BackportBlacklistEntryRepository
-     */
-    private $backportBlacklistEntryRepository;
-
-    public function __construct(ParameterBagInterface $parameters, BackportBlacklistEntryRepository $backportBlacklistEntryRepository)
-    {
-        $this->parameters = $parameters;
-        $this->backportBlacklistEntryRepository = $backportBlacklistEntryRepository;
+    public function __construct(
+        private readonly ParameterBagInterface $parameters,
+        private readonly BackportBlacklistEntryRepository $backportBlacklistEntryRepository
+    ) {
     }
 
-    /**
-     * @Route("/backport", name="backport")
-     */
+    #[Route(path: '/backport', name: 'backport')]
     public function backport(): Response
     {
         $viewData = [];
@@ -58,21 +46,14 @@ class UtilityController extends AbstractController
                     unset($viewData['backports'][$key]);
                 }
             }
-            $viewData['sum'] = count($backports);
+            $viewData['sum'] = is_countable($backports) ? count($backports) : 0;
         }
 
         return $this->render('utility/backport.html.twig', $viewData);
     }
 
-    /**
-     * @Route("/backport/create", name="backport_create")
-     * @IsGranted("ROLE_CORE_COMPONENT")
-     *
-     * @param Request                $request
-     * @param EntityManagerInterface $entityManager
-     *
-     * @return Response
-     */
+    #[Route(path: '/backport/create', name: 'backport_create')]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
     public function createBackportBlacklistEntry(
         Request $request,
         EntityManagerInterface $entityManager
@@ -102,18 +83,9 @@ class UtilityController extends AbstractController
         );
     }
 
-    /**
-     * @Route("/backport/quickcreate/{changeId}", name="backport_quickcreate")
-     * @IsGranted("ROLE_CORE_COMPONENT")
-     *
-     * @param Request                $request
-     * @param string                 $changeId
-     * @param EntityManagerInterface $entityManager
-     *
-     * @return Response
-     */
+    #[Route(path: '/backport/quickcreate/{changeId}', name: 'backport_quickcreate')]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
     public function quickCreateBackportBlacklistEntry(
-        Request $request,
         string $changeId,
         EntityManagerInterface $entityManager
     ): Response {
@@ -127,16 +99,8 @@ class UtilityController extends AbstractController
         return $this->redirectToRoute('utilities_backport');
     }
 
-    /**
-     * @Route("/backport/edit/{entryId}", name="backport_edit")
-     * @IsGranted("ROLE_CORE_COMPONENT")
-     *
-     * @param Request                $request
-     * @param int                    $entryId
-     * @param EntityManagerInterface $entityManager
-     *
-     * @return Response
-     */
+    #[Route(path: '/backport/edit/{entryId}', name: 'backport_edit')]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
     public function editBackportBlacklistEntry(
         Request $request,
         int $entryId,
@@ -146,7 +110,7 @@ class UtilityController extends AbstractController
         $form = $this->createForm(\App\Form\BackPortBlacklistEntry::class, $entry);
 
         if (null === $entry) {
-            $this->redirectToRoute('backport_create');
+            $this->redirectToRoute('utilities_backport_create');
         }
 
         $form->handleRequest($request);
@@ -169,18 +133,9 @@ class UtilityController extends AbstractController
         );
     }
 
-    /**
-     * @Route("/backport/delete/{changeId}", name="backport_delete")
-     * @IsGranted("ROLE_CORE_COMPONENT")
-     *
-     * @param Request                $request
-     * @param string                 $changeId
-     * @param EntityManagerInterface $entityManager
-     *
-     * @return Response
-     */
+    #[Route(path: '/backport/delete/{changeId}', name: 'backport_delete')]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
     public function deleteBackportBlacklistEntry(
-        Request $request,
         string $changeId,
         EntityManagerInterface $entityManager
     ): Response {
@@ -195,23 +150,16 @@ class UtilityController extends AbstractController
         return $this->redirectToRoute('utilities_backport_index');
     }
 
-    /**
-     * @Route("/backport/list", name="backport_index")
-     * @IsGranted("ROLE_CORE_COMPONENT")
-     *
-     * @return Response
-     */
-    public function blacklistIndex(
-
-    ): Response {
+    #[Route(path: '/backport/list', name: 'backport_index')]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
+    public function blacklistIndex(): Response
+    {
         $entries = $this->backportBlacklistEntryRepository->findAll();
 
         return $this->render('utility/backport_blacklist.html.twig', ['items' => $entries]);
     }
 
-    /**
-     * @Route("/rst", name="rst")
-     */
+    #[Route(path: '/rst', name: 'rst')]
     public function rst(): Response
     {
         $tags = [
@@ -278,15 +226,5 @@ class UtilityController extends AbstractController
         ];
 
         return $this->render('utility/rst.html.twig', $viewData);
-    }
-
-    /**
-     * @Route("/", name="index")
-     */
-    public function index()
-    {
-        return $this->render('utility/index.html.twig', [
-            'controller_name' => 'UtilityController',
-        ]);
     }
 }

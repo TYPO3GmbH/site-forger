@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -15,10 +17,7 @@ use T3G\ElasticUtility\ElasticUtility;
 
 class OpenedClosed extends IssueChart
 {
-    /**
-     * @var Index
-     */
-    protected $index;
+    protected readonly Index $index;
 
     public function __construct()
     {

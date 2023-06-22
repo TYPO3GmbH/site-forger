@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the package t3g/forger.
  *
@@ -12,7 +14,6 @@ namespace App\Command;
 use App\Repository\BackportBlacklistEntryRepository;
 use Elastica\Exception\InvalidException;
 use Elastica\Result;
-use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
@@ -24,6 +25,8 @@ use T3G\ElasticUtility\ElasticUtility;
 class BackportCommand extends Command
 {
     protected static $defaultName = 'app:backports';
+    protected static $defaultDescription = 'Creates a list of available backports';
+
     /**
      * @var array<string, string>
      */
@@ -38,22 +41,18 @@ class BackportCommand extends Command
         '12.4' => '12.4',
     ];
 
-    protected ParameterBagInterface $parameters;
-    private BackportBlacklistEntryRepository $blackListRepository;
-
-    public function __construct(ParameterBagInterface $parameters, BackportBlacklistEntryRepository $blacklistEntryRepository)
-    {
+    public function __construct(
+        private readonly ParameterBagInterface $parameters,
+        private readonly BackportBlacklistEntryRepository $blackListRepository
+    ) {
         parent::__construct();
-        $this->parameters = $parameters;
-        $this->blackListRepository = $blacklistEntryRepository;
     }
 
     protected function configure(): void
     {
-        $this->setDescription('Creates a list of available backports');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $workingArray = [];
@@ -79,7 +78,7 @@ class BackportCommand extends Command
 
             ];
             foreach ($releases as $release) {
-                $release = str_replace('master', 'main', $release);
+                $release = str_replace('master', 'main', (string) $release);
                 $workingArray[$changeId]['releases']['t3_' . str_replace('.', '', strtolower($release))] = $this->compareReleaseAndRelatedChanges($release, $relatedChanges);
             }
             // Remove entry completely if all branches have backports
@@ -103,14 +102,12 @@ class BackportCommand extends Command
         file_put_contents($finalFilePath, json_encode($workingArray, JSON_THROW_ON_ERROR));
 
         $io->success('Wrote backports to ' . $finalFilePath);
+
+        return Command::SUCCESS;
     }
 
     /**
-     * @param int $changeId
-     *
-     * @return array
-     *
-     * @throws RuntimeException
+     * @throws \RuntimeException
      * @throws InvalidException
      */
     protected function getPersonWhoMergedTheChange(int $changeId): array
@@ -141,7 +138,7 @@ class BackportCommand extends Command
         $resultSet = $query->search();
         $results = $resultSet->getResults();
         if (count($results) > 1 && 57284 !== $results[0]->getData()['interaction_source_id']) {
-            throw new RuntimeException('More than one merger found?');
+            throw new \RuntimeException('More than one merger found?');
         }
         if (count($results) > 0) {
             return $results[0]->getSource();
@@ -222,14 +219,11 @@ class BackportCommand extends Command
             'size' => 5000,
         ];
         $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
-        $resultSet = $query->search();
 
-        return $resultSet->getResults();
+        return $query->search()->getResults();
     }
 
     /**
-     * @param string $changeId
-     *
      * @return Result[]
      */
     protected function getReviewsByChangeId(string $changeId): array
@@ -251,20 +245,14 @@ class BackportCommand extends Command
             'size' => 50,
         ];
         $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
-        $resultSet = $query->search();
 
-        return $resultSet->getResults();
+        return $query->search()->getResults();
     }
 
     /**
-     * @param string $release
-     * @param array  $relatedChanges
-     *
-     * @return mixed|string
-     *
      * @throws InvalidException
      */
-    protected function compareReleaseAndRelatedChanges(string $release, array $relatedChanges)
+    protected function compareReleaseAndRelatedChanges(string $release, array $relatedChanges): string|array
     {
         $returnValue = 'missing';
         foreach ($relatedChanges as $relatedChange) {
