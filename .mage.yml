@@ -4,29 +4,27 @@ magephp:
     path: composer
   exclude:
     - ./.ddev
+    - ./.editorconfig
     - ./.git
-    - ./.gitattributes
-    - ./.gitignore
     - ./.github
     - ./.mage
-    - ./.vscode
-    - ./.editorconfig
-    - ./.env.local
-    - ./.mage.yml
     - ./assets
-    - ./var
-    - ./.php_cs.cache
-    - ./.php_cs.dist
-    - ./auth.json
-    - ./phpunit.xml.dist
+    - ./build
     - ./node_modules
-    - ./package.json
-    - ./package-lock.json
-    - ./README.md
-    - ./symfony.lock
-    - ./Build
-    - ./webpack.config.js
+    - ./var
+    - ./.env.local
+    - ./.gitattributes
+    - ./.gitignore
+    - ./.mage.yml
+    - ./.vscode
     - ./LICENSE
+    - ./README.md
+    - ./auth.json
+    - ./package-lock.json
+    - ./package.json
+    - ./phpunit.xml.dist
+    - ./symfony.lock
+    - ./webpack.config.js
   environments:
     master:
       user: forger.typo3.com
