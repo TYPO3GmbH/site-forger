@@ -25,7 +25,7 @@ class SprintBoardCategory
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
-    private int $id;
+    private readonly int $id;
 
     #[ORM\Column(type: 'string', length: 255)]
     #[Assert\Length(min: 1, max: 200)]

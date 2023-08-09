@@ -21,7 +21,7 @@ class EmploymentTime
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
-    private int $id;
+    private readonly int $id;
 
     #[ORM\ManyToOne(targetEntity: Company::class, inversedBy: 'employmentTimes')]
     #[ORM\JoinColumn(nullable: false)]
