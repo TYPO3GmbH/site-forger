@@ -93,9 +93,7 @@ class SearchController extends AbstractController
                                     'subject',
                                     'description',
                                 ],
-                                'ids' => [
-                                    $issueId,
-                                ],
+                                'like' => $issueId,
                                 'min_term_freq' => 2,
                                 'max_query_terms' => 25,
                                 'minimum_should_match' => '50%',
