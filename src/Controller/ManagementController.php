@@ -472,6 +472,8 @@ class ManagementController extends AbstractController
                                     'TYPO3com',
                                     'Mr. Jenkins',
                                     'core-ci',
+                                    'Replication from review.typo3.org and git.typo3.org',
+                                    'github-actions[bot]',
                                 ],
                             ],
                         ],
