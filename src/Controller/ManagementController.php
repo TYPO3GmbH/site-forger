@@ -41,6 +41,10 @@ class ManagementController extends AbstractController
         'Riccardo De Contardi',
         'Simon Praetorius',
         'Stefan Bürk',
+        // Added until Server Team managed to fix the broken umlauts in Gerrit
+        'Annett J�hnichen',
+        'Jasmina Lie�mann',
+        'Stefan B�rk',
     ];
     private array $docTeam = [
         'Alexander Nitsche',
