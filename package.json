@@ -23,6 +23,6 @@
     },
     "dependencies": {
         "ace-builds": "^1.24.2",
-        "sprintf-js": "^1.1.2"
+        "sprintf-js": "^1.1.3"
     }
 }
