@@ -478,6 +478,7 @@ class ManagementController extends AbstractController
                                     'core-ci',
                                     'Replication from review.typo3.org and git.typo3.org',
                                     'github-actions[bot]',
+                                    'dependabot[bot]',
                                 ],
                             ],
                         ],

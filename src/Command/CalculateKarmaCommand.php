@@ -123,6 +123,7 @@ class CalculateKarmaCommand extends Command
                                     'core-ci',
                                     'Replication from review.typo3.org and git.typo3.org',
                                     'github-actions[bot]',
+                                    'dependabot[bot]',
                                 ],
                             ],
                         ],
