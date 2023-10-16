@@ -22,7 +22,7 @@ use T3G\ElasticUtility\ElasticUtility;
 class ManagementController extends AbstractController
 {
     private array $coreMergers = [
-        'Andreas Fernandez',
+        'Andreas Kienast',
         'Andreas Nedbal',
         'Anja Leichsenring',
         'Annett Jähnichen',
