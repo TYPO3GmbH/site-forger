@@ -37,7 +37,7 @@
         "t3g/elastic-utility": "^7.0.2",
         "t3g/symfony-datahub-bundle": "^2.0.5",
         "t3g/symfony-keycloak-bundle": "@dev",
-        "t3g/symfony-template-bundle": "^3.5.0",
+        "t3g/symfony-template-bundle": "^3.6.0",
         "t3g/symfony-usercentrics-bundle": "^1.0",
         "twig/twig": "^3.6"
     },
