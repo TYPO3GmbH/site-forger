@@ -22,7 +22,7 @@
         "build": "encore production --progress"
     },
     "dependencies": {
-        "ace-builds": "^1.24.2",
+        "ace-builds": "^1.32.0",
         "sprintf-js": "^1.1.2"
     }
 }
