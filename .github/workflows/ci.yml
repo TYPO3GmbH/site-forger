@@ -159,7 +159,7 @@ jobs:
           /home/runner/.composer/vendor/bin/mage deploy ${{ steps.environment.outputs.target }}
 
       - name: Archive Logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: logs
