@@ -239,7 +239,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 try {
                     $this->getTicketAndJournal($doc);
                     $this->refreshLock();
-                } catch (Exception) {
+                } catch (\Exception) {
                 }
                 $progressBar->advance();
             }
@@ -267,7 +267,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         }
     }
 
-    protected function importFromGithub(string $organization, ?string $repository, SymfonyStyle $io, int $pageCount = null): void
+    protected function importFromGithub(string $organization, ?string $repository, SymfonyStyle $io, ?int $pageCount = null): void
     {
         if (null === $repository) {
             $pageOfNames = $this->githubService->getListOfRepositoryNamesForOrganization($organization);

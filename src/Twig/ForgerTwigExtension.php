@@ -161,7 +161,7 @@ class ForgerTwigExtension extends AbstractExtension
         return $string;
     }
 
-    protected function getFiltersString(int|string $year, int|string $month, string $statusId, TrackerFilters $trackerFilters = null): string
+    protected function getFiltersString(int|string $year, int|string $month, string $statusId, ?TrackerFilters $trackerFilters = null): string
     {
         if (!$trackerFilters) {
             $trackerFilters = new TrackerFilters($this->requestStack->getMainRequest());
