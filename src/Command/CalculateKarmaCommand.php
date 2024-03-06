@@ -15,7 +15,6 @@ use App\Repository\EmploymentTimeRepository;
 use Elastica\Document;
 use Elastica\Result;
 use Elastica\Scroll;
-use Exception;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Helper\Table;
@@ -61,7 +60,7 @@ class CalculateKarmaCommand extends Command
             $account = $employmentTime->getAccount();
             try {
                 $company = $employmentTime->getCompany();
-            } catch (Exception) {
+            } catch (\Exception) {
                 $company = 'broken-relation';
             }
             $name = $company->getName();
@@ -209,7 +208,7 @@ class CalculateKarmaCommand extends Command
         }
         try {
             $interactionTime = new \DateTime($interaction['interacted_on']);
-        } catch (Exception) {
+        } catch (\Exception) {
             throw new \RuntimeException('Interaction does not appear to be a parsable date');
         }
         foreach ($this->companyMapping[$interaction['account']] as $company => $timeFrames) {

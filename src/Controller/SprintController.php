@@ -15,7 +15,6 @@ use App\Entity\SprintBoard;
 use App\Repository\SprintBoardCategoryRepository;
 use App\Repository\SprintBoardRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Exception;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -186,7 +185,7 @@ class SprintController extends AbstractController
      * @throws \Exception
      */
     #[Route(path: '/sprint/{category}/{sprintId}', name: 'sprint', defaults: ['category' => 'index'])]
-    public function index(string $category, int $sprintId = null): Response
+    public function index(string $category, ?int $sprintId = null): Response
     {
         $sprintCategory = $this->sprintBoardCategoryRepository->findOneBy([
             'identifier' => $category,
@@ -445,7 +444,7 @@ class SprintController extends AbstractController
 
             try {
                 $item = $reviewType->getDocument($matches['reviewId']);
-            } catch (Exception) {
+            } catch (\Exception) {
                 return $ticket;
             }
             $returnValue = $item->getData();

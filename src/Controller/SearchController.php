@@ -13,7 +13,6 @@ namespace App\Controller;
 
 use Elastica\Aggregation\Terms;
 use Elastica\Query;
-use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -126,7 +125,7 @@ class SearchController extends AbstractController
         $forger = ElasticUtility::getIndexByName('issue');
         try {
             return $forger->getDocument($issueId)->getData();
-        } catch (Exception) {
+        } catch (\Exception) {
             $data = [
                 'error' => 'Issue #' . $issueId . ' was not found.',
             ];
