@@ -1,9 +1,9 @@
 {
     "devDependencies": {
         "@symfony/webpack-encore": "^4.4.0",
-        "autoprefixer": "^10.4.15",
+        "autoprefixer": "^10.4.18",
         "core-js": "^3.32.2",
-        "jquery": "^3.7.0",
+        "jquery": "^3.7.1",
         "node-sass": "^9.0.0",
         "postcss-loader": "^7.3.3",
         "sass-loader": "^13.3.2",
@@ -22,7 +22,7 @@
         "build": "encore production --progress"
     },
     "dependencies": {
-        "ace-builds": "^1.24.2",
-        "sprintf-js": "^1.1.2"
+        "ace-builds": "^1.32.7",
+        "sprintf-js": "^1.1.3"
     }
 }

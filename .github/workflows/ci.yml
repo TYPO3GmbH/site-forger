@@ -35,7 +35,7 @@ jobs:
           echo "dir=$(npm config get cache)" >> ${GITHUB_OUTPUT}
 
       - name: Recover Composer caches
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock', '**/composer.json') }}
@@ -43,7 +43,7 @@ jobs:
             ${{ runner.os }}-composer-
 
       - name: Recover npm caches
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -115,7 +115,7 @@ jobs:
           echo "dir=$(npm config get cache)" >> ${GITHUB_OUTPUT}
 
       - name: Recover Composer caches
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock', '**/composer.json') }}
@@ -123,7 +123,7 @@ jobs:
             ${{ runner.os }}-composer-
 
       - name: Recover npm caches
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -159,7 +159,7 @@ jobs:
           /home/runner/.composer/vendor/bin/mage deploy ${{ steps.environment.outputs.target }}
 
       - name: Archive Logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: logs
