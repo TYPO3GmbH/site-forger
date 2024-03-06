@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\DTO\TrackerFilters;
-use Exception;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -550,7 +549,7 @@ class ManagementController extends AbstractController
             case 'week':
                 try {
                     $time = new \DateTime($bucketKey);
-                } catch (Exception) {
+                } catch (\Exception) {
                     $time = new \DateTime('now');
                 }
                 $dateRangeIdentifier = $time->format('Y / \C\W W');

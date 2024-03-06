@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Charts\ChartRegistry;
-use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
@@ -25,7 +24,7 @@ class ApiController extends AbstractController
     {
         try {
             $output = ElasticUtility::getIndexByName($type)->getDocument($documentId);
-        } catch (Exception) {
+        } catch (\Exception) {
             return new JsonResponse('Document not found', \Symfony\Component\HttpFoundation\Response::HTTP_NOT_FOUND);
         }
 
