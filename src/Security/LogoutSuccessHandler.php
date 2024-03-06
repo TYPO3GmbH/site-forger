@@ -26,9 +26,6 @@ readonly class LogoutSuccessHandler implements EventSubscriberInterface
 
     public function onLogout(LogoutEvent $logoutEvent): void
     {
-        if (null !== $logoutEvent->getResponse()) {
-            return;
-        }
         $logoutEvent->setResponse(new RedirectResponse('/oauth/logout?redirect=' . urlencode($this->urlService->getLogoutUrlWithRedirectToApp($this->appUrl))));
     }
 
