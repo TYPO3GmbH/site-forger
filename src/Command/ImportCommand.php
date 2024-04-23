@@ -240,6 +240,10 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     $this->getTicketAndJournal($doc);
                     $this->refreshLock();
                 } catch (\Exception) {
+                } finally {
+                    // Stephan Großberndt asked for a sleep of between 50 - 100ms between requests to Forge on April 15th, 2024 in Slack channel #t3a-t3g-infra
+                    // Since we run into a lot of requests here, 50ms should be fine to not block the overall import process for too long
+                    usleep(50000);
                 }
                 $progressBar->advance();
             }
