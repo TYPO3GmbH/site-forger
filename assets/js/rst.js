@@ -125,9 +125,17 @@
             }
             restContent += restBody.replace('\n', '');
 
-            $modal.find('.modal-title')
-                .html('<a href="data:application/octet-stream;charset=utf-8;base64,' + window.btoa(restContent) + '" download="' + filename + '" title="' + filename + '"><i class="fa fa-file-download"></i></a> ' + filename);
-            $modal.find('.modal-body textarea').val(restContent);
+            const icon = document.createElement('i');
+            icon.classList.add('fa', 'fa-file-download', 'me-1');
+            const link = document.createElement('a');
+            link.setAttribute('href', window.URL.createObjectURL(new Blob([restContent], {type: 'text/plain;charset=utf-8'})));
+            link.setAttribute('download', filename);
+            link.setAttribute('title', `Download "${filename}"`);
+            link.textContent = filename;
+            link.prepend(icon);
+
+            document.querySelector(`${Selectors.modal} .modal-title`).replaceChildren(link);
+            document.querySelector(`${Selectors.modal} .modal-body textarea`).value = restContent;
         }
     };
 
