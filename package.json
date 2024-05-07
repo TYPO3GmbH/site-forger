@@ -6,7 +6,7 @@
         "jquery": "^3.7.1",
         "postcss-loader": "^7.3.3",
         "sass": "^1.77.0",
-        "sass-loader": "^13.3.2",
+        "sass-loader": "^14.2.1",
         "webpack-notifier": "^1.15.0"
     },
     "license": "UNLICENSED",
