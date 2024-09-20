@@ -4,13 +4,13 @@
         {% include '_partials/utility/code_snippet.html.twig' with {
             identifier: 'rst-links',
             language: 'rest',
-            code: 'Some linked_ text&#13;&#10;&#13;&#10;.. _linked: https://typo3.org'
+            code: 'Some linked_ text&#13;&#10;&#13;&#10;..  _linked: https://typo3.org'
             } only %}
         <h4 class="mt-4">Code Block</h4>
         {% include '_partials/utility/code_snippet.html.twig' with {
             identifier: 'rst-block',
             language: 'rest',
-            code: '.. code-block:: php|html|typoscript|javascript&#13;&#10;&#13;&#10;&nbsp;&nbsp;&nbsp;&nbsp;Your code indented by four spaces.'
+            code: '..  code-block:: php|html|typoscript|javascript&#13;&#10;&#13;&#10;&nbsp;&nbsp;&nbsp;&nbsp;Your code indented by four spaces.'
         } only %}
     </div>
     <div class="col-lg-6 mt-4 mt-lg-0">
