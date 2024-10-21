@@ -39,6 +39,7 @@ class BackportCommand extends Command
         '10.4' => '10.4',
         '11.5' => '11.5',
         '12.4' => '12.4',
+        '13.4' => '13.4',
     ];
 
     public function __construct(
@@ -180,8 +181,8 @@ class BackportCommand extends Command
                         [
                             'terms' => [
                                 'releases' => [
-                                    '11.5',
                                     '12.4',
+                                    '13.4',
                                 ],
                             ],
                         ],
