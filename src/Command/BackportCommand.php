@@ -75,6 +75,7 @@ class BackportCommand extends Command
                     't3_104' => 'notTargeted',
                     't3_115' => 'notTargeted',
                     't3_124' => 'notTargeted',
+                    't3_134' => 'notTargeted',
                 ],
 
             ];
