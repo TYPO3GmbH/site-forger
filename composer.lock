@@ -10074,16 +10074,16 @@
         },
         {
             "name": "t3g/symfony-template-bundle",
-            "version": "4.0.3",
+            "version": "4.0.8",
             "source": {
                 "type": "git",
                 "url": "https://github.com/TYPO3GmbH/symfony-template-bundle.git",
-                "reference": "f2d16c04ac3061f444c15ded839a868f2e16629e"
+                "reference": "7b3d31d8aeb1f5d26b472fd9f56b4cd23257340c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/TYPO3GmbH/symfony-template-bundle/zipball/f2d16c04ac3061f444c15ded839a868f2e16629e",
-                "reference": "f2d16c04ac3061f444c15ded839a868f2e16629e",
+                "url": "https://api.github.com/repos/TYPO3GmbH/symfony-template-bundle/zipball/7b3d31d8aeb1f5d26b472fd9f56b4cd23257340c",
+                "reference": "7b3d31d8aeb1f5d26b472fd9f56b4cd23257340c",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -10112,7 +10112,7 @@
             },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.0",
-                "overtrue/phplint": "^3.0 || ^4.0",
+                "overtrue/phplint": "^5.5.0",
                 "symfony/phpunit-bridge": "^5.4 || ^6.4",
                 "symfony/webpack-encore-bundle": "^1.13"
             },
@@ -10166,10 +10166,10 @@
                 "Templates"
             ],
             "support": {
-                "source": "https://github.com/TYPO3GmbH/symfony-template-bundle/tree/4.0.3",
+                "source": "https://github.com/TYPO3GmbH/symfony-template-bundle/tree/4.0.8",
                 "issues": "https://github.com/TYPO3GmbH/symfony-template-bundle/issues"
             },
-            "time": "2025-01-06T12:54:57+00:00"
+            "time": "2025-06-06T07:18:50+00:00"
         },
         {
             "name": "t3g/symfony-usercentrics-bundle",
