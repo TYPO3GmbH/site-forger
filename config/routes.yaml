@@ -5,3 +5,6 @@
 # A static logout route
 logout:
   path: /logout
+
+login:
+  alias: t3g_keycloak_login

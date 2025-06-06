@@ -27,4 +27,3 @@ yarn-error.log
 .php-cs-fixer.cache
 ###< friendsofphp/php-cs-fixer ###
 /auth.json
-/.ddev/keycloak-gatekeeper.conf
