@@ -5,6 +5,7 @@
 # https://symfony.com/doc/current/best_practices/configuration.html#application-related-configuration
 parameters:
   router.request_context.host: '%env(APP_URL)%'
+  router.request_context.scheme: 'https'
   redmine_project_id: 27
   'StatusMapping':
     'Rejected': 'Done'

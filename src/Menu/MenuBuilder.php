@@ -381,10 +381,10 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'route' => 'login',
                     'label' => 'Login',
                     'extras' => [
-                        'icon' => 'unlock',
+                        'icon' => 'actions-unlock',
                     ],
                 ]
-            )->setLinkAttribute('class', 'btn btn-primary');
+            )->setLinkAttribute('class', 'btn btn-lighter');
         }
 
         return $menu;
