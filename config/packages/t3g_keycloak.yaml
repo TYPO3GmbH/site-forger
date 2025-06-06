@@ -8,3 +8,7 @@ t3g_keycloak:
       typo3.org.team.core.framework: ROLE_CORE_FRAMEWORK
     # The default roles every user gets
     default_roles: ['ROLE_USER']
+
+  routes:
+    success: dashboard_index
+    #logout_route: _logout_main

@@ -1,7 +1,4 @@
 {
-    "brick/math": {
-        "version": "0.9.1"
-    },
     "clue/stream-filter": {
         "version": "v1.4.1"
     },
@@ -108,9 +105,6 @@
     "ezimuel/ringphp": {
         "version": "1.2.0"
     },
-    "fgrosse/phpasn1": {
-        "version": "v2.1.1"
-    },
     "friendsofphp/php-cs-fixer": {
         "version": "2.2",
         "recipe": {
@@ -152,6 +146,18 @@
     },
     "knplabs/knp-paginator-bundle": {
         "version": "v5.0.0"
+    },
+    "knpuniversity/oauth2-client-bundle": {
+        "version": "2.18",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "1.20",
+            "ref": "1ff300d8c030f55c99219cc55050b97a695af3f6"
+        },
+        "files": [
+            "config/packages/knpu_oauth2_client.yaml"
+        ]
     },
     "laminas/laminas-code": {
         "version": "3.4.1"
@@ -255,9 +261,6 @@
     "ralouphie/getallheaders": {
         "version": "3.0.3"
     },
-    "rbdwllr/reallysimplejwt": {
-        "version": "2.1.0"
-    },
     "react/promise": {
         "version": "v2.7.1"
     },
@@ -281,9 +284,6 @@
     },
     "setasign/fpdi": {
         "version": "v2.3.6"
-    },
-    "spomky-labs/base64url": {
-        "version": "v2.0.3"
     },
     "symfony/asset": {
         "version": "v4.3.2"
@@ -605,26 +605,5 @@
     },
     "twig/twig": {
         "version": "v2.11.3"
-    },
-    "web-token/jwt-bundle": {
-        "version": "v2.2.2"
-    },
-    "web-token/jwt-checker": {
-        "version": "v2.2.2"
-    },
-    "web-token/jwt-core": {
-        "version": "v2.2.2"
-    },
-    "web-token/jwt-key-mgmt": {
-        "version": "v2.2.2"
-    },
-    "web-token/jwt-signature": {
-        "version": "v2.2.2"
-    },
-    "web-token/jwt-signature-algorithm-hmac": {
-        "version": "v2.2.2"
-    },
-    "web-token/jwt-signature-algorithm-rsa": {
-        "version": "v2.2.2"
     }
 }
