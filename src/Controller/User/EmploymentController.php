@@ -14,12 +14,12 @@ namespace App\Controller\User;
 use App\Entity\EmploymentTime;
 use App\Repository\EmploymentTimeRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[IsGranted('ROLE_USER')]
 class EmploymentController extends AbstractController
@@ -70,7 +70,7 @@ class EmploymentController extends AbstractController
             'user/employment/form.html.twig',
             [
                 'edit' => null === $entry->getId(),
-                'form' => $form->createView(),
+                'form' => $form,
             ]
         );
     }

@@ -26,6 +26,7 @@ final class ChartRegistry
         'ticket_progress' => Types\TicketProgress::class,
         'tracker_types' => Types\TrackerTypes::class,
     ];
+
     public static function getChartInstance(string $identifier, Index $index): ChartInterface
     {
         if (isset(self::$charts[$identifier])) {

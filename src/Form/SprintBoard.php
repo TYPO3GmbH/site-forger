@@ -71,9 +71,8 @@ class SprintBoard extends AbstractType
                 SubmitType::class,
                 [
                     'label' => 'Save',
-                    'attr' => ['class' => 'btn btn-primary pull-right',
-                ],
-            ]
+                    'attr' => ['class' => 'btn btn-primary pull-right'],
+                ]
             );
     }
 

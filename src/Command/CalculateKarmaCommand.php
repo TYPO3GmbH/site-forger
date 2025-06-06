@@ -15,6 +15,7 @@ use App\Repository\EmploymentTimeRepository;
 use Elastica\Document;
 use Elastica\Result;
 use Elastica\Scroll;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Helper\Table;
@@ -26,10 +27,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use T3G\ElasticUtility\ElasticUtility;
 
+#[AsCommand(name: 'app:calculate-karma', description: 'Calculate Karma point based on the data from forger')]
 class CalculateKarmaCommand extends Command
 {
-    protected static $defaultName = 'app:calculate-karma';
-    protected static $defaultDescription = 'Calculate Karma point based on the data from forger';
     private array $companyMapping = [];
     private array $unmappedAccounts = [];
 

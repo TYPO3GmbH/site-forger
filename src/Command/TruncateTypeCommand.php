@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use Elastica\Query\MatchAll;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -19,11 +20,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use T3G\ElasticUtility\ElasticUtility;
 
+#[AsCommand(name: 'app:truncate-type', description: 'Clears a type in the current index')]
 class TruncateTypeCommand extends Command
 {
-    protected static $defaultName = 'app:truncate-type';
-    protected static $defaultDescription = 'Clears a type in the current index';
-
     public function __construct()
     {
         parent::__construct();

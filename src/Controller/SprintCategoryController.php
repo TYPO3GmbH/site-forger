@@ -15,11 +15,11 @@ use App\Entity\SprintBoardCategory;
 use App\Form\SprintBoardCategoryType;
 use App\Repository\SprintBoardCategoryRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class SprintCategoryController extends AbstractController
 {
@@ -56,7 +56,7 @@ class SprintCategoryController extends AbstractController
             return $this->redirectToRoute('sprintcategory_index');
         }
 
-        return $this->render('sprintcategory/form.html.twig', ['form' => $form->createView()]);
+        return $this->render('sprintcategory/form.html.twig', ['form' => $form]);
     }
 
     #[Route(path: '/sprintcategory/edit/{categoryId}', name: 'sprintcategory_edit')]
@@ -79,7 +79,7 @@ class SprintCategoryController extends AbstractController
             return $this->redirectToRoute('sprintcategory_index');
         }
 
-        return $this->render('sprintcategory/form.html.twig', ['form' => $form->createView(), 'edit' => true]);
+        return $this->render('sprintcategory/form.html.twig', ['form' => $form, 'edit' => true]);
     }
 
     #[Route(path: '/sprintcategory/delete/{categoryId}', name: 'sprintcategory_delete')]
