@@ -14,7 +14,7 @@
                             path('sprint_create'),
                             'Create new',
                             'primary',
-                            'plus'
+                            'actions-plus'
                         ) }}
                     </div>
                 </div>
@@ -41,19 +41,16 @@
                                             </th>
                                             <td>{{ item.category.name }}</td>
                                             <td data-type="actions" data-label="Actions">
-                                                <a class="datatable-action" title="View"
-                                                   href="{{ path('sprint', {'sprintId': item.id, 'category': item.category.identifier}) }}">
-                                                    <span class="datatable-action-icon"><i class="fa fa-eye"></i></span>
+                                                <a class="datatable-action" title="View" href="{{ path('sprint', {'sprintId': item.id, 'category': item.category.identifier}) }}">
+                                                    <span class="datatable-action-icon">{{ icon('actions-view') }}</span>
                                                     <span class="datatable-action-label datatable-visually-hidden">View</span>
                                                 </a>
-                                                <a class="datatable-action" title="Edit"
-                                                   href="{{ path('sprint_edit', {'sprintId': item.id}) }}">
-                                                    <span class="datatable-action-icon"><i class="fa fa-edit"></i></span>
+                                                <a class="datatable-action" title="Edit" href="{{ path('sprint_edit', {'sprintId': item.id}) }}">
+                                                    <span class="datatable-action-icon">{{ icon('actions-open') }}</span>
                                                     <span class="datatable-action-label datatable-visually-hidden">Edit</span>
                                                 </a>
-                                                <a class="datatable-action" title="Delete"
-                                                   href="{{ path('sprint_delete', {'sprintId': item.id}) }}">
-                                                    <span class="datatable-action-icon"><i class="fa fa-trash"></i></span>
+                                                <a class="datatable-action" title="Delete" href="{{ path('sprint_delete', {'sprintId': item.id}) }}">
+                                                    <span class="datatable-action-icon">{{ icon('actions-delete') }}</span>
                                                     <span class="datatable-action-label datatable-visually-hidden">Delete</span>
                                                 </a>
                                             </td>

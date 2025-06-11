@@ -49,9 +49,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             [
                 'label' => 'Dashboard',
                 'route' => 'dashboard_index',
-                'extras' => [
-                    'icon' => 'tachometer-alt',
-                ],
             ]
         );
         $menu->addChild(
@@ -59,9 +56,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             [
                 'label' => 'Reviews',
                 'route' => 'gerrit_index',
-                'extras' => [
-                    'icon' => 'code',
-                ],
             ]
         );
         $menu['gerrit']->addChild(
@@ -70,7 +64,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'All (excl. WIP)',
                 'route' => 'gerrit_index',
                 'extras' => [
-                    'icon' => 'home',
+                    'icon' => 'actions-code-pull-request',
                 ],
             ]
         );
@@ -80,7 +74,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Has verifications',
                 'route' => 'gerrit_hasverifications',
                 'extras' => [
-                    'icon' => 'check-square',
+                    'icon' => 'actions-check-square',
                 ],
             ]
         );
@@ -90,7 +84,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Needs verification',
                 'route' => 'gerrit_missesverifications',
                 'extras' => [
-                    'icon' => 'plus-square',
+                    'icon' => 'actions-plus-square',
                 ],
             ]
         );
@@ -100,7 +94,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Needs review',
                 'route' => 'gerrit_missesreview',
                 'extras' => [
-                    'icon' => 'plus-square',
+                    'icon' => 'actions-plus-square',
                 ],
             ]
         );
@@ -110,7 +104,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Rebase',
                 'route' => 'gerrit_rebase',
                 'extras' => [
-                    'icon' => 'sync',
+                    'icon' => 'actions-refresh',
                 ],
             ]
         );
@@ -120,7 +114,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Find Review by filename',
                 'route' => 'gerrit_files',
                 'extras' => [
-                    'icon' => 'file',
+                    'icon' => 'actions-file-search',
                 ],
             ]
         );
@@ -130,7 +124,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Has negative votes',
                 'route' => 'gerrit_negative_vote_cleanup',
                 'extras' => [
-                    'icon' => 'thumbs-down',
+                    'icon' => 'actions-minus-square',
                 ],
             ]
         );
@@ -140,7 +134,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Work In Progress',
                 'route' => 'gerrit_wip',
                 'extras' => [
-                    'icon' => 'bolt',
+                    'icon' => 'actions-code-pull-request-draft',
                 ],
             ]
         );
@@ -150,7 +144,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Coreteam action required',
                 'route' => 'gerrit_coreteam_merge',
                 'extras' => [
-                    'icon' => 'users',
+                    'icon' => 'actions-exclamation-triangle',
                 ],
             ]
         );
@@ -160,7 +154,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Stale Issues',
                 'route' => 'gerrit_stale_issues',
                 'extras' => [
-                    'icon' => 'ban',
+                    'icon' => 'actions-clock',
                 ],
             ]
         );
@@ -169,9 +163,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             [
                 'label' => 'Management',
                 'route' => 'management_index',
-                'extras' => [
-                    'icon' => 'list',
-                ],
             ]
         );
         $menu['management']->addChild(
@@ -180,7 +171,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Issue Overview',
                 'route' => 'management_index',
                 'extras' => [
-                    'icon' => 'calendar-alt',
+                    'icon' => 'actions-calendar',
                 ],
             ]
         );
@@ -191,7 +182,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'label' => 'Core Team Interactions',
                     'route' => 'management_interactions',
                     'extras' => [
-                        'icon' => 'users',
+                        'icon' => 'actions-users',
                     ],
                 ]
             );
@@ -201,7 +192,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'label' => 'Doc Team Interactions',
                     'route' => 'management_docs_interactions',
                     'extras' => [
-                        'icon' => 'users',
+                        'icon' => 'actions-users',
                     ],
                 ]
             );
@@ -212,7 +203,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Issues by Category',
                 'route' => 'management_bycategory',
                 'extras' => [
-                    'icon' => 'tag',
+                    'icon' => 'actions-tag',
                 ],
             ]
         );
@@ -223,7 +214,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'label' => 'Companies',
                     'route' => 'management_companies',
                     'extras' => [
-                        'icon' => 'building',
+                        'icon' => 'actions-building',
                     ],
                 ]
             );
@@ -233,7 +224,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'label' => 'Sprint Categories',
                     'route' => 'sprintcategory_index',
                     'extras' => [
-                        'icon' => 'book',
+                        'icon' => 'actions-category',
                     ],
                 ]
             );
@@ -243,7 +234,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'label' => 'Sprints',
                     'route' => 'sprint_list',
                     'extras' => [
-                        'icon' => 'flag-checkered',
+                        'icon' => 'actions-document',
                     ],
                 ]
             );
@@ -253,9 +244,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             [
                 'label' => 'Sprints',
                 'uri' => '#',
-                'extras' => [
-                    'icon' => 'flag-checkered',
-                ],
             ]
         );
         /** @var SprintBoardCategory $category */
@@ -278,7 +266,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Reviews',
                 'route' => 'sprint_reviews',
                 'extras' => [
-                    'icon' => 'cogs',
+                    'icon' => 'actions-cog',
                 ],
             ]
         );
@@ -287,9 +275,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             [
                 'label' => 'Utility',
                 'uri' => '#',
-                'extras' => [
-                    'icon' => 'tools',
-                ],
             ]
         );
         $menu['utility']->addChild(
@@ -298,17 +283,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Backports',
                 'route' => 'utilities_backport',
                 'extras' => [
-                    'icon' => 'chevron-left',
-                ],
-            ]
-        );
-        $menu['utility']->addChild(
-            'utility_rst',
-            [
-                'label' => 'ReST Helper',
-                'route' => 'utilities_rst',
-                'extras' => [
-                    'icon' => 'file-alt',
+                    'icon' => 'actions-code-compare',
                 ],
             ]
         );
@@ -319,11 +294,21 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'label' => 'Backport blacklist',
                     'route' => 'utilities_backport_index',
                     'extras' => [
-                        'icon' => 'times',
+                        'icon' => 'actions-ban',
                     ],
                 ]
             );
         }
+        $menu['utility']->addChild(
+            'utility_rst',
+            [
+                'label' => 'ReST Helper',
+                'route' => 'utilities_rst',
+                'extras' => [
+                    'icon' => 'actions-file-text',
+                ],
+            ]
+        );
 
         return $menu;
     }
@@ -336,9 +321,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             [
                 'label' => 'Help',
                 'route' => 'static_help',
-                'extras' => [
-                    'icon' => 'question-circle',
-                ],
             ]
         );
         if ($this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
@@ -360,7 +342,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'label' => 'Company Employment',
                     'route' => 'user_employment',
                     'extras' => [
-                        'icon' => 'user-tie',
+                        'icon' => 'actions-id-badge',
                     ],
                 ]
             );

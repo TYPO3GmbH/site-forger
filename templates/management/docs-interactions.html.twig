@@ -13,12 +13,12 @@
                                 <thead>
                                     <tr>
                                         <th scope="col">Name</th>
-                                        <th scope="col"><i class="fas fa-fw fa-laptop-code" aria-hidden="true" data-bs-toggle="tooltip" title="PR opened"></i><span class="sr-only">PR opened</span></th>
-                                        <th scope="col"><i class="fas fa-fw fa-code" aria-hidden="true" data-bs-toggle="tooltip" title="Commit Added"></i><span class="sr-only">Added Commit</span></th>
-                                        <th scope="col"><i class="fas fa-fw fa-eye" aria-hidden="true" data-bs-toggle="tooltip" title="Reviewed"></i><span class="sr-only">Review</span></th>
-                                        <th scope="col"><i class="fas fa-fw fa-code-branch" aria-hidden="true" data-bs-toggle="tooltip" title="PR Closed"></i><span class="sr-only">PR Closed</span></th>
-                                        <th scope="col"><i class="fas fa-fw fa-check" aria-hidden="true" data-bs-toggle="tooltip" title="Issue Closed"></i><span class="sr-only">Issue Closed</span></th>
-                                        <th scope="col"><i class="fas fa-fw fa-comment" aria-hidden="true" data-bs-toggle="tooltip" title="Issue Comment"></i><span class="sr-only">Issue Comment</span></th>
+                                        <th scope="col"><span title="PR opened">{{ icon('actions-code-pull-request') }}</span></th>
+                                        <th scope="col"><span title="Commits added">{{ icon('actions-code-commit') }}</span></th>
+                                        <th scope="col"><span title="Reviewed">{{ icon('actions-plus-square') }}</span></th>
+                                        <th scope="col"><span title="PR closed">{{ icon('actions-code-pull-request-close') }}</span></th>
+                                        <th scope="col"><span title="Issues closed">{{ icon('actions-close') }}</span></th>
+                                        <th scope="col"><span title="Issue comments">{{ icon('actions-comment') }}</span></th>
                                     </tr>
                                 </thead>
                                 {% for committer, reviewTypes in month %}
