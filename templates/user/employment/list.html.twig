@@ -13,7 +13,7 @@
                             path('user_employment_manage'),
                             'Create new',
                             'primary',
-                            'plus'
+                            'actions-plus'
                         ) }}
                     </div>
                 </div>
@@ -40,21 +40,19 @@
                                             </th>
                                             <td class="{{ employmentTime.employedTo ? 'text-muted' : '' }}">
                                                 {% if employmentTime.employedTo %}
-                                                    <small><i class="fas fa-sign-in"></i> {{ employmentTime.employedFrom|date('Y-m-d') }}</small><br>
-                                                    <i class="fas fa-sign-out"></i> {{ employmentTime.employedTo|date('Y-m-d') }}
+                                                    {{ icon('actions-login') }} {{ employmentTime.employedFrom|date('Y-m-d') }}</small><br>
+                                                    {{ icon('actions-logout') }} {{ employmentTime.employedTo|date('Y-m-d') }}
                                                 {% else %}
-                                                    <i class="fas fa-sign-in"></i> {{ employmentTime.employedFrom|date('Y-m-d') }}
+                                                    {{ icon('actions-login') }} {{ employmentTime.employedFrom|date('Y-m-d') }}
                                                 {% endif %}
                                             </td>
                                             <td data-type="actions" data-label="Actions">
-                                                <a class="datatable-action" title="Edit"
-                                                   href="{{ path('user_employment_manage', {'id': employmentTime.id}) }}">
-                                                    <span class="datatable-action-icon"><i class="fa fa-edit"></i></span>
+                                                <a class="datatable-action" title="Edit" href="{{ path('user_employment_manage', {'id': employmentTime.id}) }}">
+                                                    <span class="datatable-action-icon">{{ icon('actions-open') }}</span>
                                                     <span class="datatable-action-label datatable-visually-hidden">Edit</span>
                                                 </a>
-                                                <a class="datatable-action" title="Delete"
-                                                   href="{{ path('user_employment_delete', {'id': employmentTime.id}) }}">
-                                                    <span class="datatable-action-icon"><i class="fa fa-trash"></i></span>
+                                                <a class="datatable-action" title="Delete" href="{{ path('user_employment_delete', {'id': employmentTime.id}) }}">
+                                                    <span class="datatable-action-icon">{{ icon('actions-delete') }}</span>
                                                     <span class="datatable-action-label datatable-visually-hidden">Delete</span>
                                                 </a>
                                             </td>

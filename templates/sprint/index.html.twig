@@ -30,13 +30,13 @@
                                 path('sprint_edit', {'sprintId': sprintId}),
                                 'Edit Sprint',
                                 'secondary',
-                                'pencil'
+                                'actions-open'
                             ) }}
                             {{ buttons.link(
                                 path('sprint_delete_confirm', {'sprintId': sprintId}),
                                 'Delete Sprint',
                                 'danger',
-                                'trash'
+                                'actions-delete'
                             ) }}
                         </div>
                     {% endif %}
