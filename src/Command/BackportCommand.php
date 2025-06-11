@@ -14,6 +14,7 @@ namespace App\Command;
 use App\Repository\BackportBlacklistEntryRepository;
 use Elastica\Exception\InvalidException;
 use Elastica\Result;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
@@ -22,11 +23,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use T3G\ElasticUtility\ElasticUtility;
 
+#[AsCommand(name: 'app:backports', description: 'Creates a list of available backports')]
 class BackportCommand extends Command
 {
-    protected static $defaultName = 'app:backports';
-    protected static $defaultDescription = 'Creates a list of available backports';
-
     /**
      * @var array<string, string>
      */

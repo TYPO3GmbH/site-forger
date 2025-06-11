@@ -1,44 +1,34 @@
 {% extends 'base.html.twig' %}
 {% block title %}Backports{% endblock %}
 {% block body %}
-
+    {% set versions = ['main', '13.4', '12.4'] %}
     <div class="content-section bg-transparent">
         <div class="container-fluid">
             <h1>{{ sum ?? 0 }} backports to do</h1>
             <table class="table table-striped">
                 <colgroup>
-                    <col style="width: calc(100% / 3)">
-                    <col style="width: calc(100% / 3)">
-                    <col style="width: calc(100% / 3)">
+                    {% for version in versions %}
+                        <col style="width: calc(100% / {{ versions|length }})">
+                    {% endfor %}
                 </colgroup>
                 <tr>
-                    <th>main</th>
-                    <th>13.4</th>
-                    <th>12.4</th>
+                    {% for version in versions %}
+                        <th>{{ version }}</th>
+                    {% endfor %}
                 </tr>
                 {% for backport in backports %}
                     <tr>
-                        <td>
-                            {% if backport.releases.t3_main == 'missing' %}
-                                {% include '_partials/review_card.html.twig' with {'card': null, 'mode': 'backport'} only %}
-                            {% elseif backport.releases.t3_main.id is defined %}
-                                {% include '_partials/review_card.html.twig' with {'card': backport.releases.t3_main, 'mode': 'backport'} only %}
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if backport.releases.t3_134 == 'missing' %}
-                                {% include '_partials/review_card.html.twig' with {'card': null, 'mode': 'backport'} only %}
-                            {% elseif backport.releases.t3_134.id is defined %}
-                                {% include '_partials/review_card.html.twig' with {'card': backport.releases.t3_134, 'mode': 'backport'} only %}
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if backport.releases.t3_124 == 'missing' %}
-                                {% include '_partials/review_card.html.twig' with {'card': null, 'mode': 'backport'} only %}
-                            {% elseif backport.releases.t3_124.id is defined %}
-                                {% include '_partials/review_card.html.twig' with {'card': backport.releases.t3_124, 'mode': 'backport'} only %}
-                            {% endif %}
-                        </td>
+                        {% for version in versions %}
+                            {% set normalizedVersion = version|replace({'\.': ''}) %}
+                            {% set key = 't3_' ~ normalizedVersion %}
+                            <td>
+                                {% if backport.releases.(key) is defined and backport.releases.(key) == 'missing' %}
+                                    {% include '_partials/review_card.html.twig' with {'card': null, 'mode': 'backport'} only %}
+                                {% elseif backport.releases.(key).id is defined %}
+                                    {% include '_partials/review_card.html.twig' with {'card': backport.releases.(key), 'mode': 'backport'} only %}
+                                {% endif %}
+                            </td>
+                        {% endfor %}
                     </tr>
                 {% endfor %}
             </table>

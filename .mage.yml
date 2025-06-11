@@ -35,7 +35,7 @@ magephp:
         - 188.34.182.186
       pre-deploy:
         - exec: { cmd: "echo \"APP_ENV=prod\" >> .env.local"}
-        - exec: { cmd: "composer install --no-dev --no-progress --optimize-autoloader"}
+        - exec: { cmd: "composer install --no-interaction --no-dev --no-progress --optimize-autoloader"}
         - exec: { cmd: "npm ci"}
         - exec: { cmd: "npm run build"}
       on-deploy:
@@ -46,6 +46,7 @@ magephp:
         - exec: { cmd: "[ -d ../../../cachetool ] || mkdir -p ../../../cachetool" }
         - exec: { cmd: "[ -f ../../../cachetool/cachetool.phar ] || curl -L -o ../../../cachetool/cachetool.phar https://gordalina.github.io/cachetool/downloads/cachetool-7.1.0.phar && chmod +x ../../../cachetool/cachetool.phar" }
         - exec: { cmd: "php ../../../cachetool/cachetool.phar opcache:reset --fcgi=/var/run/forger.typo3.com_fpm.sock --tmp-dir=/srv/vhosts/forger.typo3.com/site/cachetool" }
+        - exec: { cmd: "php8.2 /usr/bin/composer dump-env prod" }
         - exec: { cmd: "rm -rf var/cache"}
         - exec: { cmd: "php8.2 ./bin/console doctrine:migrations:migrate --no-interaction"}
         - exec: { cmd: "php8.2 ./bin/console cache:warmup"}
@@ -60,7 +61,7 @@ magephp:
         - 188.34.182.186
       pre-deploy:
         - exec: { cmd: "echo \"APP_ENV=prod\" >> .env.local"}
-        - exec: { cmd: "composer install --no-dev --no-progress --optimize-autoloader"}
+        - exec: { cmd: "composer install --no-interaction --no-dev --no-progress --optimize-autoloader"}
         - exec: { cmd: "npm ci"}
         - exec: { cmd: "npm run build"}
       on-deploy:
@@ -71,6 +72,7 @@ magephp:
         - exec: { cmd: "[ -d ../../../cachetool ] || mkdir -p ../../../cachetool" }
         - exec: { cmd: "[ -f ../../../cachetool/cachetool.phar ] || curl -L -o ../../../cachetool/cachetool.phar https://gordalina.github.io/cachetool/downloads/cachetool-7.1.0.phar && chmod +x ../../../cachetool/cachetool.phar" }
         - exec: { cmd: "php ../../../cachetool/cachetool.phar opcache:reset --fcgi=/var/run/stage.forger.typo3.com_fpm.sock --tmp-dir=/srv/vhosts/stage.forger.typo3.com/site/cachetool" }
+        - exec: { cmd: "php8.2 /usr/bin/composer dump-env prod" }
         - exec: { cmd: "rm -rf var/cache"}
         - exec: { cmd: "php8.2 ./bin/console doctrine:migrations:migrate --no-interaction"}
         - exec: { cmd: "php8.2 ./bin/console cache:warmup"}

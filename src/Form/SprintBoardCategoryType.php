@@ -39,13 +39,23 @@ class SprintBoardCategoryType extends AbstractType
                     'attr' => ['pattern' => '^[a-z0-9]+(?:-[a-z0-9]+)*$'],
                 ]
             )
-            ->add('icon', TextType::class, ['required' => true, 'label' => 'Icon (FontAwesome identifier)'])
+            ->add(
+                'icon',
+                TextType::class,
+                [
+                    'required' => true,
+                    'label' => 'Icon identifier',
+                    'help' => 'Please use an <code>action-*</code> identifier from the <a href="https://typo3.github.io/TYPO3.Icons/icons/actions.html" target="_blank">TYPO3 Icons</a> set.',
+                    'help_html' => true,
+                ]
+            )
             ->add(
                 'submit',
                 SubmitType::class,
                 [
                     'label' => 'Save',
-                    'attr' => ['class' => 'btn btn-primary pull-right',
+                    'attr' => [
+                        'class' => 'btn btn-primary pull-right',
                     ],
                 ]
             );

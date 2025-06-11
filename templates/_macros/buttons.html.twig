@@ -1,13 +1,13 @@
 {% macro link(link, label, class = 'secondary', icon = null, target = null) %}
     <a href="{{ link }}" class="btn btn-{{ class }}"{% if target %} target="{{ target }}"{% endif %}>
-        {% if icon %}<span class="btn-icon"><i class="fas fa-{{ icon }}"></i></span>{% endif %}
-        <span class="btn-text">{{ label }}</span>
+        {% if icon %}{{ icon(icon) }}{% endif %}
+        {{ label }}
     </a>
 {% endmacro %}
 
 {% macro submit(label, class = 'default', icon = null, dataAttributes = {}) %}
     <button type="submit" class="btn btn-{{ class }}" {% for key, value in dataAttributes %}data-{{ key }}="{{ value }}" {% endfor %}>
-        {% if icon %}<span class="btn-icon"><i class="fas fa-{{ icon }}"></i></span>{% endif %}
-        <span class="btn-text">{{ label }}</span>
+        {% if icon %}{{ icon(icon) }}{% endif %}
+        {{ label }}
     </button>
 {% endmacro %}

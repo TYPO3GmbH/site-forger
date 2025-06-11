@@ -49,9 +49,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             [
                 'label' => 'Dashboard',
                 'route' => 'dashboard_index',
-                'extras' => [
-                    'icon' => 'tachometer-alt',
-                ],
             ]
         );
         $menu->addChild(
@@ -59,119 +56,113 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             [
                 'label' => 'Reviews',
                 'route' => 'gerrit_index',
-                'extras' => [
-                    'icon' => 'code',
-                ],
             ]
         );
         $menu['gerrit']->addChild(
             'gerrit_status',
             [
-                    'label' => 'All (excl. WIP)',
-                    'route' => 'gerrit_index',
-                    'extras' => [
-                        'icon' => 'home',
-                    ],
-                ]
+                'label' => 'All (excl. WIP)',
+                'route' => 'gerrit_index',
+                'extras' => [
+                    'icon' => 'actions-code-pull-request',
+                ],
+            ]
         );
         $menu['gerrit']->addChild(
             'gerrit_hasverifications',
             [
-                    'label' => 'Has verifications',
-                    'route' => 'gerrit_hasverifications',
-                    'extras' => [
-                        'icon' => 'check-square',
-                    ],
-                ]
+                'label' => 'Has verifications',
+                'route' => 'gerrit_hasverifications',
+                'extras' => [
+                    'icon' => 'actions-check-square',
+                ],
+            ]
         );
         $menu['gerrit']->addChild(
             'gerrit_missesverifications',
             [
-                    'label' => 'Needs verification',
-                    'route' => 'gerrit_missesverifications',
-                    'extras' => [
-                        'icon' => 'plus-square',
-                    ],
-                ]
+                'label' => 'Needs verification',
+                'route' => 'gerrit_missesverifications',
+                'extras' => [
+                    'icon' => 'actions-plus-square',
+                ],
+            ]
         );
         $menu['gerrit']->addChild(
             'gerrit_missesreview',
             [
-                    'label' => 'Needs review',
-                    'route' => 'gerrit_missesreview',
-                    'extras' => [
-                        'icon' => 'plus-square',
-                    ],
-                ]
+                'label' => 'Needs review',
+                'route' => 'gerrit_missesreview',
+                'extras' => [
+                    'icon' => 'actions-plus-square',
+                ],
+            ]
         );
         $menu['gerrit']->addChild(
             'gerrit_rebase',
             [
-                    'label' => 'Rebase',
-                    'route' => 'gerrit_rebase',
-                    'extras' => [
-                        'icon' => 'sync',
-                    ],
-                ]
+                'label' => 'Rebase',
+                'route' => 'gerrit_rebase',
+                'extras' => [
+                    'icon' => 'actions-refresh',
+                ],
+            ]
         );
         $menu['gerrit']->addChild(
             'gerrit_files',
             [
-                    'label' => 'Find Review by filename',
-                    'route' => 'gerrit_files',
-                    'extras' => [
-                        'icon' => 'file',
-                    ],
-                ]
+                'label' => 'Find Review by filename',
+                'route' => 'gerrit_files',
+                'extras' => [
+                    'icon' => 'actions-file-search',
+                ],
+            ]
         );
         $menu['gerrit']->addChild(
             'gerrit_negative_vote_cleanup',
             [
-                    'label' => 'Has negative votes',
-                    'route' => 'gerrit_negative_vote_cleanup',
-                    'extras' => [
-                        'icon' => 'thumbs-down',
-                    ],
-                ]
+                'label' => 'Has negative votes',
+                'route' => 'gerrit_negative_vote_cleanup',
+                'extras' => [
+                    'icon' => 'actions-minus-square',
+                ],
+            ]
         );
         $menu['gerrit']->addChild(
             'gerrit_wip',
             [
-                    'label' => 'Work In Progress',
-                    'route' => 'gerrit_wip',
-                    'extras' => [
-                        'icon' => 'bolt',
-                    ],
-                ]
+                'label' => 'Work In Progress',
+                'route' => 'gerrit_wip',
+                'extras' => [
+                    'icon' => 'actions-code-pull-request-draft',
+                ],
+            ]
         );
         $menu['gerrit']->addChild(
             'gerrit_coreteam_merge',
             [
-                    'label' => 'Coreteam action required',
-                    'route' => 'gerrit_coreteam_merge',
-                    'extras' => [
-                        'icon' => 'users',
-                    ],
-                ]
+                'label' => 'Coreteam action required',
+                'route' => 'gerrit_coreteam_merge',
+                'extras' => [
+                    'icon' => 'actions-exclamation-triangle',
+                ],
+            ]
         );
         $menu['gerrit']->addChild(
             'gerrit_stale_issues',
             [
-                    'label' => 'Stale Issues',
-                    'route' => 'gerrit_stale_issues',
-                    'extras' => [
-                        'icon' => 'ban',
-                    ],
-                ]
+                'label' => 'Stale Issues',
+                'route' => 'gerrit_stale_issues',
+                'extras' => [
+                    'icon' => 'actions-clock',
+                ],
+            ]
         );
         $menu->addChild(
             'management',
             [
                 'label' => 'Management',
                 'route' => 'management_index',
-                'extras' => [
-                    'icon' => 'list',
-                ],
             ]
         );
         $menu['management']->addChild(
@@ -180,7 +171,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Issue Overview',
                 'route' => 'management_index',
                 'extras' => [
-                    'icon' => 'calendar-alt',
+                    'icon' => 'actions-calendar',
                 ],
             ]
         );
@@ -191,7 +182,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'label' => 'Core Team Interactions',
                     'route' => 'management_interactions',
                     'extras' => [
-                        'icon' => 'users',
+                        'icon' => 'actions-users',
                     ],
                 ]
             );
@@ -201,7 +192,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'label' => 'Doc Team Interactions',
                     'route' => 'management_docs_interactions',
                     'extras' => [
-                        'icon' => 'users',
+                        'icon' => 'actions-users',
                     ],
                 ]
             );
@@ -212,7 +203,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Issues by Category',
                 'route' => 'management_bycategory',
                 'extras' => [
-                    'icon' => 'tag',
+                    'icon' => 'actions-tag',
                 ],
             ]
         );
@@ -223,7 +214,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'label' => 'Companies',
                     'route' => 'management_companies',
                     'extras' => [
-                        'icon' => 'building',
+                        'icon' => 'actions-building',
                     ],
                 ]
             );
@@ -233,7 +224,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'label' => 'Sprint Categories',
                     'route' => 'sprintcategory_index',
                     'extras' => [
-                        'icon' => 'book',
+                        'icon' => 'actions-category',
                     ],
                 ]
             );
@@ -243,7 +234,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'label' => 'Sprints',
                     'route' => 'sprint_list',
                     'extras' => [
-                        'icon' => 'flag-checkered',
+                        'icon' => 'actions-document',
                     ],
                 ]
             );
@@ -253,9 +244,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             [
                 'label' => 'Sprints',
                 'uri' => '#',
-                'extras' => [
-                    'icon' => 'flag-checkered',
-                ],
             ]
         );
         /** @var SprintBoardCategory $category */
@@ -278,7 +266,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Reviews',
                 'route' => 'sprint_reviews',
                 'extras' => [
-                    'icon' => 'cogs',
+                    'icon' => 'actions-cog',
                 ],
             ]
         );
@@ -287,9 +275,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             [
                 'label' => 'Utility',
                 'uri' => '#',
-                'extras' => [
-                    'icon' => 'tools',
-                ],
             ]
         );
         $menu['utility']->addChild(
@@ -298,17 +283,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'label' => 'Backports',
                 'route' => 'utilities_backport',
                 'extras' => [
-                    'icon' => 'chevron-left',
-                ],
-            ]
-        );
-        $menu['utility']->addChild(
-            'utility_rst',
-            [
-                'label' => 'ReST Helper',
-                'route' => 'utilities_rst',
-                'extras' => [
-                    'icon' => 'file-alt',
+                    'icon' => 'actions-code-compare',
                 ],
             ]
         );
@@ -319,11 +294,21 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'label' => 'Backport blacklist',
                     'route' => 'utilities_backport_index',
                     'extras' => [
-                        'icon' => 'times',
+                        'icon' => 'actions-ban',
                     ],
                 ]
             );
         }
+        $menu['utility']->addChild(
+            'utility_rst',
+            [
+                'label' => 'ReST Helper',
+                'route' => 'utilities_rst',
+                'extras' => [
+                    'icon' => 'actions-file-text',
+                ],
+            ]
+        );
 
         return $menu;
     }
@@ -336,9 +321,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             [
                 'label' => 'Help',
                 'route' => 'static_help',
-                'extras' => [
-                    'icon' => 'question-circle',
-                ],
             ]
         );
         if ($this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
@@ -360,20 +342,12 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     'label' => 'Company Employment',
                     'route' => 'user_employment',
                     'extras' => [
-                        'icon' => 'user-tie',
+                        'icon' => 'actions-id-badge',
                     ],
                 ]
             );
-            $menu->addChild(
-                'logout',
-                [
-                    'route' => 'logout',
-                    'label' => 'Logout',
-                    'extras' => [
-                        'icon' => 'lock',
-                    ],
-                ]
-            )->setLinkAttribute('class', 'btn btn-primary');
+            $menu['username']->addChild($this->getDivider());
+            $this->addAccountItems($menu['username'], 't3g_keycloak_logout');
         } else {
             $menu->addChild(
                 'login',

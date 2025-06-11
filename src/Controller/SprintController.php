@@ -15,12 +15,13 @@ use App\Entity\SprintBoard;
 use App\Repository\SprintBoardCategoryRepository;
 use App\Repository\SprintBoardRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Yaml\Yaml;
 use T3G\ElasticUtility\ElasticUtility;
 
@@ -29,7 +30,8 @@ class SprintController extends AbstractController
     public function __construct(
         private readonly SprintBoardCategoryRepository $sprintBoardCategoryRepository,
         private readonly SprintBoardRepository $sprintBoardRepository,
-        private readonly ParameterBagInterface $parameters
+        private readonly ParameterBagInterface $parameters,
+        private readonly ManagerRegistry $managerRegistry
     ) {
     }
 
@@ -60,7 +62,7 @@ class SprintController extends AbstractController
         EntityManagerInterface $entityManager
     ): Response {
         $sprint = new SprintBoard();
-        $form = $this->createForm(\App\Form\SprintBoard::class, $sprint, ['entity_manager' => $this->getDoctrine()->getManager()]);
+        $form = $this->createForm(\App\Form\SprintBoard::class, $sprint, ['entity_manager' => $this->managerRegistry->getManager()]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -77,7 +79,7 @@ class SprintController extends AbstractController
         }
 
         return $this->render('sprint/form.html.twig', [
-            'form' => $form->createView(),
+            'form' => $form,
         ]);
     }
 
@@ -94,7 +96,7 @@ class SprintController extends AbstractController
             return $this->redirectToRoute('sprint_create');
         }
 
-        $form = $this->createForm(\App\Form\SprintBoard::class, $sprint, ['entity_manager' => $this->getDoctrine()->getManager()]);
+        $form = $this->createForm(\App\Form\SprintBoard::class, $sprint, ['entity_manager' => $this->managerRegistry->getManager()]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -107,7 +109,7 @@ class SprintController extends AbstractController
         }
 
         return $this->render('sprint/form.html.twig', [
-            'form' => $form->createView(),
+            'form' => $form,
             'edit' => true,
         ]);
     }

@@ -24,6 +24,7 @@ class ForgerTwigExtension extends AbstractExtension
         private readonly RequestStack $requestStack
     ) {
     }
+
     public function getFunctions(): array
     {
         return [

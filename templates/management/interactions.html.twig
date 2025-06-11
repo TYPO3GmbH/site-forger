@@ -14,12 +14,12 @@
                                 <thead>
                                     <tr>
                                         <th scope="col">Name</th>
-                                        <th scope="col"><i class="fas fa-fw fa-code" aria-hidden="true" data-bs-toggle="tooltip" title="Added Patchset"></i><span class="sr-only">Added Patchset</span></th>
-                                        <th scope="col"><i class="fas fa-fw fa-eye" aria-hidden="true" data-bs-toggle="tooltip" title="Core Review"></i><span class="sr-only">Code Review</span></th>
-                                        <th scope="col"><i class="fas fa-fw fa-thumbs-up" aria-hidden="true" data-bs-toggle="tooltip" title="Verification"></i><span class="sr-only">Verification</span></th>
-                                        <th scope="col"><i class="fas fa-fw fa-code-branch" aria-hidden="true" data-bs-toggle="tooltip" title="Merge"></i><span class="sr-only">Merge</span></th>
-                                        <th scope="col"><i class="fas fa-fw fa-trash" aria-hidden="true" data-bs-toggle="tooltip" title="Abandon"></i><span class="sr-only">Abandon</span></th>
-                                        <th scope="col"><i class="fas fa-fw fa-comment" aria-hidden="true" data-bs-toggle="tooltip" title="Comment"></i><span class="sr-only">Comment</span></th>
+                                        <th scope="col"><span title="Added patchsets">{{ icon('actions-code-commit') }}</span></th>
+                                        <th scope="col"><span title="Reviewed">{{ icon('actions-plus-square') }}</span></th>
+                                        <th scope="col"><span title="Verifications">{{ icon('actions-check-square') }}</span></th>
+                                        <th scope="col"><span title="Merges">{{ icon('actions-code-pull-request-close') }}</span></th>
+                                        <th scope="col"><span title="Abandoned">{{ icon('actions-ban') }}</span></th>
+                                        <th scope="col"><span title="Comments">{{ icon('actions-comment') }}</span></th>
                                     </tr>
                                 </thead>
                                 {% for committer, reviewTypes in month %}

@@ -4,13 +4,13 @@ var webpack = require('webpack');
 Encore
   .setOutputPath('public/build/')
   .setPublicPath('/build')
-  .addEntry('app', './assets/js/app.js')
+  .addEntry('app', './assets/app.js')
   .splitEntryChunks()
   .enableSingleRuntimeChunk()
   .cleanupOutputBeforeBuild()
   .enableBuildNotifications()
   .enableSourceMaps(!Encore.isProduction())
-  .enableVersioning()
+  .enableVersioning(Encore.isProduction())
   .addPlugin(new webpack.ProvidePlugin({
       $: 'jquery',
       jQuery: 'jquery'

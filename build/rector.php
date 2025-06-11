@@ -9,27 +9,6 @@ use Rector\Set\ValueObject\LevelSetList;
 use Rector\Symfony\Set\SensiolabsSetList;
 use Rector\Symfony\Set\SymfonySetList;
 
-return static function (RectorConfig $rectorConfig): void {
-    $rectorConfig->sets([
-        SymfonySetList::SYMFONY_50,
-        SymfonySetList::SYMFONY_50_TYPES,
-        SymfonySetList::SYMFONY_51,
-        SymfonySetList::SYMFONY_52,
-        SymfonySetList::SYMFONY_53,
-        SymfonySetList::SYMFONY_54,
-        SymfonySetList::SYMFONY_CODE_QUALITY,
-        SymfonySetList::SYMFONY_CONSTRUCTOR_INJECTION,
-        LevelSetList::UP_TO_PHP_80,
-        LevelSetList::UP_TO_PHP_81,
-        LevelSetList::UP_TO_PHP_82,
-        DoctrineSetList::ANNOTATIONS_TO_ATTRIBUTES,
-        SymfonySetList::ANNOTATIONS_TO_ATTRIBUTES,
-        SensiolabsSetList::FRAMEWORK_EXTRA_61,
-    ]);
-
-    $rectorConfig->skip([
-        AddLiteralSeparatorToNumberRector::class,
-    ]);
-
-    $rectorConfig->paths([__DIR__ . '/../src']);
-};
+return RectorConfig::configure()
+    ->withComposerBased(twig: true, doctrine: true, phpunit: true, symfony: true)
+    ->withPaths([__DIR__ . '/../src']);

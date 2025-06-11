@@ -21,7 +21,7 @@
                             <tbody>
                                 {% for issue in issues %}
                                     <tr>
-                                        <th data-type="icon"><a href="https://forge.typo3.org/issues/{{ issue.id }}" class="datatable-link-highlight" rel="noopener" target="_blank"><i class="fas fa-fw fa-search-plus"></i></a></th>
+                                        <th data-type="icon"><a href="https://forge.typo3.org/issues/{{ issue.id }}" class="datatable-link-highlight" rel="noopener" target="_blank">{{ icon('actions-search') }}</a></th>
                                         <th data-type="id">{{ issue.id }}</th>
                                         <th data-type="title">
                                             <strong>{{ issue.subject }}</strong><br>

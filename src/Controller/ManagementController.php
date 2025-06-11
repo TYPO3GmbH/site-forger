@@ -12,11 +12,10 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\DTO\TrackerFilters;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use T3G\ElasticUtility\ElasticUtility;
 
 class ManagementController extends AbstractController
@@ -232,7 +231,7 @@ class ManagementController extends AbstractController
     }
 
     #[Route(path: '/management/interactions', name: 'management_interactions')]
-    #[IsGranted('ROLE_ADMIN')]
+    #[\Symfony\Component\Security\Http\Attribute\IsGranted('ROLE_ADMIN')]
     public function interactions(): Response
     {
         if (isset($_GET['taggles'])) {
@@ -311,7 +310,7 @@ class ManagementController extends AbstractController
     }
 
     #[Route(path: '/management/docs-interactions', name: 'management_docs_interactions')]
-    #[IsGranted('ROLE_ADMIN')]
+    #[\Symfony\Component\Security\Http\Attribute\IsGranted('ROLE_ADMIN')]
     public function docsInteractions(): Response
     {
         if (isset($_GET['taggles'])) {
@@ -390,7 +389,7 @@ class ManagementController extends AbstractController
     }
 
     #[Route(path: '/management/leaderboard/{type}/{dateRange}', name: 'management_leaderboard', requirements: ['type' => '(individual|company)', 'dateRange' => '(week|month|quarter|year)'], defaults: ['type' => 'company', 'dateRange' => 'quarter'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[\Symfony\Component\Security\Http\Attribute\IsGranted('ROLE_ADMIN')]
     public function leaderBoard(string $type, string $dateRange): Response
     {
         // Create Navs

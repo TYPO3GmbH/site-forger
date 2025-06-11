@@ -14,7 +14,7 @@ namespace App\Controller;
 use App\Charts\ChartRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use T3G\ElasticUtility\ElasticUtility;
 
 class ApiController extends AbstractController
