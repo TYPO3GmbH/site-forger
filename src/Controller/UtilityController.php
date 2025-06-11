@@ -14,12 +14,12 @@ namespace App\Controller;
 use App\Entity\BackportBlacklistEntry;
 use App\Repository\BackportBlacklistEntryRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route(path: '/utilities', name: 'utilities_')]
 class UtilityController extends AbstractController
@@ -78,7 +78,7 @@ class UtilityController extends AbstractController
         return $this->render(
             'utility/backport_form.html.twig',
             [
-                'form' => $form->createView(),
+                'form' => $form,
             ]
         );
     }
@@ -127,7 +127,7 @@ class UtilityController extends AbstractController
         return $this->render(
             'utility/backport_form.html.twig',
             [
-                'form' => $form->createView(),
+                'form' => $form,
                 'edit' => true,
             ]
         );

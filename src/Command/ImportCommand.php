@@ -20,6 +20,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Redmine\Client\Client;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Command\LockableTrait;
 use Symfony\Component\Console\Helper\ProgressBar;
@@ -30,12 +31,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use T3G\ElasticUtility\ElasticUtility;
 
+#[AsCommand(name: 'app:import', description: 'Imports data from Redmine (forge.typo3.org), Gerrit (review.typo3.org) and Github')]
 class ImportCommand extends Command implements LoggerAwareInterface
 {
     use LockableTrait;
     use LoggerAwareTrait;
-    protected static $defaultName = 'app:import';
-    protected static $defaultDescription = 'Imports data from Redmine (forge.typo3.org), Gerrit (review.typo3.org) and Github';
     protected const BAMBOO_USER_ID = [49454, 51735, 52386];
     protected static array $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta', 'github', 'githubDelta'];
     private array $userCache = [];

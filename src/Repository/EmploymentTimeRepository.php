@@ -20,6 +20,8 @@ use Doctrine\Persistence\ManagerRegistry;
  * @method EmploymentTime|null findOneBy(array $criteria, array $orderBy = null)
  * @method EmploymentTime[]    findAll()
  * @method EmploymentTime[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
+ *
+ * @extends ServiceEntityRepository<EmploymentTime>
  */
 class EmploymentTimeRepository extends ServiceEntityRepository
 {

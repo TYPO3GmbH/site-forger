@@ -11,4 +11,4 @@ t3g_keycloak:
 
   routes:
     success: dashboard_index
-    #logout_route: _logout_main
+    logout_route: _logout_main

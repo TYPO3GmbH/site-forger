@@ -19,6 +19,8 @@ use Doctrine\Persistence\ManagerRegistry;
  * @method SprintBoard|null find($id, $lockMode = null, $lockVersion = null)
  * @method SprintBoard|null findOneBy(array $criteria, array $orderBy = null)
  * @method SprintBoard[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
+ *
+ * @extends ServiceEntityRepository<SprintBoard>
  */
 class SprintBoardRepository extends ServiceEntityRepository
 {
