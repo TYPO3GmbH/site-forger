@@ -68,7 +68,7 @@ class UtilityController extends AbstractController
 
             $this->addFlash('success', 'Blacklist entry created.');
 
-            return $this->redirectToRoute('dashboard_index');
+            return $this->redirectToRoute('utilities_backport_index');
         }
 
         if (null !== $request->get('changeId')) {
