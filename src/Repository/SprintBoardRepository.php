@@ -29,6 +29,7 @@ class SprintBoardRepository extends ServiceEntityRepository
         parent::__construct($registry, SprintBoard::class);
     }
 
+    #[\Override]
     public function findAll(): array
     {
         return $this->findBy([], ['sorting' => 'ASC', 'name' => 'ASC']);

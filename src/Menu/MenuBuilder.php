@@ -40,6 +40,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         parent::__construct($parameters, $factory, $matcher, $authorizationChecker, $tokenStorage, $translator);
     }
 
+    #[\Override]
     public function mainDefault(array $options): ItemInterface
     {
         $categories = $this->categoryRepository->findAll();
@@ -313,6 +314,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         return $menu;
     }
 
+    #[\Override]
     public function mainProfile(array $options): ItemInterface
     {
         $menu = $this->factory->createItem('root');

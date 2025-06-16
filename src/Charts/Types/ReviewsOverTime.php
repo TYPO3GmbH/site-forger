@@ -29,8 +29,8 @@ class ReviewsOverTime extends ReviewChart
         parent::__construct($this->index);
     }
 
-    private const DATE_FORMAT = 'M Y';
-    private const DATE_AGGREGATION_FORMAT = 'quarter';
+    private const string DATE_FORMAT = 'M Y';
+    private const string DATE_AGGREGATION_FORMAT = 'quarter';
 
     public function getData(): array
     {

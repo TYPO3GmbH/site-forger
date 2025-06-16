@@ -18,6 +18,7 @@ class ConstrainsYaml extends Constraint
 {
     public string $message = 'The YAML you entered is not valid.';
 
+    #[\Override]
     public function validatedBy(): string
     {
         return static::class . 'Validator';

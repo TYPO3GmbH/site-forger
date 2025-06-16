@@ -585,7 +585,7 @@ class ManagementController extends AbstractController
                 throw new \InvalidArgumentException('Taggles need to be strings');
             }
             $result = preg_replace("/[^[:alnum:][:space:][ß]-.']/u", '', html_entity_decode($taggle));
-            if ('' !== trim($result)) {
+            if ('' !== trim((string) $result)) {
                 $sanitizedArray[$index] = $result;
             }
         }
