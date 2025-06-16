@@ -11,4 +11,6 @@ use Rector\Symfony\Set\SymfonySetList;
 
 return RectorConfig::configure()
     ->withComposerBased(twig: true, doctrine: true, phpunit: true, symfony: true)
+    ->withAttributesSets(symfony: true, doctrine: true)
+    ->withPhpSets(php83: true)
     ->withPaths([__DIR__ . '/../src']);

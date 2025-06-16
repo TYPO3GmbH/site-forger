@@ -44,12 +44,12 @@ magephp:
       on-release:
       post-release:
         - exec: { cmd: "[ -d ../../../cachetool ] || mkdir -p ../../../cachetool" }
-        - exec: { cmd: "[ -f ../../../cachetool/cachetool.phar ] || curl -L -o ../../../cachetool/cachetool.phar https://gordalina.github.io/cachetool/downloads/cachetool-7.1.0.phar && chmod +x ../../../cachetool/cachetool.phar" }
-        - exec: { cmd: "php ../../../cachetool/cachetool.phar opcache:reset --fcgi=/var/run/forger.typo3.com_fpm.sock --tmp-dir=/srv/vhosts/forger.typo3.com/site/cachetool" }
-        - exec: { cmd: "php8.2 /usr/bin/composer dump-env prod" }
+        - exec: { cmd: "[ -f ../../../cachetool/cachetool-9.1.0.phar ] || curl -L -o ../../../cachetool/cachetool-9.1.0.phar https://gordalina.github.io/cachetool/downloads/cachetool-9.1.0.phar && chmod +x ../../../cachetool/cachetool-9.1.0.phar" }
+        - exec: { cmd: "php ../../../cachetool/cachetool-9.1.0.phar opcache:reset --fcgi=/var/run/forger.typo3.com_fpm.sock --tmp-dir=/srv/vhosts/forger.typo3.com/site/cachetool" }
+        - exec: { cmd: "/usr/bin/php8.3 /usr/bin/composer dump-env prod" }
         - exec: { cmd: "rm -rf var/cache"}
-        - exec: { cmd: "php8.2 ./bin/console doctrine:migrations:migrate --no-interaction"}
-        - exec: { cmd: "php8.2 ./bin/console cache:warmup"}
+        - exec: { cmd: "/usr/bin/php8.3 ./bin/console doctrine:migrations:migrate --no-interaction"}
+        - exec: { cmd: "/usr/bin/php8.3 ./bin/console cache:warmup"}
       post-deploy:
 
     develop:
@@ -70,10 +70,10 @@ magephp:
       on-release:
       post-release:
         - exec: { cmd: "[ -d ../../../cachetool ] || mkdir -p ../../../cachetool" }
-        - exec: { cmd: "[ -f ../../../cachetool/cachetool.phar ] || curl -L -o ../../../cachetool/cachetool.phar https://gordalina.github.io/cachetool/downloads/cachetool-7.1.0.phar && chmod +x ../../../cachetool/cachetool.phar" }
-        - exec: { cmd: "php ../../../cachetool/cachetool.phar opcache:reset --fcgi=/var/run/stage.forger.typo3.com_fpm.sock --tmp-dir=/srv/vhosts/stage.forger.typo3.com/site/cachetool" }
-        - exec: { cmd: "php8.2 /usr/bin/composer dump-env prod" }
+        - exec: { cmd: "[ -f ../../../cachetool/cachetool-9.1.0.phar ] || curl -L -o ../../../cachetool/cachetool-9.1.0.phar https://gordalina.github.io/cachetool/downloads/cachetool-9.1.0.phar && chmod +x ../../../cachetool/cachetool-9.1.0.phar" }
+        - exec: { cmd: "php ../../../cachetool/cachetool-9.1.0.phar opcache:reset --fcgi=/var/run/stage.forger.typo3.com_fpm.sock --tmp-dir=/srv/vhosts/stage.forger.typo3.com/site/cachetool" }
+        - exec: { cmd: "/usr/bin/php8.3 /usr/bin/composer dump-env prod" }
         - exec: { cmd: "rm -rf var/cache"}
-        - exec: { cmd: "php8.2 ./bin/console doctrine:migrations:migrate --no-interaction"}
-        - exec: { cmd: "php8.2 ./bin/console cache:warmup"}
+        - exec: { cmd: "/usr/bin/php8.3 ./bin/console doctrine:migrations:migrate --no-interaction"}
+        - exec: { cmd: "/usr/bin/php8.3 ./bin/console cache:warmup"}
       post-deploy:

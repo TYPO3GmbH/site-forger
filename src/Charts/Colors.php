@@ -13,12 +13,12 @@ namespace App\Charts;
 
 final class Colors
 {
-    public const BLUE = 'blue';
-    public const GREEN = 'green';
-    public const GREY = 'grey';
-    public const ORANGE = 'orange';
-    public const RED = 'red';
-    public const YELLOW = 'yellow';
+    public const string BLUE = 'blue';
+    public const string GREEN = 'green';
+    public const string GREY = 'grey';
+    public const string ORANGE = 'orange';
+    public const string RED = 'red';
+    public const string YELLOW = 'yellow';
     private static array $colors = [
         self::BLUE => [39, 162, 252],
         self::GREEN => [55, 189, 116],
