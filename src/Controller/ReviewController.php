@@ -23,7 +23,7 @@ use T3G\ElasticUtility\ElasticUtility;
 
 class ReviewController extends AbstractController
 {
-    private const QUERY_SORTING = [
+    private const array QUERY_SORTING = [
         'updated_on' => 'desc',
         'insertions' => 'asc',
         'deletions' => 'asc',
@@ -614,7 +614,7 @@ class ReviewController extends AbstractController
      */
     protected function fixTime($in): string
     {
-        return str_replace('/', '-', substr($in, 0, 10));
+        return str_replace('/', '-', substr((string) $in, 0, 10));
     }
 
     protected function addFilters(): BoolQuery

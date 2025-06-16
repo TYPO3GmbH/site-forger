@@ -29,6 +29,7 @@ class CompanyRepository extends ServiceEntityRepository
         parent::__construct($registry, Company::class);
     }
 
+    #[\Override]
     public function findAll(): array
     {
         return $this->findBy([], ['name' => 'asc']);
