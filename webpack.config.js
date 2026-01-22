@@ -1,5 +1,5 @@
-var Encore = require('@symfony/webpack-encore');
-var webpack = require('webpack');
+const Encore = require('@symfony/webpack-encore');
+const webpack = require('webpack');
 
 Encore
   .setOutputPath('public/build/')
@@ -9,18 +9,16 @@ Encore
   .enableSingleRuntimeChunk()
   .cleanupOutputBeforeBuild()
   .enableBuildNotifications()
+  .enableSassLoader()
   .enableSourceMaps(!Encore.isProduction())
   .enableVersioning(Encore.isProduction())
   .addPlugin(new webpack.ProvidePlugin({
       $: 'jquery',
       jQuery: 'jquery'
   }))
-  .configureBabel(() => {}, {
-    useBuiltIns: 'usage',
-    corejs: 3
-  })
-  .enableSassLoader(function(sassOptions) {}, {
-    resolveUrlLoader: false
+  .configureBabelPresetEnv((config) => {
+    config.useBuiltIns = 'usage';
+    config.corejs = '3.38';
   })
   .enablePostCssLoader((options) => {
     options.postcssOptions = {
