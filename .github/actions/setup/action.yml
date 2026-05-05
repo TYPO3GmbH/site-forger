@@ -1,0 +1,9 @@
+name: Setup workflow run
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/t3g/setup-php
+      with:
+        php-version: 8.3
+    - uses: ./.github/actions/t3g/setup-node-version-file
+    - uses: ./.github/actions/t3g/cache-composer
