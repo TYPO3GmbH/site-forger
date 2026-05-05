@@ -51,12 +51,6 @@ $dashboard-padding: 1rem;
 }
 .dashboard-item {
     display: flex;
-    flex-direction: column;
-    border-radius: $dashboard-border-radius;
-    color: $dashboard-color;
-    background-color: $dashboard-bg;
-    overflow: hidden;
-    box-shadow: $dashboard-shadow;
 }
 .dashboard-item-title {
     padding: $dashboard-padding;
