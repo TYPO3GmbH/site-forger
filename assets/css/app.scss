@@ -3,9 +3,14 @@
 @import 'variables';
 
 // Modules
-@import "module/dashboard";
 @import "module/interactions";
 @import "module/leaderboard";
+
+.js-chart {
+    height: 100%;
+    min-height: 300px;
+    max-height: 500px;
+}
 
 .label-info {
     background-color: #5bc0de

@@ -37,6 +37,7 @@
             {% set dashboard = {
                 0: {
                     identifier: 'quickstats',
+                    classes: 'dashboard-span-base-12 dashboard-span-sm-6 dashboard-span-md-4 dashboard-start-md-1 dashboard-rowstart-md-1',
                     title: 'Quick Stats',
                     content: '<div class="js-stats" data-src="/quick_stats">
                         <div class="row">
@@ -50,43 +51,50 @@
                 },
                 1: {
                     identifier: 'mergeable',
+                    classes: 'dashboard-span-base-12 dashboard-span-sm-6 dashboard-span-md-4 dashboard-start-md-1 dashboard-rowstart-md-2',
                     title: 'Mergeable',
                     content: '<canvas class="js-chart" data-chart-type="doughnut" data-src="/chart/mergeable"></canvas>'
                 },
                 2: {
                     identifier: 'openreviews',
+                    classes: 'dashboard-span-base-12 dashboard-span-md-4 dashboard-start-md-5 dashboard-rowstart-md-1 dashboard-rowspan-md-2',
                     title: 'Open Reviews',
                     content: '<canvas class="js-chart" data-chart-type="line" data-src="/chart/open_reviews"></canvas>'
                 },
                 3: {
                     identifier: 'openclosed',
+                    classes: 'dashboard-span-base-12 dashboard-span-md-4 dashboard-start-md-9 dashboard-rowstart-md-1 dashboard-rowspan-md-2',
                     title: 'Opened vs. Closed',
                     content: '<canvas class="js-chart" data-chart-type="line" data-src="/chart/opened_closed"></canvas>'
                 },
                 4: {
                     identifier: 'openticketsovertime',
+                    classes: 'dashboard-span-base-12 dashboard-span-md-6',
                     title: 'Open Tickets over time',
                     content: '<canvas class="js-chart" data-chart-type="line" data-src="/chart/tickets_over_time"></canvas>'
                 },
                 5: {
                     identifier: 'openreviewsovertime',
+                    classes: 'dashboard-span-base-12 dashboard-span-md-6',
                     title: 'Open Reviews over time',
                     content: '<canvas class="js-chart" data-chart-type="line" data-options="" data-src="/chart/reviews_over_time"></canvas>'
                 },
                 11: {
                     identifier: 'reviewprogress',
+                    classes: 'dashboard-span-base-12 dashboard-span-md-6',
                     title: 'Review Progress Comparison',
                     content: '<canvas class="js-chart" data-chart-type="line" data-src="/chart/review_progress"></canvas>'
                 },
                 12: {
                     identifier: 'ticketprogress',
+                    classes: 'dashboard-span-base-12 dashboard-span-md-6',
                     title: 'Ticket Progress Comparison',
                     content: '<canvas class="js-chart" data-chart-type="line" data-src="/chart/ticket_progress"></canvas>'
                 }
             } %}
             <div class="dashboard">
                 {% for item in dashboard %}
-                    <div class="dashboard-item dashboard-item-{{ item.identifier }}">
+                    <div class="dashboard-item {{ item.classes }}">
                         <h5 class="dashboard-item-title">{{ item.title }}</h5>
                         <div class="dashboard-item-body">{{ item.content|raw }}</div>
                     </div>
