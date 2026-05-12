@@ -95,15 +95,3 @@ $card-border-width:         0;
 $card-spacer:               1.5rem;
 $card-spacer-y:             $card-spacer;
 $card-spacer-x:             $card-spacer;
-
-// Dashboard Mapping
-$dashboard-areas: (
-    quickstats: d00,
-    mergeable: d01,
-    openreviews: d02,
-    openclosed: d03,
-    openticketsovertime: d04,
-    openreviewsovertime: d05,
-    reviewprogress: d06,
-    ticketprogress: d07
-);

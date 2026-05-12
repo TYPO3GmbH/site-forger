@@ -16,39 +16,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Check out project
+        uses: actions/checkout@v6
 
-      - name: Setup PHP 8.3
-        uses: shivammathur/setup-php@v2
+      - name: Check out T3G Github actions
+        uses: ./.github/actions/checkout-t3g-actions
         with:
-          php-version: 8.3
+          token: ${{ secrets.ACTIONS_TOKEN }}
 
-      - name: Setup Composer cache
-        id: composer-cache
-        run: |
-          echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
-      - name: Setup npm cache
-        id: npm-cache-dir
-        shell: bash
-        run: |
-          echo "dir=$(npm config get cache)" >> ${GITHUB_OUTPUT}
-
-      - name: Recover Composer caches
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock', '**/composer.json') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
-
-      - name: Recover npm caches
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+      - name: Run workflow setup
+        uses: ./.github/actions/setup
 
       - name: Install dependencies (Composer)
         run: composer install --no-progress --no-interaction --ansi
@@ -74,11 +51,6 @@ jobs:
       - name: Build frontend artifacts
         run: npm run build
 
-      - name: Build is clean
-        run: |
-          git status
-          git status | grep -q "nothing to commit, working tree clean"
-
   deployment:
     name: Deployment
     runs-on: ubuntu-latest
@@ -96,39 +68,16 @@ jobs:
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           ssh-add ~/.ssh/deploy_rsa
 
-      - uses: actions/checkout@v5
+      - name: Check out project
+        uses: actions/checkout@v6
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+      - name: Check out T3G Github actions
+        uses: ./.github/actions/checkout-t3g-actions
         with:
-          php-version: 8.3
+          token: ${{ secrets.ACTIONS_TOKEN }}
 
-      - name: Setup Composer cache
-        id: composer-cache
-        run: |
-          echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
-      - name: Setup npm cache
-        id: npm-cache-dir
-        shell: bash
-        run: |
-          echo "dir=$(npm config get cache)" >> ${GITHUB_OUTPUT}
-
-      - name: Recover Composer caches
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock', '**/composer.json') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
-
-      - name: Recover npm caches
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+      - name: Run workflow setup
+        uses: ./.github/actions/setup
 
       - name: Install Magallanes
         run: |
