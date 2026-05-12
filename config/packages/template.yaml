@@ -1,6 +1,6 @@
 template:
   application:
-    name: 'TYPO3 Forger'
+    name: 'Forger'
     routes:
       home: dashboard_index
     menu:
