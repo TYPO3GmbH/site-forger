@@ -1,6 +1,6 @@
 {% set searchRouteName = (searchRouteName is defined) ? searchRouteName : 'search_search' %}
 {% set searchPlaceholder = (searchPlaceholder is defined) ? searchPlaceholder : 'Issue ID or Searchwords' %}
-<div class="content-section content-section-smallest bg-dark">
+<div class="content-section content-section-smallest bg-lighter pb-0">
     <div class="container">
         <form action="{{ path(searchRouteName) }}" method="get" class="form">
             <div class="input-group">
