@@ -42,9 +42,9 @@
                 {% for release in review._source.releases %}
                     {% if release == 'main' %}
                         <span class="badge badge-success">main</span>
-                    {% elseif release == '11.5' %}
+                    {% elseif release == '14.3' %}
                         <span class="badge badge-info">{{release}}</span>
-                    {% elseif release == '10.4' %}
+                    {% elseif release == '13.4' %}
                         <span class="badge badge-warning">{{release}}</span>
                     {% else %}
                         <span class="badge badge-danger">{{release}}</span>
