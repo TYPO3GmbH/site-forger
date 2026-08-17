@@ -20,6 +20,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Redmine\Client\Client;
+use Redmine\Exception\UnexpectedResponseException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Command\LockableTrait;
@@ -262,7 +263,9 @@ class ImportCommand extends Command implements LoggerAwareInterface
     {
         // import journals only if issue status is "Under review" (ID: 8)
         if (isset($issue['status']['id']) && 8 === (int) $issue['status']['id']) {
-            $issueWithJournals = $this->forgeClient->getApi('issue')->show($issue['id'], ['include' => ['journals']]);
+            $issueWithJournals = $this->callRedmine(function () use ($issue) {
+                return $this->forgeClient->getApi('issue')->show($issue['id'], ['include' => ['journals']]);
+            });
             if (is_array($issueWithJournals)) {
                 $this->addDocumentToElastic($this->injectUserData($issueWithJournals['issue']));
             }
@@ -325,7 +328,9 @@ class ImportCommand extends Command implements LoggerAwareInterface
         // The author could be empty, so we have to check for that
         $userId = $issue['author']['id'] ?? null;
         if (null !== $userId && !isset($this->userCache[$userId])) {
-            $userRecord = $this->forgeClient->getApi('user')->show($userId);
+            $userRecord = $this->callRedmine(function () use ($userId) {
+                return $this->forgeClient->getApi('user')->show($userId);
+            });
             $this->userCache[$userId] = $userRecord['user']['mail'] ?? '';
         }
         $issue['author']['email'] = $this->userCache[$userId] ?? '';
@@ -749,15 +754,36 @@ class ImportCommand extends Command implements LoggerAwareInterface
         return $interaction;
     }
 
+    private function callRedmine(callable $callback, int $attempt = 0): mixed
+    {
+        try {
+            return $callback();
+        } catch (UnexpectedResponseException $e) {
+            if (429 === $e->getResponse()->getStatusCode() && $attempt <= 3) {
+                ++$attempt;
+                // Give Forge some time to relax
+                $sleepTime = 10 * $attempt;
+                $this->logger->warning(sprintf('[RECV] Failed to fetch data from Forge, response code %s, retrying in %d seconds, attempt #%d...', $e->getResponse()->getStatusCode(), $sleepTime, $attempt));
+                sleep($sleepTime);
+
+                return $this->callRedmine($callback, $attempt);
+            }
+
+            throw $e;
+        }
+    }
+
     private function getAllForgeIssuesPaginated(int $limit, int $offset): array
     {
-        return $this->forgeClient->getApi('issue')->all([
-            'limit' => $limit,
-            'offset' => $offset,
-            'project_id' => $this->parameters->get('redmine_project_id'),
-            'status_id' => '*',
-            'sort' => 'updated_on:desc',
-        ]);
+        return $this->callRedmine(function () use ($limit, $offset) {
+            return $this->forgeClient->getApi('issue')->list([
+                'limit' => $limit,
+                'offset' => $offset,
+                'project_id' => $this->parameters->get('redmine_project_id'),
+                'status_id' => '*',
+                'sort' => 'updated_on:desc',
+            ]);
+        });
     }
 
     private function getCommitsFromGerrit(int $perRun, int $current, $retry = 0): ResponseInterface
