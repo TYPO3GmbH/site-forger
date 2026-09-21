@@ -45,11 +45,20 @@ jobs:
       - name: PHP CGL
         run: composer t3g:cgl
 
+      - name: Twig Lint
+        run: bin/console lint:twig templates
+
       - name: Install dependencies (npm)
         run: npm ci
 
       - name: Build frontend artifacts
         run: npm run build
+
+      - name: Functional Tests
+        run: |
+          composer t3g:test:php
+        env:
+          COMPOSER_PROCESS_TIMEOUT: 1200
 
   deployment:
     name: Deployment

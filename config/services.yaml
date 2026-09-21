@@ -123,6 +123,10 @@ services:
           Authorization: 'token %env(GITHUB_ACCESS_TOKEN)%'
         base_uri: 'https://api.github.com/'
 
+  renderer.redmineTextile:
+    class: App\Renderer\RedmineTextileRenderer
+    factory: '@App\Renderer\Factory\RedmineTextileRendererFactory'
+
   App\Charts\Types\TrackerTypes:
     class: App\Charts\Types\TrackerTypes
     tags:
@@ -158,6 +162,8 @@ services:
     arguments:
       $urlService: '@datahub.typo3.com.urlService'
       $appUrl: '%env(APP_URL)%'
+
+  App\Renderer\Factory\RedmineTextileRendererFactory: ~
 
   App\Service\GithubService:
     class: App\Service\GithubService

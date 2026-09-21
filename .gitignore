@@ -28,3 +28,7 @@ yarn-error.log
 .php-cs-fixer.cache
 ###< friendsofphp/php-cs-fixer ###
 /auth.json
+
+###> phpunit/phpunit ###
+/build/.phpunit.cache/
+###< phpunit/phpunit ###

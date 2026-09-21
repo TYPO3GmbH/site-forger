@@ -13,7 +13,7 @@
         "guzzlehttp/guzzle": "^7.7.0",
         "kbsali/redmine-api": "^2.2",
         "knplabs/knp-menu-bundle": "^3.2",
-        "netcarver/textile": "^4.0",
+        "netcarver/textile": "^4.1",
         "psr/log": "^2.0",
         "ruflin/elastica": "^7.3",
         "symfony/console": "^6.4",
@@ -37,10 +37,12 @@
         "t3g/symfony-keycloak-bundle": "^3.0",
         "t3g/symfony-template-bundle": "^6.1",
         "t3g/symfony-usercentrics-bundle": "^2.0",
-        "twig/twig": "^3.15"
+        "twig/twig": "^3.15",
+        "typo3/html-sanitizer": "^2.3"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.18",
+        "phpunit/phpunit": "^12.5",
         "rector/rector": "^2.0",
         "roave/security-advisories": "dev-latest",
         "symfony/maker-bundle": "^1.49",
@@ -117,6 +119,12 @@
         ],
         "t3g:cgl:fix": [
             "php-cs-fixer fix --config build/.php-cs-fixer.dist.php"
+        ],
+        "t3g:test": [
+            "@t3g:test:php"
+        ],
+        "t3g:test:php": [
+            "bin/phpunit -c build/phpunit.xml"
         ]
     }
 }

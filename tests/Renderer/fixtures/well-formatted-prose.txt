@@ -1,0 +1,75 @@
+In order to provide strong defaults in regards to password security, TYPO3 will be able to validate user passwords against configurable password policies. This feature will increase the general security for TYPO3 users by providing a default password policy. Also TYPO3 as a CMS would be inline with recommendations on password security from the german "BSI":https://www.bsi.bund.de/DE/Themen/Verbraucherinnen-und-Verbraucher/Informationen-und-Empfehlungen/Cyber-Sicherheitsempfehlungen/Accountschutz/Sichere-Passwoerter-erstellen/sichere-passwoerter-erstellen_node.html.
+
+* TYPO3 will ships with a default password policy
+* TYPO3 uses the default password policy for all scopes (backend and frontend user passwords)
+* The default password policy can be extended
+* It is possible to define custom password policies
+* TYPO3 will by default only support 2 scopes (BE and FE user passwords), but can be extended to support user defined scopes (e.g. in order to validate custom password fields for tables other than be_users and fe_users)
+
+h2. Technical implementation
+
+A password policy is defined by a set of validators (not Extbase validators). If a password policy consists of multiple validators, they are chained. A Password checked within a password policy must match all configured and active validators.
+
+The @PasswordPolicyValidator@ class will provides a function to validate a given password based on the current password policy for the current scope. The validation result (@true@/@false@) will be returned and potential validation error messages can be retrieved from the @PasswordPolicyValidator@ instance.
+
+h2. Validators
+
+Validators for usage in a password policy must implement the @PasswordValidatorInterface@ or extend the @AbstractPasswordValidator@ class. Besides validation logic, a validator must also be able to return an array of strings with password requirements (e.g. "minimun length x chars") in order to provide human readable password requirements. In case of a failed validation a validation error message can be definied.
+
+Validators can be excluded for certain actions (e.g. no current password check for password of new users). Available actions are definied globally in the class @PasswordPolicyAction@.
+
+h2. Password Policy Configuration
+
+Password Policy configuration is located in @LocalConfiguration.php@ as shown below:
+
+<pre>
+$GLOBALS['TYPO3_CONF_VARS']['SYS']['passwordPolicies'] = [
+    'default' => [
+        'validators' => [
+            \TYPO3\CMS\Core\PasswordPolicy\Validator\CorePasswordValidator::class => [
+                'options' => [
+                    'minimumLength' => 8,
+                    'upperCaseCharacterRequired' => true,
+                    'lowerCaseCharacterRequired' => true,
+                    'digitCharacterRequired' => true,
+                    'specialCharacterRequired' => true,
+                ],
+                'excludeActions' => [],
+            ],
+            \TYPO3\CMS\Core\PasswordPolicy\Validator\NotCurrentPasswordValidator::class => [
+                'options' => [],
+                'excludeActions' => [
+                    \TYPO3\CMS\Core\PasswordPolicy\PasswordPolicyAction::NEW_USER_PASSWORD,
+                ],
+            ],
+        ],
+    ],
+];
+
+$GLOBALS['TYPO3_CONF_VARS']['BE']['passwordPolicy'] = 'default';
+$GLOBALS['TYPO3_CONF_VARS']['FE']['passwordPolicy'] = 'default';
+</pre>
+
+Password Policies can globally be disabled (e.g. for development environment) by setting the BE/FE password policy to an empty value in @AdditionalConfiguration.php@
+
+→ see https://docs.typo3.org/c/typo3/cms-core/main/en-us/Changelog/12.0/Feature-97388-ConfigurablePasswordPolicies.html
+
+h2. JavaScript module and API (TYPO3 backend only)
+
+In order to provide instant feedback for users entering a password, a general JavaScript module needs to be developed, which validates a password when it is entered into a password field. The JavaScript module can be used for either password fields in FormEngine or regular password input fields (e.g. setup module or install tool) if possible.
+
+Example:
+!typo3-password-field.png!
+
+A new backend route (similar to the slug suggest route) will use the configured password policy based on the given scope. Since custom password validators may use backend logic (e.g. check password against a deny-list), a client/server integration as described is required and has to be discussed.
+
+h2. Where can password policies be used in TYPO3?
+
+* Backend and frontend user password change using DataHandler (TCA type=password)
+* Backend user password (setup module)
+* Password reset for backend user
+* Password reset for frontend user
+* Install tool - Create Administrative User
+* Install tool - Install tool password
+* Install tool - Initial admin user
+
