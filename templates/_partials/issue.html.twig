@@ -40,7 +40,7 @@
                 <span class="issue-title">{{ card.subject }}</span>
             </a>
         </h4>
-        {{ text_expand(textile(card.description)) }}
+        {{ text_expand(card.description|forgeMarkdown) }}
     </div>
 
     <div class="issue-meta">

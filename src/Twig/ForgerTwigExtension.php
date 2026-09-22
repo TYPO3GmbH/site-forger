@@ -13,15 +13,19 @@ namespace App\Twig;
 
 use App\DTO\TrackerFilters;
 use App\Enum\TrackerIdEnum;
-use Netcarver\Textile\Parser;
+use App\Renderer\RedmineTextileRenderer;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Twig\Extension\AbstractExtension;
+use Twig\TwigFilter;
 use Twig\TwigFunction;
 
 class ForgerTwigExtension extends AbstractExtension
 {
     public function __construct(
-        private readonly RequestStack $requestStack
+        private readonly RequestStack $requestStack,
+        #[Autowire(service: 'renderer.redmineTextile')]
+        private readonly RedmineTextileRenderer $redmineTextRenderer,
     ) {
     }
 
@@ -31,9 +35,16 @@ class ForgerTwigExtension extends AbstractExtension
         return [
             new TwigFunction('bucketCounter', $this->bucketCounter(...), ['is_safe' => ['html']]),
             new TwigFunction('aggregationBucket', $this->aggregationBucket(...), ['is_safe' => ['html']]),
-            new TwigFunction('textile', $this->textile(...), ['is_safe' => ['html']]),
             new TwigFunction('trackerCheckbox', $this->trackerCheckbox(...), ['is_safe' => ['html']]),
             new TwigFunction('forgeLink', $this->forgeLink(...)),
+        ];
+    }
+
+    #[\Override]
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('forgeMarkdown', $this->forgeMarkdown(...), ['is_safe' => ['html']]),
         ];
     }
 
@@ -86,15 +97,9 @@ class ForgerTwigExtension extends AbstractExtension
             . '</div>';
     }
 
-    public function textile(string $markup): string
+    public function forgeMarkdown(string $markdown): string
     {
-        $parser = new Parser();
-        $parsedText = $parser->parse($markup);
-        // Keep only whitelisted tags
-        $parsedText = strip_tags($parsedText, '<h1><h2><h3><h4><h5><h6><ul><li><ol><pre><code><p>');
-
-        // Kill off all attributes because we don't want them
-        return preg_replace('/<([a-z][a-z0-9]*)[^>]*?(\/?)>/i', '<$1$2>', $parsedText);
+        return $this->redmineTextRenderer->render($markdown);
     }
 
     public function trackerCheckbox(string $trackerType, string $label): string

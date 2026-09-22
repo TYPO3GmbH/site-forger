@@ -1,0 +1,16 @@
+The solution for #87100 changed the DataHandler to respect @HIDE_FOR_NON_ADMINS@ when building the @excludedTablesAndFields@ array.
+
+We have a field that is configured this way:
+* @exclude => true@ (to hide them for non-admin)
+* we give editors edit permission to these fields (so that editor-induced editing works via script-induced DataaHndler calls, for the subset of editors that have the edit rights for these fields)
+* @HIDE_FOR_NON_ADMINS@ to not show these fields in regular list/edit module, but only make them available in our custom module
+
+Because: we have a custom Backend Module for editors to edit these fields in a controlled distraction-free way.
+
+This does not work on v10 anymore becasue of the now-respected @HIDE_FOR_NON_ADMINS@
+
+This is a breaking change that was not documented at all.
+
+When setting explicitly @$dataHandler->bypassAccessCheckForRecords = true;@ then I expect that the access checks are bypassed completly. The new behaviour adds access restriction that are not "by-passable" by @bypassAccessCheckForRecords@.
+
+Important: the setting is called "HIDE for", not "RESTRICT for" and is just a @displayCond@ (conditional *display* , not conditonal *access* )..

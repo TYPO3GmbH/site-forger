@@ -1,0 +1,26 @@
+<p>Fresh installation Typo3 9.5.<br>After initial configuration, I created a very simple extenstion named ‘test’, with one controller named ‘Test’, and two actions ‘test’ and ‘test2’, and one frontend plugin named ‘test’. I installed this extension and put a plugin onto my homepage.</p>
+
+<p>Action ‘test’ is writing current date and time to a file, using file_put_contents with FILE_APPEND flag. At the end of ‘test’ a redirect to ‘test2’ is executed.</p>
+
+<p>When action is served after a browser request, and after a redirect is complete, I can find 2 new lines in a file mentioned before.</p>
+
+<p>I also prepared fresh Typo3 10.4 and the same problem occured.</p>
+
+<pre><code class="language-php">&lt;?php
+namespace Test\Test\Controller;
+class TestController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionController
+{
+    public function testAction()
+    {
+        file_put_contents('abc.xyz', date('YmdHis') . "\n", FILE_APPEND);
+        $this-&gt;redirect('test2');
+
+    }
+
+    public function test2Action()
+    {
+        echo 'test';
+        exit;
+    }
+}
+?&gt;</code></pre>
