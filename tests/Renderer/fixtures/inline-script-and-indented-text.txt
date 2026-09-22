@@ -1,0 +1,37 @@
+With Content-Security-Policy enabled for a frontend site, the rendered page contains <script type="importmap">…</script>, but the CSP header emitted for that same request does not contain the matching 'sha256-…' source in script-src-elem. On the next request for the same URL — now served from the
+  page cache — the hash is present.
+
+  Since the frontend deliberately renders the import map without a nonce and relies on the hash instead (#106564), the import map is not covered by the policy on exactly those requests that generate the page. Under enforce this means the first visitor of any uncached page gets a blocked import map
+  and therefore no working ES modules, while every later visitor is fine. The failure is intermittent and depends on cache state, which makes it hard to spot.
+
+  Steps to reproduce
+
+  1. TYPO3 13.4.27, a site that loads at least one ES module, so an import map is rendered.
+  2. Enable CSP for the site in config/sites/<site>/csp.yaml:
+  report:
+    inheritDefault: true
+  2. (The same happens with enforce.)
+  3. bin/typo3 cache:flush
+  4. Request the page, capturing headers and body. Compute base64(sha256(<content of the importmap script element>)).
+  5. Actual: the hash is not part of script-src-elem in the CSP header.
+  6. Request the same URL again (page cache hit).
+  7. The hash is now present.
+
+  Expected: the hash is present in the header of both requests.
+
+  Reproduced on two different pages, each with a fresh cache, always miss → absent, hit → present.
+
+  Notes
+
+  - PageRenderer::render() passes null as the nonce in frontend context ($useNonce = $this->getApplicationType() === 'BE';, PageRenderer.php:1441), so ImportMap::render() takes the hash branch and appends new Mutation(MutationMode::Extend, Directive::ScriptSrcElem, HashValue::hash($json)) to the
+  PolicyRegistry (ImportMap.php:145-153).
+  - PolicyProvider::prepare() merges PolicyRegistry::getMutationCollections() into the policy — "add temporary(!) mutations that were collected during processing this request" (PolicyProvider.php:100-105).
+  - MetaDataState serialises the registry into the page cache metadata, and PrepareTypoScriptFrontendRendering.php:141 restores it early on a cache hit. That explains why the hash is present on cached requests.
+  - Hypothesis, not verified: on a cache miss the registry entry is created later than the point where the policy for this very request is prepared, so it only ever reaches the following request through the cached metadata.
+
+  Related issues: #106564 (introduced the hash instead of a nonce in the frontend), #109095 (registers the hash on script-src-elem instead of script-src; already contained in 13.4.27, and the behaviour persists with it).
+
+  Workaround in use: a PSR-15 middleware placed outside typo3/cms-frontend/csp-headers that reads the import map from the finished response, computes its hash and appends it to an already existing script-src-elem — never creating the directive, since an otherwise absent script-src-elem would restrict
+  the page to that single source.
+
+  Environment: TYPO3 13.4.27, PHP 8.3, page cache enabled.
