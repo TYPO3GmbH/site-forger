@@ -2697,11 +2697,11 @@
         },
         {
             "name": "netcarver/textile",
-            "version": "v4.1.5",
+            "version": "v4.1.6",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/textile/php-textile/zipball/d0bf57dd3db293ecd27af8625d564bd255a5e32c",
-                "reference": "d0bf57dd3db293ecd27af8625d564bd255a5e32c",
+                "url": "https://api.github.com/repos/textile/php-textile/zipball/52632491d13feb03031a3c0d0f412d8bab75d554",
+                "reference": "52632491d13feb03031a3c0d0f412d8bab75d554",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -2753,7 +2753,7 @@
                 "source": "https://github.com/textile/php-textile",
                 "wiki": "https://github.com/textile/php-textile/wiki"
             },
-            "time": "2026-08-21T18:25:39+00:00"
+            "time": "2026-10-16T15:16:49+00:00"
         },
         {
             "name": "nyholm/dsn",
