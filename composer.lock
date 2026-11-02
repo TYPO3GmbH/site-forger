@@ -2001,16 +2001,11 @@
         },
         {
             "name": "kbsali/redmine-api",
-            "version": "v2.9.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/kbsali/php-redmine-api.git",
-                "reference": "7d12a025fbde81627998514ab88809004a2cc4a1"
-            },
+            "version": "v2.10.0",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/kbsali/php-redmine-api/zipball/7d12a025fbde81627998514ab88809004a2cc4a1",
-                "reference": "7d12a025fbde81627998514ab88809004a2cc4a1",
+                "url": "https://api.github.com/repos/kbsali/php-redmine-api/zipball/28eba0ced1776bf009a72c4ce75d390f3bd19bd9",
+                "reference": "28eba0ced1776bf009a72c4ce75d390f3bd19bd9",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -2028,14 +2023,14 @@
                 "psr/http-factory": "^1.0"
             },
             "require-dev": {
-                "art4/rector-bc-library": "^1.0",
+                "art4/rector-bc-library": "^1.1",
                 "behat/behat": "^3.15",
-                "friendsofphp/php-cs-fixer": "^3.94",
-                "guzzlehttp/psr7": "^2.8",
+                "friendsofphp/php-cs-fixer": "^3.95",
+                "guzzlehttp/psr7": "^2.8 || ^3.0",
                 "php-mock/php-mock-phpunit": "^2.15",
-                "phpstan/phpstan": "^2.1",
+                "phpstan/phpstan": "^2.3",
                 "phpunit/phpunit": "^9.6 || ^10.5 || ^11.5 || ^12.5 || ^13.0",
-                "rector/rector": "^2.3"
+                "rector/rector": "^2.5"
             },
             "type": "library",
             "autoload": {
@@ -2067,9 +2062,9 @@
             ],
             "support": {
                 "issues": "https://github.com/kbsali/php-redmine-api/issues",
-                "source": "https://github.com/kbsali/php-redmine-api/tree/v2.9.1"
+                "source": "https://github.com/kbsali/php-redmine-api/tree/v2.10.0"
             },
-            "time": "2026-04-03T07:36:19+00:00"
+            "time": "2026-10-26T15:22:16+00:00"
         },
         {
             "name": "knplabs/knp-components",
