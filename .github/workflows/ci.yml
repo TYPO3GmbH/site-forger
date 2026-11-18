@@ -88,16 +88,10 @@ jobs:
       - name: Run workflow setup
         uses: ./.github/actions/setup
 
-      - name: Install Magallanes
+      - name: Install Deployer
         run: |
-          composer global require "andres-montanez/magallanes" --no-progress --ansi
-          /home/runner/.composer/vendor/bin/mage version
-          mkdir -p ./.mage/logs
-
-      - name: Get Environment
-        id: environment
-        run: |
-          echo "target=$(echo ${GITHUB_REF#refs/heads/} | sed 's/\//-/g')" >> $GITHUB_OUTPUT
+          composer install --working-dir=build/tools/deployer --no-progress --no-interaction --ansi
+          build/tools/deployer/vendor/bin/dep --version
 
       - name: Deployment
         env:
@@ -114,15 +108,4 @@ jobs:
               }
             }'
         run: |
-          /home/runner/.composer/vendor/bin/mage deploy ${{ steps.environment.outputs.target }}
-
-      - name: Archive Logs
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: logs
-          path: .mage/logs
-
-      - name: Echo logs
-        run: find .mage/logs/ -type f -exec cat {} +
-        if: always()
+          build/tools/deployer/vendor/bin/dep deploy ${{ github.ref_name }} -v --ansi
