@@ -16,11 +16,10 @@ use App\Enum\TrackerIdEnum;
 use App\Renderer\RedmineTextileRenderer;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Twig\Extension\AbstractExtension;
-use Twig\TwigFilter;
-use Twig\TwigFunction;
+use Twig\Attribute\AsTwigFilter;
+use Twig\Attribute\AsTwigFunction;
 
-class ForgerTwigExtension extends AbstractExtension
+class ForgerTwigExtension
 {
     public function __construct(
         private readonly RequestStack $requestStack,
@@ -29,25 +28,7 @@ class ForgerTwigExtension extends AbstractExtension
     ) {
     }
 
-    #[\Override]
-    public function getFunctions(): array
-    {
-        return [
-            new TwigFunction('bucketCounter', $this->bucketCounter(...), ['is_safe' => ['html']]),
-            new TwigFunction('aggregationBucket', $this->aggregationBucket(...), ['is_safe' => ['html']]),
-            new TwigFunction('trackerCheckbox', $this->trackerCheckbox(...), ['is_safe' => ['html']]),
-            new TwigFunction('forgeLink', $this->forgeLink(...)),
-        ];
-    }
-
-    #[\Override]
-    public function getFilters(): array
-    {
-        return [
-            new TwigFilter('forgeMarkdown', $this->forgeMarkdown(...), ['is_safe' => ['html']]),
-        ];
-    }
-
+    #[AsTwigFunction(name: 'bucketCounter', isSafe: ['html'])]
     public function bucketCounter(string $category, array $buckets): string
     {
         $category = $this->fixWording($category);
@@ -71,6 +52,7 @@ class ForgerTwigExtension extends AbstractExtension
         return '<span class="badge badge-info">' . $activeCount . ' / ' . count($buckets) . '</span>';
     }
 
+    #[AsTwigFunction(name: 'aggregationBucket', isSafe: ['html'])]
     public function aggregationBucket(string $category, string $index, array $bucket): string
     {
         $label = $bucket['key_as_string'] ?? $bucket['key'];
@@ -97,11 +79,13 @@ class ForgerTwigExtension extends AbstractExtension
             . '</div>';
     }
 
+    #[AsTwigFilter(name: 'forgeMarkdown', isSafe: ['html'])]
     public function forgeMarkdown(string $markdown): string
     {
         return $this->redmineTextRenderer->render($markdown);
     }
 
+    #[AsTwigFunction(name: 'trackerCheckbox', isSafe: ['html'])]
     public function trackerCheckbox(string $trackerType, string $label): string
     {
         $checked = '';
@@ -129,6 +113,7 @@ class ForgerTwigExtension extends AbstractExtension
         return $in;
     }
 
+    #[AsTwigFunction(name: 'forgeLink')]
     public function forgeLink(int|string $year, int|string $month, string $status = 'o'): string
     {
         $redmineUrl = 'https://forge.typo3.org/projects/typo3cms-core/issues?set_filter=1';

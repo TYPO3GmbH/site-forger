@@ -282,13 +282,11 @@ final readonly class IndexSetup
         if (!is_array($actual)) {
             return false;
         }
-        foreach ($expected as $key => $value) {
-            if (!array_key_exists($key, $actual) || !$this->contains($actual[$key], $value)) {
-                return false;
-            }
-        }
 
-        return true;
+        return array_all(
+            $expected,
+            fn (mixed $value, int|string $key): bool => array_key_exists($key, $actual) && $this->contains($actual[$key], $value),
+        );
     }
 
     private function createIndex(Index $index, string $type, string $language): void

@@ -30,10 +30,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
         With <info>--dry-run</info> nothing is changed (a temporary "<type>_<language>_probe" index is used to compare mappings).
         HELP
 )]
-final class ElasticsearchSetupCommand
+final readonly class ElasticsearchSetupCommand
 {
     public function __construct(
-        private readonly IndexSetup $indexSetup,
+        private IndexSetup $indexSetup,
     ) {
     }
 
