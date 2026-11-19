@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Elastic;
 
+use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStateEnum;
 use App\Enum\ReviewStatusEnum;
@@ -30,6 +31,7 @@ final readonly class UserWorkQuery
         private int $size = 100,
         private ?IssueStatusEnum $issueStatus = null,
         private ?ReviewStateEnum $reviewState = null,
+        private IssueSortEnum $issueSort = IssueSortEnum::UPDATED,
     ) {
     }
 
@@ -38,6 +40,7 @@ final readonly class UserWorkQuery
      *
      * The states are counted over all issues of the person, so the hidden closed ones can be offered, too.
      * Hiding the closed issues and the selected state only narrow down the listed issues.
+     * They are listed in the given order, the Gerrit changes always by their last update.
      */
     public function issues(): array
     {
@@ -46,6 +49,7 @@ final readonly class UserWorkQuery
             ['author.name' => $this->names()],
             ['assigned_to.name.keyword' => $this->names()],
         ]);
+        $request['sort'] = $this->issueSort->sort();
         $request['aggs'] = [
             'status' => ['terms' => ['field' => 'status.name', 'size' => 20]],
         ];

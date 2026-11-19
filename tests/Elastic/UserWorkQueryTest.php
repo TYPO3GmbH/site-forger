@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Elastic;
 
 use App\Elastic\UserWorkQuery;
+use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStateEnum;
 use PHPUnit\Framework\TestCase;
@@ -33,7 +34,15 @@ final class UserWorkQueryTest extends TestCase
             ],
             $request['query']['bool']
         );
-        self::assertSame(['updated_on' => 'desc'], $request['sort']);
+        self::assertSame([['updated_on' => 'desc']], $request['sort']);
+    }
+
+    public function testIssuesInTheGivenOrderChangesByTheirLastUpdate(): void
+    {
+        $query = new UserWorkQuery('jane@example.org', 'Jane Doe', issueSort: IssueSortEnum::NEWEST);
+
+        self::assertSame([['created_on' => 'desc']], $query->issues()['sort']);
+        self::assertSame(['updated_on' => 'desc'], $query->reviews()['sort']);
     }
 
     public function testClosedIssuesAreHiddenButCounted(): void

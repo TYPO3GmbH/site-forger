@@ -1,11 +1,15 @@
 {% extends 'my/_layout.html.twig' %}
 {% import 'my/_layout.html.twig' as my %}
+{% import '_macros/sort.html.twig' as sorting %}
 {% block title %}My issues{% endblock %}
 {% block intro %}The Forge issues you reported or are assigned to.{% endblock %}
 
 {% block view %}
     {% set hidden = includeClosed ? 0 : counts|filter((count, state) => state in closedStates)|reduce((sum, count) => sum + count, 0) %}
     {% set baseParams = (includeClosed ? {'state': 'all'} : {})|merge(selectedId is not null ? {'status': selectedId} : {}) %}
+    {# The links keep the order, the sort field sends the other parameters #}
+    {% set filterParams = baseParams %}
+    {% set baseParams = baseParams|merge(isDefaultSort ? {} : {'sort': sort.value}) %}
 
     <div class="mywork-stats">
         {% for statusName in ['In Progress', 'Under Review', 'Needs Feedback'] %}
@@ -21,6 +25,7 @@
     <section class="mywork-section" aria-labelledby="issues-title">
         <header class="mywork-section-header">
             <h2 id="issues-title">Issues <span class="mywork-section-count">{{ total }}</span></h2>
+            {{ sorting.select(path('my_issues'), sort, sortOptions, filterParams, 'my-issues-sort') }}
             {% if counts is not empty %}
                 <nav class="mywork-chips" aria-label="Issue status">
                     {{ my.chip('All', counts|reduce((sum, count) => sum + count, 0) - hidden, path('my_issues', baseParams|filter((v, k) => k != 'status')), selected is null, false) }}
@@ -42,7 +47,7 @@
         {% else %}
             {% include 'my/_issue_rows.html.twig' with {'groups': groups, 'name': name} only %}
             {% if total > shown %}
-                <p class="mywork-note">Showing the {{ shown }} most recently updated of {{ total }} issues.</p>
+                <p class="mywork-note">Showing the first {{ shown }} of {{ total }} issues, sorted by {{ sort.label|lower }}.</p>
             {% endif %}
         {% endif %}
         {% if hidden > 0 and selected is null %}
