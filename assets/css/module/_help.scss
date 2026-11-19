@@ -1,0 +1,288 @@
+// Help page, see templates/static_page/help.html.twig. Cards and tiles follow the dashboard.
+
+.help {
+    --help-border: #e6e8eb;
+    --help-muted: #6b7280;
+    --help-radius: .75rem;
+    --help-shadow: 0 1px 2px rgba(16, 24, 40, .05);
+    --help-accent: #eb6834;
+    --help-accent-soft: #fdeee7;
+
+    display: grid;
+    gap: 1.5rem;
+    align-items: start;
+
+    @media (min-width: 992px) {
+        grid-template-columns: 15rem minmax(0, 1fr);
+    }
+}
+
+// Contents
+.help-toc {
+    padding: .75rem;
+    border: 1px solid var(--help-border);
+    border-radius: var(--help-radius);
+    background: #fff;
+    box-shadow: var(--help-shadow);
+
+    @media (min-width: 992px) {
+        position: sticky;
+        top: 1.5rem;
+    }
+
+    ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    a {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        padding: .45rem .6rem;
+        border-radius: .5rem;
+        color: #1f2937;
+        font-size: .9375rem;
+        text-decoration: none;
+
+        .icon {
+            color: var(--help-muted);
+        }
+
+        &:hover,
+        &:focus-visible {
+            background: var(--help-accent-soft);
+            color: #1f2937;
+
+            .icon {
+                color: var(--help-accent);
+            }
+        }
+    }
+}
+
+.help-toc-title {
+    padding: .25rem .6rem .5rem;
+    color: var(--help-muted);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+// Sections
+.help-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-width: 0;
+}
+
+.help-intro {
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--help-radius);
+    background: var(--help-accent-soft);
+    font-size: 1.125rem;
+    line-height: 1.55;
+
+    p {
+        margin: 0;
+    }
+}
+
+.help-section {
+    padding: 1.5rem;
+    border: 1px solid var(--help-border);
+    border-radius: var(--help-radius);
+    background: #fff;
+    box-shadow: var(--help-shadow);
+    scroll-margin-top: 1.5rem;
+
+    > p:last-child,
+    > ul:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.help-section-header {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: 1rem;
+
+    h2 {
+        margin: 0;
+        font-size: 1.375rem;
+    }
+}
+
+.help-section-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: .6rem;
+    background: var(--help-accent-soft);
+    color: var(--help-accent);
+}
+
+.help-muted {
+    color: var(--help-muted);
+    font-size: .9375rem;
+}
+
+.help-points {
+    padding-left: 1.25rem;
+
+    li + li {
+        margin-top: .35rem;
+    }
+}
+
+.help-callout {
+    margin-top: 1rem;
+    padding: .85rem 1rem;
+    border-radius: .5rem;
+    background: #fff3dc;
+    color: #5f3a05;
+    font-size: .9375rem;
+}
+
+// Grids of tiles, sources and stages
+.help-tiles,
+.help-sources,
+.help-stages {
+    display: grid;
+    gap: .75rem;
+}
+
+.help-tiles {
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+}
+
+.help-sources {
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    margin-bottom: 1rem;
+}
+
+.help-stages {
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    margin: 1rem 0;
+}
+
+// Space between a grid and the text after it
+.help-tiles + p,
+.help-facts + p {
+    margin-top: 1rem;
+}
+
+.help-tile {
+    display: flex;
+    gap: .75rem;
+    height: 100%;
+    padding: .9rem 1rem;
+    border: 1px solid var(--help-border);
+    border-radius: .6rem;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color .15s, box-shadow .15s, transform .15s;
+
+    &:is(a):hover,
+    &:is(a):focus-visible {
+        transform: translateY(-1px);
+        border-color: var(--help-accent);
+        box-shadow: 0 4px 12px rgba(16, 24, 40, .08);
+        color: inherit;
+
+        .help-tile-title {
+            color: var(--help-accent);
+        }
+    }
+}
+
+.help-tile-icon {
+    flex: none;
+    color: var(--help-accent);
+    padding-top: .1rem;
+}
+
+.help-tile-body {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+}
+
+.help-tile-title {
+    font-weight: 700;
+}
+
+.help-tile-text {
+    color: var(--help-muted);
+    font-size: .875rem;
+    line-height: 1.45;
+}
+
+.help-tile-anchor {
+    scroll-margin-top: 1.5rem;
+}
+
+.help-source {
+    padding: .9rem 1rem;
+    border-radius: .6rem;
+    background: #f7f8fa;
+
+    p {
+        margin: 0;
+        color: var(--help-muted);
+        font-size: .875rem;
+    }
+}
+
+.help-source-title {
+    margin-bottom: .25rem;
+    font-weight: 700;
+}
+
+.help-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .5rem;
+    padding: .9rem 1rem;
+    border: 1px solid var(--help-border);
+    border-radius: .6rem;
+
+    .status-pill {
+        font-size: .8125rem;
+    }
+}
+
+.help-stage-range {
+    font-weight: 600;
+}
+
+// Key figures of the dashboard
+.help-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: .75rem;
+    margin: 0 0 1rem;
+
+    > div {
+        padding: .9rem 1rem;
+        border-radius: .6rem;
+        background: #f7f8fa;
+    }
+
+    dt {
+        margin-bottom: .2rem;
+    }
+
+    dd {
+        margin: 0;
+        color: var(--help-muted);
+        font-size: .875rem;
+    }
+}

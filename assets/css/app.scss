@@ -8,6 +8,7 @@
 @use "module/command-runs";
 @use "module/navigation";
 @use "module/rst-helper";
+@use "module/help";
 
 .js-chart {
     height: 100%;

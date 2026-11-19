@@ -1,73 +1,231 @@
-{% extends "base.html.twig" %}
+{% extends 'base.html.twig' %}
+{% import '_macros/status.html.twig' as status %}
 {% block title %}Help{% endblock %}
-{% block head %}{% endblock %}
-{% block body %}
+{% block headline %}Help{% endblock %}
 
-    <div class="content-section bg-primary text-white">
-        <div class="container">
-            <h1>Help</h1>
-        </div>
-    </div>
+{#
+ # A tile linking to a page of Forger.
+ #}
+{% macro tile(route, icon, title, description) %}
+    <a class="help-tile" href="{{ path(route) }}">
+        <span class="help-tile-icon">{{ icon(icon) }}</span>
+        <span class="help-tile-body">
+            <span class="help-tile-title">{{ title }}</span>
+            <span class="help-tile-text">{{ description|raw }}</span>
+        </span>
+    </a>
+{% endmacro %}
+
+{% block body %}
+    {% import _self as help %}
+
+    {% set sections = [
+        {id: 'data', icon: 'actions-database', title: 'Where the data comes from'},
+        {id: 'activity', icon: 'actions-clock', title: 'Activity'},
+        {id: 'reviews', icon: 'actions-code-pull-request', title: 'Reviews'},
+        {id: 'issues', icon: 'actions-list', title: 'Issues'},
+        {id: 'dashboard', icon: 'actions-viewmode-tiles', title: 'Dashboard'},
+        {id: 'my-work', icon: 'actions-user', title: 'My Work'},
+        {id: 'sprints', icon: 'actions-line-columns', title: 'Sprints'},
+        {id: 'tools', icon: 'actions-briefcase', title: 'Tools'},
+        {id: 'filters', icon: 'actions-filter', title: 'Filters and search'},
+    ] %}
 
     <div class="content-section bg-transparent">
-        <div class="container">
-            <h3>Where does the data come from?</h3>
-            <p>All data is being read from <a href="https://forge.typo3.org" target="_blank">forge.typo3.org</a> every 15 minutes (to keep the serverload low) and from <a href="http://review.typo3.org" target="_blank">review.typo3.org</a> once a minute.</p>
+        <div class="container help">
+            <nav class="help-toc" aria-label="Contents">
+                <div class="help-toc-title">On this page</div>
+                <ul>
+                    {% for section in sections %}
+                        <li><a href="#{{ section.id }}">{{ icon(section.icon) }}<span>{{ section.title }}</span></a></li>
+                    {% endfor %}
+                </ul>
+            </nav>
 
-            <h3>Understanding the graphs</h3>
-            <h4>Velocity</h4>
-            <p>
-                This graph works over time.<br>
-                The red line indicates issues (or reviews) that have been opened. It is important to understand that the numbers add up.<br>
-                This means that the chart will continually grow.</p>
-            <p>
-                The purpose of this chart is to quickly identify velocity problems within a project because you can see when less issues (or reviews) have been closed than there have been new issues.
-            </p>
-            <p>FORGER aggregates these values by weeks - the date indicates the first day of the respective week.</p>
-            <div id="openvsclosed" data-type="Forge" data-graph="Velocity" data-chart="Velocity" data-charttitle="Forge Velocity" class="graph"></div>
+            <div class="help-content">
+                <div class="help-intro">
+                    <p>
+                        Forger shows the work on the TYPO3 Core in one place: the issues of Forge and the changes on Gerrit,
+                        sorted into lists that answer <em>what needs a review?</em>, <em>what can be merged?</em>
+                        and <em>what has nobody touched for months?</em>
+                    </p>
+                </div>
 
-            <h4>Open Reviews on Forge</h4>
-            <p>
-                This graph works over time.<br>
-                The chart is based on the "updated_on" property of <a href="https://forge.typo3.org/" target="_blank">forge.typo3.org</a>, meaning that whenever an update to an issue takes place or a new review patchset is pushed this property will get updated.<br>
-            </p>
-            <p>
-                The purpose of this chart is to get an overview of the older issues that are still "under review".
-            </p>
-            <p>FORGER aggregates these values by weeks - the date indicates the first day of the respective week.</p>
-            <p>The data goes back for one year.</p>
-            <div id="reviewOverTime" data-type="Gerrit" data-graph="OpenReviews" data-chart="Line" data-charttitle="Open Reviews" class="graph"></div>
+                {# Where the data comes from #}
+                <section id="data" class="help-section">
+                    <header class="help-section-header">
+                        <span class="help-section-icon">{{ icon('actions-database') }}</span>
+                        <h2>Where the data comes from</h2>
+                    </header>
+                    <div class="help-sources">
+                        <div class="help-source">
+                            <div class="help-source-title">Forge</div>
+                            <p>The issues of the project <a href="https://forge.typo3.org/projects/typo3cms-core" target="_blank" rel="noopener">TYPO3 Core</a>, without subprojects, private issues and private notes.</p>
+                        </div>
+                        <div class="help-source">
+                            <div class="help-source-title">Gerrit</div>
+                            <p>The changes of <a href="https://review.typo3.org/q/project:Packages/TYPO3.CMS" target="_blank" rel="noopener">Packages/TYPO3.CMS</a> with their votes, patch sets and files.</p>
+                        </div>
+                        <div class="help-source">
+                            <div class="help-source-title">GitHub</div>
+                            <p>Activity in the repositories of the community, for the team reports of the admins only.</p>
+                        </div>
+                    </div>
+                    <p class="help-muted">
+                        Forger copies the data in regular imports, so a change shows up after the next one has run.
+                        Every issue and change links to its original.
+                    </p>
+                </section>
 
-            <h4>Open vs. Closed Issues on Forge</h4>
-            <p>
-                This chart works with two different metrics.<br>
-                The red line indicates new issues, that have been created. So the aggregation uses the property "created_on" of <a href="https://forge.typo3.org/" target="_blank">forge.typo3.org</a>.
-                The green line indicated issues that have changed their status to either "Closed", "Rejected" or "Resolved" and use the "updated_on" property of <a href="https://forge.typo3.org/" target="_blank">forge.typo3.org</a>.
-            </p>
-            <p>
-                The purpose of this chart is to visualize our current velocity. So as long as we close more or an equal amount of issues than have been opened, we're fine.
-            </p>
-            <p>FORGER aggregates these values by days and will date back the last 60 days.</p>
-            <div id="closedLastTwoMonths" data-type="Forge" data-graph="OpenVsClosed" data-chart="Line" data-charttitle="Open vs. Closed" class="graph"></div>
+                {# Activity #}
+                <section id="activity" class="help-section">
+                    <header class="help-section-header">
+                        <span class="help-section-icon">{{ icon('actions-clock') }}</span>
+                        <h2>Activity</h2>
+                    </header>
+                    <p>
+                        Open changes and issues show how long ago they were last updated: a comment, a vote, a new patch set or a new status.
+                        Bots on Gerrit only vote on uploaded patch sets, so they do not make a change look busy.
+                    </p>
+                    <div class="help-stages">
+                        {% for stage in enum_cases('App\\Enum\\ActivityEnum') %}
+                            <div class="help-stage">
+                                {{ status.activityPill(stage, {}) }}
+                                <span class="help-stage-range">
+                                    {% if stage.maximumDays is null %}
+                                        over {{ stage.minimumDays }} days
+                                    {% elseif stage.minimumDays == 0 %}
+                                        up to {{ stage.maximumDays }} days
+                                    {% else %}
+                                        {{ stage.minimumDays }}–{{ stage.maximumDays }} days
+                                    {% endif %}
+                                </span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <ul class="help-points">
+                        <li>Merged, abandoned, resolved, closed and rejected ones have no stage, and the "Activity" filter never counts them.</li>
+                        <li>Issues "On Hold" or "Postponed" are open, so they get a stage like any other.</li>
+                    </ul>
+                    <div class="help-callout">
+                        <strong>Not the same as "Stale issues".</strong>
+                        The stage is about time only. The list <a href="#stale-issues">Stale issues</a> shows issues under review without an open change.
+                    </div>
+                </section>
 
-            <h4>Tracker Types</h4>
-            <p>
-                C'mon... you know what this does :)<br>
-                It only takes issues into account that are not either "Closed", "Rejected" or "Resolved".
-            </p>
-            <div id="trackertype" data-type="Forge" data-graph="TrackerTypes" data-chart="BarHorizontal" data-charttitle="Tracker Types" class="graph"></div>
+                {# Reviews #}
+                <section id="reviews" class="help-section">
+                    <header class="help-section-header">
+                        <span class="help-section-icon">{{ icon('actions-code-pull-request') }}</span>
+                        <h2>Reviews</h2>
+                    </header>
+                    <p>
+                        The lists show open changes, the ones updated last first. Work in progress only appears in its own list and in "Find by file".
+                        Votes count when a person gave them, not the CI bot.
+                    </p>
+                    <div class="help-tiles">
+                        {{ help.tile('gerrit_index', 'actions-code-pull-request', 'Ready for review', 'Every open change that is not work in progress.') }}
+                        {{ help.tile('gerrit_wip', 'actions-code-pull-request-draft', 'Work in progress', 'Marked as work in progress, the oldest first.') }}
+                        {{ help.tile('gerrit_missesreview', 'actions-comment', 'Needs review', 'Verified, but no positive code review yet.') }}
+                        {{ help.tile('gerrit_missesverifications', 'actions-check-circle', 'Needs verification', 'A positive code review, but not verified yet.') }}
+                        {{ help.tile('gerrit_rebase', 'actions-refresh', 'Needs rebase', 'Gerrit cannot merge them because of a conflict.') }}
+                        {{ help.tile('gerrit_negative_vote_cleanup', 'actions-minus-circle', 'Negative votes', 'At least one negative review or verification.') }}
+                        {{ help.tile('gerrit_hasverifications', 'actions-check-badge', 'Reviewed and verified', 'A positive review and verification, whatever else they have.') }}
+                        {{ help.tile('gerrit_coreteam_merge', 'actions-code-merge', 'Ready to merge', 'Reviewed and verified, no negative vote, no conflict.') }}
+                        {{ help.tile('gerrit_files', 'actions-file-search', 'Find by file', 'Changes touching a file, by its full path in the repository.') }}
+                    </div>
+                </section>
 
-            <h4>Review Overview</h4>
-            <p>This chart is pretty straight-forward.<br>
-                The blue line shows new reviews for the respective day.<br>
-                The red line shows abandoned reviews for the respective day.<br>
-                The green line shows merged reviews for the respective day.<br>
-            </p>
-            <p>
-                In the bottom of the chart you will find two handles that allow to change the timeframe that is displayed.
-            </p>
-            <div id="gerritOpenVsClosed" data-type="Gerrit" data-graph="Overview" data-chart="Overview" data-charttitle="Gerrit Overview" class="graph"></div>
-        </div>
+                {# Issues #}
+                <section id="issues" class="help-section">
+                    <header class="help-section-header">
+                        <span class="help-section-icon">{{ icon('actions-list') }}</span>
+                        <h2>Issues</h2>
+                    </header>
+                    <div class="help-tiles">
+                        {{ help.tile('search_search', 'actions-search', 'Search', 'Words find open issues, an issue number finds its possible duplicates.') }}
+                        {{ help.tile('management_index', 'actions-calendar', 'By month', 'Open issues by the month of their last update, per status.') }}
+                        {{ help.tile('management_bycategory', 'actions-tag', 'By category', 'Open issues per category and tracker.') }}
+                        <div id="stale-issues" class="help-tile-anchor">
+                            {{ help.tile('gerrit_stale_issues', 'actions-clock', 'Stale issues', '"Under Review", but none of the Gerrit links in the comments leads to an open change.') }}
+                        </div>
+                    </div>
+                    <p class="help-muted">Tick "Closed Tickets" in the search to include resolved, closed and rejected issues.</p>
+                </section>
+
+                {# Dashboard #}
+                <section id="dashboard" class="help-section">
+                    <header class="help-section-header">
+                        <span class="help-section-icon">{{ icon('actions-viewmode-tiles') }}</span>
+                        <h2>Dashboard</h2>
+                    </header>
+                    <dl class="help-facts">
+                        <div><dt>Open issues</dt><dd>with those opened and closed in the last 30 days</dd></div>
+                        <div><dt>Open Gerrit changes</dt><dd>mergeable, with a conflict or work in progress</dd></div>
+                        <div><dt>Waiting over a month</dt><dd>ready for review, no update for 30 days</dd></div>
+                    </dl>
+                    <p>
+                        The charts show the issues opened and closed per week, how long changes have been waiting, the open issues and changes
+                        over three years and what was closed per year. Each chart switches to a table.
+                    </p>
+                    <p class="help-muted">The history is worked out from when issues and changes were created and closed, so it is close to, not exactly, what Forge and Gerrit showed back then.</p>
+                </section>
+
+                {# My Work #}
+                <section id="my-work" class="help-section">
+                    <header class="help-section-header">
+                        <span class="help-section-icon">{{ icon('actions-user') }}</span>
+                        <h2>My Work</h2>
+                    </header>
+                    <p>
+                        Log in with your TYPO3 account to see your changes and the issues you reported or are assigned to.
+                        Forger finds them by the email address and the name of your account. Finished ones are hidden until you ask for them.
+                    </p>
+                </section>
+
+                {# Sprints #}
+                <section id="sprints" class="help-section">
+                    <header class="help-section-header">
+                        <span class="help-section-icon">{{ icon('actions-line-columns') }}</span>
+                        <h2>Sprints</h2>
+                    </header>
+                    <div class="help-tiles">
+                        <div class="help-tile help-tile-static">
+                            <span class="help-tile-icon">{{ icon('actions-viewmode-tiles') }}</span>
+                            <span class="help-tile-body">
+                                <span class="help-tile-title">Sprint boards</span>
+                                <span class="help-tile-text">Selected issues in the columns Blocked, Open, WIP, Review and Done. The Core team creates them.</span>
+                            </span>
+                        </div>
+                        {{ help.tile('sprint_reviews', 'actions-line-columns', 'Review board', 'Open bugfixes, features or tasks, grouped by what they lack.') }}
+                    </div>
+                </section>
+
+                {# Tools #}
+                <section id="tools" class="help-section">
+                    <header class="help-section-header">
+                        <span class="help-section-icon">{{ icon('actions-briefcase') }}</span>
+                        <h2>Tools</h2>
+                    </header>
+                    <div class="help-tiles">
+                        {{ help.tile('utilities_backport', 'actions-code-compare', 'Backports', 'Merged into main within a year, with a version in "Releases:" that has no backport yet.') }}
+                        {{ help.tile('utilities_rst', 'actions-file-text', 'ReST helper', 'Writes the changelog file of a breaking change, deprecation or feature.') }}
+                    </div>
+                </section>
+
+                {# Filters #}
+                <section id="filters" class="help-section">
+                    <header class="help-section-header">
+                        <span class="help-section-icon">{{ icon('actions-filter') }}</span>
+                        <h2>Filters and search</h2>
+                    </header>
+                    <ul class="help-points">
+                        <li>The number next to a filter value is how many results it has.</li>
+                        <li>Values of one filter add up, different filters narrow each other down: <em>Stale or Orphaned, and on main</em>.</li>
+                        <li>The search in the header finds issues from every page.</li>
+                    </ul>
+                </section>
+            </div>
         </div>
     </div>
 
