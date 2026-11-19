@@ -21,6 +21,7 @@
                                     {{ sorting.hidden('searchClosed', searchClosed ?? null) }}
                                     {{ sorting.hidden('sort', sortParameter.sort ?? null) }}
                                     {% include '_partials/aggregations.html.twig' with {
+                                        'facetScope': 'issues',
                                         'aggregations': aggs,
                                         'query': query,
                                         'personSearch': {
