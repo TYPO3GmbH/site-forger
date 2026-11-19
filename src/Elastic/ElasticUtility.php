@@ -21,7 +21,7 @@ use Elastica\Index;
  */
 final class ElasticUtility
 {
-    private const LANGUAGE = 'english';
+    private const string LANGUAGE = 'english';
 
     private static ?Client $client = null;
 

@@ -34,7 +34,7 @@ class TicketsOverTime extends IssueChart
         $closedDataSet = $this->getClosedDataSet();
         $mergedDataSets = array_replace_recursive($openedDataSet, $closedDataSet);
 
-        $dateToFilter = (new \DateTimeImmutable())->sub(new \DateInterval('P3Y'));
+        $dateToFilter = new \DateTimeImmutable()->sub(new \DateInterval('P3Y'));
         $mergedDataSets = array_filter($mergedDataSets, static function (string $key) use ($dateToFilter) {
             $date = \DateTimeImmutable::createFromFormat(static::DATE_FORMAT, $key);
 

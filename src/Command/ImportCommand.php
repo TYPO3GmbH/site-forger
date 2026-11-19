@@ -263,9 +263,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
     {
         // import journals only if issue status is "Under review" (ID: 8)
         if (isset($issue['status']['id']) && 8 === (int) $issue['status']['id']) {
-            $issueWithJournals = $this->callRedmine(function () use ($issue) {
-                return $this->forgeClient->getApi('issue')->show($issue['id'], ['include' => ['journals']]);
-            });
+            $issueWithJournals = $this->callRedmine(fn () => $this->forgeClient->getApi('issue')->show($issue['id'], ['include' => ['journals']]));
             if (is_array($issueWithJournals)) {
                 $this->addDocumentToElastic($this->injectUserData($issueWithJournals['issue']));
             }
@@ -328,9 +326,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         // The author could be empty, so we have to check for that
         $userId = $issue['author']['id'] ?? null;
         if (null !== $userId && !isset($this->userCache[$userId])) {
-            $userRecord = $this->callRedmine(function () use ($userId) {
-                return $this->forgeClient->getApi('user')->show($userId);
-            });
+            $userRecord = $this->callRedmine(fn () => $this->forgeClient->getApi('user')->show($userId));
             $this->userCache[$userId] = $userRecord['user']['mail'] ?? '';
         }
         $issue['author']['email'] = $this->userCache[$userId] ?? '';
@@ -377,9 +373,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     $interaction['interaction_source_id'] = $change['_number'];
                     $interaction['interacted_on'] = $this->fixDateFormat($message['date'], 'Gerrit');
 
-                    if (!isset($message['_revision_number'])) {
-                        $message['_revision_number'] = $patchSetNumber;
-                    }
+                    $message['_revision_number'] ??= $patchSetNumber;
 
                     // Check if is merge-commit
                     if ($this->checkIfMessageIsMerge($message['message'])) {
@@ -391,13 +385,13 @@ class ImportCommand extends Command implements LoggerAwareInterface
                             return $a->getTimestamp() <=> $b->getTimestamp();
                         });
 
-                        $mergeRevision = $revisions[array_key_last($revisions)];
+                        $mergeRevision = array_last($revisions);
                         $this->addDocumentToElastic($this->buildRevisionArray($mergeRevision, 'core:review:merge', $messageId) + $interaction, 'interactions');
 
                         // If there is more than one revision, we want to give credit to both the original author
                         // and the person that patched this change with improvements (in case that is a different person)
                         if ((is_countable($revisions) ? count($revisions) : 0) > 1) {
-                            $firstRevision = $revisions[array_key_first($revisions)];
+                            $firstRevision = array_first($revisions);
                             // Only applicable if the first and merge revision was done by different people
                             if ($firstRevision['uploader']['_account_id'] !== $mergeRevision['uploader']['_account_id']) {
                                 $this->addDocumentToElastic($this->buildRevisionArray($firstRevision, 'core:review:merge-author', $messageId) + $interaction, 'interactions');
@@ -527,7 +521,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $search = ['master.', 'master', '4.7.', '4.5 LTS'];
         $replaces = ['master,', 'main', '4.7,', '4.5'];
         $matches[1] = str_replace($search, $replaces, $matches[1]);
-        $releaseArray = array_map('trim', explode(',', $matches[1]));
+        $releaseArray = array_map(trim(...), explode(',', $matches[1]));
         foreach ($releaseArray as $key => $release) {
             if (str_contains((string) $release, ' ')) {
                 throw new \InvalidArgumentException('Release contains space? ' . $message);
@@ -607,7 +601,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                         switch ($customField['id']) {
                             case 3:
                                 if (!empty($customField['value'])) {
-                                    $document['tags'] = array_map('trim', explode(',', (string) $customField['value']));
+                                    $document['tags'] = array_map(trim(...), explode(',', (string) $customField['value']));
                                 }
                                 break;
                             case 4:
@@ -674,7 +668,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
 
         }
 
-        return (new \DateTime($dateTimeString))->format('Y/m/d H:i:s');
+        return new \DateTime($dateTimeString)->format('Y/m/d H:i:s');
     }
 
     private function checkIfMessageIsComment(string $message): bool
@@ -775,15 +769,13 @@ class ImportCommand extends Command implements LoggerAwareInterface
 
     private function getAllForgeIssuesPaginated(int $limit, int $offset): array
     {
-        return $this->callRedmine(function () use ($limit, $offset) {
-            return $this->forgeClient->getApi('issue')->list([
-                'limit' => $limit,
-                'offset' => $offset,
-                'project_id' => $this->parameters->get('redmine_project_id'),
-                'status_id' => '*',
-                'sort' => 'updated_on:desc',
-            ]);
-        });
+        return $this->callRedmine(fn () => $this->forgeClient->getApi('issue')->list([
+            'limit' => $limit,
+            'offset' => $offset,
+            'project_id' => $this->parameters->get('redmine_project_id'),
+            'status_id' => '*',
+            'sort' => 'updated_on:desc',
+        ]));
     }
 
     private function getCommitsFromGerrit(int $perRun, int $current, $retry = 0): ResponseInterface

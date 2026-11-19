@@ -27,7 +27,7 @@ final readonly class RedmineTextileRendererFactory
         // Redmine: hard_breaks=true (PHP-Textile's default line wrap) and
         // no_span_caps=true, which is symbols['caps'] === false here.
         $textile->setSymbol('caps', false);
-        $sanitizer = (new CommonBuilder())->build();
+        $sanitizer = new CommonBuilder()->build();
 
         return new RedmineTextileRenderer($strictRedmineBlocks, $indentedTextIsCode, $textile, $sanitizer);
     }

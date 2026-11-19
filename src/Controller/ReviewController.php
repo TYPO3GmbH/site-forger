@@ -633,7 +633,7 @@ class ReviewController extends AbstractController
                     if ('updated_on' === $key) {
                         $filter = new Range();
                         $startDate = new \DateTime('@' . (int) ($term / 1000));
-                        $endDate = (new \DateTime('@' . (int) ($term / 1000)))->modify('+1 month -1 second');
+                        $endDate = new \DateTime('@' . (int) ($term / 1000))->modify('+1 month -1 second');
                         $filter->addField(
                             $key,
                             [

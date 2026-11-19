@@ -89,7 +89,7 @@ class UtilityController extends AbstractController
         string $changeId,
         EntityManagerInterface $entityManager
     ): Response {
-        $entry = (new BackportBlacklistEntry())
+        $entry = new BackportBlacklistEntry()
             ->setChangeId($changeId)
             ->setComment('');
         $entityManager->persist($entry);
