@@ -108,6 +108,25 @@ final class GithubServiceTest extends TestCase
         self::assertFalse($this->requests[1]['request']->hasHeader('If-None-Match'));
     }
 
+    public function testAnEventOfADeletedAccountIsCreditedToTheGhost(): void
+    {
+        $this->responses->append(new Response(200, [], (string) json_encode([[
+            'id' => 1,
+            'event' => 'closed',
+            'created_at' => '2026-11-19T15:00:00Z',
+            'actor' => null,
+            'issue' => ['id' => 42],
+        ]])));
+
+        $interactions = iterator_to_array($this->service->getInteractionsForIssuesInRepository('TYPO3', 'TYPO3.Icons', 1), false);
+
+        self::assertSame('ghost', $interactions[0]['account']);
+        self::assertSame('ghost', $interactions[0]['fullname']);
+        self::assertSame('', $interactions[0]['email']);
+        // No profile is asked for
+        self::assertCount(1, $this->requests);
+    }
+
     private function events(int $count): string
     {
         $events = [];

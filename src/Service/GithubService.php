@@ -29,6 +29,8 @@ class GithubService
 {
     private const int USER_CACHE_LIFETIME = 86400;
     private const int ETAG_CACHE_LIFETIME = 604800;
+    /** GitHub shows the events of deleted accounts as by this user, the API leaves their actor empty */
+    private const string GHOST_LOGIN = 'ghost';
 
     /** @var array<string, array<string, mixed>> */
     private array $usersCache = [];
@@ -170,9 +172,11 @@ class GithubService
 
     private function mapCommonData(array $event): array
     {
-        $user = $this->getUser($event['actor']['login'], $event['actor']['url']);
+        $login = $event['actor']['login'] ?? null;
+        $user = null !== $login ? $this->getUser($login, $event['actor']['url']) : [];
+        $login ??= self::GHOST_LOGIN;
         $interaction = [];
-        $interaction['fullname'] = $user['name'] ?? $event['actor']['login'];
+        $interaction['fullname'] = $user['name'] ?? $login;
         $interaction['email'] = $user['email'] ?? '';
         $interaction['interaction_id'] = $event['id'];
         $interaction['interaction_source'] = 'Github';
@@ -181,7 +185,7 @@ class GithubService
             throw new \InvalidArgumentException('Date format for "' . $event['created_at'] . '" could not be parsed');
         }
         $interaction['interacted_on'] = $dateTime->format('Y/m/d H:i:s');
-        $interaction['account'] = $event['actor']['login'];
+        $interaction['account'] = $login;
 
         return $interaction;
     }
