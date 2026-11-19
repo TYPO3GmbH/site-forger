@@ -12,7 +12,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\ElasticUtility;
-use App\Elastic\OwnerSuggestion;
+use App\Elastic\FacetSelection;
+use App\Elastic\PersonSuggestion;
 use App\Elastic\ReviewLists;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueStatusEnum;
@@ -38,8 +39,6 @@ class ReviewController extends AbstractController
         'deletions' => 'asc',
         'patchsets' => 'desc',
     ];
-    private const int OWNER_FACET_SIZE = 10;
-    private const string SELECTED_OWNERS = 'Selected owners';
     private int $perPage = 25;
     private int $currentPage = 1;
     private ?int $totalHits = null;
@@ -153,13 +152,13 @@ class ReviewController extends AbstractController
         if (null === $listQuery) {
             return new JsonResponse('Unknown list', Response::HTTP_BAD_REQUEST);
         }
-        $request = OwnerSuggestion::request($this->query()->getString('term'), $listQuery);
+        $request = PersonSuggestion::request($this->query()->getString('term'), $listQuery, 'owner', 'ownerEmail');
         if (null === $request) {
             return new JsonResponse([]);
         }
         $resultSet = ElasticUtility::getIndexByName('review')->search($request);
 
-        return new JsonResponse(OwnerSuggestion::fromAggregations($resultSet->getAggregations()));
+        return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), 'ownerEmail'));
     }
 
     #[Route(path: '/gerrit/files', name: 'gerrit_files')]
@@ -316,13 +315,12 @@ class ReviewController extends AbstractController
         if ($usedFilters->count() > 0 && count($usedFilters->toArray()) > 0) {
             $fullRequest['post_filter'] = $usedFilters;
         }
-        $selectedOwners = $this->selectedOwners();
-        if (isset($fullRequest['aggregations']['Owner']) && [] !== $selectedOwners) {
-            // Selected owners show in the filter also when they are not among those with the most changes
-            $fullRequest['aggregations'][self::SELECTED_OWNERS] = [
-                'terms' => ['field' => 'owner', 'include' => $selectedOwners, 'size' => count($selectedOwners)],
-            ];
-        }
+        // Selected owners show in the filter also when they are not among those with the most changes
+        $fullRequest['aggregations'] = FacetSelection::withSelected(
+            $fullRequest['aggregations'] ?? [],
+            'Owner',
+            FacetSelection::selected($this->query()->all('filters'), 'owner')
+        );
         $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
         $resultSet = $query->search();
         $this->totalHits = $resultSet->getTotalHits();
@@ -338,7 +336,7 @@ class ReviewController extends AbstractController
         $viewData['next'] = $this->currentPage < ceil($this->totalHits / $this->perPage) ? $this->currentPage + 1 : 0;
         $viewData['totalResults'] = $this->totalHits;
         $viewData['startingAtItem'] = ($this->currentPage * $this->perPage) - ($this->perPage - 1);
-        $viewData['aggregations'] = $this->withSelectedOwners($resultSet->getAggregations());
+        $viewData['aggregations'] = FacetSelection::merge($resultSet->getAggregations(), 'Owner');
         if (isset($viewData['aggregations']['Activity'])) {
             $viewData['aggregations']['Activity'] = ActivityEnum::buckets($viewData['aggregations']['Activity']);
         }
@@ -346,47 +344,6 @@ class ReviewController extends AbstractController
         $viewData['query'] = $this->query()->getString('query');
 
         return $viewData;
-    }
-
-    /**
-     * The owners the list is filtered by, as they are stored.
-     *
-     * @return list<string>
-     */
-    private function selectedOwners(): array
-    {
-        $owners = [];
-        foreach ($this->query()->all('filters')['owner'] ?? [] as $owner => $enabled) {
-            if ('true' === $enabled) {
-                $owners[] = str_replace('_', ' ', (string) $owner);
-            }
-        }
-
-        return $owners;
-    }
-
-    /**
-     * Adds the selected owners to the "Owner" filter that are not among those with the most changes.
-     *
-     * @param array<string, mixed> $aggregations
-     *
-     * @return array<string, mixed>
-     */
-    private function withSelectedOwners(array $aggregations): array
-    {
-        $selected = $aggregations[self::SELECTED_OWNERS]['buckets'] ?? [];
-        unset($aggregations[self::SELECTED_OWNERS]);
-        if (!isset($aggregations['Owner']['buckets'])) {
-            return $aggregations;
-        }
-        $shown = array_column($aggregations['Owner']['buckets'], 'key');
-        foreach ($selected as $bucket) {
-            if (!in_array($bucket['key'], $shown, true)) {
-                $aggregations['Owner']['buckets'][] = $bucket;
-            }
-        }
-
-        return $aggregations;
     }
 
     private function query(): InputBag
@@ -492,12 +449,7 @@ class ReviewController extends AbstractController
                 ],
             ],
             // The owners with the most changes only, the others are found with the search in the filter
-            'Owner' => [
-                'terms' => [
-                    'field' => 'owner',
-                    'size' => self::OWNER_FACET_SIZE,
-                ],
-            ],
+            'Owner' => FacetSelection::aggregation('owner'),
             // The tags in the subject, like "BUGFIX" or "!!!", filtered as "filters[type][...]"
             'Type' => [
                 'terms' => [

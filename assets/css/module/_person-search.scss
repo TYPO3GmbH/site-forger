@@ -1,0 +1,167 @@
+// Search in a filter of people: owners of the review lists, authors and assignees of the issue search.
+// See templates/_partials/person_search.html.twig. The suggestions open inside the filter: the filters
+// clip what sticks out.
+.person-search {
+    --person-search-accent: #2a78d6;
+    --person-search-accent-soft: #e7efff;
+    --person-search-border: #e6e8eb;
+    --person-search-muted: #6b7280;
+    --person-search-hover: #f3f6fb;
+
+    margin-bottom: .75rem;
+}
+
+.person-search-field {
+    position: relative;
+
+    &::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: .65rem;
+        width: .875rem;
+        height: .875rem;
+        margin-top: -.4375rem;
+        border: 2px solid var(--person-search-border);
+        border-top-color: var(--person-search-accent);
+        border-radius: 50%;
+        opacity: 0;
+        transition: opacity .15s ease-in-out;
+        pointer-events: none;
+    }
+
+    .is-loading &::after {
+        opacity: 1;
+        animation: person-search-spin .7s linear infinite;
+    }
+}
+
+.person-search-icon {
+    position: absolute;
+    top: 50%;
+    left: .6rem;
+    display: flex;
+    color: var(--person-search-muted);
+    transform: translateY(-50%);
+    pointer-events: none;
+
+    svg,
+    img {
+        width: 1rem;
+        height: 1rem;
+    }
+}
+
+.person-search-input {
+    padding-left: 2rem;
+    padding-right: 2rem;
+    border-color: var(--person-search-border);
+    border-radius: .5rem;
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+
+    &:focus {
+        border-color: var(--person-search-accent);
+        box-shadow: 0 0 0 3px var(--person-search-accent-soft);
+    }
+
+    // The spinner takes the place of the clear button
+    &::-webkit-search-cancel-button {
+        display: none;
+    }
+}
+
+.person-search-results {
+    max-height: 18rem;
+    margin: .375rem 0 0;
+    padding: .25rem;
+    overflow-y: auto;
+    border: 1px solid var(--person-search-border);
+    border-radius: .5rem;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(16, 24, 40, .08);
+    list-style: none;
+}
+
+.person-search-option {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    padding: .375rem .5rem;
+    border-radius: .375rem;
+    cursor: pointer;
+    transition: background-color .1s ease-in-out;
+
+    &.is-active {
+        background: var(--person-search-hover);
+    }
+
+    &.is-selected .person-search-name {
+        color: var(--person-search-accent);
+    }
+}
+
+.person-search-avatar {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: var(--person-search-accent-soft);
+    color: var(--person-search-accent);
+    font-size: .625rem;
+    font-weight: 700;
+    object-fit: cover;
+}
+
+.person-search-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    font-size: .875rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    mark {
+        padding: 0;
+        background: none;
+        color: inherit;
+        font-weight: 700;
+    }
+}
+
+.person-search-count {
+    flex: 0 0 auto;
+    min-width: 1.5rem;
+    padding: .05rem .4rem;
+    border-radius: 999px;
+    background: #f1f3f5;
+    color: var(--person-search-muted);
+    font-size: .75rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.person-search-option.is-active .person-search-count {
+    background: var(--person-search-accent-soft);
+    color: var(--person-search-accent);
+}
+
+.person-search-message {
+    margin: .5rem .125rem 0;
+    color: var(--person-search-muted);
+    font-size: .8125rem;
+}
+
+@keyframes person-search-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .is-loading .person-search-field::after {
+        animation-duration: 2s;
+    }
+}

@@ -1,10 +1,10 @@
 /**
- * Search in the "Owner" filter of the review lists.
+ * Search in a filter of people: the people of the review lists, the authors and assignees of the issue search.
  *
- * The suggestions are loaded while typing, there are too many owners to put them all into the page.
- * A picked owner is added to the filters like the checkbox of the "Owner" filter, and the form is sent.
+ * The suggestions are loaded while typing, there are too many people to put them all into the page.
+ * A picked person is added to the filters like their checkbox in the filter, and the form is sent.
  * Arrow keys move through the suggestions, Enter picks one, Escape closes them.
- * See templates/_partials/owner_search.html.twig and ReviewController::owners().
+ * See templates/_partials/person_search.html.twig, ReviewController::people() and SearchController::people().
  */
 (function () {
     'use strict';
@@ -38,14 +38,15 @@
     }
 
     function init(container) {
-        const field = container.querySelector('.owner-search-input');
-        const results = container.querySelector('.owner-search-results');
-        const message = container.querySelector('.owner-search-message');
+        const field = container.querySelector('.person-search-input');
+        const idPrefix = field.id + '-option-';
+        const results = container.querySelector('.person-search-results');
+        const message = container.querySelector('.person-search-message');
         const form = field.form;
         if (!form) {
             return;
         }
-        let owners = [];
+        let people = [];
         let active = -1;
         let loading = null;
         let timer = null;
@@ -65,7 +66,7 @@
         }
 
         function setActive(index) {
-            const options = results.querySelectorAll('.owner-search-option');
+            const options = results.querySelectorAll('.person-search-option');
             if (options.length === 0) {
                 return;
             }
@@ -81,55 +82,54 @@
             });
         }
 
-        function isSelected(owner) {
-            const checkbox = form.elements.namedItem('filters[' + container.dataset.filter + '][' + filterKey(owner.name) + ']');
+        function isSelected(person) {
+            const checkbox = form.elements.namedItem('filters[' + container.dataset.filter + '][' + filterKey(person.name) + ']');
             return checkbox instanceof HTMLInputElement && checkbox.checked;
         }
 
         function render(term) {
             close();
-            if (owners.length === 0) {
-                showMessage('No owner of a change in this list matches “' + term + '”.');
+            if (people.length === 0) {
+                showMessage('Nobody in this list matches “' + term + '”.');
                 return;
             }
             showMessage('');
-            owners.forEach(function (owner, index) {
+            people.forEach(function (person, index) {
                 const option = document.createElement('li');
-                option.className = 'owner-search-option';
-                option.id = 'owner-search-option-' + index;
+                option.className = 'person-search-option';
+                option.id = idPrefix + index;
                 option.setAttribute('role', 'option');
                 option.setAttribute('aria-selected', 'false');
 
                 let avatar;
-                if (owner.avatar) {
+                if (person.avatar) {
                     avatar = document.createElement('img');
-                    avatar.src = owner.avatar;
+                    avatar.src = person.avatar;
                     avatar.alt = '';
-                    avatar.loading = 'lazy';
                 } else {
                     avatar = document.createElement('span');
-                    avatar.textContent = initials(owner.name);
+                    avatar.textContent = initials(person.name);
                 }
-                avatar.className = 'owner-search-avatar';
+                avatar.className = 'person-search-avatar';
 
                 const name = document.createElement('span');
-                name.className = 'owner-search-name';
-                name.append(highlighted(owner.name, term));
+                name.className = 'person-search-name';
+                name.append(highlighted(person.name, term));
 
                 const count = document.createElement('span');
-                count.className = 'owner-search-count';
-                count.textContent = String(owner.changes);
-                count.title = owner.changes + (owner.changes === 1 ? ' change' : ' changes') + ' in this list';
+                count.className = 'person-search-count';
+                count.textContent = String(person.count);
+                count.title = person.count + ' in this list';
 
                 option.append(avatar, name, count);
-                if (isSelected(owner)) {
+                if (isSelected(person)) {
                     option.classList.add('is-selected');
                     option.title = 'Selected already';
                 }
                 // Before the field loses the focus
                 option.addEventListener('mousedown', function (event) {
                     event.preventDefault();
-                    pick(owner);
+                    pick(person);
                 });
                 option.addEventListener('mousemove', function () {
                     if (active !== index) {
@@ -145,7 +145,8 @@
         function load(term) {
             const url = new URL(container.dataset.url, window.location.href);
             url.searchParams.set('term', term);
-            // "Find by file" narrows the list with these, the filters do not change the numbers of the filter
+            // The search words, and "Find by file", narrow the list with these. The filters do not change the numbers
+            // of a filter
             ['query', 'searchClosed'].forEach(function (parameter) {
                 const value = new URLSearchParams(window.location.search).get(parameter);
                 if (value !== null) {
@@ -166,7 +167,7 @@
                         return;
                     }
                     container.classList.remove('is-loading');
-                    owners = found;
+                    people = found;
                     render(term);
                 });
             loading = request;
@@ -174,12 +175,12 @@
             return request;
         }
 
-        function pick(owner) {
+        function pick(person) {
             if (picked) {
                 return;
             }
             picked = true;
-            const name = 'filters[' + container.dataset.filter + '][' + filterKey(owner.name) + ']';
+            const name = 'filters[' + container.dataset.filter + '][' + filterKey(person.name) + ']';
             const checkbox = form.elements.namedItem(name);
             if (checkbox instanceof HTMLInputElement) {
                 checkbox.checked = true;
@@ -190,7 +191,7 @@
                 filter.value = 'true';
                 form.appendChild(filter);
             }
-            field.value = owner.name;
+            field.value = person.name;
             // The search field itself is no filter
             field.disabled = true;
             container.classList.add('is-loading');
@@ -203,7 +204,7 @@
             loading = null;
             container.classList.remove('is-loading');
             if (term.length < MIN_LENGTH) {
-                owners = [];
+                people = [];
                 close();
                 showMessage('');
                 return;
@@ -225,15 +226,15 @@
                 case 'Enter': {
                     // Never sends the form with the search field as it is
                     event.preventDefault();
-                    if (active >= 0 && owners[active]) {
-                        pick(owners[active]);
+                    if (active >= 0 && people[active]) {
+                        pick(people[active]);
                         break;
                     }
                     const term = field.value.trim();
                     const exact = function () {
-                        return owners.find(function (owner) {
-                            return owner.name.toLowerCase() === term.toLowerCase();
-                        }) || (owners.length === 1 ? owners[0] : null);
+                        return people.find(function (person) {
+                            return person.name.toLowerCase() === term.toLowerCase();
+                        }) || (people.length === 1 ? people[0] : null);
                     };
                     if (exact()) {
                         pick(exact());
@@ -257,7 +258,7 @@
         });
 
         field.addEventListener('focus', function () {
-            if (owners.length > 0 && field.value.trim().length >= MIN_LENGTH) {
+            if (people.length > 0 && field.value.trim().length >= MIN_LENGTH) {
                 render(field.value.trim());
             }
         });
@@ -267,6 +268,6 @@
     }
 
     window.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.js-owner-search').forEach(init);
+        document.querySelectorAll('.js-person-search').forEach(init);
     });
 }());

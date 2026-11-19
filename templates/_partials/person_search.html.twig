@@ -1,0 +1,18 @@
+{#
+    Search in a filter of people: the owners of the review lists, the authors and assignees of the issue search.
+    The filter shows the people with the most results only, the search finds the others of the list and filters
+    by the one picked, like their checkbox would. The suggestions are loaded while typing from "url",
+    see assets/js/person-search.js, ReviewController::owners() and SearchController::people().
+
+    Parameters: id (unique on the page), filter (the key in "filters[...]"), url, label
+#}
+<div class="person-search js-person-search" data-filter="{{ filter }}" data-url="{{ url }}">
+    <label class="sr-only" for="{{ id }}">{{ label }}</label>
+    <div class="person-search-field">
+        <span class="person-search-icon" aria-hidden="true">{{ icon('actions-search') }}</span>
+        <input type="search" id="{{ id }}" class="form-control form-control-sm person-search-input" placeholder="{{ label }}" autocomplete="off" spellcheck="false"
+               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="{{ id }}-results">
+    </div>
+    <ul class="person-search-results" id="{{ id }}-results" role="listbox" aria-label="{{ label }}" hidden></ul>
+    <p class="person-search-message" aria-live="polite" hidden></p>
+</div>

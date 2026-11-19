@@ -65,7 +65,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
     private const string GERRIT_PROJECT = 'project:Packages/TYPO3.CMS';
     private const array GERRIT_DETAIL_OPTIONS = ['DETAILED_LABELS', 'ALL_REVISIONS', 'ALL_FILES', 'CURRENT_COMMIT', 'MESSAGES', 'DETAILED_ACCOUNTS'];
     /**
-     * Seconds the email of a Forge user is kept, so a run does not ask Forge for authors it knows.
+     * Seconds the email of a Forge user is kept, so a run does not ask Forge for authors and assignees it knows.
      */
     private const int USER_CACHE_LIFETIME = 86400;
     protected static array $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta', 'github', 'githubDelta'];
@@ -606,12 +606,30 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $io->newLine(1);
     }
 
+    /**
+     * Adds the email of the author and of the assignee, for their avatars.
+     */
     private function injectUserData(array $issue): array
     {
-        // @todo maybe the runtime cache ain't the smartest thing here
         // The author could be empty, so we have to check for that
-        $userId = $issue['author']['id'] ?? null;
-        if (null !== $userId && !isset($this->userCache[$userId])) {
+        $issue['author']['email'] = $this->forgeUserEmail($issue['author']['id'] ?? null);
+        if (isset($issue['assigned_to']['id'])) {
+            // A group can be assigned, too: Forge has no user for it, so it gets no email
+            $issue['assigned_to']['email'] = $this->forgeUserEmail($issue['assigned_to']['id']);
+        }
+
+        return $issue;
+    }
+
+    /**
+     * The email of a Forge user, empty if Forge does not know it.
+     */
+    private function forgeUserEmail(int|string|null $userId): string
+    {
+        if (null === $userId) {
+            return '';
+        }
+        if (!isset($this->userCache[$userId])) {
             // A rate limit (429) is thrown and not cached, the next run asks again
             $this->userCache[$userId] = $this->cache->get('forge_user_mail_' . (int) $userId, function (ItemInterface $item) use ($userId): string {
                 $item->expiresAfter(self::USER_CACHE_LIFETIME);
@@ -628,9 +646,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 return is_array($userRecord) ? ($userRecord['user']['mail'] ?? '') : '';
             });
         }
-        $issue['author']['email'] = $this->userCache[$userId] ?? '';
 
-        return $issue;
+        return $this->userCache[$userId];
     }
 
     /**

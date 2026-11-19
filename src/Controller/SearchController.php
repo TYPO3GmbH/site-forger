@@ -12,12 +12,16 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\ElasticUtility;
+use App\Elastic\FacetSelection;
+use App\Elastic\IssueSearch;
+use App\Elastic\PersonSuggestion;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueStatusEnum;
 use Elastica\Aggregation\Filters;
 use Elastica\Aggregation\Terms;
 use Elastica\Query;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -25,6 +29,20 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route(path: '/search', name: 'search_')]
 class SearchController extends AbstractController
 {
+    /**
+     * The filters of people: title => [filter key, field of the name, field of the email for the avatar].
+     * They show the people with the most issues, the search in the filter finds the others.
+     */
+    private const array PEOPLE_FILTERS = [
+        'Author' => ['author', 'author.name', 'author.email'],
+        'Assigned to' => ['assigned_to', 'assigned_to.name.keyword', 'assigned_to.email'],
+    ];
+
+    /**
+     * How many tags the "Tags" filter shows, the most used ones. Selected tags show, too.
+     */
+    private const int TAGS_SHOWN = 30;
+
     protected int $perPage = 25;
     protected int $currentPage = 1;
     protected int $totalHits = 0;
@@ -70,6 +88,32 @@ class SearchController extends AbstractController
         $viewData['routeName'] = 'search_search';
 
         return $this->render('search/search.html.twig', $viewData);
+    }
+
+    /**
+     * Authors or assignees of the issues the search words "query" find whose name contains "term", for the
+     * search in their filter. Names, numbers and avatars only, no email addresses.
+     */
+    #[Route(path: '/people/{filter}', name: 'people', methods: ['GET'])]
+    public function people(Request $request, string $filter): JsonResponse
+    {
+        $people = array_column(self::PEOPLE_FILTERS, null, 0)[$filter] ?? null;
+        if (null === $people) {
+            return new JsonResponse('Unknown filter', Response::HTTP_BAD_REQUEST);
+        }
+        [, $nameField, $emailField] = $people;
+        $search = PersonSuggestion::request(
+            $request->query->getString('term'),
+            IssueSearch::query($request->query->getString('query'), 1 === $request->query->getInt('searchClosed')),
+            $nameField,
+            $emailField
+        );
+        if (null === $search) {
+            return new JsonResponse([]);
+        }
+        $resultSet = ElasticUtility::getIndexByName('issue')->search($search);
+
+        return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), $emailField));
     }
 
     private function checkIfQueryIsIssue(string $query): bool
@@ -142,46 +186,7 @@ class SearchController extends AbstractController
      */
     private function findByQuery(string $searchTerms, bool $searchInClosedIssues = false): array
     {
-        // Without search terms all issues are found, so links can lead straight to a filtered list
-        $searchTerms = trim($searchTerms);
-        $match = '' === $searchTerms
-            ? ['match_all' => new \stdClass()]
-            : ['query_string' => ['query' => $this->escape($searchTerms)]];
-        $query = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        $match,
-                    ],
-                    'must_not' => [
-                        [
-                            'terms' => [
-                                'status.name' => IssueStatusEnum::closedLabels(),
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-        ];
-        if ($searchInClosedIssues) {
-            unset($query['query']['bool']['must_not']);
-        }
-
-        return $this->doSearch($query);
-    }
-
-    /**
-     * Escape a value for special query characters such as ':', '(', ')', '*', '?', etc.
-     * NOTE: inside a phrase fewer characters need escaped, use {@link Apache_Solr_Service::escapePhrase()} instead.
-     */
-    public function escape(string $value): string
-    {
-        // list taken from http://lucene.apache.org/java/docs/queryparsersyntax.html#Escaping%20Special%20Characters
-        $pattern = '/(\+|-|&&|\|\||!|\(|\)|\{|}|\[|]|\^|"|~|\*|\?|:|\\\)/';
-        $replace = '\\\$1';
-        $escapedString = preg_replace($pattern, $replace, $value);
-
-        return str_replace('/', '\/', $escapedString);
+        return $this->doSearch(['query' => IssueSearch::query($searchTerms, $searchInClosedIssues)]);
     }
 
     /**
@@ -204,6 +209,9 @@ class SearchController extends AbstractController
         $results = $elasticaResultSet->getResults();
         $maxScore = $elasticaResultSet->getMaxScore();
         $aggs = $elasticaResultSet->getAggregations();
+        foreach ([...array_keys(self::PEOPLE_FILTERS), 'Tags'] as $title) {
+            $aggs = FacetSelection::merge($aggs, $title);
+        }
         if (isset($aggs['Activity'])) {
             $aggs['Activity'] = ActivityEnum::buckets($aggs['Activity']);
         }
@@ -281,6 +289,7 @@ class SearchController extends AbstractController
     {
         return match ($key) {
             'target_version' => 'fixed_version.name',
+            'assigned_to' => 'assigned_to.name.keyword',
             default => $key,
         };
     }
@@ -317,11 +326,35 @@ class SearchController extends AbstractController
         $phpVer->setField('php_version');
         $elasticaQuery->addAggregation($phpVer);
 
+        $this->addTopTerms($elasticaQuery, 'Tags', 'tags', 'tags', self::TAGS_SHOWN);
+
+        // Selected people show in their filter also when they are not among those with the most issues
+        foreach (self::PEOPLE_FILTERS as $title => [$key, $field]) {
+            $this->addTopTerms($elasticaQuery, $title, $key, $field, FacetSelection::SIZE);
+        }
+
         $activity = new Filters('Activity');
         foreach (ActivityEnum::issueAggregation()['filters']['filters'] as $label => $filter) {
             $activity->addFilter(new Query\Simple($filter), $label);
         }
         $elasticaQuery->addAggregation($activity);
+    }
+
+    /**
+     * The values of a filter with the most issues, and the selected ones also when they are not among them.
+     */
+    private function addTopTerms(Query $elasticaQuery, string $title, string $key, string $field, int $size): void
+    {
+        $aggregations = FacetSelection::withSelected([$title => FacetSelection::aggregation($field, $size)], $title, FacetSelection::selected($this->filters, $key));
+        foreach ($aggregations as $name => $definition) {
+            $terms = new Terms($name);
+            $terms->setField($definition['terms']['field']);
+            $terms->setSize($definition['terms']['size']);
+            if (isset($definition['terms']['include'])) {
+                $terms->setIncludeAsExactMatch($definition['terms']['include']);
+            }
+            $elasticaQuery->addAggregation($terms);
+        }
     }
 
     protected function getPages(): array

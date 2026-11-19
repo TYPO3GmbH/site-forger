@@ -1,7 +1,13 @@
 <div class="section">
     {% if results is defined %}
         <div class="section-filter">
-            {% include '_partials/aggregations.html.twig' with {'aggregations': aggregations, 'query': query, 'ownerSearchList': routeName} only %}
+            {% include '_partials/aggregations.html.twig' with {
+                'aggregations': aggregations,
+                'query': query,
+                'personSearch': {
+                    'Owner': {'filter': 'owner', 'url': path('gerrit_owners', {'list': routeName}), 'label': 'Find an owner'},
+                },
+            } only %}
         </div>
         <div class="section-main">
             {% include '_partials/pagination.html.twig' with {

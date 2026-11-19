@@ -283,7 +283,7 @@ final readonly class MockDataGenerator
         $stateIndex = intdiv($index, count($this->people));
         if (0 !== $stateIndex % 3) {
             $assignee = $this->people[($personIndex + $stateIndex % 2) % count($this->people)];
-            $issue['assigned_to'] = ['id' => 50000 + array_search($assignee, $this->people, true), 'name' => $assignee['name']];
+            $issue['assigned_to'] = ['id' => 50000 + array_search($assignee, $this->people, true), 'name' => $assignee['name'], 'email' => $assignee['email']];
         }
         if (0 === $index % 7) {
             $issue['parent'] = ['id' => self::ID_OFFSET + 1];
