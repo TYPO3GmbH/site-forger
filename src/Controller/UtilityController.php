@@ -71,8 +71,8 @@ class UtilityController extends AbstractController
             return $this->redirectToRoute('utilities_backport_index');
         }
 
-        if (null !== $request->get('changeId')) {
-            $form->get('changeId')->setData($request->get('changeId'));
+        if ($request->query->has('changeId')) {
+            $form->get('changeId')->setData($request->query->getString('changeId'));
         }
 
         return $this->render(

@@ -37,7 +37,7 @@ class SearchController extends AbstractController
 
         $viewData = [];
         $searchClosed = false;
-        if ($request->get('searchClosed') && 1 === (int) $request->get('searchClosed')) {
+        if (1 === $request->query->getInt('searchClosed')) {
             $searchClosed = true;
         }
         $results = [];
@@ -59,7 +59,7 @@ class SearchController extends AbstractController
         if ($searchClosed) {
             $viewData['searchClosed'] = '1';
         }
-        $viewData['filters'] = $request->get('filters') ?? [];
+        $viewData['filters'] = $request->query->all('filters');
         $viewData['routeName'] = 'search_search';
 
         return $this->render('search/search.html.twig', $viewData);

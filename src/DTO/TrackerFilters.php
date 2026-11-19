@@ -23,7 +23,7 @@ readonly class TrackerFilters
 
     public function __construct(Request $request)
     {
-        $trackerFilters = $request->get('trackerFilters');
+        $trackerFilters = $request->query->all('trackerFilters');
 
         $this->bug = isset($trackerFilters['bug']);
         $this->epic = isset($trackerFilters['epic']);
