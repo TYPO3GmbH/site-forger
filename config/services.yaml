@@ -104,6 +104,9 @@ services:
     arguments:
       $url: '%env(FORGE_ENDPOINT)%'
       $apikeyOrUsername: '%env(FORGE_ACCESS_TOKEN)%'
+    calls:
+      # forge.typo3.org rejects requests without a User-Agent (bot protection)
+      - setCurlOption: [!php/const CURLOPT_USERAGENT, 'TYPO3 Forger']
 
   guzzle.client.general:
     class: GuzzleHttp\Client
