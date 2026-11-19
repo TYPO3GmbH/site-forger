@@ -92,6 +92,13 @@ Other commands:
 * `app:truncate-type <issue|review|interactions>` deletes all documents of an index type
 * `app:elasticsearch:setup`, see [Elasticsearch indices](#elasticsearch-indices)
 
+### The project
+
+Forge lists the issues of subprojects with those of a project. The import keeps the issues of the project itself
+(`redmine_project_id`, 27) only (`App\Elastic\ProjectIssues`), so the figures match the project on Forge. Every
+Forge import removes issues of other projects from the index, e.g. after an issue was moved; after a complete
+`forgeFull` the issues Forge did not list any more are checked one by one and removed if they are gone.
+
 ### How the deltas work
 
 The deltas only read what changed, and only load details for what they do not have yet:
