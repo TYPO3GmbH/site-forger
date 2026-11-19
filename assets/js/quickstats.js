@@ -20,7 +20,7 @@
         loadStats: function (container) {
             const sourceUrl = container.dataset.src;
 
-            QuickStats.fetchData(sourceUrl).done(function(response) {
+            QuickStats.fetchData(sourceUrl).then(function(response) {
                 const keys = Object.keys(response);
                 for (let key of keys) {
                     const stat = response[key];
@@ -41,10 +41,12 @@
                 }
             });
         },
-        fetchData: function (src) {
-            return $.ajax(src, {
-                dataType: 'json'
-            });
+        fetchData: async function (src) {
+            const response = await fetch(src, {headers: {Accept: 'application/json'}});
+            if (!response.ok) {
+                throw new Error('Loading ' + src + ' failed with status ' + response.status);
+            }
+            return response.json();
         }
     };
 
