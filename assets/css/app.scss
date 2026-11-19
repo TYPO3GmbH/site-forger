@@ -6,6 +6,7 @@
 @use "module/status";
 @use "module/dashboard";
 @use "module/navigation";
+@use "module/rst-helper";
 
 .js-chart {
     height: 100%;

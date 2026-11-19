@@ -180,8 +180,8 @@ class UtilityController extends AbstractController
             'YAML',
         ];
 
+        // System extensions of the main branch
         $extensionKeys = [
-            'about',
             'adminpanel',
             'backend',
             'belog',
@@ -205,24 +205,32 @@ class UtilityController extends AbstractController
             'lowlevel',
             'opendocs',
             'reactions',
-            'recordlist',
             'recycler',
             'redirects',
             'reports',
             'rte_ckeditor',
             'scheduler',
             'seo',
-            'setup',
+            'styleguide',
             'sys_note',
-            't3editor',
+            'theme_camino',
             'tstemplate',
             'viewpage',
+            'webhooks',
             'workspaces',
+        ];
+
+        // Directories of typo3/sysext/core/Documentation/Changelog/ a ReST file goes into, see Changelog/Howto.rst of the core
+        $changelogTargets = [
+            'main' => ['label' => 'Only main', 'directories' => ['15.0']],
+            'lts' => ['label' => 'Backported to 14.3', 'directories' => ['14.3.x']],
+            'old-lts' => ['label' => 'Backported to 14.3 and 13.4', 'directories' => ['14.3.x', '13.4.x']],
         ];
 
         $viewData = [
             'tags' => $tags,
             'extensionKeys' => $extensionKeys,
+            'changelogTargets' => $changelogTargets,
         ];
 
         return $this->render('utility/rst.html.twig', $viewData);
