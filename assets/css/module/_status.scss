@@ -45,6 +45,23 @@
 .status-pill-abandoned { --status-color: #6c757d; --status-background: #f1f3f5; }
 .status-pill-conflict { --status-color: #b42318; --status-background: #fdecea; }
 
+// Activity of Gerrit changes and Forge issues, see App\Enum\ActivityEnum
+.status-pill-icon {
+    &::before {
+        display: none;
+    }
+
+    .icon {
+        width: 1em;
+        height: 1em;
+    }
+}
+
+.status-pill-activity-fresh { --status-color: #15803d; --status-background: #e5f6eb; }
+.status-pill-activity-quiet { --status-color: #1d4ed8; --status-background: #e7efff; }
+.status-pill-activity-stale { --status-color: #a15c07; --status-background: #fff3dc; }
+.status-pill-activity-orphaned { --status-color: #b42318; --status-background: #fdecea; }
+
 // Command runs
 .status-pill-run-running { --status-color: #1d4ed8; --status-background: #e7efff; }
 .status-pill-run-success { --status-color: #15803d; --status-background: #e5f6eb; }

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
+use App\Enum\ActivityEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\PriorityEnum;
 use App\Enum\ReviewStateEnum;
@@ -44,6 +45,28 @@ final class StatusTwigExtension
     public function reviewState(array $change): ReviewStateEnum
     {
         return ReviewStateEnum::fromChange($change);
+    }
+
+    /**
+     * How long ago a Gerrit change document of the review index was last updated, null if it is closed.
+     *
+     * @param array<string, mixed> $change
+     */
+    #[AsTwigFunction(name: 'review_activity')]
+    public function reviewActivity(array $change): ?ActivityEnum
+    {
+        return ActivityEnum::fromChange($change, new \DateTimeImmutable());
+    }
+
+    /**
+     * How long ago a Forge issue document of the issue index was last updated, null if it is closed.
+     *
+     * @param array<string, mixed> $issue
+     */
+    #[AsTwigFunction(name: 'issue_activity')]
+    public function issueActivity(array $issue): ?ActivityEnum
+    {
+        return ActivityEnum::fromIssue($issue, new \DateTimeImmutable());
     }
 
     /**

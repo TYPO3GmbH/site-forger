@@ -14,7 +14,7 @@
                     {% set priority = issue_priority(issue.priority.name ?? null) %}
                     <li>
                         <a class="mywork-item" href="https://forge.typo3.org/issues/{{ issue.id }}" target="issue{{ issue.id }}">
-                            <span class="mywork-item-status">{{ status.issue(issue.status.name ?? null) }}</span>
+                            <span class="mywork-item-status">{{ status.issue(issue.status.name ?? null) }}{{ status.issueActivity(issue) }}</span>
                             <span class="mywork-item-main">
                                 <span class="mywork-item-title"><span class="mywork-item-id">{{ issue.id }}</span>{{ issue.subject }}</span>
                                 <span class="mywork-item-meta">

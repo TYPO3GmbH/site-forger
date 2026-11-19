@@ -374,12 +374,13 @@ final readonly class MockDataGenerator
 
     /**
      * Spreads the updates from an hour to about two years ago, so recent, stale and old documents exist.
+     * Steps of three run through all ages even for a few consecutive documents, such as the open changes.
      */
     private function age(int $index): \DateTimeImmutable
     {
         $hours = [1, 5, 30, 24 * 4, 24 * 12, 24 * 35, 24 * 70, 24 * 150, 24 * 400, 24 * 700];
 
-        return $this->now->modify('-' . $hours[$index % count($hours)] . ' hours')->modify('-' . $index . ' minutes');
+        return $this->now->modify('-' . $hours[($index * 3) % count($hours)] . ' hours')->modify('-' . $index . ' minutes');
     }
 
     /**

@@ -16,6 +16,7 @@
                                 {% if change.reviewstatus == 'NEW' and change.mergeable == 'no' %}
                                     <span class="status-pill status-pill-conflict">Merge conflict</span>
                                 {% endif %}
+                                {{ status.activity(change) }}
                             </span>
                             <span class="mywork-item-main">
                                 <span class="mywork-item-title"><span class="mywork-item-id">{{ change.id }}</span>{{ change.subject }}</span>

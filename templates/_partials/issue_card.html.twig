@@ -15,6 +15,7 @@
         <div class="issue-content">
             <div class="issue-status">
                 {{ status.issue(card.status.name ?? null) }}
+                {{ status.issueActivity(card) }}
                 {% if card.category.name is defined %}
                     <span class="badge badge-light">{{ card.category.name }}</span>
                 {% endif %}

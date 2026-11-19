@@ -37,6 +37,7 @@
             {% if mode != 'backport' %}
                 <div class="review-status">
                     {{ status.review(card) }}
+                    {{ status.activity(card) }}
                 </div>
             {% endif %}
             {% if card.branch != 'main' %}

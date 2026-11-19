@@ -1,0 +1,137 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
+
+namespace App\Tests\Enum;
+
+use App\Enum\ActivityEnum;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+final class ActivityEnumTest extends TestCase
+{
+    private const string NOW = '2026-11-19 12:00:00';
+
+    /**
+     * @return iterable<string, array{string, ActivityEnum}>
+     */
+    public static function lastActivities(): iterable
+    {
+        yield 'an hour ago' => ['2026/11/19 11:00:00', ActivityEnum::FRESH];
+        yield 'exactly 14 days ago' => ['2026/11/05 12:00:00', ActivityEnum::FRESH];
+        yield 'just over 14 days ago' => ['2026/11/05 11:59:59', ActivityEnum::QUIET];
+        yield 'a month ago' => ['2026/10/19 12:00:00', ActivityEnum::QUIET];
+        yield 'just over 60 days ago' => ['2026/09/20 11:59:59', ActivityEnum::STALE];
+        yield 'exactly 180 days ago' => ['2026/05/23 12:00:00', ActivityEnum::STALE];
+        yield 'two years ago' => ['2024/11/19 12:00:00', ActivityEnum::ORPHANED];
+    }
+
+    #[DataProvider('lastActivities')]
+    public function testStageOfTheLastActivity(string $lastActivity, ActivityEnum $expected): void
+    {
+        $change = ['reviewstatus' => 'NEW', 'updated_on' => $lastActivity, 'created_on' => '2020/01/01 00:00:00'];
+
+        self::assertSame($expected, ActivityEnum::fromChange($change, new \DateTimeImmutable(self::NOW)));
+    }
+
+    public function testClosedChangesHaveNoStage(): void
+    {
+        $now = new \DateTimeImmutable(self::NOW);
+
+        self::assertNull(ActivityEnum::fromChange(['reviewstatus' => 'MERGED', 'updated_on' => '2020/01/01 00:00:00'], $now));
+        self::assertNull(ActivityEnum::fromChange(['reviewstatus' => 'ABANDONED', 'updated_on' => '2020/01/01 00:00:00'], $now));
+        self::assertSame(ActivityEnum::ORPHANED, ActivityEnum::fromChange(['reviewstatus' => 'NEW', 'work_in_progress' => true, 'updated_on' => '2020/01/01 00:00:00'], $now));
+    }
+
+    public function testDocumentsWithoutAnUpdateFallBackToTheCreation(): void
+    {
+        $now = new \DateTimeImmutable(self::NOW);
+
+        self::assertSame(ActivityEnum::STALE, ActivityEnum::fromChange(['reviewstatus' => 'NEW', 'created_on' => '2026/07/01 00:00:00'], $now));
+        self::assertNull(ActivityEnum::fromChange(['reviewstatus' => 'NEW'], $now));
+    }
+
+    public function testIssuesHaveAStageUnlessClosed(): void
+    {
+        $now = new \DateTimeImmutable(self::NOW);
+        $old = ['updated_on' => '2026/07/01 00:00:00', 'created_on' => '2020/01/01 00:00:00'];
+
+        self::assertSame(ActivityEnum::STALE, ActivityEnum::fromIssue($old + ['status' => ['id' => 8, 'name' => 'Under Review']], $now));
+        self::assertNull(ActivityEnum::fromIssue($old + ['status' => ['id' => 3, 'name' => 'Resolved']], $now));
+        // Without an id the name decides, statuses Forge does not know count as open
+        self::assertNull(ActivityEnum::fromIssue($old + ['status' => ['name' => 'Closed']], $now));
+        self::assertSame(ActivityEnum::STALE, ActivityEnum::fromIssue($old + ['status' => ['name' => 'Something new']], $now));
+        self::assertSame(ActivityEnum::STALE, ActivityEnum::fromIssue($old, $now));
+    }
+
+    public function testRangesCoverAllDatesWithoutGaps(): void
+    {
+        self::assertSame(['gte' => 'now-14d'], ActivityEnum::FRESH->range());
+        self::assertSame(['gte' => 'now-60d', 'lt' => 'now-14d'], ActivityEnum::QUIET->range());
+        self::assertSame(['lt' => 'now-180d'], ActivityEnum::ORPHANED->range());
+
+        $cases = ActivityEnum::cases();
+        for ($i = 1, $count = count($cases); $i < $count; ++$i) {
+            self::assertSame($cases[$i - 1]->range()['gte'], $cases[$i]->range()['lt']);
+        }
+    }
+
+    public function testFiltersLeaveOutClosedChangesAndIssues(): void
+    {
+        self::assertSame(
+            ['bool' => [
+                'filter' => [['range' => ['updated_on' => ['gte' => 'now-180d', 'lt' => 'now-60d']]]],
+                'must_not' => [['terms' => ['reviewstatus' => ['MERGED', 'ABANDONED']]]],
+            ]],
+            ActivityEnum::STALE->changeQuery()
+        );
+        self::assertSame(
+            ['bool' => [
+                'filter' => [['range' => ['updated_on' => ['lt' => 'now-180d']]]],
+                'must_not' => [['terms' => ['status.name' => ['Closed', 'Rejected', 'Resolved']]]],
+            ]],
+            ActivityEnum::ORPHANED->issueQuery()
+        );
+    }
+
+    public function testAggregationsCountWithTheFilters(): void
+    {
+        $changes = ActivityEnum::changeAggregation()['filters']['filters'];
+        $issues = ActivityEnum::issueAggregation()['filters']['filters'];
+
+        self::assertSame(['Fresh', 'Quiet', 'Stale', 'Orphaned'], array_keys($changes));
+        self::assertSame(ActivityEnum::QUIET->changeQuery(), $changes['Quiet']);
+        self::assertSame(ActivityEnum::QUIET->issueQuery(), $issues['Quiet']);
+    }
+
+    public function testBucketsFollowTheStagesWithTheLabelsAsKeys(): void
+    {
+        // Elasticsearch answers a keyed "filters" aggregation, in any order
+        $result = ['buckets' => ['Stale' => ['doc_count' => 3], 'Fresh' => ['doc_count' => 7], 'Orphaned' => ['doc_count' => 1]]];
+
+        self::assertSame(
+            ['buckets' => [
+                ['key' => 'Fresh', 'doc_count' => 7],
+                ['key' => 'Quiet', 'doc_count' => 0],
+                ['key' => 'Stale', 'doc_count' => 3],
+                ['key' => 'Orphaned', 'doc_count' => 1],
+            ]],
+            ActivityEnum::buckets($result)
+        );
+    }
+
+    public function testLabelsAreTheFilterKeys(): void
+    {
+        foreach (ActivityEnum::cases() as $stage) {
+            self::assertSame($stage, ActivityEnum::tryFromLabel($stage->label()));
+        }
+        self::assertNull(ActivityEnum::tryFromLabel('fresh'));
+    }
+}

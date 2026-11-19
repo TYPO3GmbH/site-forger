@@ -28,6 +28,7 @@
         </div>
         <div class="review-status">
             {{ status.review(review._source) }}
+            {{ status.activity(review._source) }}
         </div>
          {% if review._source.branch != 'main' %}
             <div class="review-branch">

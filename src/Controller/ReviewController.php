@@ -12,11 +12,13 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\ElasticUtility;
+use App\Enum\ActivityEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStatusEnum;
 use Elastica\Exception\InvalidException;
 use Elastica\Query\BoolQuery;
 use Elastica\Query\Range;
+use Elastica\Query\Simple;
 use Elastica\Query\Term;
 use Elastica\ResultSet;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -569,6 +571,9 @@ class ReviewController extends AbstractController
         $viewData['totalResults'] = $this->totalHits;
         $viewData['startingAtItem'] = ($this->currentPage * $this->perPage) - ($this->perPage - 1);
         $viewData['aggregations'] = $resultSet->getAggregations();
+        if (isset($viewData['aggregations']['Activity'])) {
+            $viewData['aggregations']['Activity'] = ActivityEnum::buckets($viewData['aggregations']['Activity']);
+        }
         $viewData['filters'] = $this->query()->all('filters');
         $viewData['query'] = $this->query()->getString('query');
 
@@ -598,7 +603,14 @@ class ReviewController extends AbstractController
             foreach ($filterValue as $term => $enabled) {
                 if ('true' === $enabled) {
                     $term = str_replace('_', ' ', (string) $term);
-                    if ('updated_on' === $key) {
+                    if ('activity' === $key) {
+                        $stage = ActivityEnum::tryFromLabel($term);
+                        if (null === $stage) {
+                            continue;
+                        }
+                        // Only open changes have a stage, also when closed ones are searched
+                        $filter = new Simple($stage->changeQuery());
+                    } elseif ('updated_on' === $key) {
                         $filter = new Range();
                         $startDate = new \DateTime('@' . (int) ($term / 1000));
                         $endDate = new \DateTime('@' . (int) ($term / 1000))->modify('+1 month -1 second');
@@ -674,6 +686,7 @@ class ReviewController extends AbstractController
                     'size' => 10000,
                 ],
             ],
+            'Activity' => ActivityEnum::changeAggregation(),
             'Updated on' => [
                 'date_histogram' => [
                     'field' => 'updated_on',

@@ -28,7 +28,7 @@
                                             <strong>{{ issue.subject }}</strong><br>
                                             <small>{% if issue.category.name is defined %}Category: {{ issue.category.name }}{% endif %}</small>
                                         </th>
-                                        <th data-type="badge">{{ status.issue(issue.status.name ?? null) }}</th>
+                                        <th data-type="badge">{{ status.issue(issue.status.name ?? null) }} {{ status.issueActivity(issue) }}</th>
                                         <td>{{ issue.author.name }}</td>
                                         <td>
                                             {{ relativetime(to_datetime(issue.created_on)) }}<br>

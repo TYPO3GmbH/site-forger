@@ -12,7 +12,9 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\ElasticUtility;
+use App\Enum\ActivityEnum;
 use App\Enum\IssueStatusEnum;
+use Elastica\Aggregation\Filters;
 use Elastica\Aggregation\Terms;
 use Elastica\Query;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -202,6 +204,9 @@ class SearchController extends AbstractController
         $results = $elasticaResultSet->getResults();
         $maxScore = $elasticaResultSet->getMaxScore();
         $aggs = $elasticaResultSet->getAggregations();
+        if (isset($aggs['Activity'])) {
+            $aggs['Activity'] = ActivityEnum::buckets($aggs['Activity']);
+        }
         $this->totalHits = $elasticaResultSet->getTotalHits();
 
         $out = [
@@ -237,6 +242,16 @@ class SearchController extends AbstractController
             foreach ($filterValue as $term => $enabled) {
                 if ('true' === $enabled) {
                     $term = str_replace('_', ' ', (string) $term);
+                    if ('activity' === $key) {
+                        $stage = ActivityEnum::tryFromLabel($term);
+                        if (null === $stage) {
+                            continue;
+                        }
+                        // Only open issues have a stage, also when closed ones are searched
+                        $filterPart->addShould(new Query\Simple($stage->issueQuery()));
+                        ++$filterCatCount;
+                        continue;
+                    }
                     $filter = new Query\Term();
                     if ('tracker' === $key
                         || 'project' === $key
@@ -301,6 +316,12 @@ class SearchController extends AbstractController
         $phpVer = new Terms('PHP Version');
         $phpVer->setField('php_version');
         $elasticaQuery->addAggregation($phpVer);
+
+        $activity = new Filters('Activity');
+        foreach (ActivityEnum::issueAggregation()['filters']['filters'] as $label => $filter) {
+            $activity->addFilter(new Query\Simple($filter), $label);
+        }
+        $elasticaQuery->addAggregation($activity);
     }
 
     protected function getPages(): array
