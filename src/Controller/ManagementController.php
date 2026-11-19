@@ -221,7 +221,10 @@ class ManagementController extends AbstractController
                 'Epic' => 0,
             ];
             foreach ($category['tracker']['buckets'] as $tracker) {
-                $viewData[$category['key']][$tracker['key']] = $tracker['doc_count'];
+                // Other trackers would add cells without a column
+                if (array_key_exists($tracker['key'], $viewData[$category['key']])) {
+                    $viewData[$category['key']][$tracker['key']] = $tracker['doc_count'];
+                }
             }
             ksort($viewData);
         }
