@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
-{% block title %}Issue Manager{% endblock %}
-{% block headline %}Issue Management View{% endblock %}
+{% block title %}Issues by month{% endblock %}
+{% block headline %}Issues by month{% endblock %}
 {% block body %}
 
     <div class="content-section content-section-smallest bg-dark text-white">
@@ -49,34 +49,15 @@
                                         </div>
                                         <div class="listbox-entries">
                                             {% for status in month.stati %}
-                                                {% set parameter = null %}
-                                                {% set severity = null %}
-                                                {% if status.name == 'New' %}
-                                                    {% set parameter = 1 %}
-                                                    {% set severity = 'new' %}
-                                                {% elseif status.name == 'Accepted' %}
-                                                    {% set parameter = 2 %}
-                                                    {% set severity = 'accepted' %}
-                                                {% elseif status.name == 'Under Review' %}
-                                                    {% set parameter = 8 %}
-                                                    {% set severity = 'underreview' %}
-                                                {% elseif status.name == 'On Hold' %}
-                                                    {% set parameter = 7 %}
-                                                    {% set severity = 'onhold' %}
-                                                {% elseif status.name == 'Needs Feedback' %}
-                                                    {% set parameter = 4 %}
-                                                    {% set severity = 'needsfeedback' %}
-                                                {% elseif status.name == 'In Progress' %}
-                                                    {% set parameter = 11 %}
-                                                    {% set severity = 'inprogress' %}
-                                                {% endif %}
-                                                {% if parameter and severity %}
+                                                {# Label, Forge id and severity come from IssueStatusEnum, states Forge does not know are left out #}
+                                                {% set state = issue_status(status.name) %}
+                                                {% if state %}
                                                     <div class="listbox-item">
                                                         <div class="listbox-item-name">
-                                                            <a href="{{ forgeLink(year.year, month.month, parameter) }}">{{status.name}}</a>
+                                                            <a href="{{ forgeLink(year.year, month.month, state.value) }}">{{ state.label }}</a>
                                                         </div>
                                                         <div class="listbox-item-badge">
-                                                            <span class="badge status-{{ severity }}">{{status.total}}</span>
+                                                            <span class="status-pill status-pill-{{ state.severity }}">{{ status.total }}</span>
                                                         </div>
                                                     </div>
                                                 {% endif %}

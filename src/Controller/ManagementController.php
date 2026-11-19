@@ -14,6 +14,7 @@ namespace App\Controller;
 use App\DTO\TrackerFilters;
 use App\Elastic\ElasticUtility;
 use App\Enum\IssueStatusEnum;
+use App\Enum\TrackerEnum;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -79,7 +80,7 @@ class ManagementController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'status.name' => IssueStatusEnum::closedValues(),
+                                'status.name' => IssueStatusEnum::closedLabels(),
                             ],
                         ],
                         [
@@ -117,20 +118,8 @@ class ManagementController extends AbstractController
                 ],
             ],
         ];
-        if ($trackerFilters->feature) {
-            $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = 'Feature';
-        }
-        if ($trackerFilters->task) {
-            $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = 'Task';
-        }
-        if ($trackerFilters->bug) {
-            $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = 'Bug';
-        }
-        if ($trackerFilters->epic) {
-            $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = 'Epic';
-        }
-        if ($trackerFilters->story) {
-            $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = 'Story';
+        foreach ($trackerFilters->excluded as $tracker) {
+            $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = $tracker->label();
         }
         $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
         $resultSet = $search->search();
@@ -178,7 +167,7 @@ class ManagementController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'status.name' => IssueStatusEnum::closedValues(),
+                                'status.name' => IssueStatusEnum::closedLabels(),
                             ],
                         ],
                         [
@@ -213,15 +202,15 @@ class ManagementController extends AbstractController
         $aggregations = $resultSet->getAggregations();
         $viewData = [];
         foreach ($aggregations['category']['buckets'] as $category) {
-            $viewData[$category['key']] = [
-                'Bug' => 0,
-                'Feature' => 0,
-                'Task' => 0,
-                'Story' => 0,
-                'Epic' => 0,
-            ];
+            // The columns of the overview: other trackers would add cells without a column
+            $viewData[$category['key']] = array_fill_keys(
+                array_map(static fn (TrackerEnum $tracker): string => $tracker->label(), [TrackerEnum::BUG, TrackerEnum::FEATURE, TrackerEnum::TASK, TrackerEnum::STORY, TrackerEnum::EPIC]),
+                0,
+            );
             foreach ($category['tracker']['buckets'] as $tracker) {
-                $viewData[$category['key']][$tracker['key']] = $tracker['doc_count'];
+                if (array_key_exists($tracker['key'], $viewData[$category['key']])) {
+                    $viewData[$category['key']][$tracker['key']] = $tracker['doc_count'];
+                }
             }
             ksort($viewData);
         }

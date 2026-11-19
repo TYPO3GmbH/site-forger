@@ -17,4 +17,12 @@ abstract class ReviewChart extends AbstractChart implements ChartInterface
     {
         return 'review';
     }
+
+    /**
+     * Changes in progress are left out: their owners do not ask for a review yet.
+     */
+    protected function scope(): array
+    {
+        return [['bool' => ['must_not' => [['term' => ['work_in_progress' => true]]]]]];
+    }
 }

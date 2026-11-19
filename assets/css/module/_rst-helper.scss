@@ -1,0 +1,622 @@
+// ReST helper, see templates/utility/rst.html.twig
+
+.rst-editor-section {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+}
+
+.rst-editor {
+    --rst-border: #e3e5e8;
+    --rst-border-strong: #cfd3d8;
+    --rst-muted: #6b7280;
+    --rst-surface: #fff;
+    --rst-subtle: #f6f7f9;
+    --rst-hover: #eef0f3;
+    --rst-accent: var(--bs-primary, #ed6d05);
+    --rst-accent-soft: #fdf0e6;
+    --rst-done: #2f8a3e;
+    --rst-done-soft: #eaf6ec;
+    --rst-open: #a55f00;
+    --rst-open-soft: #fff6e5;
+    --rst-radius: .5rem;
+    --rst-control-height: 2rem;
+
+    display: flex;
+    flex-direction: column;
+    font-size: .875rem;
+    gap: .75rem;
+
+    // From lg on the editor fills the rest of the window, assets/js/rst.js sets --rst-editor-top
+    @media (min-width: 992px) {
+        height: calc(100vh - var(--rst-editor-top, 15rem) - 1.25rem);
+        min-height: 34rem;
+    }
+
+    [hidden] {
+        display: none !important;
+    }
+}
+
+.rst-workspace {
+    display: grid;
+    flex: 1 1 auto;
+    gap: .75rem;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+
+    @media (min-width: 992px) {
+        grid-template-columns: 16rem minmax(0, 1fr);
+    }
+}
+
+.rst-panel {
+    background: var(--rst-surface);
+    border: 1px solid var(--rst-border);
+    border-radius: var(--rst-radius);
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.rst-panel-title {
+    align-items: center;
+    border-bottom: 1px solid var(--rst-border);
+    display: flex;
+    font-size: .9375rem;
+    font-weight: 600;
+    gap: .5rem;
+    margin: 0;
+    padding: .625rem 1rem;
+}
+
+.rst-panel-title h2 {
+    font-size: inherit;
+    font-weight: inherit;
+    margin: 0;
+}
+
+// The draft is kept in the browser, see assets/js/rst.js
+.rst-draft-state {
+    color: var(--rst-muted);
+    font-size: .75rem;
+    font-weight: 400;
+    margin-left: auto;
+}
+
+.rst-panel-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+// Details
+
+.rst-field + .rst-field {
+    margin-top: 1rem;
+}
+
+.rst-field[hidden] {
+    display: none;
+}
+
+.rst-label {
+    color: var(--rst-muted);
+    display: flex;
+    font-size: .75rem;
+    font-weight: 600;
+    justify-content: space-between;
+    letter-spacing: .03em;
+    margin-bottom: .375rem;
+    text-transform: uppercase;
+
+    a {
+        font-weight: 400;
+        letter-spacing: 0;
+        text-transform: none;
+    }
+}
+
+.rst-input {
+    background-color: var(--rst-surface);
+    border: 1px solid var(--rst-border-strong);
+    border-radius: .375rem;
+    color: inherit;
+    display: block;
+    font-size: .875rem;
+    line-height: 1.4;
+    min-height: var(--rst-control-height);
+    padding: .3125rem .625rem;
+    width: 100%;
+
+    &:focus {
+        border-color: var(--rst-accent);
+        box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb, 237, 109, 5), .15);
+        outline: 0;
+    }
+}
+
+textarea.rst-input {
+    resize: vertical;
+}
+
+select.rst-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m4 6 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right .5rem center;
+    background-repeat: no-repeat;
+    background-size: .875rem;
+    padding-right: 1.75rem;
+}
+
+.rst-ticket {
+    align-items: stretch;
+    display: flex;
+
+    .rst-input {
+        border-left: 0;
+        border-radius: 0;
+        border-right: 0;
+    }
+}
+
+.rst-ticket-prefix,
+.rst-icon-button {
+    align-items: center;
+    background: var(--rst-subtle);
+    border: 1px solid var(--rst-border-strong);
+    color: var(--rst-muted);
+    display: flex;
+    flex: 0 0 auto;
+    justify-content: center;
+    width: var(--rst-control-height);
+}
+
+.rst-ticket-prefix {
+    border-radius: .375rem 0 0 .375rem;
+}
+
+.rst-icon-button {
+    border-radius: 0 .375rem .375rem 0;
+    cursor: pointer;
+
+    &:hover {
+        background: var(--rst-hover);
+        color: inherit;
+    }
+
+    &:disabled {
+        cursor: wait;
+        opacity: .6;
+    }
+}
+
+// Type: one segment per type
+.rst-segmented {
+    background: var(--rst-subtle);
+    border-radius: .375rem;
+    display: grid;
+    gap: 2px;
+    grid-template-columns: repeat(2, 1fr);
+    padding: 2px;
+
+    input {
+        opacity: 0;
+        pointer-events: none;
+        position: absolute;
+    }
+
+    label {
+        border-radius: .25rem;
+        color: var(--rst-muted);
+        cursor: pointer;
+        font-weight: 500;
+        padding: .3125rem .25rem;
+        text-align: center;
+    }
+
+    label:hover {
+        color: inherit;
+    }
+
+    input:checked + label {
+        background: var(--rst-surface);
+        box-shadow: 0 1px 2px rgba(16, 24, 40, .12);
+        color: var(--rst-accent);
+        font-weight: 600;
+    }
+
+    input:focus-visible + label {
+        outline: 2px solid var(--rst-accent);
+    }
+}
+
+// Tags
+.rst-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3125rem;
+
+    input {
+        opacity: 0;
+        pointer-events: none;
+        position: absolute;
+    }
+
+    label {
+        border: 1px solid var(--rst-border-strong);
+        border-radius: 1rem;
+        cursor: pointer;
+        font-size: .8125rem;
+        line-height: 1.2;
+        padding: .25rem .625rem;
+        user-select: none;
+    }
+
+    label:hover {
+        background: var(--rst-subtle);
+    }
+
+    input:checked + label {
+        background: var(--rst-accent-soft);
+        border-color: var(--rst-accent);
+        color: #a84b00;
+    }
+
+    input:focus-visible + label {
+        outline: 2px solid var(--rst-accent);
+        outline-offset: 1px;
+    }
+}
+
+// A field the status points to
+.rst-attention {
+    animation: rst-attention 1.2s ease-out;
+    border-radius: .375rem;
+}
+
+@keyframes rst-attention {
+    0%, 40% {
+        box-shadow: 0 0 0 4px rgba(var(--bs-primary-rgb, 237, 109, 5), .35);
+    }
+    100% {
+        box-shadow: 0 0 0 4px rgba(var(--bs-primary-rgb, 237, 109, 5), 0);
+    }
+}
+
+// Editor
+
+.rst-main-head {
+    align-items: center;
+    background: var(--rst-subtle);
+    border-bottom: 1px solid var(--rst-border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem .75rem;
+    padding: .375rem .5rem;
+}
+
+// Write or Preview
+.rst-switch {
+    background: var(--rst-hover);
+    border-radius: .375rem;
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+
+    button {
+        background: none;
+        border: 0;
+        border-radius: .25rem;
+        color: var(--rst-muted);
+        font-size: .8125rem;
+        font-weight: 500;
+        padding: .25rem .75rem;
+
+        &:hover {
+            color: inherit;
+        }
+
+        &.is-active {
+            background: var(--rst-surface);
+            box-shadow: 0 1px 2px rgba(16, 24, 40, .12);
+            color: inherit;
+            font-weight: 600;
+        }
+    }
+}
+
+.rst-toolbar {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+}
+
+.rst-tool-group {
+    align-items: center;
+    display: flex;
+    gap: 1px;
+
+    & + & {
+        border-left: 1px solid var(--rst-border-strong);
+        margin-left: .125rem;
+        padding-left: .375rem;
+    }
+}
+
+.rst-tool {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: .25rem;
+    color: #374151;
+    font-size: .8125rem;
+    height: 1.75rem;
+    line-height: 1;
+    min-width: 1.75rem;
+    padding: 0 .4375rem;
+
+    &:hover {
+        background: var(--rst-surface);
+        border-color: var(--rst-border-strong);
+    }
+}
+
+.rst-tool-code {
+    font-family: var(--bs-font-monospace, monospace);
+    font-size: .75rem;
+}
+
+.rst-tool-select {
+    max-width: 6.5rem;
+    background: var(--rst-surface);
+    border: 1px solid var(--rst-border-strong);
+    border-radius: .25rem;
+    font-size: .8125rem;
+    height: 1.75rem;
+    padding: 0 .25rem;
+}
+
+.rst-sections {
+    background: var(--rst-subtle);
+}
+
+.rst-section {
+    & + & {
+        margin-top: 1.25rem;
+    }
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.rst-section-head {
+    cursor: text;
+    margin-bottom: .375rem;
+}
+
+.rst-section-title {
+    align-items: center;
+    cursor: text;
+    display: flex;
+    font-weight: 600;
+    gap: .375rem;
+    margin: 0;
+
+    // Still empty
+    .is-empty &::after {
+        background: var(--rst-open);
+        border-radius: 50%;
+        content: "";
+        height: .375rem;
+        width: .375rem;
+    }
+}
+
+.rst-section-hint {
+    color: var(--rst-muted);
+    display: block;
+    font-size: .8125rem;
+}
+
+.rst-section-editor {
+    background: var(--rst-surface);
+    border: 1px solid var(--rst-border-strong);
+    border-radius: .375rem;
+    overflow: hidden;
+
+    &.is-focused {
+        border-color: var(--rst-accent);
+        box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb, 237, 109, 5), .15);
+    }
+}
+
+// Result
+
+.rst-result {
+    align-items: center;
+    border-left: 4px solid var(--rst-border-strong);
+    display: grid;
+    flex: 0 0 auto;
+    gap: .375rem 1rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: .625rem 1rem;
+
+    &.is-open {
+        background: var(--rst-open-soft);
+        border-left-color: #e8a33d;
+    }
+
+    &.is-complete {
+        background: var(--rst-done-soft);
+        border-left-color: var(--rst-done);
+    }
+}
+
+.rst-result-status {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+}
+
+.rst-status-summary {
+    font-weight: 600;
+
+    .is-open & {
+        color: var(--rst-open);
+    }
+
+    .is-complete & {
+        color: var(--rst-done);
+    }
+}
+
+.rst-status-items {
+    display: contents;
+    list-style: none;
+
+    li {
+        display: inline;
+    }
+
+    button {
+        background: var(--rst-surface);
+        border: 1px solid #f0d29a;
+        border-radius: 1rem;
+        color: var(--rst-open);
+        font-size: .75rem;
+        padding: .125rem .5rem;
+
+        &:hover {
+            border-color: var(--rst-open);
+        }
+    }
+}
+
+.rst-result-file {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 1rem;
+    grid-column: 1 / -1;
+    min-width: 0;
+}
+
+.rst-filename {
+    color: inherit;
+    font-size: .8125rem;
+    font-weight: 600;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rst-file-actions {
+    display: flex;
+    gap: .5rem;
+}
+
+.rst-button {
+    align-items: center;
+    background: var(--rst-surface);
+    border: 1px solid var(--rst-border-strong);
+    border-radius: .375rem;
+    color: inherit;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: .8125rem;
+    font-weight: 500;
+    gap: .375rem;
+    height: 1.875rem;
+    padding: 0 .75rem;
+    text-decoration: none;
+
+    &:hover {
+        background: var(--rst-hover);
+        color: inherit;
+    }
+
+    .icon {
+        height: 1em;
+        width: 1em;
+    }
+}
+
+.rst-button-primary {
+    background: var(--rst-accent);
+    border-color: var(--rst-accent);
+    color: #fff;
+
+    &:hover {
+        background: #d66204;
+        color: #fff;
+    }
+}
+
+.rst-paths {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 1rem;
+    min-width: 0;
+}
+
+.rst-path {
+    align-items: baseline;
+    display: flex;
+    font-size: .75rem;
+    gap: .5rem;
+
+    code {
+        color: var(--rst-muted);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.rst-link-button {
+    background: none;
+    border: 0;
+    color: var(--rst-accent);
+    flex: 0 0 auto;
+    font-size: .75rem;
+    font-weight: 600;
+    padding: 0;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.rst-preview {
+    flex: 1 1 auto;
+    min-height: 20rem;
+
+    .ace_cursor-layer {
+        display: none;
+    }
+}
+
+.rst-editor .rst-section-editor,
+.rst-editor .rst-preview {
+    // The theme of Ace is injected after this file, hence the extra class
+    .ace_print-margin {
+        background: #f0f1f3;
+    }
+
+    .ace_marker-layer .ace_active-line,
+    .ace_gutter-active-line {
+        background: #f6f7f9;
+    }
+
+    .ace_gutter {
+        background: var(--rst-surface);
+        color: #b0b6bf;
+    }
+}

@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\ElasticUtility;
+use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStatusEnum;
 use Elastica\Exception\InvalidException;
 use Elastica\Query\BoolQuery;
@@ -79,7 +80,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_index';
-        $viewData['headline'] = 'Status';
+        $viewData['headline'] = 'Ready for review';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
@@ -128,7 +129,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_hasverifications';
-        $viewData['headline'] = 'Merge Ready';
+        $viewData['headline'] = 'Reviewed and verified';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
@@ -177,7 +178,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_missesverifications';
-        $viewData['headline'] = 'Needs Verification';
+        $viewData['headline'] = 'Needs verification';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
@@ -226,7 +227,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_missesreview';
-        $viewData['headline'] = 'Needs Review';
+        $viewData['headline'] = 'Needs review';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
@@ -268,7 +269,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_rebase';
-        $viewData['headline'] = 'Needs Rebase';
+        $viewData['headline'] = 'Needs rebase';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
@@ -380,7 +381,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_negative_vote_cleanup';
-        $viewData['headline'] = 'Negative Vote Cleanup';
+        $viewData['headline'] = 'Negative votes';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
@@ -425,7 +426,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_wip';
-        $viewData['headline'] = 'Work in Progress';
+        $viewData['headline'] = 'Work in progress';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
@@ -499,7 +500,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_coreteam_merge';
-        $viewData['headline'] = 'Core Team Action Required';
+        $viewData['headline'] = 'Ready to merge';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
@@ -765,17 +766,15 @@ class ReviewController extends AbstractController
                     'must' => [
                         [
                             'term' => [
-                                'status.id' => '8',
+                                'status.id' => IssueStatusEnum::UNDER_REVIEW->value,
                             ],
                         ],
                     ],
                 ],
             ],
+            // Issues have no insertions, deletions or patch sets: sorting on them makes Elasticsearch reject the query
             'sort' => [
                 'updated_on' => 'asc',
-                'insertions' => 'asc',
-                'deletions' => 'asc',
-                'patchsets' => 'desc',
             ],
             'size' => 1000,
             'from' => 0,
@@ -794,7 +793,7 @@ class ReviewController extends AbstractController
                 ],
             ],
         ];
-        $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
+        $query = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
 
         return $query->search();
     }

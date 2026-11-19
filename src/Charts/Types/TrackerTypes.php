@@ -23,7 +23,7 @@ class TrackerTypes extends IssueChart
                 'bool' => [
                     'must_not' => [
                         'terms' => [
-                            'status.name' => IssueStatusEnum::closedValues(),
+                            'status.name' => IssueStatusEnum::closedLabels(),
                         ],
                     ],
                 ],
@@ -49,12 +49,12 @@ class TrackerTypes extends IssueChart
         $labelBuckets = $data['trackerType']['buckets'] ?? [];
 
         $typeColors = [
-            IssueStatusEnum::NEW->value => Colors::getAsRgb(Colors::RED),
-            IssueStatusEnum::ACCEPTED->value => Colors::getAsRgb(Colors::YELLOW),
-            IssueStatusEnum::UNDER_REVIEW->value => Colors::getAsRgb(Colors::GREEN),
-            IssueStatusEnum::NEEDS_FEEDBACK->value => Colors::getAsRgb(Colors::BLUE),
-            IssueStatusEnum::IN_PROGRESS->value => Colors::getAsRgb(Colors::ORANGE),
-            IssueStatusEnum::ON_HOLD->value => Colors::getAsRgb(Colors::GREY),
+            IssueStatusEnum::NEW->label() => Colors::getAsRgb(Colors::RED),
+            IssueStatusEnum::ACCEPTED->label() => Colors::getAsRgb(Colors::YELLOW),
+            IssueStatusEnum::UNDER_REVIEW->label() => Colors::getAsRgb(Colors::GREEN),
+            IssueStatusEnum::NEEDS_FEEDBACK->label() => Colors::getAsRgb(Colors::BLUE),
+            IssueStatusEnum::IN_PROGRESS->label() => Colors::getAsRgb(Colors::ORANGE),
+            IssueStatusEnum::ON_HOLD->label() => Colors::getAsRgb(Colors::GREY),
         ];
 
         // Prepare data

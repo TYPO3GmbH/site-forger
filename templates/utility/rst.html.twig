@@ -1,144 +1,171 @@
 {% extends 'base.html.twig' %}
-{% import '_macros/buttons.html.twig' as macros %}
-{% block title %}ReST Helper{% endblock %}
-{% block headline %}ReST Helper{% endblock %}
+{% block title %}ReST helper{% endblock %}
+{% block headline %}ReST helper{% endblock %}
 {% block body %}
 
-    <div class="content-section content-section-grow">
+    {% set types = {breaking: 'Breaking', deprecation: 'Deprecation', feature: 'Feature', important: 'Important'} %}
+    {# The hints follow "File content" in Changelog/Howto.rst of the core #}
+    {% set sections = [
+        {id: 'description', label: 'Description', types: 'breaking deprecation feature important', hint: 'A short summary of the change and which part of the Core it affects.'},
+        {id: 'impact', label: 'Impact', types: 'breaking deprecation feature', hint: 'What the change means, e.g. "Frontend output may change" or "Configuration of xy is easier".'},
+        {id: 'affected', label: 'Affected installations', types: 'breaking deprecation', hint: 'When an installation is affected, e.g. "Extension xy is in use" or "TypoScript functionality xy is used".'},
+        {id: 'migration', label: 'Migration', types: 'breaking deprecation', hint: 'How to cope with the change, ideally with code examples before and after.'},
+    ] %}
+
+    <div class="content-section rst-editor-section">
         <div class="container">
             <div class="flashmessage-container"></div>
-            <form class="form-rst-helper" autocomplete="off">
+            <form class="rst-editor form-rst-helper" autocomplete="off">
 
-                <div class="row">
-                    <div class="col-md-4">
+                {# The result, always in view #}
+                <section class="rst-panel rst-result" aria-label="File">
+                    <div class="rst-result-status" data-container="status" aria-live="polite">
+                        <span class="rst-status-summary" data-output="status-summary"></span>
+                        <ul class="rst-status-items" data-container="status-items"></ul>
+                    </div>
+                    <div class="rst-file-actions">
+                        <button type="button" class="rst-button" data-action="copy" data-copy="content">
+                            {{ icon('actions-clipboard') }} <span>Copy content</span>
+                        </button>
+                        <a class="rst-button rst-button-primary" data-action="download" href="#">
+                            {{ icon('actions-download') }} <span>Download</span>
+                        </a>
+                    </div>
+                    <div class="rst-result-file">
+                        <code class="rst-filename" data-output="filename"></code>
+                        <div class="rst-paths" data-container="changelog-paths"></div>
+                    </div>
+                </section>
 
-                        <div class="card">
-                            <div class="card-body">
-                                <label for="ticketid">Ticket ID</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="ticketid" placeholder="99999" autocomplete="off" required>
-                                    <button class="btn btn-secondary" type="button" data-action="fetch-ticket">
+                <div class="rst-workspace">
+                    {# What the file is about #}
+                    <aside class="rst-panel rst-meta">
+                        <div class="rst-panel-title">
+                            <h2>Details</h2>
+                            <span class="rst-draft-state" data-output="draft-state"></span>
+                            <button type="button" class="rst-link-button" data-action="reset" title="Discard the draft and start a new file">Start over</button>
+                        </div>
+                        <div class="rst-panel-scroll">
+                            <div class="rst-field">
+                                <label class="rst-label" for="ticketid">Ticket</label>
+                                <div class="rst-ticket">
+                                    <span class="rst-ticket-prefix">#</span>
+                                    <input type="text" class="rst-input" id="ticketid" placeholder="99999" inputmode="numeric">
+                                    <button class="rst-icon-button" type="button" data-action="fetch-ticket" title="Take the title from Forge" aria-label="Take the title from Forge">
                                         {{ icon('actions-search') }}
                                     </button>
                                 </div>
                             </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label>Type</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" id="classification-breaking" name="classification" autocomplete="off" value="breaking" checked>
-                                        <label class="form-check-label" for="classification-breaking">Breaking</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" id="classification-deprecation"name="classification" autocomplete="off" value="deprecation">
-                                        <label class="form-check-label" for="classification-deprecation">Deprecation</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" id="classification-feature" name="classification" autocomplete="off" value="feature">
-                                        <label class="form-check-label" for="classification-feature">Feature</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" id="classification-important" name="classification" autocomplete="off" value="important">
-                                        <label class="form-check-label" for="classification-important">Important</label>
-                                    </div>
+                            <div class="rst-field">
+                                <label class="rst-label" for="title">Title</label>
+                                <textarea class="rst-input" id="title" rows="2"></textarea>
+                            </div>
+                            <div class="rst-field">
+                                <span class="rst-label" id="type-label">Type</span>
+                                <div class="rst-segmented" role="radiogroup" aria-labelledby="type-label">
+                                    {% for value, label in types %}
+                                        <input type="radio" id="classification-{{ value }}" name="classification" value="{{ value }}" data-title="{{ label }}"{% if loop.first %} checked{% endif %}>
+                                        <label for="classification-{{ value }}">{{ label }}</label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="rst-field">
+                                <label class="rst-label" for="target">Target</label>
+                                <select class="rst-input" id="target" name="target">
+                                    {% for target in changelogTargets %}
+                                        <option value="{{ target.directories|join(' ') }}">{{ target.label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="rst-field">
+                                <span class="rst-label" id="tags-label">Tags</span>
+                                <div class="rst-chips" role="group" aria-labelledby="tags-label">
+                                    {% for tag in tags %}
+                                        <input type="checkbox" name="tag[]" value="{{ tag }}" id="tag-{{ loop.index }}" data-tag="topic">
+                                        <label for="tag-{{ loop.index }}">{{ tag }}</label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="rst-field">
+                                <label class="rst-label" for="extensionTag">Core extension</label>
+                                <select name="tag[]" id="extensionTag" class="rst-input">
+                                    <option value="">Select …</option>
+                                    {% for extensionKey in extensionKeys %}
+                                        <option value="ext:{{ extensionKey }}">{{ extensionKey }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="rst-field" data-classified-as="breaking deprecation">
+                                <label class="rst-label" for="scannerTag">
+                                    ExtensionScanner
+                                    <a href="https://docs.typo3.org/typo3cms/CoreApiReference/ApiOverview/ExtensionScanner/Index.html#connection-to-changelog-rst-files" target="_blank" rel="noopener">What is this?</a>
+                                </label>
+                                <select name="tag[]" id="scannerTag" class="rst-input">
+                                    <option value="NotScanned">Not scanned</option>
+                                    <option value="PartiallyScanned">Partially scanned</option>
+                                    <option value="FullyScanned">Fully scanned</option>
+                                </select>
+                            </div>
+                        </div>
+                    </aside>
+
+                    {# The sections of the type in the order of the file, or the file itself #}
+                    <section class="rst-panel rst-main">
+                        <div class="rst-main-head">
+                            <div class="rst-switch" role="tablist" aria-label="View">
+                                <button type="button" class="is-active" role="tab" aria-selected="true" data-view="write">Write</button>
+                                <button type="button" role="tab" aria-selected="false" data-view="preview">Preview</button>
+                            </div>
+                            <div class="rst-toolbar" role="toolbar" aria-label="Insert ReST into the current section" data-view-only="write">
+                                <div class="rst-tool-group">
+                                    <button type="button" class="rst-tool" data-insert="wrap" data-before="**" data-after="**" title="Bold (Ctrl+B)"><strong>B</strong></button>
+                                    <button type="button" class="rst-tool" data-insert="wrap" data-before="*" data-after="*" title="Italic (Ctrl+I)"><em>I</em></button>
+                                    <button type="button" class="rst-tool rst-tool-code" data-insert="wrap" data-before="`" data-after="`" title="Inline code">``</button>
+                                </div>
+                                <div class="rst-tool-group">
+                                    <button type="button" class="rst-tool rst-tool-code" data-insert="role" title="Inline code with a role, the selection becomes its content">:role:</button>
+                                    <select class="rst-tool-select" data-role aria-label="Role of the inline code">
+                                        {% for role in ['php', 'file', 'typoscript', 'yaml', 'js', 'html', 'guilabel', 'ref'] %}
+                                            <option>{{ role }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="rst-tool-group">
+                                    <button type="button" class="rst-tool" data-insert="link" title="Link, the selection becomes its text">Link</button>
+                                    <button type="button" class="rst-tool" data-insert="list" title="Bullet list, every selected line becomes an item">List</button>
+                                </div>
+                                <div class="rst-tool-group">
+                                    <button type="button" class="rst-tool" data-insert="code-block" title="Code block, the selection becomes its content">Code block</button>
+                                    <select class="rst-tool-select" data-code-language aria-label="Language of the code block">
+                                        {% for language in ['php', 'typoscript', 'yaml', 'html', 'javascript', 'shell', 'xml', 'sql', 'none'] %}
+                                            <option>{{ language }}</option>
+                                        {% endfor %}
+                                    </select>
                                 </div>
                             </div>
                         </div>
-
-                    </div>
-                    <div class="col-md-8">
-                        <div class="card">
-                            <div class="card-body" data-classified-as="breaking deprecation feature important">
-                                <label for="title">Title</label>
-                                <input type="text" class="form-control text-monospace" id="title" autocomplete="off" required disabled>
-                            </div>
-                            <div hidden class="card-body" data-classified-as="breaking deprecation feature important">
-                                <label for="description">Description</label>
-                                <textarea class="form-control text-monospace" rows="5" id="description" title="Description" required disabled></textarea>
-                            </div>
-                            <div hidden class="card-body" data-classified-as="breaking deprecation feature">
-                                <label for="impact">Impact</label>
-                                <textarea class="form-control text-monospace" rows="5" id="impact" title="Impact" required disabled></textarea>
-                            </div>
-                            <div hidden class="card-body" data-classified-as="breaking deprecation">
-                                <label for="affected">Affected Installations</label>
-                                <textarea class="form-control text-monospace" rows="5" id="affected" title="Affected installations" required disabled></textarea>
-                            </div>
-                            <div hidden class="card-body" data-classified-as="breaking deprecation">
-                                <label for="migration">Migration</label>
-                                <textarea class="form-control text-monospace" rows="5" id="migration" title="Migration" required disabled></textarea>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div hidden class="card-body" data-classified-as="breaking deprecation feature important">
-                        <label>Tags</label>
-                        <div class="row">
-                            {% for tag in tags %}
-                                <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="tag[]" value="{{ tag }}" id="tag-{{ loop.index }}">
-                                        <label class="form-check-label" for="tag-{{ loop.index }}">{{ tag }}</label>
+                        <div class="rst-panel-scroll rst-sections" data-view-only="write">
+                            {% for section in sections %}
+                                <div class="rst-section" data-section="{{ section.id }}" data-label="{{ section.label }}" data-classified-as="{{ section.types }}">
+                                    <div class="rst-section-head">
+                                        <span class="rst-section-title" id="section-{{ section.id }}-label">{{ section.label }}</span>
+                                        <span class="rst-section-hint">{{ section.hint }}</span>
                                     </div>
+                                    <div class="rst-section-editor" data-editor-container aria-labelledby="section-{{ section.id }}-label"></div>
                                 </div>
                             {% endfor %}
                         </div>
-                    </div>
-                    <div hidden class="card-body" data-classified-as="breaking deprecation feature important">
-                        <label for="extensionTag">Core Extension</label>
-                        <select name="tag[]" id="extensionTag" class="form-select" required>
-                            <option value=""></option>
-                            {% for extensionKey in extensionKeys %}
-                                <option value="ext:{{ extensionKey }}">{{ extensionKey }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div hidden class="card-body" data-classified-as="breaking deprecation">
-                        <label>ExtensionScanner Tags</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" id="tag-not-scanned" name="tag[]" autocomplete="off" value="NotScanned" checked>
-                            <label class="form-check-label" for="tag-not-scanned">Not scanned</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" id="tag-partially-scanned" name="tag[]" autocomplete="off" value="PartiallyScanned" checked>
-                            <label class="form-check-label" for="tag-partially-scanned">Partially scanned</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" id="tag-fully-scanned" name="tag[]" autocomplete="off" value="FullyScanned" checked>
-                            <label class="form-check-label" for="tag-fully-scanned">Fully scanned</label>
-                        </div>
-                        <small class="form-text text-muted"><a href="https://docs.typo3.org/typo3cms/CoreApiReference/ApiOverview/ExtensionScanner/Index.html#connection-to-changelog-rst-files" target="_blank" rel="noopener">More information about this tags</a></small>
-                    </div>
+                        <div class="rst-preview" data-preview-container data-view-only="preview" hidden></div>
+                    </section>
                 </div>
 
-
-                <div hidden class="form-group" data-classified-as="breaking deprecation feature important">
-                    {{ macros.submit('Create ReST manual', 'primary', null, {'bs-toggle': 'modal', 'bs-target': '#changelogModal'}) }}
-                </div>
             </form>
-        </div>
-    </div>
-
-    <div class="modal fade" id="changelogModal" tabindex="-1" role="dialog" aria-labelledby="changelogModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="changelogModalLabel"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <template data-template="changelog-path">
+                <div class="rst-path">
+                    <code data-output="directory"></code>
+                    <button type="button" class="rst-link-button" data-action="copy"><span>Copy path</span></button>
                 </div>
-                <div class="modal-body">
-                    <textarea class="form-control" rows="20" style="font-family:monospace;" readonly></textarea>
-                </div>
-                <template data-template="download-icon">{{ icon('actions-download') }}</template>
-            </div>
-        </div>
-    </div>
-
-    <div class="content-section content-section-small bg-shaded">
-        <div class="container">
-            {% include '_partials/utility/rst_snippets.html.twig' %}
+            </template>
         </div>
     </div>
 

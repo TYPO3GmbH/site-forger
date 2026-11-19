@@ -1,5 +1,10 @@
 {% extends '@Template/layout.html.twig' %}
 
+{# The layout of the template bundle has no block in the menu bar, the search dialog goes here #}
+{% block subnavigation %}
+    {% include '_partials/header_search.html.twig' %}
+{% endblock %}
+
 {% block javascripts %}
     <script type="application/javascript" src="https://app.usercentrics.eu/latest/main.js" id="{{ usercentrics_id }}"></script>
 {% endblock %}

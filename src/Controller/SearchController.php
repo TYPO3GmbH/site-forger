@@ -107,7 +107,7 @@ class SearchController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'status.name' => IssueStatusEnum::closedValues(),
+                                'status.name' => IssueStatusEnum::closedLabels(),
                             ],
                         ],
                     ],
@@ -154,7 +154,7 @@ class SearchController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'status.name' => IssueStatusEnum::closedValues(),
+                                'status.name' => IssueStatusEnum::closedLabels(),
                             ],
                         ],
                     ],

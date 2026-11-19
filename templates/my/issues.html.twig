@@ -1,0 +1,55 @@
+{% extends 'my/_layout.html.twig' %}
+{% import 'my/_layout.html.twig' as my %}
+{% block title %}My issues{% endblock %}
+{% block intro %}The Forge issues you reported or are assigned to.{% endblock %}
+
+{% block view %}
+    {% set hidden = includeClosed ? 0 : counts|filter((count, state) => state in closedStates)|reduce((sum, count) => sum + count, 0) %}
+    {% set baseParams = (includeClosed ? {'state': 'all'} : {})|merge(selectedId is not null ? {'status': selectedId} : {}) %}
+
+    <div class="mywork-stats">
+        {% for statusName in ['In Progress', 'Under Review', 'Needs Feedback'] %}
+            {% set state = issue_status(statusName) %}
+            {% set count = counts[statusName] ?? 0 %}
+            <a href="{{ path('my_issues', baseParams|merge({'status': state.value})) }}" class="mywork-stat status-pill-{{ state.severity }}{{ count == 0 ? ' is-empty' }}">
+                <span class="mywork-stat-count">{{ count }}</span>
+                <span class="mywork-stat-label">{{ state.label }}</span>
+            </a>
+        {% endfor %}
+    </div>
+
+    <section class="mywork-section" aria-labelledby="issues-title">
+        <header class="mywork-section-header">
+            <h2 id="issues-title">Issues <span class="mywork-section-count">{{ total }}</span></h2>
+            {% if counts is not empty %}
+                <nav class="mywork-chips" aria-label="Issue status">
+                    {{ my.chip('All', counts|reduce((sum, count) => sum + count, 0) - hidden, path('my_issues', baseParams|filter((v, k) => k != 'status')), selected is null, false) }}
+                    {% for statusName, count in counts %}
+                        {{ my.chip(statusName, count, path('my_issues', baseParams|merge({'status': statusIds[statusName] ?? statusName})), selected == statusName, statusName in closedStates and not includeClosed) }}
+                    {% endfor %}
+                </nav>
+            {% endif %}
+        </header>
+
+        {% if groups is empty %}
+            <div class="mywork-empty">
+                {% if selected is not null %}
+                    No issues have the status “{{ selected }}”.
+                {% else %}
+                    {{ includeClosed ? 'You have no issues.' : 'You have no open issues.' }}
+                {% endif %}
+            </div>
+        {% else %}
+            {% include 'my/_issue_rows.html.twig' with {'groups': groups, 'name': name} only %}
+            {% if total > shown %}
+                <p class="mywork-note">Showing the {{ shown }} most recently updated of {{ total }} issues.</p>
+            {% endif %}
+        {% endif %}
+        {% if hidden > 0 and selected is null %}
+            <p class="mywork-note">
+                {{ hidden }} resolved, closed or rejected {{ hidden == 1 ? 'issue is' : 'issues are' }} hidden.
+                <a href="{{ path('my_issues', baseParams|merge({'state': 'all'})) }}">Show</a>
+            </p>
+        {% endif %}
+    </section>
+{% endblock %}

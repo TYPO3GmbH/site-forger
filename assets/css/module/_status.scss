@@ -1,0 +1,46 @@
+// Status pills, see templates/_macros/status.html.twig
+
+.status-pill {
+    --status-color: #495057;
+    --status-background: #f1f3f5;
+
+    display: inline-flex;
+    align-items: center;
+    gap: .4em;
+    padding: .2em .7em .2em .6em;
+    border-radius: 999px;
+    background: var(--status-background);
+    color: var(--status-color);
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+    vertical-align: middle;
+
+    &::before {
+        content: "";
+        width: .5em;
+        height: .5em;
+        border-radius: 50%;
+        background: currentcolor;
+    }
+}
+
+// Forge
+.status-pill-new { --status-color: #b42318; --status-background: #fdecea; }
+.status-pill-accepted { --status-color: #0e7490; --status-background: #e3f6fa; }
+.status-pill-in-progress { --status-color: #1d4ed8; --status-background: #e7efff; }
+.status-pill-under-review { --status-color: #a15c07; --status-background: #fff3dc; }
+.status-pill-needs-feedback { --status-color: #7e22ce; --status-background: #f4eaff; }
+.status-pill-on-hold,
+.status-pill-postponed { --status-color: #5c6670; --status-background: #eef0f2; }
+.status-pill-resolved { --status-color: #15803d; --status-background: #e5f6eb; }
+.status-pill-closed { --status-color: #343a40; --status-background: #e4e7ea; }
+.status-pill-rejected { --status-color: #6c757d; --status-background: #f1f3f5; }
+
+// Gerrit
+.status-pill-ready { --status-color: #1d4ed8; --status-background: #e7efff; }
+.status-pill-wip { --status-color: #a15c07; --status-background: #fff3dc; }
+.status-pill-merged { --status-color: #15803d; --status-background: #e5f6eb; }
+.status-pill-abandoned { --status-color: #6c757d; --status-background: #f1f3f5; }
+.status-pill-conflict { --status-color: #b42318; --status-background: #fdecea; }

@@ -1,6 +1,7 @@
 {% extends 'base.html.twig' %}
-{% block title %}Stale Issues{% endblock %}
-{% block headline %}Stale Issues{% endblock %}
+{% import '_macros/status.html.twig' as status %}
+{% block title %}Stale issues{% endblock %}
+{% block headline %}Stale issues{% endblock %}
 {% block body %}
 
     <div class="content-section bg-transparent">
@@ -27,7 +28,7 @@
                                             <strong>{{ issue.subject }}</strong><br>
                                             <small>{% if issue.category.name is defined %}Category: {{ issue.category.name }}{% endif %}</small>
                                         </th>
-                                        <th data-type="badge"><span class="badge badge-secondary">{{ issue.status.name }}</span></th>
+                                        <th data-type="badge">{{ status.issue(issue.status.name ?? null) }}</th>
                                         <td>{{ issue.author.name }}</td>
                                         <td>
                                             {{ relativetime(to_datetime(issue.created_on)) }}<br>

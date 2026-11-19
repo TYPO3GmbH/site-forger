@@ -32,3 +32,6 @@ yarn-error.log
 ###< phpunit/phpunit ###
 
 /build/tools/**/vendor/
+
+# Screenshots, snapshots and logs of the Playwright MCP server
+/.playwright-mcp/

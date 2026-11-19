@@ -1,118 +1,79 @@
 {% extends 'base.html.twig' %}
 {% block title %}Dashboard{% endblock %}
+
+{#
+ # A chart card. The template bundle draws the canvas with Chart.js and the options given here.
+ # The table shows the same data in the same place, for screen readers and the colors that are hard to tell apart.
+ #}
+{% macro chart(title, subtitle, type, source, options, categoryLabel) %}
+    <figure class="overview-chart" data-chart-card>
+        <figcaption class="overview-chart-header">
+            <span>
+                <span class="overview-chart-title">{{ title }}</span>
+                <span class="overview-chart-subtitle">{{ subtitle }}</span>
+            </span>
+            <span class="overview-view-toggle" role="group" aria-label="View of {{ title }}">
+                <button type="button" class="is-active" aria-pressed="true" data-chart-view="chart">Chart</button>
+                <button type="button" aria-pressed="false" data-chart-view="table">Table</button>
+            </span>
+        </figcaption>
+        <div class="overview-chart-body">
+            <div class="overview-chart-canvas" data-chart-pane="chart">
+                <canvas class="js-chart" role="img" aria-label="{{ title }}, {{ subtitle }}" data-chart-type="{{ type }}" data-src="{{ source }}" data-options="{{ options|json_encode }}"></canvas>
+            </div>
+            <div class="overview-chart-table" data-chart-pane="table" data-chart-table="{{ source }}" data-category-label="{{ categoryLabel }}" tabindex="0" hidden></div>
+        </div>
+    </figure>
+{% endmacro %}
+
 {% block body %}
+    {% import _self as dashboard %}
 
     {% include '_partials/searchbar.html.twig' %}
 
-    <div class="content-section content-section-small">
-        <div class="container container-dashboard">
-            {% set mergeableOptions = {
-                scales: {
-                    xAxes: [{
-                        gridLines: {
-                            display: false,
-                            drawBorder: false
-                        }
-                    }],
-                    yAxes: [{
-                        gridLines: {
-                            display: false,
-                            drawBorder: false
-                        }
-                    }]
-                }
-            } %}
+    <div class="content-section content-section-small overview">
+        <div class="container">
 
-            {% set trackerOptions = {
-                scales: {
-                    xAxes: [{
-                        stacked: true
-                    }],
-                    yAxes: [{
-                        stacked: true
-                    }]
-                }
-            } %}
+            <div class="overview-stats">
+                <a class="overview-stat" href="{{ path('search_search') }}">
+                    <span class="overview-stat-label">Open issues</span>
+                    <span class="overview-stat-value overview-tone-issues">{{ openIssues }}</span>
+                    <span class="overview-stat-note">+{{ openedIssues }} opened, {{ closedIssues }} closed in 30 days</span>
+                </a>
 
-            {% set dashboard = {
-                0: {
-                    identifier: 'quickstats',
-                    classes: 'dashboard-span-base-12 dashboard-span-sm-6 dashboard-span-md-4 dashboard-start-md-1 dashboard-rowstart-md-1',
-                    icon: 'actions-list-alternative',
-                    title: 'Quick Stats',
-                    content: '<div class="js-stats" data-src="/quick_stats">
-                        <div class="row">
-                            <div class="col">Open Issues:</div>
-                            <div class="col"><span data-value="forge"><span class="text-muted">~</span></span></div>
-                            <div class="w-100"></div>
-                            <div class="col">Open Reviews:</div>
-                            <div class="col"><span data-value="gerrit"><span class="text-muted">~</span></span></div>
-                        </div>
-                    </div>'
-                },
-                1: {
-                    identifier: 'mergeable',
-                    classes: 'dashboard-span-base-12 dashboard-span-sm-6 dashboard-span-md-4 dashboard-start-md-1 dashboard-rowstart-md-2',
-                    icon: 'actions-code-merge',
-                    title: 'Mergeable',
-                    content: '<canvas class="js-chart" data-chart-type="doughnut" data-src="/chart/mergeable"></canvas>'
-                },
-                2: {
-                    identifier: 'openreviews',
-                    classes: 'dashboard-span-base-12 dashboard-span-md-4 dashboard-start-md-5 dashboard-rowstart-md-1 dashboard-rowspan-md-2',
-                    icon: 'actions-code-pull-request',
-                    title: 'Open Reviews',
-                    content: '<canvas class="js-chart" data-chart-type="line" data-src="/chart/open_reviews"></canvas>'
-                },
-                3: {
-                    identifier: 'openclosed',
-                    classes: 'dashboard-span-base-12 dashboard-span-md-4 dashboard-start-md-9 dashboard-rowstart-md-1 dashboard-rowspan-md-2',
-                    icon: 'actions-code-pull-request-close',
-                    title: 'Opened vs. Closed',
-                    content: '<canvas class="js-chart" data-chart-type="line" data-src="/chart/opened_closed"></canvas>'
-                },
-                4: {
-                    identifier: 'openticketsovertime',
-                    classes: 'dashboard-span-base-12 dashboard-span-md-6',
-                    icon: 'actions-ticket',
-                    title: 'Open Tickets over time',
-                    content: '<canvas class="js-chart" data-chart-type="line" data-src="/chart/tickets_over_time"></canvas>'
-                },
-                5: {
-                    identifier: 'openreviewsovertime',
-                    classes: 'dashboard-span-base-12 dashboard-span-md-6',
-                    icon: 'actions-history',
-                    title: 'Open Reviews over time',
-                    content: '<canvas class="js-chart" data-chart-type="line" data-options="" data-src="/chart/reviews_over_time"></canvas>'
-                },
-                11: {
-                    identifier: 'reviewprogress',
-                    classes: 'dashboard-span-base-12 dashboard-span-md-6',
-                    icon: 'actions-code-compare',
-                    title: 'Review Progress Comparison',
-                    content: '<canvas class="js-chart" data-chart-type="line" data-src="/chart/review_progress"></canvas>'
-                },
-                12: {
-                    identifier: 'ticketprogress',
-                    classes: 'dashboard-span-base-12 dashboard-span-md-6',
-                    icon: 'actions-exchange',
-                    title: 'Ticket Progress Comparison',
-                    content: '<canvas class="js-chart" data-chart-type="line" data-src="/chart/ticket_progress"></canvas>'
-                }
-            } %}
-            <div class="dashboard">
-                {% for item in dashboard %}
-                    <div class="dashboard-item {{ item.classes }}">
-                        <h5 class="dashboard-item-title">
-                            {{ icon(item.icon) }}
-                            {{ item.title }}
-                        </h5>
-                        <div class="dashboard-item-body">{{ item.content|raw }}</div>
-                    </div>
-                {% endfor %}
+                <a class="overview-stat overview-stat-wide" href="{{ path('gerrit_index') }}">
+                    <span class="overview-stat-label">Open Gerrit changes</span>
+                    <span class="overview-stat-value overview-tone-changes">{{ changesTotal }}</span>
+                    {% if changesTotal > 0 %}
+                        <span class="overview-segments" aria-hidden="true">
+                            {% for state, count in changes|filter(count => count > 0) %}
+                                <span class="overview-segment overview-segment-{{ state }}" style="flex-grow: {{ count }}"></span>
+                            {% endfor %}
+                        </span>
+                    {% endif %}
+                    <span class="overview-legend">
+                        {% for state, count in changes %}
+                            <span class="overview-legend-item"><span class="overview-legend-swatch overview-segment-{{ state }}"></span>{{ changeLabels[state] }} <strong>{{ count }}</strong></span>
+                        {% endfor %}
+                    </span>
+                </a>
+
+                <a class="overview-stat" href="{{ path('gerrit_index') }}">
+                    <span class="overview-stat-label">Waiting over a month</span>
+                    <span class="overview-stat-value{{ waitingChanges > 0 ? ' overview-tone-warning' }}">{{ waitingChanges }}</span>
+                    <span class="overview-stat-note">Changes ready for review without activity for 30 days</span>
+                </a>
+            </div>
+
+            <div class="overview-charts">
+                {{ dashboard.chart('Issues opened and closed', 'Per week, the last 12 weeks', 'bar', path('chart', {'chartName': 'opened_closed'}), chartOptionsWithLegend, 'Week') }}
+                {{ dashboard.chart('Changes waiting for review', 'Open changes by their last activity, without work in progress', 'bar', path('chart', {'chartName': 'open_reviews'}), chartOptionsHorizontal, 'Last activity') }}
+                {{ dashboard.chart('Open issues', 'At the end of each month, the last 3 years', 'line', path('chart', {'chartName': 'tickets_over_time'}), chartOptions, 'Month') }}
+                {{ dashboard.chart('Open changes', 'At the end of each month, the last 3 years, without work in progress', 'line', path('chart', {'chartName': 'reviews_over_time'}), chartOptions, 'Month') }}
+                {{ dashboard.chart('Closed issues per year', 'Summed up month by month', 'line', path('chart', {'chartName': 'ticket_progress'}), chartOptionsWithLegend, 'Month') }}
+                {{ dashboard.chart('Closed changes per year', 'Merged or abandoned, summed up month by month', 'line', path('chart', {'chartName': 'review_progress'}), chartOptionsWithLegend, 'Month') }}
             </div>
 
         </div>
     </div>
-
 {% endblock %}

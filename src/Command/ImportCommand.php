@@ -13,6 +13,7 @@ namespace App\Command;
 
 use App\Elastic\ElasticUtility;
 use App\Elastic\IndexSetup;
+use App\Enum\IssueStatusEnum;
 use App\Service\GithubService;
 use Elastica\Document;
 use Exception;
@@ -271,8 +272,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
      */
     private function getTicketAndJournal(array $issue): void
     {
-        // import journals only if issue status is "Under review" (ID: 8)
-        if (isset($issue['status']['id']) && 8 === (int) $issue['status']['id']) {
+        // import journals only if issue status is "Under review"
+        if (isset($issue['status']['id']) && IssueStatusEnum::UNDER_REVIEW === IssueStatusEnum::tryFrom((int) $issue['status']['id'])) {
             $issueWithJournals = $this->callRedmine(fn () => $this->forgeClient->getApi('issue')->show($issue['id'], ['include' => ['journals']]));
             if (is_array($issueWithJournals)) {
                 $this->addDocumentToElastic($this->injectUserData($issueWithJournals['issue']));

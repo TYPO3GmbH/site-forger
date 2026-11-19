@@ -1,17 +1,8 @@
+{% import '_macros/status.html.twig' as status %}
 {% set card = issue._source %}
 
-{% set issueTypeClass = 'default' %}
-{% if card.tracker.name == 'Bug' %}
-    {% set issueTypeClass = 'bug' %}
-{% elseif card.tracker.name == 'Feature' %}
-    {% set issueTypeClass = 'feature' %}
-{% elseif card.tracker.name == 'Task' %}
-    {% set issueTypeClass = 'task' %}
-{% elseif card.tracker.name == 'Epic' %}
-    {% set issueTypeClass = 'epic' %}
-{% elseif card.tracker.name == 'Story' %}
-    {% set issueTypeClass = 'story' %}
-{% endif %}
+{# The color of the tracker comes from TrackerEnum #}
+{% set issueTypeClass = issue_tracker(card.tracker.name ?? null).severity ?? 'default' %}
 
 <div class="issue">
     <div class="issue-type issue-type-{{ issueTypeClass }}">
@@ -19,11 +10,7 @@
     </div>
     <div class="issue-content">
         <div class="issue-status">
-            {% if card.status.name == 'New' %}
-                <span class="badge badge-danger">NEW</span>
-            {% else %}
-                <span class="badge badge-secondary">{{ card.status.name }}</span>
-            {% endif %}
+            {{ status.issue(card.status.name ?? null) }}
             {% if card.category.name is defined %}
                 <span class="badge badge-light">{{ card.category.name }}</span>
             {% endif %}

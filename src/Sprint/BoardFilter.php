@@ -89,7 +89,7 @@ final class BoardFilter
         if ([] !== $this->excludedTrackers) {
             $mustNot[] = ['terms' => [self::EXCLUDED_TRACKERS_FIELD => self::normalize($this->excludedTrackers)]];
         }
-        $closed = ['terms' => ['status.name' => IssueStatusEnum::closedValues()]];
+        $closed = ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]];
         if (0 === $this->closedVisibleDays) {
             $mustNot[] = $closed;
         } elseif ($this->closedVisibleDays > 0) {
@@ -227,7 +227,7 @@ final class BoardFilter
         } elseif (null !== $terms && $negated && self::EXCLUDED_TRACKERS_FIELD === $terms[0]) {
             array_push($this->excludedTrackers, ...$terms[1]);
         } elseif (null !== $terms && $negated && 'status.name' === $terms[0]
-            && [] === array_diff($terms[1], IssueStatusEnum::closedValues())) {
+            && [] === array_diff($terms[1], IssueStatusEnum::closedLabels())) {
             $this->closedVisibleDays = 0;
         } else {
             $dropped[] = Yaml::dump($clause, 0);
@@ -245,7 +245,7 @@ final class BoardFilter
         $closed = false;
         foreach ([...(array) ($bool['must'] ?? []), ...(array) ($bool['filter'] ?? []), ...(array) ($bool['should'] ?? [])] as $clause) {
             $terms = self::termOrTermsOf($clause);
-            if (null !== $terms && 'status.name' === $terms[0] && [] === array_diff($terms[1], IssueStatusEnum::closedValues())) {
+            if (null !== $terms && 'status.name' === $terms[0] && [] === array_diff($terms[1], IssueStatusEnum::closedLabels())) {
                 $closed = true;
             } elseif (1 === preg_match('/^now-([1-9]\d*)d$/', (string) ($clause['range']['updated_on']['lte'] ?? ''), $matches)) {
                 $days = (int) $matches[1];
