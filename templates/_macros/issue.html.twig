@@ -1,0 +1,18 @@
+{#
+ # Actions on a single issue.
+ #}
+
+{#
+ # Loads the issue from Forge again, for the admins only, see IssueRefreshController.
+ #}
+{% macro refresh(id) %}
+    {% if is_granted('ROLE_ADMIN') %}
+        <form class="issue-refresh" action="{{ path('issue_refresh', {'id': id}) }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('issue-refresh') }}">
+            <input type="hidden" name="_target_path" value="{{ app.request.requestUri ?? '' }}">
+            <button type="submit" class="issue-refresh-button" title="Refresh from Forge" aria-label="Refresh issue #{{ id }} from Forge">
+                {{ icon('actions-refresh') }}
+            </button>
+        </form>
+    {% endif %}
+{% endmacro %}

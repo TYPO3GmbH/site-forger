@@ -101,6 +101,15 @@ final class ForgeIssueImporterTest extends TestCase
         $importer->call(static fn (): array => []);
     }
 
+    public function testErrorsOfForgeOtherThanGoneAreThrownByRefresh(): void
+    {
+        $importer = $this->importer([500]);
+
+        // The index is not touched: the issue keeps its state there
+        $this->expectExceptionCode(500);
+        $importer->refresh(91089);
+    }
+
     /**
      * @param list<int> $statuses the status of each request, in order
      */

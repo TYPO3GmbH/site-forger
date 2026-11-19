@@ -21,7 +21,7 @@ use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 
 /**
- * Writes Forge issues to the issue index, for the import.
+ * Writes Forge issues to the issue index, as the import and the refresh of a single issue do.
  *
  * Forge answers a rate limit with 429. Without a handler, see onRateLimit(), that is an error at once: a page
  * waiting for minutes helps nobody. The import waits and tries again.
@@ -88,11 +88,39 @@ final class ForgeIssueImporter
     }
 
     /**
+     * Loads an issue from Forge again and writes it to the index. An issue that is gone from Forge, private
+     * or in another project now is removed from the index.
+     *
+     * @throws \RuntimeException Forge could not be asked, the index keeps the issue as it is
+     */
+    public function refresh(int $id): IssueRefreshResult
+    {
+        try {
+            $answer = $this->call(fn () => $this->forgeClient->getApi('issue')->show($id));
+        } catch (\RuntimeException $e) {
+            // Deleted on Forge, or not visible to the import any more
+            if (in_array($e->getCode(), [403, 404], true)) {
+                return $this->projectIssues->remove([$id]) > 0 ? IssueRefreshResult::REMOVED : IssueRefreshResult::NOT_FOUND;
+            }
+            throw $e;
+        }
+        if (!is_array($answer) || !isset($answer['issue']) || !is_array($answer['issue'])) {
+            throw new \RuntimeException(sprintf('Forge answered without the issue: %s', mb_substr(is_string($answer) ? trim($answer) : get_debug_type($answer), 0, 200)));
+        }
+        if (!$this->projectIssues->belongsToProject($answer['issue'])) {
+            return $this->projectIssues->remove([$id]) > 0 ? IssueRefreshResult::REMOVED : IssueRefreshResult::NOT_FOUND;
+        }
+        $this->import($answer['issue'], refresh: true);
+
+        return IssueRefreshResult::UPDATED;
+    }
+
+    /**
      * Writes an issue as Forge lists it. Issues under review are loaded again with their journals, the import
      * reads the Gerrit changes they link from them.
      *
      * @param array<string, mixed> $issue
-     * @param bool                 $refresh whether the index shows the issue right away
+     * @param bool                 $refresh whether the index shows the issue right away, for the page that asked
      *
      * @throws \RuntimeException
      */

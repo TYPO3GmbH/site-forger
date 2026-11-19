@@ -1,4 +1,5 @@
 {% import '_macros/status.html.twig' as status %}
+{% import '_macros/issue.html.twig' as issueActions %}
 {% if card is not defined or card is null %}
 
     {% include '_partials/alert.html.twig' with {message: 'Issue is missing.', style: 'danger'} %}
@@ -13,6 +14,7 @@
             <span class="issue-type-title">{{ card.tracker.name }}</span>
         </div>
         <div class="issue-content">
+            {{ issueActions.refresh(card.id) }}
             <div class="issue-status">
                 {{ status.issue(card.status.name ?? null) }}
                 {{ status.issueActivity(card) }}
