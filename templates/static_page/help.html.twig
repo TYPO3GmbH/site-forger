@@ -125,7 +125,7 @@
                     </p>
                     <div class="help-tiles">
                         {{ help.tile('gerrit_index', 'actions-code-pull-request', 'Ready for review', 'Every open change that is not work in progress.') }}
-                        {{ help.tile('gerrit_wip', 'actions-code-pull-request-draft', 'Work in progress', 'Marked as work in progress, the oldest first.') }}
+                        {{ help.tile('gerrit_wip', 'actions-code-pull-request-draft', 'Work in progress', 'Marked as work in progress in Gerrit or with [WIP] or [POC] in the subject, the oldest first.') }}
                         {{ help.tile('gerrit_missesreview', 'actions-comment', 'Needs review', 'Verified, but no positive code review yet.') }}
                         {{ help.tile('gerrit_missesverifications', 'actions-check-circle', 'Needs verification', 'A positive code review, but not verified yet.') }}
                         {{ help.tile('gerrit_rebase', 'actions-refresh', 'Needs rebase', 'Gerrit cannot merge them because of a conflict.') }}
@@ -222,6 +222,7 @@
                     <ul class="help-points">
                         <li>The number next to a filter value is how many results it has.</li>
                         <li>Values of one filter add up, different filters narrow each other down: <em>Stale or Orphaned, and on main</em>.</li>
+                        <li>The "Type" filter of the review lists uses the tags in the subject, like BUGFIX, TASK, FEATURE, DOCS or !!! for a breaking change.</li>
                         <li>The search in the header finds issues from every page.</li>
                     </ul>
                 </section>

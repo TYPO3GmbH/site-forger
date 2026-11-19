@@ -632,6 +632,8 @@ class ReviewController extends AbstractController
                             || 'fixed_version' === $key
                         ) {
                             $filter->setTerm($key . '.name', $term);
+                        } elseif ('type' === $key) {
+                            $filter->setTerm('reviewtags', $term);
                         } else {
                             $filter->setTerm($key, $term);
                         }
@@ -684,6 +686,13 @@ class ReviewController extends AbstractController
                 'terms' => [
                     'field' => 'owner',
                     'size' => 10000,
+                ],
+            ],
+            // The tags in the subject, like "BUGFIX" or "!!!", filtered as "filters[type][...]"
+            'Type' => [
+                'terms' => [
+                    'field' => 'reviewtags',
+                    'size' => 50,
                 ],
             ],
             'Activity' => ActivityEnum::changeAggregation(),

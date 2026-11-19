@@ -15,6 +15,7 @@ use App\Elastic\ElasticUtility;
 use App\Elastic\ImportWatermark;
 use App\Elastic\IndexSetup;
 use App\Elastic\ProjectIssues;
+use App\Elastic\ReviewSubject;
 use App\Enum\IssueStatusEnum;
 use App\Service\CommandRunRecorder;
 use App\Service\GithubService;
@@ -755,7 +756,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 $change['revisions'][$change['current_revision']]['commit']['message'] = '6.0';
             }
 
-            $reviewTags = $this->extractReviewTags($change['subject']);
+            $reviewTags = ReviewSubject::tags($change['subject']);
 
             $out[$change['_number']] = [
                 'id' => $change['_number'],
@@ -782,7 +783,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 'owner' => $author ?? 'Unknown',
                 'ownerEmail' => $authorEmail ?? 'Unknown',
                 'files' => $filesInPatchset,
-                'work_in_progress' => in_array('WIP', $reviewTags, true) || ($change['work_in_progress'] ?? false),
+                'work_in_progress' => ReviewSubject::isWorkInProgress($reviewTags) || ($change['work_in_progress'] ?? false),
             ];
         }
 
@@ -864,14 +865,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
         }
 
         return $out;
-    }
-
-    protected function extractReviewTags(string $message): array
-    {
-        $pattern = '/\[([a-zA-Z0-9]*)\]/';
-        preg_match_all($pattern, $message, $matches, PREG_SET_ORDER);
-
-        return array_map(static fn (array $match) => $match[1], $matches);
     }
 
     /**

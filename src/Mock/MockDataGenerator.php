@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Mock;
 
+use App\Elastic\ReviewSubject;
 use App\Enum\IssueStatusEnum;
 use App\Enum\PriorityEnum;
 use App\Enum\TrackerEnum;
@@ -330,10 +331,12 @@ final readonly class MockDataGenerator
     {
         $id = self::ID_OFFSET + 1 + $index;
         $prefix = $this->pick(self::SUBJECT_PREFIXES, $index);
+        // "[WIP]" and "[POC]" make a change work in progress, so only such changes get them
+        for ($offset = 1; !$workInProgress && ReviewSubject::isWorkInProgress(ReviewSubject::tags($prefix)); ++$offset) {
+            $prefix = $this->pick(self::SUBJECT_PREFIXES, $index + $offset);
+        }
         $subject = trim($prefix . ' ' . $this->pick(self::SUBJECTS, $index + 3));
-        // The import reads the tags with this pattern, "[!!!]" is not one of them
-        preg_match_all('/\[([a-zA-Z0-9]*)\]/', $subject, $matches);
-        $reviewTags = $matches[1];
+        $reviewTags = ReviewSubject::tags($subject);
         $releases = $this->pick(self::RELEASES, $index);
         [$positiveReviews, $negativeReviews, $positiveVerifications, $negativeVerifications] = $this->pick(self::VOTES, $index);
         if ('MERGED' === $status) {
@@ -368,7 +371,7 @@ final readonly class MockDataGenerator
             'owner' => $person['name'],
             'ownerEmail' => $person['email'],
             'files' => $files,
-            'work_in_progress' => $workInProgress || in_array('WIP', $reviewTags, true),
+            'work_in_progress' => $workInProgress || ReviewSubject::isWorkInProgress($reviewTags),
         ];
     }
 
