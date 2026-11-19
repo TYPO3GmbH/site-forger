@@ -9,3 +9,8 @@ logout:
 
 login:
   alias: t3g_keycloak_login
+
+# In dev, "Login" leads to the dev login page, which also offers the Keycloak login
+when@dev:
+    login:
+        alias: dev_login

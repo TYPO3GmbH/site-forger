@@ -14,6 +14,7 @@ namespace App\Security;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Security\Http\Event\LogoutEvent;
+use T3G\Bundle\Keycloak\Security\KeyCloakAuthenticator;
 use T3G\Bundle\Keycloak\Service\OpenIdService;
 
 readonly class LogoutSuccessHandler implements EventSubscriberInterface
@@ -29,6 +30,14 @@ readonly class LogoutSuccessHandler implements EventSubscriberInterface
 
     public function onLogout(LogoutEvent $logoutEvent): void
     {
+        $request = $logoutEvent->getRequest();
+        if (!$request->hasSession() || !$request->getSession()->has(KeyCloakAuthenticator::SESSION_KEYCLOAK_ACCESS_TOKEN)) {
+            // Not logged in via Keycloak (e.g. a fixed dev user), so there is no Keycloak session to end
+            $logoutEvent->setResponse(new RedirectResponse('/'));
+
+            return;
+        }
+
         $realmUrl = rtrim($this->keycloakBaseUri, '/') . '/realms/' . $this->keycloakRealm;
         $endSessionEndpoint = $this->openIdService->getOpenIdConfiguration($realmUrl)['end_session_endpoint'];
         $logoutUrl = $endSessionEndpoint . '?client_id=' . $this->keycloakClientId . '&post_logout_redirect_uri=' . urlencode('https://' . $this->appUrl);

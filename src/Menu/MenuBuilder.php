@@ -17,9 +17,11 @@ use Knp\Menu\FactoryInterface;
 use Knp\Menu\ItemInterface;
 use Knp\Menu\Matcher\MatcherInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use T3G\Bundle\Keycloak\Security\KeyCloakAuthenticator;
 use T3G\Bundle\Keycloak\Security\KeyCloakUser;
 use T3G\Bundle\TemplateBundle\Utility\AvatarUtility;
 
@@ -35,7 +37,8 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         AuthorizationCheckerInterface $authorizationChecker,
         TokenStorageInterface $tokenStorage,
         TranslatorInterface $translator,
-        private readonly SprintBoardCategoryRepository $categoryRepository
+        private readonly SprintBoardCategoryRepository $categoryRepository,
+        private readonly RequestStack $requestStack,
     ) {
         parent::__construct($parameters, $factory, $matcher, $authorizationChecker, $tokenStorage, $translator);
     }
@@ -349,7 +352,18 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 ]
             );
             $menu['username']->addChild($this->getDivider());
-            $this->addAccountItems($menu['username'], 't3g_keycloak_logout');
+            if ($this->isKeycloakSession()) {
+                $this->addAccountItems($menu['username'], 't3g_keycloak_logout');
+            } else {
+                // Fixed dev users have no Keycloak account, sign them out locally
+                $menu['username']->addChild('logout', [
+                    'label' => 'Sign out',
+                    'route' => 'logout',
+                    'extras' => [
+                        'icon' => 'actions-logout',
+                    ],
+                ]);
+            }
         } else {
             $menu->addChild(
                 'login',
@@ -364,5 +378,14 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         }
 
         return $menu;
+    }
+
+    private function isKeycloakSession(): bool
+    {
+        $request = $this->requestStack->getCurrentRequest();
+
+        return null !== $request
+            && $request->hasSession()
+            && $request->getSession()->has(KeyCloakAuthenticator::SESSION_KEYCLOAK_ACCESS_TOKEN);
     }
 }

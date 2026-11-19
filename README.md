@@ -20,8 +20,21 @@ no Packagist or GitHub credentials are needed to install them.
 9. `ddev exec bin/console app:import --mode=forgeDelta` to import the latest 100 Forge issues
 10. Open https://forger.ddev.site
 
-Pages that require a login redirect to login.typo3.com and only work with a valid
-`KEYCLOAK_CLIENT_SECRET`.
+### Login in dev
+
+In the dev environment, **Login** leads to https://forger.ddev.site/_dev/login. There you can
+log in as one of the fixed users without a password, or with Keycloak (requires a valid
+`KEYCLOAK_CLIENT_SECRET` in `.env.local`).
+
+| User | Roles |
+|---|---|
+| `dev-admin` | `ROLE_ADMIN` |
+| `dev-framework` | `ROLE_CORE_FRAMEWORK` |
+| `dev-component` | `ROLE_CORE_COMPONENT` |
+| `dev-user` | `ROLE_USER` |
+
+The users are configured in `config/packages/security.yaml` (`when@dev`, parameter
+`app.dev_login.users`). The dev login does not exist outside the dev environment.
 
 ### Access tokens
 
