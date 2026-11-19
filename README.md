@@ -81,7 +81,7 @@ Forger allows the following commands to be used on CLI:
 
 ## Keycloak
 
-Authentication is done via Keycloak/Gatekeeper.
+Authentication is done via Keycloak (`t3g/symfony-keycloak-bundle`).
 
 Following user groups are taken into consideration:
 
