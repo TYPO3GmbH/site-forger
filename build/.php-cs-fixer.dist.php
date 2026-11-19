@@ -17,7 +17,7 @@ return (new PhpCsFixer\Config())
     ->setRiskyAllowed(true)
     ->setRules([
         '@Symfony' => true,
-        '@PHP83Migration' => true,
+        '@PHP8x3Migration' => true,
         'declare_strict_types' => true,
         'array_syntax' => ['syntax' => 'short'],
         'concat_space' => ['spacing' => 'one'],
