@@ -10,6 +10,7 @@ import './css/app.scss';
 
 import './js/quickstats.js';
 import './js/rst.js';
+import './js/sprint-wizard.js';
 
 import ace from 'ace-builds/src-noconflict/ace.js';
 import 'ace-builds/src-noconflict/mode-yaml.js';
