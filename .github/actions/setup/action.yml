@@ -4,6 +4,6 @@ runs:
   steps:
     - uses: ./.github/actions/t3g/setup-php
       with:
-        php-version: 8.3
+        php-version: 8.5
     - uses: ./.github/actions/t3g/setup-node-version-file
     - uses: ./.github/actions/t3g/cache-composer

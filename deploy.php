@@ -21,7 +21,7 @@ namespace Deployer;
 
 require __DIR__ . '/.github/actions/t3g/deployer/recipe.php';
 
-set('php_version', '8.3');
+set('php_version', '8.5');
 
 set('shared_dirs', [
     'var',
