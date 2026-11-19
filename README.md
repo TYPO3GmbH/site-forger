@@ -12,13 +12,22 @@ no Packagist or GitHub credentials are needed to install them.
 1. Clone the repository and run `ddev start`
 2. Create `.env.local` with your personal access tokens (see [Access tokens](#access-tokens))
 3. `ddev composer install`
-4. `ddev composer install --working-dir=./util`
-5. `ddev exec ./util/bin/elasticorn.php index:init -c /var/www/html/config/Elasticorn` to create the Elasticsearch indices
-6. `ddev exec npm ci`
-7. `ddev exec npm run build`
-8. `ddev exec bin/console doctrine:schema:create`
-9. `ddev exec bin/console app:import --mode=forgeDelta` to import the latest 100 Forge issues
-10. Open https://forger.ddev.site
+4. `ddev exec npm ci`
+5. `ddev exec npm run build`
+6. `ddev exec bin/console doctrine:schema:create`
+7. `ddev exec bin/console app:import --mode=forgeDelta` to import the latest 100 Forge issues
+8. Open https://forger.ddev.site
+
+### Elasticsearch indices
+
+The indices are configured in `config/Elasticorn` (settings and mapping per index type).
+`bin/console app:elasticsearch:setup` brings Elasticsearch in line with this configuration: it creates
+missing indices, rebuilds indices whose configuration changed (the documents are copied, the aliases are
+switched afterwards) and takes over indices Elasticsearch created on its own. Use `--dry-run` to see what
+it would do.
+
+There is no separate setup step: every deployment runs it before the new release goes live, and every
+import runs it as a health check before writing. When nothing changed, the check costs one request per index.
 
 ### Login in dev
 

@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Elastic\ElasticUtility;
+use App\Elastic\IndexSetup;
 use App\Service\GithubService;
 use Elastica\Document;
 use Exception;
@@ -47,7 +48,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
         private readonly ParameterBagInterface $parameters,
         private readonly Client $forgeClient,
         private readonly GithubService $githubService,
-        private readonly ClientInterface $client
+        private readonly ClientInterface $client,
+        private readonly IndexSetup $indexSetup,
     ) {
         parent::__construct();
     }
@@ -91,6 +93,13 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $startAt = (int) $input->getOption('startAt');
         if (!in_array($mode, self::$importModes, true)) {
             $io->note('Please select one of the modes: "' . implode('" ', self::$importModes) . '"');
+        }
+
+        // Health check before writing: a missing index would be created by Elasticsearch with a dynamic mapping
+        foreach ($this->indexSetup->ensureAll() as $name => $result) {
+            if (IndexSetup::UNCHANGED !== $result['action']) {
+                $io->note(sprintf('Elasticsearch index "%s" %s (%d documents)', $name, $result['action'], $result['documents']));
+            }
         }
 
         try {

@@ -30,7 +30,7 @@ final class ElasticUtility
         return self::getClient()->getIndex($name . '_' . self::LANGUAGE);
     }
 
-    private static function getClient(): Client
+    public static function getClient(): Client
     {
         return self::$client ??= new Client([
             'host' => $_ENV['ES_HOST'],

@@ -38,6 +38,17 @@ set('post_release_commands', [
     '{{bin/php}} ./bin/console cache:warmup',
 ]);
 
+// Runs in the new release before it goes live, so a failure keeps the current release online.
+// Imports run the same health check, but the deployment applies configuration changes right away.
+desc('Brings the Elasticsearch indices in line with config/Elasticorn of the new release');
+task('forger:elasticsearch_setup', function (): void {
+    cd('{{release_path}}');
+    // Own cache directory: the shared var/cache still belongs to the live release
+    run('APP_ENV=prod APP_DEBUG=0 APP_CACHE_DIR={{release_path}}/.deploy-cache {{bin/php}} ./bin/console app:elasticsearch:setup --no-interaction', timeout: 1800);
+    run('rm -rf {{release_path}}/.deploy-cache');
+});
+before('deploy:symlink', 'forger:elasticsearch_setup');
+
 // The host aliases match the branch names, the CI job deploys a branch to the host of the same name
 host('master')
     ->setHostname('188.34.182.186')
