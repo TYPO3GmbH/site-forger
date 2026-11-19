@@ -16,22 +16,22 @@
         "netcarver/textile": "^4.1",
         "psr/log": "^2.0",
         "ruflin/elastica": "^7.3",
-        "symfony/console": "^6.4",
-        "symfony/dependency-injection": "^6.4",
-        "symfony/dotenv": "^6.4",
+        "symfony/console": "^7.4",
+        "symfony/dependency-injection": "^7.4",
+        "symfony/dotenv": "^7.4",
         "symfony/flex": "^2.3",
-        "symfony/form": "^6.4",
-        "symfony/framework-bundle": "^6.4",
-        "symfony/http-foundation": "^6.4",
-        "symfony/lock": "^6.4",
+        "symfony/form": "^7.4",
+        "symfony/framework-bundle": "^7.4",
+        "symfony/http-foundation": "^7.4",
+        "symfony/lock": "^7.4",
         "symfony/monolog-bundle": "^3.8",
-        "symfony/routing": "^6.4",
-        "symfony/runtime": "^6.4",
-        "symfony/security-bundle": "^6.4",
-        "symfony/twig-bundle": "^6.4",
-        "symfony/validator": "^6.4",
+        "symfony/routing": "^7.4",
+        "symfony/runtime": "^7.4",
+        "symfony/security-bundle": "^7.4",
+        "symfony/twig-bundle": "^7.4",
+        "symfony/validator": "^7.4",
         "symfony/webpack-encore-bundle": "^2.0",
-        "symfony/yaml": "^6.4",
+        "symfony/yaml": "^7.4",
         "t3g/symfony-keycloak-bundle": "^3.0",
         "t3g/symfony-template-bundle": "^6.1",
         "twig/twig": "^3.15",
@@ -42,8 +42,8 @@
         "phpunit/phpunit": "^12.5",
         "rector/rector": "^2.0",
         "symfony/maker-bundle": "^1.49",
-        "symfony/stopwatch": "^6.4",
-        "symfony/web-profiler-bundle": "^6.4"
+        "symfony/stopwatch": "^7.4",
+        "symfony/web-profiler-bundle": "^7.4"
     },
     "conflict": {
         "symfony/symfony": "*"
@@ -90,7 +90,7 @@
     "extra": {
         "symfony": {
             "allow-contrib": false,
-            "require": "^6.4"
+            "require": "7.4.*"
         }
     },
     "scripts": {
