@@ -94,7 +94,9 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $mode = $input->getOption('mode');
         $startAt = (int) $input->getOption('startAt');
         if (!in_array($mode, self::$importModes, true)) {
-            $io->note('Please select one of the modes: "' . implode('" ', self::$importModes) . '"');
+            $io->error('Please select one of the modes: "' . implode('", "', self::$importModes) . '"');
+
+            return Command::INVALID;
         }
 
         // Health check before writing: a missing index would be created by Elasticsearch with a dynamic mapping
@@ -275,9 +277,11 @@ class ImportCommand extends Command implements LoggerAwareInterface
         // import journals only if issue status is "Under review"
         if (isset($issue['status']['id']) && IssueStatusEnum::UNDER_REVIEW === IssueStatusEnum::tryFrom((int) $issue['status']['id'])) {
             $issueWithJournals = $this->callRedmine(fn () => $this->forgeClient->getApi('issue')->show($issue['id'], ['include' => ['journals']]));
-            if (is_array($issueWithJournals)) {
-                $this->addDocumentToElastic($this->injectUserData($issueWithJournals['issue']));
+            if (!is_array($issueWithJournals) || !isset($issueWithJournals['issue'])) {
+                // Forge answered without the issue, it keeps its previous state in the index
+                throw new \RuntimeException(sprintf('Loading the journals failed, Forge answered: %s', mb_substr(is_string($issueWithJournals) ? trim($issueWithJournals) : get_debug_type($issueWithJournals), 0, 200)));
             }
+            $this->addDocumentToElastic($this->injectUserData($issueWithJournals['issue']));
         } else {
             $this->addDocumentToElastic($this->injectUserData($issue));
         }
@@ -337,8 +341,16 @@ class ImportCommand extends Command implements LoggerAwareInterface
         // The author could be empty, so we have to check for that
         $userId = $issue['author']['id'] ?? null;
         if (null !== $userId && !isset($this->userCache[$userId])) {
-            $userRecord = $this->callRedmine(fn () => $this->forgeClient->getApi('user')->show($userId));
-            $this->userCache[$userId] = $userRecord['user']['mail'] ?? '';
+            try {
+                $userRecord = $this->callRedmine(fn () => $this->forgeClient->getApi('user')->show($userId));
+            } catch (\RuntimeException $e) {
+                // E.g. a deleted or locked user (404, 403): the issue is imported without the email
+                if (429 === $e->getCode()) {
+                    throw $e;
+                }
+                $userRecord = null;
+            }
+            $this->userCache[$userId] = is_array($userRecord) ? ($userRecord['user']['mail'] ?? '') : '';
         }
         $issue['author']['email'] = $this->userCache[$userId] ?? '';
 
@@ -751,23 +763,37 @@ class ImportCommand extends Command implements LoggerAwareInterface
         return $interaction;
     }
 
+    /**
+     * Calls Forge, waits and retries while it rate-limits (429), and fails on any other error status.
+     *
+     * The Redmine client returns the body of an error response (e.g. the HTML page of a 429) instead of
+     * throwing, so the status of the last response decides.
+     *
+     * @throws \RuntimeException
+     */
     private function callRedmine(callable $callback, int $attempt = 0): mixed
     {
         try {
-            return $callback();
+            $result = $callback();
+            $status = $this->forgeClient->getLastResponseStatusCode();
         } catch (UnexpectedResponseException $e) {
-            if (429 === $e->getResponse()->getStatusCode() && $attempt <= 3) {
-                ++$attempt;
-                // Give Forge some time to relax
-                $sleepTime = 10 * $attempt;
-                $this->logger->warning(sprintf('[RECV] Failed to fetch data from Forge, response code %s, retrying in %d seconds, attempt #%d...', $e->getResponse()->getStatusCode(), $sleepTime, $attempt));
-                sleep($sleepTime);
-
-                return $this->callRedmine($callback, $attempt);
-            }
-
-            throw $e;
+            $result = null;
+            $status = $e->getResponse()->getStatusCode();
         }
+        if (429 === $status && $attempt <= 3) {
+            ++$attempt;
+            // Give Forge some time to relax
+            $sleepTime = 10 * $attempt;
+            $this->logger->warning(sprintf('[RECV] Failed to fetch data from Forge, response code %s, retrying in %d seconds, attempt #%d...', $status, $sleepTime, $attempt));
+            sleep($sleepTime);
+
+            return $this->callRedmine($callback, $attempt);
+        }
+        if ($status >= 400) {
+            throw new \RuntimeException(sprintf('Forge responded with status %d', $status), $status);
+        }
+
+        return $result;
     }
 
     private function getAllForgeIssuesPaginated(int $limit, int $offset): array
