@@ -66,7 +66,7 @@ class UtilityController extends AbstractController
             $entityManager->persist($entry);
             $entityManager->flush();
 
-            $this->addFlash('success', 'Blacklist entry created.');
+            $this->addFlash('success', 'The change is excluded from backports.');
 
             return $this->redirectToRoute('utilities_backport_index');
         }
@@ -94,7 +94,7 @@ class UtilityController extends AbstractController
             ->setComment('');
         $entityManager->persist($entry);
         $entityManager->flush();
-        $this->addFlash('success', 'Blacklist entry created.');
+        $this->addFlash('success', 'The change is excluded from backports.');
 
         return $this->redirectToRoute('utilities_backport');
     }
@@ -119,7 +119,7 @@ class UtilityController extends AbstractController
             $entityManager->persist($entry);
             $entityManager->flush();
 
-            $this->addFlash('success', 'Blacklist entry updated.');
+            $this->addFlash('success', 'The backport exclusion is updated.');
 
             return $this->redirectToRoute('dashboard_index');
         }
@@ -144,7 +144,7 @@ class UtilityController extends AbstractController
         if (null !== $backport) {
             $entityManager->remove($backport);
             $entityManager->flush();
-            $this->addFlash('success', 'Backport deleted.');
+            $this->addFlash('success', 'The backport exclusion is removed.');
         }
 
         return $this->redirectToRoute('utilities_backport_index');

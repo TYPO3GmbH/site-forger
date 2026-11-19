@@ -1,0 +1,13 @@
+// Main menu, see src/Menu/MenuBuilder.php
+
+// A group heading in a dropdown, a hairline above every group but the first
+.dropdown-menu > .dropdown-header {
+    padding-top: .5rem;
+    font-size: .75rem;
+    font-weight: 600;
+
+    &:not(:first-child) {
+        margin-top: .35rem;
+        border-top: 1px solid #e6e8eb;
+    }
+}

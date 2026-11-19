@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 {% import '_macros/buttons.html.twig' as buttons %}
-{% block title %}Backport Blacklist{% endblock %}
-{% block headline %}Backport Blacklist{% endblock %}
+{% block title %}Backport exclusions{% endblock %}
+{% block headline %}Backport exclusions{% endblock %}
 {% block body %}
 
     <div class="content-section bg-transparent">
@@ -54,7 +54,7 @@
                             </div>
                         </div>
                     {% else %}
-                        {% include '_partials/alert.html.twig' with {'message': 'No blacklist items!', 'style': 'info'} %}
+                        {% include '_partials/alert.html.twig' with {'message': 'No changes are excluded from backports.', 'style': 'info'} %}
                     {% endif %}
                 </div>
             </div>

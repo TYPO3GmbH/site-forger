@@ -80,7 +80,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_index';
-        $viewData['headline'] = 'Status';
+        $viewData['headline'] = 'Ready for review';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
@@ -129,7 +129,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_hasverifications';
-        $viewData['headline'] = 'Merge Ready';
+        $viewData['headline'] = 'Reviewed and verified';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
@@ -178,7 +178,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_missesverifications';
-        $viewData['headline'] = 'Needs Verification';
+        $viewData['headline'] = 'Needs verification';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
@@ -227,7 +227,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_missesreview';
-        $viewData['headline'] = 'Needs Review';
+        $viewData['headline'] = 'Needs review';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
@@ -269,7 +269,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_rebase';
-        $viewData['headline'] = 'Needs Rebase';
+        $viewData['headline'] = 'Needs rebase';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
@@ -381,7 +381,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_negative_vote_cleanup';
-        $viewData['headline'] = 'Negative Vote Cleanup';
+        $viewData['headline'] = 'Negative votes';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
@@ -426,7 +426,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_wip';
-        $viewData['headline'] = 'Work in Progress';
+        $viewData['headline'] = 'Work in progress';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }
@@ -500,7 +500,7 @@ class ReviewController extends AbstractController
         ];
         $viewData = $this->search($fullRequest);
         $viewData['routeName'] = 'gerrit_coreteam_merge';
-        $viewData['headline'] = 'Core Team Action Required';
+        $viewData['headline'] = 'Ready to merge';
 
         return $this->render('review/generic_review_view.html.twig', $viewData);
     }

@@ -43,268 +43,89 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         parent::__construct($parameters, $factory, $matcher, $authorizationChecker, $tokenStorage, $translator);
     }
 
+    /**
+     * The main menu, by task: what needs a review, the issues, the sprint boards, the tools.
+     * Items for a role are only added for users who have it.
+     */
     #[\Override]
     public function mainDefault(array $options): ItemInterface
     {
-        $categories = $this->categoryRepository->findAll();
         $menu = $this->factory->createItem('root');
-        $menu->addChild(
-            'index',
-            [
-                'label' => 'Dashboard',
-                'route' => 'dashboard_index',
-            ]
-        );
-        $menu->addChild(
-            'gerrit',
-            [
-                'label' => 'Reviews',
-                'route' => 'gerrit_index',
-            ]
-        );
-        $menu['gerrit']->addChild(
-            'gerrit_status',
-            [
-                'label' => 'All (excl. WIP)',
-                'route' => 'gerrit_index',
-                'extras' => [
-                    'icon' => 'actions-code-pull-request',
-                ],
-            ]
-        );
-        $menu['gerrit']->addChild(
-            'gerrit_hasverifications',
-            [
-                'label' => 'Has verifications',
-                'route' => 'gerrit_hasverifications',
-                'extras' => [
-                    'icon' => 'actions-check-square',
-                ],
-            ]
-        );
-        $menu['gerrit']->addChild(
-            'gerrit_missesverifications',
-            [
-                'label' => 'Needs verification',
-                'route' => 'gerrit_missesverifications',
-                'extras' => [
-                    'icon' => 'actions-plus-square',
-                ],
-            ]
-        );
-        $menu['gerrit']->addChild(
-            'gerrit_missesreview',
-            [
-                'label' => 'Needs review',
-                'route' => 'gerrit_missesreview',
-                'extras' => [
-                    'icon' => 'actions-plus-square',
-                ],
-            ]
-        );
-        $menu['gerrit']->addChild(
-            'gerrit_rebase',
-            [
-                'label' => 'Rebase',
-                'route' => 'gerrit_rebase',
-                'extras' => [
-                    'icon' => 'actions-refresh',
-                ],
-            ]
-        );
-        $menu['gerrit']->addChild(
-            'gerrit_files',
-            [
-                'label' => 'Find Review by filename',
-                'route' => 'gerrit_files',
-                'extras' => [
-                    'icon' => 'actions-file-search',
-                ],
-            ]
-        );
-        $menu['gerrit']->addChild(
-            'gerrit_negative_vote_cleanup',
-            [
-                'label' => 'Has negative votes',
-                'route' => 'gerrit_negative_vote_cleanup',
-                'extras' => [
-                    'icon' => 'actions-minus-square',
-                ],
-            ]
-        );
-        $menu['gerrit']->addChild(
-            'gerrit_wip',
-            [
-                'label' => 'Work In Progress',
-                'route' => 'gerrit_wip',
-                'extras' => [
-                    'icon' => 'actions-code-pull-request-draft',
-                ],
-            ]
-        );
-        $menu['gerrit']->addChild(
-            'gerrit_coreteam_merge',
-            [
-                'label' => 'Coreteam action required',
-                'route' => 'gerrit_coreteam_merge',
-                'extras' => [
-                    'icon' => 'actions-exclamation-triangle',
-                ],
-            ]
-        );
-        $menu['gerrit']->addChild(
-            'gerrit_stale_issues',
-            [
-                'label' => 'Stale Issues',
-                'route' => 'gerrit_stale_issues',
-                'extras' => [
-                    'icon' => 'actions-clock',
-                ],
-            ]
-        );
-        $menu->addChild(
-            'management',
-            [
-                'label' => 'Management',
-                'route' => 'management_index',
-            ]
-        );
-        $menu['management']->addChild(
-            'management-by-year',
-            [
-                'label' => 'Issue Overview',
-                'route' => 'management_index',
-                'extras' => [
-                    'icon' => 'actions-calendar',
-                ],
-            ]
-        );
-        if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
-            $menu['management']->addChild(
-                'management-interactions',
-                [
-                    'label' => 'Core Team Interactions',
-                    'route' => 'management_interactions',
-                    'extras' => [
-                        'icon' => 'actions-users',
-                    ],
-                ]
-            );
-            $menu['management']->addChild(
-                'management-docs-interactions',
-                [
-                    'label' => 'Doc Team Interactions',
-                    'route' => 'management_docs_interactions',
-                    'extras' => [
-                        'icon' => 'actions-users',
-                    ],
-                ]
-            );
+        $menu->addChild('index', ['label' => 'Dashboard', 'route' => 'dashboard_index']);
+        if ($this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
+            $myWork = $menu->addChild('my_work', ['label' => 'My Work', 'route' => 'my_changes']);
+            $this->addLink($myWork, 'my_changes', 'My changes', 'my_changes', 'actions-code-pull-request');
+            $this->addLink($myWork, 'my_issues', 'My issues', 'my_issues', 'actions-list');
         }
-        $menu['management']->addChild(
-            'management-by-category',
-            [
-                'label' => 'Issues by Category',
-                'route' => 'management_bycategory',
-                'extras' => [
-                    'icon' => 'actions-tag',
-                ],
-            ]
-        );
-        if ($this->authorizationChecker->isGranted('ROLE_CORE_COMPONENT')) {
-            $menu['management']->addChild(
-                'sprintcategory_index',
-                [
-                    'label' => 'Sprint Categories',
-                    'route' => 'sprintcategory_index',
-                    'extras' => [
-                        'icon' => 'actions-category',
-                    ],
-                ]
-            );
-            $menu['management']->addChild(
-                'sprint_list',
-                [
-                    'label' => 'Sprints',
-                    'route' => 'sprint_list',
-                    'extras' => [
-                        'icon' => 'actions-document',
-                    ],
-                ]
-            );
-        }
-        $menu->addChild(
-            'sprint',
-            [
-                'label' => 'Sprints',
-                'uri' => '#',
-            ]
-        );
+
+        $reviews = $menu->addChild('gerrit', ['label' => 'Reviews', 'route' => 'gerrit_index']);
+        $this->addHeader($reviews, 'Overview');
+        $this->addLink($reviews, 'gerrit_status', 'Ready for review', 'gerrit_index', 'actions-code-pull-request');
+        $this->addLink($reviews, 'gerrit_wip', 'Work in progress', 'gerrit_wip', 'actions-code-pull-request-draft');
+        $this->addHeader($reviews, 'Needs action');
+        $this->addLink($reviews, 'gerrit_missesreview', 'Needs review', 'gerrit_missesreview', 'actions-comment');
+        $this->addLink($reviews, 'gerrit_missesverifications', 'Needs verification', 'gerrit_missesverifications', 'actions-check-circle');
+        $this->addLink($reviews, 'gerrit_rebase', 'Needs rebase', 'gerrit_rebase', 'actions-refresh');
+        $this->addLink($reviews, 'gerrit_negative_vote_cleanup', 'Negative votes', 'gerrit_negative_vote_cleanup', 'actions-minus-circle');
+        $this->addLink($reviews, 'gerrit_hasverifications', 'Reviewed and verified', 'gerrit_hasverifications', 'actions-check-badge');
+        $this->addLink($reviews, 'gerrit_coreteam_merge', 'Ready to merge', 'gerrit_coreteam_merge', 'actions-code-merge');
+        $this->addHeader($reviews, 'Tools');
+        $this->addLink($reviews, 'gerrit_files', 'Find by file', 'gerrit_files', 'actions-file-search');
+
+        $issues = $menu->addChild('issues', ['label' => 'Issues', 'route' => 'search_search']);
+        $this->addLink($issues, 'issues_search', 'Search', 'search_search', 'actions-search');
+        $this->addLink($issues, 'management-by-year', 'By month', 'management_index', 'actions-calendar');
+        $this->addLink($issues, 'management-by-category', 'By category', 'management_bycategory', 'actions-tag');
+        $this->addLink($issues, 'gerrit_stale_issues', 'Stale issues', 'gerrit_stale_issues', 'actions-clock');
+
+        $sprints = $menu->addChild('sprint', ['label' => 'Sprints', 'uri' => '#']);
         /** @var SprintBoardCategory $category */
-        foreach ($categories as $category) {
-            $menu['sprint']->addChild(
-                'sprint_' . $category->getIdentifier(),
-                [
-                    'label' => $category->getName(),
-                    'route' => 'sprint',
-                    'routeParameters' => ['category' => $category->getIdentifier()],
-                    'extras' => [
-                        'icon' => $category->getIcon(),
-                    ],
-                ]
-            );
+        foreach ($this->categoryRepository->findAll() as $category) {
+            $this->addLink($sprints, 'sprint_' . $category->getIdentifier(), $category->getName(), 'sprint', $category->getIcon(), ['category' => $category->getIdentifier()]);
         }
-        $menu['sprint']->addChild(
-            'sprint_reviews',
-            [
-                'label' => 'Reviews',
-                'route' => 'sprint_reviews',
-                'extras' => [
-                    'icon' => 'actions-cog',
-                ],
-            ]
-        );
-        $menu->addChild(
-            'utility',
-            [
-                'label' => 'Utility',
-                'uri' => '#',
-            ]
-        );
-        $menu['utility']->addChild(
-            'utility_backports',
-            [
-                'label' => 'Backports',
-                'route' => 'utilities_backport',
-                'extras' => [
-                    'icon' => 'actions-code-compare',
-                ],
-            ]
-        );
+        $this->addLink($sprints, 'sprint_reviews', 'Review board', 'sprint_reviews', 'actions-line-columns');
         if ($this->authorizationChecker->isGranted('ROLE_CORE_COMPONENT')) {
-            $menu['utility']->addChild(
-                'utility_backport_list',
-                [
-                    'label' => 'Backport blacklist',
-                    'route' => 'utilities_backport_index',
-                    'extras' => [
-                        'icon' => 'actions-ban',
-                    ],
-                ]
-            );
+            $this->addHeader($sprints, 'Manage');
+            $this->addLink($sprints, 'sprint_list', 'Sprint boards', 'sprint_list', 'actions-viewmode-tiles');
+            $this->addLink($sprints, 'sprintcategory_index', 'Categories', 'sprintcategory_index', 'actions-category');
         }
-        $menu['utility']->addChild(
-            'utility_rst',
-            [
-                'label' => 'ReST Helper',
-                'route' => 'utilities_rst',
-                'extras' => [
-                    'icon' => 'actions-file-text',
-                ],
-            ]
-        );
+
+        if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
+            $reports = $menu->addChild('reports', ['label' => 'Reports', 'route' => 'management_interactions']);
+            $this->addLink($reports, 'management-interactions', 'Core team interactions', 'management_interactions', 'actions-users');
+            $this->addLink($reports, 'management-docs-interactions', 'Docs team interactions', 'management_docs_interactions', 'actions-users');
+        }
+
+        $tools = $menu->addChild('utility', ['label' => 'Tools', 'uri' => '#']);
+        $this->addLink($tools, 'utility_backports', 'Backports', 'utilities_backport', 'actions-code-compare');
+        if ($this->authorizationChecker->isGranted('ROLE_CORE_COMPONENT')) {
+            $this->addLink($tools, 'utility_backport_list', 'Backport exclusions', 'utilities_backport_index', 'actions-ban');
+        }
+        $this->addLink($tools, 'utility_rst', 'ReST helper', 'utilities_rst', 'actions-file-text');
 
         return $menu;
+    }
+
+    /**
+     * @param array<string, string> $routeParameters
+     */
+    private function addLink(ItemInterface $parent, string $name, string $label, string $route, string $icon, array $routeParameters = []): void
+    {
+        $parent->addChild($name, [
+            'label' => $label,
+            'route' => $route,
+            'routeParameters' => $routeParameters,
+            'extras' => ['icon' => $icon],
+        ]);
+    }
+
+    /**
+     * A heading of a group in a dropdown: an item without a link, rendered as label only.
+     */
+    private function addHeader(ItemInterface $parent, string $label): void
+    {
+        $parent->addChild('header_' . strtolower(str_replace(' ', '_', $label)), ['label' => $label])
+            ->setLabelAttribute('class', 'dropdown-header');
     }
 
     #[\Override]
@@ -331,13 +152,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     ],
                 ]
             );
-            $menu['username']->addChild('my_work', [
-                'label' => 'My Work',
-                'route' => 'my_index',
-                'extras' => [
-                    'icon' => 'actions-user',
-                ],
-            ]);
             if ($this->isKeycloakSession()) {
                 $this->addAccountItems($menu['username'], 't3g_keycloak_logout');
             } else {
