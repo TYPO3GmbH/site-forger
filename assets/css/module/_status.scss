@@ -45,6 +45,22 @@
 .status-pill-abandoned { --status-color: #6c757d; --status-background: #f1f3f5; }
 .status-pill-conflict { --status-color: #b42318; --status-background: #fdecea; }
 
+// Votes of Gerrit labels, see App\Enum\ReviewVoteEnum: the +2 and -2 of mergers filled, +1 and -1 tinted
+.status-pill-vote {
+    padding: .2em .6em;
+    font-variant-numeric: tabular-nums;
+
+    &::before {
+        display: none;
+    }
+}
+
+.status-pill-vote-approved { --status-color: #fff; --status-background: #15803d; }
+.status-pill-vote-recommended { --status-color: #15803d; --status-background: #e5f6eb; }
+.status-pill-vote-none { --status-color: #5c6670; --status-background: #eef0f2; }
+.status-pill-vote-disliked { --status-color: #b42318; --status-background: #fdecea; }
+.status-pill-vote-rejected { --status-color: #fff; --status-background: #b42318; }
+
 // Activity of Gerrit changes and Forge issues, see App\Enum\ActivityEnum
 .status-pill-icon {
     &::before {

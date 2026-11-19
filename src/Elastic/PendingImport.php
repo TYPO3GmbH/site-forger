@@ -69,6 +69,14 @@ final class PendingImport
                 'kind' => self::NONE_WAIT,
                 'command' => 'app:import --mode=reviewFull --force',
             ],
+            [
+                'label' => 'Votes without the single votes',
+                'description' => 'Changes imported before the import kept the lowest and highest single vote of each label. Their votes show as +1 or -1 at most, also a +2 or -2 of a merger.',
+                'index' => 'review',
+                'query' => ['bool' => ['must_not' => [['exists' => ['field' => 'highest_review_vote']]]]],
+                'kind' => self::MATCHES_WAIT,
+                'command' => 'app:import --mode=reviewFull --force',
+            ],
         ];
     }
 

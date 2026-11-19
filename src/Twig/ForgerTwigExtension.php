@@ -31,25 +31,33 @@ class ForgerTwigExtension
     #[AsTwigFunction(name: 'bucketCounter', isSafe: ['html'])]
     public function bucketCounter(string $category, array $buckets): string
     {
-        $category = $this->fixWording($category);
-        $activeCount = 0;
-        foreach ($buckets as $bucket) {
-            if (is_string($bucket['key'])) {
-                $key = $this->fixWording($bucket['key'], false);
-            } else {
-                $key = $bucket['key'];
-            }
-
-            $filters = $this->requestStack->getMainRequest()?->query->all('filters') ?? [];
-            if (isset($filters[$category][$key]) && 'true' === $filters[$category][$key]) {
-                ++$activeCount;
-            }
-        }
+        $activeCount = $this->activeFilterCount($category, $buckets);
         if (0 === $activeCount) {
             return '';
         }
 
         return '<span class="badge badge-info">' . $activeCount . ' / ' . count($buckets) . '</span>';
+    }
+
+    /**
+     * How many values of a filter the request selects, e.g. 2 of "Tracker" for "Bug" and "Task".
+     *
+     * @param list<array<string, mixed>> $buckets the values of the filter, as its aggregation has them
+     */
+    #[AsTwigFunction(name: 'activeFilterCount')]
+    public function activeFilterCount(string $category, array $buckets): int
+    {
+        $category = $this->fixWording($category);
+        $filters = $this->requestStack->getMainRequest()?->query->all('filters') ?? [];
+        $activeCount = 0;
+        foreach ($buckets as $bucket) {
+            $key = is_string($bucket['key']) ? $this->fixWording($bucket['key'], false) : $bucket['key'];
+            if (isset($filters[$category][$key]) && 'true' === $filters[$category][$key]) {
+                ++$activeCount;
+            }
+        }
+
+        return $activeCount;
     }
 
     #[AsTwigFunction(name: 'aggregationBucket', isSafe: ['html'])]

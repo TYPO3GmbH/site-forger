@@ -8,16 +8,25 @@
         Filter
     </span>
 </label>
+{#
+ # The filters of a list. The template bundle remembers which of them are open, by the id of their panel in
+ # the localStorage "aggregations". The ids name the filter and the kind of list ("issues", "changes"), so a
+ # filter opened in one list does not open another one at the same place in the next list.
+ # Expects: aggregations, facetScope; personSearch (optional)
+ #}
 <div class="aggregations" id="aggregations" role="tablist">
     {% for title, buckets in aggregations %}
+        {% set panelId = 'facet-' ~ facetScope ~ '-' ~ (title|filterKey|lower) %}
+        {# A filter with selected values is always open #}
+        {% set active = activeFilterCount(title, buckets.buckets) > 0 %}
         <div class="aggregation">
-            <div class="aggregation-title" id="aggregation-title-{{ loop.index }}">
-                <a class="aggregation-title-link collapsed" data-bs-toggle="collapse" href="#collapse-{{ loop.index }}" aria-expanded="false" aria-controls="collapse-{{ loop.index }}">
+            <div class="aggregation-title" id="{{ panelId }}-title">
+                <a class="aggregation-title-link{{ active ? '' : ' collapsed' }}" data-bs-toggle="collapse" href="#{{ panelId }}" aria-expanded="{{ active ? 'true' : 'false' }}" aria-controls="{{ panelId }}">
                     <span class="aggregation-title-text">{{title}}</span>
                     <span class="aggregation-title-badge">{{ bucketCounter(title, buckets.buckets) }}</span>
                 </a>
             </div>
-            <div id="collapse-{{ loop.index }}" class="collapse" role="tabpanel" aria-labelledby="aggregation-title-{{ loop.index }}" data-bs-parent="#aggregations">
+            <div id="{{ panelId }}" class="collapse{{ active ? ' show' }}" role="tabpanel" aria-labelledby="{{ panelId }}-title" data-bs-parent="#aggregations"{% if active %} data-facet-active{% endif %}>
                 <div class="aggregation-body">
                     {% if personSearch[title] is defined %}
                         {% include '_partials/person_search.html.twig' with personSearch[title]|merge({'id': 'person-search-' ~ loop.index}) only %}
@@ -32,3 +41,43 @@
         </div>
     {% endfor %}
 </div>
+{#
+ # Opens the remembered filters before the page shows, without the animation the template bundle opens them
+ # with once the page loaded: it finds them open then. A filter with selected values stays open, so it is
+ # remembered as open. The entries of the old ids by position ("collapse-4") are removed.
+ #}
+<script>
+    (function () {
+        var prefix = 'aggregation.visible.';
+        var stored = {};
+        try {
+            stored = JSON.parse(window.localStorage.getItem('aggregations') || '{}') || {};
+        } catch (e) {
+            stored = {};
+        }
+        Object.keys(stored).forEach(function (key) {
+            if (key.indexOf(prefix + 'collapse-') === 0) {
+                delete stored[key];
+            }
+        });
+        document.querySelectorAll('#aggregations > .aggregation > .collapse').forEach(function (panel) {
+            var key = prefix + panel.id;
+            if (panel.hasAttribute('data-facet-active')) {
+                stored[key] = true;
+            }
+            if (stored[key] !== true) {
+                return;
+            }
+            panel.classList.add('show');
+            var link = document.querySelector('#aggregations a[href="#' + panel.id + '"]');
+            if (link) {
+                link.classList.remove('collapsed');
+                link.setAttribute('aria-expanded', 'true');
+            }
+        });
+        try {
+            window.localStorage.setItem('aggregations', JSON.stringify(stored));
+        } catch (e) {
+        }
+    })();
+</script>

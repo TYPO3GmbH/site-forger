@@ -13,6 +13,16 @@
     {% endif %}
 {% endmacro %}
 
+{#
+ # The vote that counts for a label of a Gerrit change, "review" or "verification": mergers' +2 and -2 filled,
+ # +1 and -1 tinted.
+ #}
+{% macro vote(change, label) %}
+    {% set vote = review_vote(change, label) %}
+    {% set name = label == 'review' ? 'Code review' : 'Verified' %}
+    <span class="status-pill status-pill-vote status-pill-{{ vote.severity }}" title="{{ name }}: {{ vote.value == 0 ? 'no votes' : vote.label ~ (vote.strong ? ' by a merger' : '') }}">{{ label == 'review' ? 'CR' : 'V' }} {{ vote.label }}</span>
+{% endmacro %}
+
 {% macro review(change) %}
     {% if change.reviewstatus is defined and change.reviewstatus %}
         {% set state = review_state(change) %}

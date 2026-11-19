@@ -1,0 +1,127 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
+
+namespace App\Tests\Service;
+
+use App\Service\ChangeRefreshResult;
+use App\Service\CommandRunRecorder;
+use App\Service\GerritChangeImporter;
+use Doctrine\DBAL\Connection;
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\Response;
+use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
+
+final class GerritChangeImporterTest extends TestCase
+{
+    /** @var list<array{request: \Psr\Http\Message\RequestInterface}> */
+    private array $requests = [];
+
+    public function testSumsAndTheLowestAndHighestSingleVote(): void
+    {
+        $labels = GerritChangeImporter::labels([
+            'Code-Review' => ['all' => [
+                ['_account_id' => 1, 'value' => 2],
+                ['_account_id' => 2, 'value' => 1],
+                ['_account_id' => 3, 'value' => 0],
+            ]],
+            'Verified' => ['all' => [
+                // The CI is no reviewer
+                ['_account_id' => 49454, 'value' => -2],
+                ['_account_id' => 4, 'value' => -1],
+                ['_account_id' => 5, 'value' => 1],
+            ]],
+        ]);
+
+        self::assertSame([
+            'positive_reviews' => 3,
+            'negative_reviews' => 0,
+            'positive_verifications' => 1,
+            'negative_verifications' => 1,
+            'lowest_review_vote' => 0,
+            'highest_review_vote' => 2,
+            'lowest_verification_vote' => -1,
+            'highest_verification_vote' => 1,
+        ], $labels);
+    }
+
+    public function testWithoutVotes(): void
+    {
+        $labels = GerritChangeImporter::labels(['Code-Review' => [], 'Verified' => ['all' => [['_account_id' => 1]]]]);
+
+        self::assertSame(0, $labels['lowest_review_vote']);
+        self::assertSame(0, $labels['highest_verification_vote']);
+    }
+
+    public function testReleasesOfTheCommitMessage(): void
+    {
+        self::assertSame(['main', '13.4'], GerritChangeImporter::releases("[BUGFIX] Repair the cache\n\nReleases: main, 13.4\nResolves: #91089"));
+        self::assertSame(['omitted'], GerritChangeImporter::releases('[TASK] No release line'));
+    }
+
+    public function testGerritDatesInTheFormatOfTheIndex(): void
+    {
+        self::assertSame('2026/11/19 17:42:30', GerritChangeImporter::gerritDate('2026-11-19 17:42:30.000000000'));
+    }
+
+    public function testRefreshAsksForTheChangeInTheProjectOnly(): void
+    {
+        $importer = $this->importer([new Response(200, [], ")]}'\n[]")]);
+
+        self::assertSame(ChangeRefreshResult::NOT_FOUND, $importer->refresh(95026));
+        parse_str($this->requests[0]['request']->getUri()->getQuery(), $query);
+        self::assertSame('project:Packages/TYPO3.CMS change:95026', $query['q']);
+    }
+
+    public function testRateLimitIsAnErrorAtOnceWithoutAHandler(): void
+    {
+        $importer = $this->importer([new Response(429), new Response(200, [], ")]}'\n[]")]);
+
+        try {
+            $importer->find('change:1', 1);
+            self::fail('A rate limit is an error');
+        } catch (\RuntimeException $e) {
+            self::assertSame(429, $e->getCode());
+        }
+        self::assertCount(1, $this->requests);
+    }
+
+    public function testRetriesWithTheSameQueryWithAHandler(): void
+    {
+        $importer = $this->importer([new Response(503), new Response(429, ['Retry-After' => '7']), new Response(200, [], ")]}'\n[]")]);
+        $waits = [];
+        $importer->onRetry(static function (int $status, int $seconds, int $attempt) use (&$waits): void {
+            $waits[] = [$status, $seconds, $attempt];
+        }, 4);
+
+        self::assertSame([], $importer->find('change:1', 1));
+        self::assertSame([[503, 30, 1], [429, 7, 2]], $waits);
+        // The retries ask the same, the query was lost on a retry before
+        self::assertSame($this->requests[0]['request']->getUri()->getQuery(), $this->requests[2]['request']->getUri()->getQuery());
+    }
+
+    /**
+     * @param list<Response> $responses
+     */
+    private function importer(array $responses): GerritChangeImporter
+    {
+        $stack = HandlerStack::create(new MockHandler($responses));
+        $stack->push(Middleware::history($this->requests));
+
+        return new GerritChangeImporter(
+            new Client(['handler' => $stack, 'base_uri' => 'https://review.typo3.org']),
+            new CommandRunRecorder($this->createStub(Connection::class), new NullLogger()),
+        );
+    }
+}

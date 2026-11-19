@@ -1,0 +1,11 @@
+{#
+ # The one form of the refresh buttons, see templates/_macros/refresh.html.twig. It stands outside of every
+ # other form of the page: the lists have their filters in a form around the results, and a form in a form
+ # is dropped by the browser. The buttons point to it with their "form" attribute.
+ #}
+{% if is_granted('ROLE_ADMIN') %}
+    <form id="refresh-form" method="post" hidden>
+        <input type="hidden" name="_token" value="{{ csrf_token('refresh') }}">
+        <input type="hidden" name="_target_path" value="{{ app.request.requestUri ?? '' }}">
+    </form>
+{% endif %}

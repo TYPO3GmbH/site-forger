@@ -86,14 +86,19 @@ final readonly class MockDataGenerator
     /**
      * Code-Review and Verified votes as positive reviews, negative reviews, positive and negative verifications.
      */
+    /**
+     * Sums of the positive and negative reviews and verifications, then the lowest and highest single review
+     * and verification vote they come from.
+     */
     private const array VOTES = [
-        [0, 0, 0, 0],
-        [1, 0, 1, 0],
-        [2, 0, 2, 0],
-        [1, 1, 1, 1],
-        [0, 1, 0, 1],
-        [3, 0, 3, 0],
-        [0, 2, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 1, 0, 0, 1, 0, 1],
+        [2, 0, 2, 0, 0, 2, 0, 2],
+        [1, 1, 1, 1, -1, 1, -1, 1],
+        [0, 1, 0, 1, -1, 0, -1, 0],
+        [3, 0, 3, 0, 0, 2, 0, 2],
+        [0, 2, 1, 0, -2, 0, 0, 1],
+        [2, 0, 1, 0, 0, 1, 0, 1],
     ];
 
     private const array FILES = [
@@ -338,11 +343,12 @@ final readonly class MockDataGenerator
         $subject = trim($prefix . ' ' . $this->pick(self::SUBJECTS, $index + 3));
         $reviewTags = ReviewSubject::tags($subject);
         $releases = $this->pick(self::RELEASES, $index);
-        [$positiveReviews, $negativeReviews, $positiveVerifications, $negativeVerifications] = $this->pick(self::VOTES, $index);
+        $votes = $this->pick(self::VOTES, $index);
         if ('MERGED' === $status) {
             // Merging needs a +2 review and a +2 verification
-            [$positiveReviews, $negativeReviews, $positiveVerifications, $negativeVerifications] = [2, 0, 2, 0];
+            $votes = [2, 0, 2, 0, 0, 2, 0, 2];
         }
+        [$positiveReviews, $negativeReviews, $positiveVerifications, $negativeVerifications] = $votes;
         $updated = $this->age($index);
         $patchSets = 1 + $index % 12;
         $files = array_slice(self::FILES, 0, 1 + $index % count(self::FILES));
@@ -364,6 +370,10 @@ final readonly class MockDataGenerator
             'negative_reviews' => $negativeReviews,
             'positive_verifications' => $positiveVerifications,
             'negative_verifications' => $negativeVerifications,
+            'lowest_review_vote' => $votes[4],
+            'highest_review_vote' => $votes[5],
+            'lowest_verification_vote' => $votes[6],
+            'highest_verification_vote' => $votes[7],
             'patchsets' => $patchSets,
             'created_on' => $this->formatDate($updated->modify('-' . (1 + $index % 90) . ' days')),
             'updated_on' => $this->formatDate($updated),

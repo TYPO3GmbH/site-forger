@@ -15,6 +15,7 @@ use App\Enum\ActivityEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\PriorityEnum;
 use App\Enum\ReviewStateEnum;
+use App\Enum\ReviewVoteEnum;
 use App\Enum\TrackerEnum;
 use Twig\Attribute\AsTwigFunction;
 
@@ -45,6 +46,17 @@ final class StatusTwigExtension
     public function reviewState(array $change): ReviewStateEnum
     {
         return ReviewStateEnum::fromChange($change);
+    }
+
+    /**
+     * The vote that counts for a label ("review" or "verification") of a Gerrit change document of the review index.
+     *
+     * @param array<string, mixed> $change
+     */
+    #[AsTwigFunction(name: 'review_vote')]
+    public function reviewVote(array $change, string $label): ReviewVoteEnum
+    {
+        return ReviewVoteEnum::fromChange($change, $label);
     }
 
     /**

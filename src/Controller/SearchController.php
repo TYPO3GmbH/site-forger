@@ -16,6 +16,7 @@ use App\Elastic\FacetSelection;
 use App\Elastic\IssueSearch;
 use App\Elastic\PersonSuggestion;
 use App\Enum\ActivityEnum;
+use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
 use Elastica\Aggregation\Filters;
 use Elastica\Aggregation\Terms;
@@ -76,8 +77,15 @@ class SearchController extends AbstractController
                 $viewData['issue'] = ['_source' => $issue];
             }
         } else {
-            $results = $this->findByQuery($query, $searchClosed);
+            // Without search words all issues score the same, so they are not sorted by relevance
+            $withRelevance = '' !== trim($query);
+            $sort = IssueSortEnum::fromRequest($request->query->getString('sort'), $withRelevance);
+            $results = $this->findByQuery($query, $sort, $searchClosed);
             $viewData['mode'] = 'query';
+            $viewData['sort'] = $sort;
+            $viewData['sortOptions'] = IssueSortEnum::options($withRelevance);
+            // Links leave out the default, so a changed search keeps its own default
+            $viewData['sortParameter'] = $sort === IssueSortEnum::default($withRelevance) ? [] : ['sort' => $sort->value];
         }
         $viewData += $results;
         $viewData['query'] = $query;
@@ -184,9 +192,9 @@ class SearchController extends AbstractController
     /**
      * @throws \Exception
      */
-    private function findByQuery(string $searchTerms, bool $searchInClosedIssues = false): array
+    private function findByQuery(string $searchTerms, IssueSortEnum $sort, bool $searchInClosedIssues = false): array
     {
-        return $this->doSearch(['query' => IssueSearch::query($searchTerms, $searchInClosedIssues)]);
+        return $this->doSearch(['query' => IssueSearch::query($searchTerms, $searchInClosedIssues), 'sort' => $sort->sort()]);
     }
 
     /**

@@ -1,5 +1,6 @@
 {% import '_macros/buttons.html.twig' as buttons %}
 {% import '_macros/status.html.twig' as status %}
+{% import '_macros/refresh.html.twig' as refresh %}
 {% if card is not defined or card is null %}
 
     {% include '_partials/alert.html.twig' with {message: 'Review is missing.', style: 'danger'} %}
@@ -29,6 +30,9 @@
             {% endif %}
         {% endif %}
         <div class="review-header">
+            {% if mode != 'backport' %}
+                {{ refresh.change(card.id) }}
+            {% endif %}
             <div class="review-issue">
                 #{{card.id}}
             </div>

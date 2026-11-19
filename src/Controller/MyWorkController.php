@@ -13,6 +13,7 @@ namespace App\Controller;
 
 use App\Elastic\ElasticUtility;
 use App\Elastic\UserWorkQuery;
+use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStateEnum;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -90,7 +91,9 @@ class MyWorkController extends AbstractController
         $issueStatus = false === $statusId ? null : IssueStatusEnum::tryFrom($statusId);
         // A closed state can only be found among all issues
         $includeClosed = 'all' === $request->query->getString('state') || (bool) $issueStatus?->isClosed();
-        $query = $this->query($includeClosed, issueStatus: $issueStatus);
+        // No search words rank the issues, so they cannot be sorted by relevance
+        $sort = IssueSortEnum::fromRequest($request->query->getString('sort'), false);
+        $query = $this->query($includeClosed, issueStatus: $issueStatus, issueSort: $sort);
         $issues = ElasticUtility::getIndexByName('issue')->createSearch($query->issues())->search();
 
         $counts = [];
@@ -116,10 +119,13 @@ class MyWorkController extends AbstractController
             'statusIds' => array_combine(self::issueStatusOrder(), array_map(static fn (IssueStatusEnum $state): int => $state->value, IssueStatusEnum::cases())),
             'counts' => $counts,
             'closedStates' => IssueStatusEnum::closedLabels(),
+            'sort' => $sort,
+            'sortOptions' => IssueSortEnum::options(false),
+            'isDefaultSort' => IssueSortEnum::default(false) === $sort,
         ]);
     }
 
-    private function query(bool $includeClosed, ?IssueStatusEnum $issueStatus = null, ?ReviewStateEnum $reviewState = null): UserWorkQuery
+    private function query(bool $includeClosed, ?IssueStatusEnum $issueStatus = null, ?ReviewStateEnum $reviewState = null, IssueSortEnum $issueSort = IssueSortEnum::UPDATED): UserWorkQuery
     {
         $user = $this->getUser();
 
@@ -129,6 +135,7 @@ class MyWorkController extends AbstractController
             $includeClosed,
             issueStatus: $issueStatus,
             reviewState: $reviewState,
+            issueSort: $issueSort,
         );
     }
 

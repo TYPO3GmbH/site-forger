@@ -84,6 +84,13 @@ services:
     public: true
     arguments:
       $forgeClient: '@redmine.client.forge'
+
+  App\Service\ForgeIssueImporter:
+    arguments:
+      $forgeClient: '@redmine.client.forge'
+
+  App\Service\GerritChangeImporter:
+    arguments:
       $client: '@guzzle.client.gerrit'
 
   App\Menu\MenuBuilder:

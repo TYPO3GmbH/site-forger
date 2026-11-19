@@ -11,24 +11,18 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Elastic\ElasticUtility;
 use App\Elastic\ImportWatermark;
 use App\Elastic\IndexSetup;
 use App\Elastic\ProjectIssues;
-use App\Elastic\ReviewSubject;
-use App\Enum\IssueStatusEnum;
 use App\Service\CommandRunRecorder;
+use App\Service\ForgeIssueImporter;
+use App\Service\GerritChangeImporter;
 use App\Service\GithubService;
-use Elastica\Document;
 use Exception;
-use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ClientException;
-use GuzzleHttp\Exception\ServerException;
-use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Redmine\Client\Client;
-use Redmine\Exception\UnexpectedResponseException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Command\LockableTrait;
@@ -38,15 +32,12 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use Symfony\Contracts\Cache\CacheInterface;
-use Symfony\Contracts\Cache\ItemInterface;
 
 #[AsCommand(name: 'app:import', description: 'Imports data from Redmine (forge.typo3.org), Gerrit (review.typo3.org) and Github')]
 class ImportCommand extends Command implements LoggerAwareInterface
 {
     use LockableTrait;
     use LoggerAwareTrait;
-    protected const BAMBOO_USER_ID = [49454, 51735, 52386];
     /**
      * At most this many issues or changes per delta run. The rest follows in the next run (Forge),
      * or with the weekly reviewFull (Gerrit, which only lists the newest changes first).
@@ -55,33 +46,30 @@ class ImportCommand extends Command implements LoggerAwareInterface
     private const int DELTA_LIMIT_GERRIT = 3000;
     private const int PAGE_SIZE = 100;
     /**
-     * Retries of a rate-limited request to Forge, see callRedmine().
+     * Retries of a rate-limited request to Forge, see waitForForge().
      */
     private const int FORGE_RETRIES = 6;
     /**
      * Changes per request when loading the details of the changed ones.
      */
     private const int GERRIT_DETAIL_BATCH = 25;
-    private const string GERRIT_PROJECT = 'project:Packages/TYPO3.CMS';
-    private const array GERRIT_DETAIL_OPTIONS = ['DETAILED_LABELS', 'ALL_REVISIONS', 'ALL_FILES', 'CURRENT_COMMIT', 'MESSAGES', 'DETAILED_ACCOUNTS'];
     /**
-     * Seconds the email of a Forge user is kept, so a run does not ask Forge for authors and assignees it knows.
+     * Retries of a Gerrit query that is rate-limited or fails, see waitForGerrit().
      */
-    private const int USER_CACHE_LIFETIME = 86400;
+    private const int GERRIT_RETRIES = 4;
     protected static array $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta', 'github', 'githubDelta'];
-    private array $userCache = [];
     protected OutputInterface $output;
 
     public function __construct(
         private readonly ParameterBagInterface $parameters,
         private readonly Client $forgeClient,
         private readonly GithubService $githubService,
-        private readonly ClientInterface $client,
         private readonly IndexSetup $indexSetup,
         private readonly CommandRunRecorder $recorder,
         private readonly ImportWatermark $watermark,
-        private readonly CacheInterface $cache,
         private readonly ProjectIssues $projectIssues,
+        private readonly ForgeIssueImporter $issueImporter,
+        private readonly GerritChangeImporter $changeImporter,
     ) {
         parent::__construct();
     }
@@ -127,6 +115,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
     {
         $io = new SymfonyStyle($input, $output);
         $this->output = $output;
+        $this->issueImporter->onRateLimit($this->waitForForge(...), self::FORGE_RETRIES);
+        $this->changeImporter->onRetry($this->waitForGerrit(...), self::GERRIT_RETRIES);
         $mode = $input->getOption('mode');
         $startAt = (int) $input->getOption('startAt');
         $force = (bool) $input->getOption('force');
@@ -404,7 +394,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 continue;
             }
             try {
-                $this->getTicketAndJournal($doc);
+                $this->issueImporter->import($doc);
                 $this->refreshLock();
             } catch (\Exception $e) {
                 // The import goes on with the next issue
@@ -432,7 +422,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         if (null === $since) {
             $this->recorder->warning('The review index is empty, run --mode=reviewFull. Imported the latest changes only.');
             $progressBar = new ProgressBar($output->section());
-            foreach ($this->getReviewBlock(0, self::PAGE_SIZE, new ProgressBar($output->section()), $progressBar) as $review) {
+            foreach ($this->reviewBlock(GerritChangeImporter::PROJECT, self::PAGE_SIZE, $progressBar) as $review) {
                 $this->addDocumentToElastic($review, 'review');
             }
 
@@ -454,19 +444,16 @@ class ImportCommand extends Command implements LoggerAwareInterface
     private function importReviews(OutputInterface $output, ?\DateTimeImmutable $since, bool $force, int $startAt = 0): void
     {
         $delta = null !== $since;
-        $mainSection = $output->section();
-        $subSection = $output->section();
-        $progressBar = new ProgressBar($mainSection);
-        $subBar = new ProgressBar($subSection);
+        $progressBar = new ProgressBar($output->section());
         $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
 
         // Step 1: which changes are not up to date in the index, without their details
-        $query = self::GERRIT_PROJECT . ($delta ? ' ' . ImportWatermark::gerritOperator($since) : '');
+        $query = GerritChangeImporter::PROJECT . ($delta ? ' ' . ImportWatermark::gerritOperator($since) : '');
         $listed = 0;
         $changed = [];
         $more = true;
         for ($start = max(0, $startAt); $more && (!$delta || $start < self::DELTA_LIMIT_GERRIT); $start += self::PAGE_SIZE) {
-            $changes = $this->decodeGerrit($this->getCommitsFromGerrit(self::PAGE_SIZE, $start, $query, []));
+            $changes = $this->changeImporter->find($query, self::PAGE_SIZE, $start, []);
             $updated = [];
             foreach ($changes as $change) {
                 $updated[(string) $change['_number']] = $this->fixDateFormat($change['updated'], 'Gerrit');
@@ -492,7 +479,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $progressBar->setMaxSteps(count($changed));
         foreach (array_chunk($changed, self::GERRIT_DETAIL_BATCH) as $batch) {
             $batchQuery = implode(' OR ', array_map(static fn (string $number): string => 'change:' . $number, $batch));
-            $block = $this->getReviewBlock(0, count($batch), $subBar, $progressBar, $batchQuery);
+            $block = $this->reviewBlock($batchQuery, count($batch), $progressBar);
             if ($delta) {
                 $reviews += $block;
                 continue;
@@ -508,33 +495,18 @@ class ImportCommand extends Command implements LoggerAwareInterface
     }
 
     /**
-     * @return list<array<string, mixed>>
-     */
-    private function decodeGerrit(ResponseInterface $response): array
-    {
-        return json_decode(str_replace(")]}'", '', (string) $response->getBody()), true, 512, JSON_THROW_ON_ERROR);
-    }
-
-    /**
-     * Imports a single ticket.
-     * A sleep(1) might be useful here to not hammer forge.
+     * The documents of the changes a query finds, with the progress of the import.
+     * Errors end the import: an empty result would silently skip the changes of this block.
      *
-     * @throws \InvalidArgumentException
-     * @throws \Exception
+     * @return array<int, array<string, mixed>>
      */
-    private function getTicketAndJournal(array $issue): void
+    private function reviewBlock(string $query, int $count, ProgressBar $progressBar): array
     {
-        // import journals only if issue status is "Under review"
-        if (isset($issue['status']['id']) && IssueStatusEnum::UNDER_REVIEW === IssueStatusEnum::tryFrom((int) $issue['status']['id'])) {
-            $issueWithJournals = $this->callRedmine(fn () => $this->forgeClient->getApi('issue')->show($issue['id'], ['include' => ['journals']]));
-            if (!is_array($issueWithJournals) || !isset($issueWithJournals['issue'])) {
-                // Forge answered without the issue, it keeps its previous state in the index
-                throw new \RuntimeException(sprintf('Loading the journals failed, Forge answered: %s', mb_substr(is_string($issueWithJournals) ? trim($issueWithJournals) : get_debug_type($issueWithJournals), 0, 200)));
-            }
-            $this->addDocumentToElastic($this->injectUserData($this->projectIssues->withoutPrivateNotes($issueWithJournals['issue'])));
-        } else {
-            $this->addDocumentToElastic($this->injectUserData($issue));
-        }
+        return $this->changeImporter->documents($this->changeImporter->find($query, $count), function () use ($progressBar): void {
+            $progressBar->advance();
+            $this->reportProgress('Gerrit changes', $progressBar);
+            $this->refreshLock();
+        });
     }
 
     /**
@@ -606,342 +578,12 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $io->newLine(1);
     }
 
-    /**
-     * Adds the email of the author and of the assignee, for their avatars.
-     */
-    private function injectUserData(array $issue): array
+    private function addDocumentToElastic(array $document, string $type): void
     {
-        // The author could be empty, so we have to check for that
-        $issue['author']['email'] = $this->forgeUserEmail($issue['author']['id'] ?? null);
-        if (isset($issue['assigned_to']['id'])) {
-            // A group can be assigned, too: Forge has no user for it, so it gets no email
-            $issue['assigned_to']['email'] = $this->forgeUserEmail($issue['assigned_to']['id']);
-        }
-
-        return $issue;
-    }
-
-    /**
-     * The email of a Forge user, empty if Forge does not know it.
-     */
-    private function forgeUserEmail(int|string|null $userId): string
-    {
-        if (null === $userId) {
-            return '';
-        }
-        if (!isset($this->userCache[$userId])) {
-            // A rate limit (429) is thrown and not cached, the next run asks again
-            $this->userCache[$userId] = $this->cache->get('forge_user_mail_' . (int) $userId, function (ItemInterface $item) use ($userId): string {
-                $item->expiresAfter(self::USER_CACHE_LIFETIME);
-                try {
-                    $userRecord = $this->callRedmine(fn () => $this->forgeClient->getApi('user')->show($userId));
-                } catch (\RuntimeException $e) {
-                    // E.g. a deleted or locked user (404, 403): the issue is imported without the email
-                    if (429 === $e->getCode()) {
-                        throw $e;
-                    }
-                    $userRecord = null;
-                }
-
-                return is_array($userRecord) ? ($userRecord['user']['mail'] ?? '') : '';
-            });
-        }
-
-        return $this->userCache[$userId];
-    }
-
-    /**
-     * @throws \Exception
-     */
-    protected function getReviewBlock(int $current, int $perRun, ProgressBar $subBar, ProgressBar $mainProgressbar, string $query = self::GERRIT_PROJECT): array
-    {
-        $out = [];
-        // Errors end the import: an empty result would silently skip the changes of this block
-        $data = $this->decodeGerrit($this->getCommitsFromGerrit($perRun, $current, $query));
-        foreach ($data as $change) {
-            $mainProgressbar->advance();
-            $this->reportProgress('Gerrit changes', $mainProgressbar);
-            $labels = $this->extractLabels($change['labels']);
-            if (!array_key_exists('mergeable', $change)) {
-                $change['mergeable'] = false;
-            }
-
-            if (!array_key_exists('current_revision', $change)) {
-                continue;
-            }
-
-            $patchSetNumber = 0;
-            $interaction = [];
-            $subBar->start(is_countable($change['messages']) ? count($change['messages']) : 0);
-            foreach ($change['messages'] as $message) {
-                $interaction['fullname'] = '';
-                $interaction['email'] = '';
-                try {
-                    $interaction['interaction_id'] = $message['id'];
-                    $messageId = $message['id'];
-                    $interaction['interaction_source'] = 'Gerrit';
-                    $interaction['interaction_source_id'] = $change['_number'];
-                    $interaction['interacted_on'] = $this->fixDateFormat($message['date'], 'Gerrit');
-
-                    $message['_revision_number'] ??= $patchSetNumber;
-
-                    // Check if is merge-commit
-                    if ($this->checkIfMessageIsMerge($message['message'])) {
-                        $revisions = $change['revisions'];
-                        usort($revisions, function ($a, $b) {
-                            $a = new \DateTime($this->fixDateFormat($a['created'], 'Gerrit'));
-                            $b = new \DateTime($this->fixDateFormat($b['created'], 'Gerrit'));
-
-                            return $a->getTimestamp() <=> $b->getTimestamp();
-                        });
-
-                        $mergeRevision = array_last($revisions);
-                        $this->addDocumentToElastic($this->buildRevisionArray($mergeRevision, 'core:review:merge', $messageId) + $interaction, 'interactions');
-
-                        // If there is more than one revision, we want to give credit to both the original author
-                        // and the person that patched this change with improvements (in case that is a different person)
-                        if ((is_countable($revisions) ? count($revisions) : 0) > 1) {
-                            $firstRevision = array_first($revisions);
-                            // Only applicable if the first and merge revision was done by different people
-                            if ($firstRevision['uploader']['_account_id'] !== $mergeRevision['uploader']['_account_id']) {
-                                $this->addDocumentToElastic($this->buildRevisionArray($firstRevision, 'core:review:merge-author', $messageId) + $interaction, 'interactions');
-                            }
-
-                            $lastRevisionBeforeMerge = $revisions[array_key_last($revisions) - 1];
-                            // Only applicable if the first and last and merge revision was done by different people
-                            if (
-                                $lastRevisionBeforeMerge['uploader']['_account_id'] !== $mergeRevision['uploader']['_account_id']
-                                && $lastRevisionBeforeMerge['uploader']['_account_id'] !== $firstRevision['uploader']['_account_id']
-                            ) {
-                                $this->addDocumentToElastic($this->buildRevisionArray($lastRevisionBeforeMerge, 'core:review:merge-lastpatchset', $messageId) + $interaction, 'interactions');
-                            }
-                        }
-                    } elseif ($this->checkIfMessageIsBackport($message['message'])) {
-                        // code intentionally left blank
-                    } else {
-                        $interaction['account'] = $message['author']['username'];
-                        $interaction['fullname'] = $message['author']['name'];
-                        if (isset($message['author']['email'])) {
-                            $interaction['email'] = $message['author']['email'];
-                        }
-                        // Is patchset, add as event
-                        if ($patchSetNumber < $message['_revision_number']) {
-                            $patchSetNumber = $message['_revision_number'];
-                            $interaction['interaction_type'] = 'core:review:patchset';
-                            $this->addDocumentToElastic($interaction, 'interactions');
-                        }
-                        // Check if message is "just" a new patchset
-                        if ($this->checkIfMessageIsComment($message['message'])) {
-                            $interaction['interaction_type'] = 'core:review:comment';
-                            $this->addDocumentToElastic($interaction, 'interactions');
-                        }
-                        // Check if message is a code review
-                        if ($this->checkIfMessageIsCodeReview($message['message'])) {
-                            $interaction['interaction_type'] = 'core:review:codereview';
-                            $this->addDocumentToElastic($interaction, 'interactions');
-                        }
-                        // Check if message is a verification
-                        if ($this->checkIfMessageIsVerification($message['message'])) {
-                            $interaction['interaction_type'] = 'core:review:testing';
-                            $this->addDocumentToElastic($interaction, 'interactions');
-                        }
-                        // Check if message is abandoning
-                        if ($this->checkIfMessageIsAbandoning($message['message'])) {
-                            $interaction['interaction_type'] = 'core:review:abandon';
-                            $this->addDocumentToElastic($interaction, 'interactions');
-                        }
-                    }
-                } catch (\Exception $e) {
-                    if (
-                        !str_contains((string) $message['message'], 'Change could not be merged due to a path conflict')
-                        && !str_contains((string) $message['message'], 'The change could not be merged due to a path conflict')
-                        && !str_contains((string) $message['message'], 'Your change could not be merged due to a path conflict')
-                        && !str_contains((string) $message['message'], 'Change has been successfully pushed into branch sandbox')
-                        && !str_contains((string) $message['message'], 'Change could not be merged because of a missing dependency')
-                    ) {
-                        throw new \RuntimeException($e->getMessage());
-                    }
-                }
-                $subBar->advance();
-                $this->refreshLock();
-            }
-
-            $author = $change['revisions'][$change['current_revision']]['commit']['author']['name'];
-            $authorEmail = $change['revisions'][$change['current_revision']]['commit']['author']['email'];
-            $filesInPatchset = array_keys($change['revisions'][$change['current_revision']]['files']);
-            if (11918 === (int) $change['_number']) {
-                $change['revisions'][$change['current_revision']]['commit']['message'] = '6.0';
-            }
-
-            $reviewTags = ReviewSubject::tags($change['subject']);
-
-            $out[$change['_number']] = [
-                'id' => $change['_number'],
-                'change_id' => $change['change_id'],
-                'reviewstatus' => $change['status'],
-                'subject' => $change['subject'],
-                'branch' => 'master' === $change['branch'] ? 'main' : $change['branch'],
-                'topic' => array_key_exists('topic', $change) ? $change['topic'] : 'no topic',
-                'mergeable' => (true === $change['mergeable']) ? 'yes' : 'no',
-                'affected_files' => is_countable($change['revisions'][$change['current_revision']]['files']) ? count($change['revisions'][$change['current_revision']]['files']) : 0,
-                'insertions' => $change['insertions'],
-                'deletions' => $change['deletions'],
-                'reviewtags' => $reviewTags,
-                'positive_reviews' => $labels['positive_reviews'],
-                'negative_reviews' => $labels['negative_reviews'],
-                'positive_verifications' => $labels['positive_verifications'],
-                'negative_verifications' => $labels['negative_verifications'],
-                'patchsets' => $change['revisions'][$change['current_revision']]['_number'],
-                'created_on' => $this->fixDateFormat($change['created'], 'Gerrit'),
-                'updated_on' => $this->fixDateFormat($change['updated'], 'Gerrit'),
-                'releases' => $this->extractReleases(
-                    $change['revisions'][$change['current_revision']]['commit']['message']
-                ),
-                'owner' => $author ?? 'Unknown',
-                'ownerEmail' => $authorEmail ?? 'Unknown',
-                'files' => $filesInPatchset,
-                'work_in_progress' => ReviewSubject::isWorkInProgress($reviewTags) || ($change['work_in_progress'] ?? false),
-            ];
-        }
-
-        return $out;
-    }
-
-    /**
-     * @throws \Exception
-     */
-    protected function extractReleases(string $message): array
-    {
-        // Fix fucked up lines in message
-        $searches = ['Release: ',  '7,6'];
-        $replaces = ['Releases: ', '7.6'];
-        $message = str_replace($searches, $replaces, $message);
-        $pattern = '/Releases:\s*(.*)/';
-        preg_match($pattern, $message, $matches);
-        if (!isset($matches[1])) {
-            return ['omitted'];
-        }
-
-        $search = ['master.', 'master', '4.7.', '4.5 LTS'];
-        $replaces = ['master,', 'main', '4.7,', '4.5'];
-        $matches[1] = str_replace($search, $replaces, $matches[1]);
-        $releaseArray = array_map(trim(...), explode(',', $matches[1]));
-        foreach ($releaseArray as $key => $release) {
-            if (str_contains((string) $release, ' ')) {
-                throw new \InvalidArgumentException('Release contains space? ' . $message);
-            }
-            $releaseArray[$key] = strtolower((string) $release);
-        }
-
-        return $releaseArray;
-    }
-
-    /**
-     * @throws \Exception
-     */
-    protected function extractLabels(array $labels): array
-    {
-        $out = [
-            'positive_reviews' => 0,
-            'negative_reviews' => 0,
-            'positive_verifications' => 0,
-            'negative_verifications' => 0,
-
-        ];
-        foreach ($labels as $labelType => $subRow) {
-            $key = match ($labelType) {
-                'Verified' => '_verifications',
-                'Code-Review' => '_reviews',
-                default => throw new \InvalidArgumentException('Unknown Label type ' . $labelType),
-            };
-            if (array_key_exists('all', $subRow)) {
-                foreach ($subRow['all'] as $vote) {
-                    if (isset($vote['value']) && !in_array($vote['_account_id'], self::BAMBOO_USER_ID, true)) {
-                        switch ($vote['value']) {
-                            case 1:
-                                ++$out['positive' . $key];
-                                break;
-                            case 2:
-                                $out['positive' . $key] += 2;
-                                break;
-                            case -1:
-                                ++$out['negative' . $key];
-                                break;
-                            case -2:
-                                $out['negative' . $key] += 2;
-                                break;
-                            case 0:
-                                // nothing to do here
-                                break;
-                            default:
-                                throw new \InvalidArgumentException('Unknown Vote Type');
-                        }
-                    }
-                }
-            }
-        }
-
-        return $out;
-    }
-
-    /**
-     * @throws \Exception
-     */
-    private function addDocumentToElastic(array $document, string $type = 'issue'): void
-    {
-        $elasticType = null;
-        switch ($type) {
-            case 'issue':
-                if (isset($document['custom_fields'])) {
-                    foreach ($document['custom_fields'] as $customField) {
-                        switch ($customField['id']) {
-                            case 3:
-                                if (!empty($customField['value'])) {
-                                    $document['tags'] = array_map(trim(...), explode(',', (string) $customField['value']));
-                                }
-                                break;
-                            case 4:
-                                $document['typo3_version'] = $customField['value'] ?? '-';
-                                break;
-                            case 5:
-                                $document['php_version'] = $customField['value'] ?? '-';
-                                break;
-                            case 8:
-                                $document['complexity'] = $customField['value'] ?? '-';
-                                break;
-                            case 15:
-                                // custom field for regression could not be set, empty, 0 or 1.
-                                $document['isregression'] = ($customField['value'] ?? '0') === '1';
-                                break;
-                            case 18:
-                                $document['focus']['name'] = $customField['value'] ?? '-';
-                                break;
-                            default:
-                        }
-                    }
-                }
-                $document['updated_on'] = $this->fixDateFormat($document['updated_on'], 'Redmine');
-                $document['created_on'] = $this->fixDateFormat($document['created_on'], 'Redmine');
-                unset($document['start_date'], $document['due_date']);
-                $elasticType = ElasticUtility::getIndexByName('issue');
-                break;
-            case 'review':
-                $elasticType = ElasticUtility::getIndexByName('review');
-                break;
-            case 'interactions':
-                $elasticType = ElasticUtility::getIndexByName('interactions');
-                break;
-            default:
-        }
-        if (null !== $elasticType) {
-            if (isset($document['interaction_id'])) {
-                $doc = new Document($document['interaction_id'] . '-' . $document['interaction_type'], $document);
-            } else {
-                $doc = new Document((string) $document['id'], $document);
-            }
-            $elasticType->addDocument($doc);
-            $this->recorder->document();
-        }
+        match ($type) {
+            'review' => $this->changeImporter->write($document),
+            'interactions' => $this->changeImporter->writeInteraction($document),
+        };
     }
 
     /**
@@ -950,96 +592,11 @@ class ImportCommand extends Command implements LoggerAwareInterface
      */
     private function fixDateFormat(string $dateTimeString, string $source): string
     {
-        switch ($source) {
-            case 'Redmine':
-                break;
-            case 'Gerrit':
-                $subString = substr($dateTimeString, 0, 19);
-                $dateTimeString = $subString;
-                break;
-            default:
-                throw new \InvalidArgumentException('Value of $source has to be either "Redmine" or "Gerrit"');
-
-        }
-
-        return new \DateTime($dateTimeString)->format('Y/m/d H:i:s');
-    }
-
-    private function checkIfMessageIsComment(string $message): bool
-    {
-        // Is just a Code Review
-        $pattern = '^Patch\sSet\s\d{1,4}:\s.*(Code-Review)(-|\+)(1|2)$';
-        $isCodeReview = $this->checkRegex($message, $pattern, '');
-        // Is just a Verification
-        $pattern = '^Patch\sSet\s\d{1,4}:\s.*(Verified)(-|\+)(1|2)$';
-        $isVerification = $this->checkRegex($message, $pattern, '');
-        // Is just a Verification
-        $pattern = '^Uploaded\spatch\sset\s\d{1,4}.$';
-        $isPatchset = $this->checkRegex($message, $pattern, '');
-
-        $pattern = '^Patch\sSet\s\d{1,4}:\sCommit message was updated\.$';
-        $isCommitMessageChange = $this->checkRegex($message, $pattern, '');
-
-        // Check all booleans and if one hits, return false
-        return !($isCodeReview || $isVerification || $isPatchset || $isCommitMessageChange || $this->checkIfMessageIsBackport($message) || $this->checkIfMessageIsMerge($message));
-    }
-
-    private function checkIfMessageIsCodeReview(string $message): bool
-    {
-        $pattern = '^Patch\sSet\s\d{1,4}:\s.*(Code-Review)(-|\+)(1|2)';
-
-        return $this->checkRegex($message, $pattern);
-    }
-
-    private function checkIfMessageIsVerification(string $message): bool
-    {
-        $pattern = '^Patch\sSet\s\d{1,4}:\s.*(Verified)(-|\+)(1|2)';
-
-        return $this->checkRegex($message, $pattern);
-    }
-
-    private function checkIfMessageIsAbandoning(string $message): bool
-    {
-        $pattern = '^Abandoned';
-
-        return $this->checkRegex($message, $pattern);
-    }
-
-    private function checkIfMessageIsMerge(string $message): bool
-    {
-        $pattern = 'Change has been successfully cherry-picked as \b[0-9a-f]{40}\b';
-
-        return $this->checkRegex($message, $pattern);
-    }
-
-    private function checkIfMessageIsBackport(string $message): bool
-    {
-        $pattern = 'This patchset was cherry picked to branch.*? as commit \b[0-9a-f]{40}\b';
-
-        return $this->checkRegex($message, $pattern);
-    }
-
-    private function checkRegex(string $string, string $pattern, $modifier = 'm'): bool
-    {
-        preg_match('/' . $pattern . '/' . $modifier, $string, $matches);
-
-        return isset($matches[0]);
-    }
-
-    private function buildRevisionArray(array $data, string $interactionType, string $messageId): array
-    {
-        $interaction = [];
-        $interaction['interaction_id'] = $messageId . '-' . $interactionType;
-        $interaction['interaction_type'] = $interactionType;
-        $interaction['account'] = $data['uploader']['username'];
-        $interaction['fullname'] = $data['uploader']['name'];
-        if (isset($data['uploader']['email'])) {
-            $interaction['email'] = $data['uploader']['email'];
-        } else {
-            $interaction['email'] = 'Unknown';
-        }
-
-        return $interaction;
+        return match ($source) {
+            'Redmine' => ForgeIssueImporter::indexDate($dateTimeString),
+            'Gerrit' => GerritChangeImporter::gerritDate($dateTimeString),
+            default => throw new \InvalidArgumentException('Value of $source has to be either "Redmine" or "Gerrit"'),
+        };
     }
 
     /**
@@ -1054,31 +611,21 @@ class ImportCommand extends Command implements LoggerAwareInterface
      *
      * @throws \RuntimeException
      */
-    private function callRedmine(callable $callback, int $attempt = 0): mixed
+    private function callRedmine(callable $callback): mixed
     {
-        try {
-            $result = $callback();
-            $status = $this->forgeClient->getLastResponseStatusCode();
-        } catch (UnexpectedResponseException $e) {
-            $result = null;
-            $status = $e->getResponse()->getStatusCode();
-        }
-        if (429 === $status && $attempt < self::FORGE_RETRIES) {
-            ++$attempt;
-            // Give Forge some time to relax
-            $sleepTime = min(10 * 2 ** ($attempt - 1), 300);
-            $this->logger->warning(sprintf('[RECV] Failed to fetch data from Forge, response code %s, retrying in %d seconds, attempt #%d...', $status, $sleepTime, $attempt));
-            $this->recorder->progress(sprintf('Forge rate limit, waiting %d s (attempt %d of %d)', $sleepTime, $attempt, self::FORGE_RETRIES));
-            sleep($sleepTime);
-            $this->refreshLock();
+        return $this->issueImporter->call($callback);
+    }
 
-            return $this->callRedmine($callback, $attempt);
-        }
-        if ($status >= 400) {
-            throw new \RuntimeException(sprintf('Forge responded with status %d', $status), $status);
-        }
-
-        return $result;
+    /**
+     * Gives Forge some time to relax after a rate limit, longer with each attempt.
+     */
+    private function waitForForge(int $attempt): void
+    {
+        $sleepTime = min(10 * 2 ** ($attempt - 1), 300);
+        $this->logger->warning(sprintf('[RECV] Failed to fetch data from Forge, response code 429, retrying in %d seconds, attempt #%d...', $sleepTime, $attempt));
+        $this->recorder->progress(sprintf('Forge rate limit, waiting %d s (attempt %d of %d)', $sleepTime, $attempt, self::FORGE_RETRIES));
+        sleep($sleepTime);
+        $this->refreshLock();
     }
 
     /**
@@ -1101,44 +648,13 @@ class ImportCommand extends Command implements LoggerAwareInterface
     }
 
     /**
-     * @param list<string> $options the details Gerrit adds to every change, none for just the list
+     * Gives Gerrit some time after a rate limit or an error, as long as it asks for or longer with each attempt.
      */
-    private function getCommitsFromGerrit(int $perRun, int $current, string $query = self::GERRIT_PROJECT, array $options = self::GERRIT_DETAIL_OPTIONS, int $retry = 0): ResponseInterface
+    private function waitForGerrit(int $status, int $seconds, int $attempt): void
     {
-        try {
-            $httpQueryData = [
-                'q' => $query,
-                'n' => $perRun,
-                'start' => $current,
-                'o' => $options,
-            ];
-            $query = [];
-            // http_build_query() doesn't work as it generates o[0]=a&o[1]=b&o[2]=c instead of o=a&o=b&o=c
-            foreach ($httpQueryData as $name => $value) {
-                $value = (array) $value;
-                array_walk_recursive($value, static function ($value) use (&$query, $name) {
-                    $query[] = urlencode($name) . '=' . urlencode((string) $value);
-                });
-            }
-            $httpQuery = implode('&', $query);
-            $url = sprintf('/changes/?%s', $httpQuery);
-
-            return $this->client->request('GET', $url);
-        } catch (ServerException|ClientException $e) {
-            $status = $e->getResponse()->getStatusCode();
-            // Gerrit rate-limits the heavy change queries now and then with 429
-            if ((429 === $status || $e instanceof ServerException) && $retry <= 3) {
-                ++$retry;
-                $retryAfter = (int) $e->getResponse()->getHeaderLine('Retry-After');
-                $sleepTime = $retryAfter > 0 ? min($retryAfter, 300) : 30 * $retry;
-                $this->logger->warning(sprintf('Gerrit responded with %d, retrying in %d seconds (attempt %d)...', $status, $sleepTime, $retry));
-                sleep($sleepTime);
-
-                return $this->getCommitsFromGerrit($perRun, $current, $query, $options, $retry);
-            }
-
-            throw new \RuntimeException(sprintf('Fetching changes from Gerrit failed with status %d', $status), 0, $e);
-        }
+        $this->logger->warning(sprintf('Gerrit responded with %d, retrying in %d seconds (attempt %d)...', $status, $seconds, $attempt));
+        sleep($seconds);
+        $this->refreshLock();
     }
 
     /**

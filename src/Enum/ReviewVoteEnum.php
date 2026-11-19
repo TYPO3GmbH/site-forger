@@ -1,0 +1,77 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
+
+namespace App\Enum;
+
+/**
+ * A vote of a Gerrit label ("Code-Review" or "Verified"), the value is the Gerrit value.
+ *
+ * Only mergers may vote +2 and -2, so these weigh more than the votes of everybody else.
+ */
+enum ReviewVoteEnum: int
+{
+    case REJECTED = -2;
+    case DISLIKED = -1;
+    case NONE = 0;
+    case RECOMMENDED = 1;
+    case APPROVED = 2;
+
+    /**
+     * The labels of the review index: the name used in its fields => the name in Gerrit.
+     */
+    public const array LABELS = [
+        'review' => 'Code-Review',
+        'verification' => 'Verified',
+    ];
+
+    public function label(): string
+    {
+        return $this->value > 0 ? '+' . $this->value : (string) $this->value;
+    }
+
+    /**
+     * The key of the vote for styling: "status-pill-<severity>".
+     */
+    public function severity(): string
+    {
+        return 'vote-' . strtolower($this->name);
+    }
+
+    public function isStrong(): bool
+    {
+        return self::APPROVED === $this || self::REJECTED === $this;
+    }
+
+    /**
+     * The vote that counts for a label of a change, as Gerrit sums it up: a negative vote outweighs the
+     * positive ones, else the highest positive vote counts.
+     *
+     * The import stores the lowest and the highest single vote. A change imported before that only has the
+     * sums of the votes: they cannot tell a +2 from two +1, so they give a +1 or -1 at most.
+     *
+     * @param array<string, mixed> $change a document of the review index
+     * @param string               $label  "review" or "verification", see LABELS
+     */
+    public static function fromChange(array $change, string $label): self
+    {
+        if (isset($change['lowest_' . $label . '_vote'], $change['highest_' . $label . '_vote'])) {
+            $lowest = (int) $change['lowest_' . $label . '_vote'];
+            $highest = (int) $change['highest_' . $label . '_vote'];
+
+            return self::tryFrom($lowest < 0 ? max($lowest, -2) : min(max($highest, 0), 2)) ?? self::NONE;
+        }
+        if ((int) ($change['negative_' . $label . 's'] ?? 0) > 0) {
+            return self::DISLIKED;
+        }
+
+        return (int) ($change['positive_' . $label . 's'] ?? 0) > 0 ? self::RECOMMENDED : self::NONE;
+    }
+}

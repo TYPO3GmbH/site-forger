@@ -2,6 +2,7 @@
     {% if results is defined %}
         <div class="section-filter">
             {% include '_partials/aggregations.html.twig' with {
+                'facetScope': 'changes',
                 'aggregations': aggregations,
                 'query': query,
                 'personSearch': {

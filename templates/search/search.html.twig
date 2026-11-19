@@ -1,6 +1,7 @@
 {% extends 'base.html.twig' %}
 {% block title %}Searchresult{% endblock %}
 {% block body %}
+    {% import '_macros/sort.html.twig' as sorting %}
 
     {% include '_partials/searchbar.html.twig' %}
     <div class="content-section content-section-small">
@@ -9,12 +10,18 @@
                 {% include '_partials/alert.html.twig' with {'message': ErrorMessage} %}
             {% else %}
                 {% if mode == 'query' %}
+                    {# The parameters of the list, for the pages, the filters and the sort field #}
+                    {% set closedParameter = (searchClosed is defined) ? {'searchClosed': searchClosed} : {} %}
+                    {% set listArguments = {'query': query, 'filters': filters}|merge(closedParameter)|merge(sortParameter) %}
                     {% if totalResults > 0 %}
                         <div class="section">
                             <div class="section-filter">
                                 <form action="{{ path('search_search') }}" method="get">
                                     <input type="hidden" name="query" value="{{ (query is defined) ? query : '' }}">
+                                    {{ sorting.hidden('searchClosed', searchClosed ?? null) }}
+                                    {{ sorting.hidden('sort', sortParameter.sort ?? null) }}
                                     {% include '_partials/aggregations.html.twig' with {
+                                        'facetScope': 'issues',
                                         'aggregations': aggs,
                                         'query': query,
                                         'personSearch': {
@@ -25,15 +32,18 @@
                                 </form>
                             </div>
                             <div class="section-main">
-                                {% include '_partials/pagination.html.twig' with {
-                                    'pages': pagesToLinkTo,
-                                    'current': currentPage,
-                                    'routeName': routeName,
-                                    'resultsTotal': totalResults,
-                                    'resultsFrom': startingAtItem,
-                                    'resultsTo': endingAtItem,
-                                    'arguments': {'query': query, 'filters': filters}
-                                } only %}
+                                <div class="search-results-toolbar">
+                                    {% include '_partials/pagination.html.twig' with {
+                                        'pages': pagesToLinkTo,
+                                        'current': currentPage,
+                                        'routeName': routeName,
+                                        'resultsTotal': totalResults,
+                                        'resultsFrom': startingAtItem,
+                                        'resultsTo': endingAtItem,
+                                        'arguments': listArguments
+                                    } only %}
+                                    {{ sorting.select(path(routeName), sort, sortOptions, {'query': query, 'filters': filters}|merge(closedParameter)) }}
+                                </div>
                                 {% for result in results %}
                                     {% include '_partials/issue.html.twig' with {'issue': result.hit} only %}
                                 {% endfor %}
@@ -44,7 +54,7 @@
                                     'resultsTotal': totalResults,
                                     'resultsFrom': startingAtItem,
                                     'resultsTo': endingAtItem,
-                                    'arguments': {'query': query, 'filters': filters}
+                                    'arguments': listArguments
                                 } only %}
                             </div>
                         </div>
