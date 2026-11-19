@@ -22,6 +22,8 @@ security:
 
 # Second login in dev: log in as one of these fixed users at /_dev/login (keys are the user identifiers).
 # Keycloak login keeps working next to it. ROLE_USER is always added.
+# "email" is optional (default: <identifier>@forger.ddev.site); set it to see the issues and
+# Gerrit changes of that address on "My Work".
 when@dev:
     parameters:
         app.dev_login.users:

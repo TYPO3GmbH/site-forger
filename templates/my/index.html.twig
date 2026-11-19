@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+{% block title %}My Work{% endblock %}
+{% block headline %}My Work{% endblock %}
+{% block body %}
+
+    <div class="content-section content-section-small">
+        <div class="container">
+            <p>
+                Issues you reported or are assigned to, and your Gerrit changes.
+                They are found by your email address <strong>{{ email }}</strong> or your name <strong>{{ name }}</strong>.
+            </p>
+            <div class="btn-group mb-4" role="group" aria-label="State">
+                <a href="{{ path('my_index') }}" class="btn btn-sm {{ includeClosed ? 'btn-default' : 'btn-primary' }}">Open</a>
+                <a href="{{ path('my_index', {'state': 'all'}) }}" class="btn btn-sm {{ includeClosed ? 'btn-primary' : 'btn-default' }}">All</a>
+            </div>
+
+            <h2 id="reviews">Gerrit changes <span class="badge badge-secondary">{{ reviewsTotal }}</span></h2>
+            {% if reviews is empty %}
+                {% include '_partials/alert.html.twig' with {'message': includeClosed ? 'There are no Gerrit changes of yours.' : 'You have no open Gerrit changes.', 'style': 'info'} only %}
+            {% else %}
+                {% if reviewsTotal > reviews|length %}
+                    <p><small>Showing the {{ reviews|length }} most recently updated of {{ reviewsTotal }} changes.</small></p>
+                {% endif %}
+                {% for result in reviews %}
+                    {% include '_partials/review.html.twig' with {'review': result.hit} only %}
+                {% endfor %}
+            {% endif %}
+
+            <h2 id="issues" class="mt-5">Issues <span class="badge badge-secondary">{{ issuesTotal }}</span></h2>
+            {% if issues is empty %}
+                {% include '_partials/alert.html.twig' with {'message': includeClosed ? 'There are no issues of yours.' : 'You have no open issues.', 'style': 'info'} only %}
+            {% else %}
+                {% if issuesTotal > issues|length %}
+                    <p><small>Showing the {{ issues|length }} most recently updated of {{ issuesTotal }} issues.</small></p>
+                {% endif %}
+                {% for result in issues %}
+                    {% include '_partials/issue.html.twig' with {'issue': result.hit} only %}
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+{% endblock %}

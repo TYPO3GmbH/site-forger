@@ -28,7 +28,7 @@ final readonly class DevUserRegistry
     private const string DEFAULT_ROLE = 'ROLE_USER';
 
     /**
-     * @param array<string, array{name: string, roles: list<string>}> $users
+     * @param array<string, array{name: string, roles: list<string>, email?: string}> $users
      */
     public function __construct(
         #[Autowire(param: 'app.dev_login.users')]
@@ -37,7 +37,7 @@ final readonly class DevUserRegistry
     }
 
     /**
-     * @return array<string, array{name: string, roles: list<string>}>
+     * @return array<string, array{name: string, roles: list<string>, email?: string}>
      */
     public function all(): array
     {
@@ -49,6 +49,8 @@ final readonly class DevUserRegistry
         $user = $this->users[$identifier] ?? throw new UserNotFoundException(sprintf('There is no dev user "%s".', $identifier));
         $roles = array_values(array_unique([...$user['roles'], self::DEFAULT_ROLE]));
 
-        return new KeyCloakUser($identifier, $roles, $identifier . '@forger.ddev.site', $user['name'], true);
+        $email = $user['email'] ?? $identifier . '@forger.ddev.site';
+
+        return new KeyCloakUser($identifier, $roles, $email, $user['name'], true);
     }
 }

@@ -49,6 +49,10 @@ log in as one of the fixed users without a password, or with Keycloak (requires 
 The users are configured in `config/packages/security.yaml` (`when@dev`, parameter
 `app.dev_login.users`). The dev login does not exist outside the dev environment.
 
+**My Work** (`/my`, in the user menu) lists the issues and Gerrit changes of the logged-in user, matched
+by email address or name. The fixed users get `<identifier>@forger.ddev.site`; add an `email` to a user
+to see the work of an address from your imported data.
+
 ### Access tokens
 
 Put your personal tokens into `.env.local` (git-ignored, overrides `.env`):

@@ -331,6 +331,13 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     ],
                 ]
             );
+            $menu['username']->addChild('my_work', [
+                'label' => 'My Work',
+                'route' => 'my_index',
+                'extras' => [
+                    'icon' => 'actions-user',
+                ],
+            ]);
             if ($this->isKeycloakSession()) {
                 $this->addAccountItems($menu['username'], 't3g_keycloak_logout');
             } else {
