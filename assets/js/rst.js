@@ -125,8 +125,8 @@
             }
             restContent += restBody.replace('\n', '');
 
-            const icon = document.createElement('i');
-            icon.classList.add('fa', 'fa-file-download', 'me-1');
+            const icon = document.querySelector(`${Selectors.modal} template[data-template="download-icon"]`).content.firstElementChild.cloneNode(true);
+            icon.classList.add('me-1');
             const link = document.createElement('a');
             link.setAttribute('href', window.URL.createObjectURL(new Blob([restContent], {type: 'text/plain;charset=utf-8'})));
             link.setAttribute('download', filename);
