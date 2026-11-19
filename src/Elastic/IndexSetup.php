@@ -45,6 +45,22 @@ final readonly class IndexSetup
     /**
      * Stored in the "_meta" of the mapping, identifies the configuration an index was built with.
      */
+    /**
+     * The active index was built from the configuration as it is now.
+     */
+    public const string CONFIGURATION_CURRENT = 'current';
+    /**
+     * The configuration changed since: app:elasticsearch:setup builds the index again.
+     */
+    public const string CONFIGURATION_OUTDATED = 'outdated';
+    /**
+     * The index was built before the configuration was stored with it, app:elasticsearch:setup compares the mapping.
+     */
+    public const string CONFIGURATION_UNKNOWN = 'unknown';
+    /**
+     * No index carries the alias.
+     */
+    public const string CONFIGURATION_MISSING = 'missing';
     private const string CONFIG_HASH = 'forger_config_hash';
     private const string LOCK = 'elasticsearch-index-setup';
 
@@ -108,6 +124,33 @@ final readonly class IndexSetup
         }
 
         return $plan;
+    }
+
+    /**
+     * Which physical index each configured alias points to, and whether it was built from the configuration
+     * as it is now. Only reads, unlike planAll() it never creates an index to compare with.
+     *
+     * @return array<string, array{index: string|null, configuration: string}> keyed by "<type>_<language>",
+     *                                                                         the configuration is one of the CONFIGURATION_* constants
+     */
+    public function describeAll(): array
+    {
+        $indices = [];
+        foreach ($this->getTypes() as $type) {
+            foreach ($this->getLanguages() as $language) {
+                $alias = $this->aliasName($type, $language);
+                $active = $this->findActiveIndex($alias, $type, $language);
+                $configuration = match (true) {
+                    null === $active => self::CONFIGURATION_MISSING,
+                    $this->isBuiltFromConfiguration($active, $type, $language) => self::CONFIGURATION_CURRENT,
+                    null === $this->getConfigurationHash($active) => self::CONFIGURATION_UNKNOWN,
+                    default => self::CONFIGURATION_OUTDATED,
+                };
+                $indices[$alias] = ['index' => $active?->getName(), 'configuration' => $configuration];
+            }
+        }
+
+        return $indices;
     }
 
     /**

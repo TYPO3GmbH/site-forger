@@ -69,3 +69,9 @@
 .status-pill-run-locked { --status-color: #5c6670; --status-background: #eef0f2; }
 .status-pill-run-failed,
 .status-pill-run-aborted { --status-color: #b42318; --status-background: #fdecea; }
+
+// Checks of the system page
+.status-pill-check-ok { --status-color: #15803d; --status-background: #e5f6eb; }
+.status-pill-check-attention { --status-color: #a15c07; --status-background: #fff3dc; }
+.status-pill-check-problem { --status-color: #b42318; --status-background: #fdecea; }
+.status-pill-check-unknown { --status-color: #5c6670; --status-background: #eef0f2; }

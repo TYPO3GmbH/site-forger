@@ -1,0 +1,66 @@
+// The system page, see templates/management/system/index.html.twig. It builds on the layout of the command runs.
+
+.system-checks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.system-check-label {
+    font-weight: 700;
+}
+
+.system-check-count {
+    margin: .75rem 0 .25rem;
+    font-size: 1.125rem;
+
+    strong {
+        font-size: 1.5rem;
+    }
+}
+
+.system-check-description,
+.system-note {
+    margin: 0;
+    font-size: .875rem;
+}
+
+.system-note {
+    margin-top: .75rem;
+}
+
+.system-check-command {
+    margin: .75rem 0 0;
+
+    code {
+        display: block;
+        padding: .5rem .75rem;
+        border-radius: .5rem;
+        background: #f3f4f6;
+        color: #1f2937;
+        font-size: .8125rem;
+        white-space: normal;
+        word-break: break-word;
+    }
+}
+
+.system-detail {
+    display: block;
+    margin-top: .25rem;
+    font-size: .8125rem;
+}
+
+.system-error {
+    margin: .5rem 0 0;
+    white-space: pre-wrap;
+}
+
+// The notice of the command runs is red, waiting documents are no failure
+.system-notice-attention {
+    border-color: #f5d9a8;
+
+    .runs-notice-icon {
+        background: #fff3dc;
+        color: #a15c07;
+    }
+}
