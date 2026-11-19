@@ -13,6 +13,7 @@ namespace App\Charts\Types;
 
 use App\Charts\Colors;
 use App\Elastic\ElasticUtility;
+use App\Enum\IssueStatusEnum;
 use Elastica\Index;
 
 class TicketsOverTime extends IssueChart
@@ -84,7 +85,7 @@ class TicketsOverTime extends IssueChart
         $resultSet = $this->fetchData($this->index, $this->getClosedQuery([
             'bool' => [
                 'must' => [
-                    'terms' => ['status.name' => ['Closed', 'Resolved', 'Rejected']],
+                    'terms' => ['status.name' => IssueStatusEnum::closedValues()],
                 ],
             ],
         ], static::DATE_AGGREGATION_FORMAT));

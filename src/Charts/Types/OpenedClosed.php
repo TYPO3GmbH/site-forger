@@ -13,6 +13,7 @@ namespace App\Charts\Types;
 
 use App\Charts\Colors;
 use App\Elastic\ElasticUtility;
+use App\Enum\IssueStatusEnum;
 use Elastica\Index;
 
 class OpenedClosed extends IssueChart
@@ -67,7 +68,7 @@ class OpenedClosed extends IssueChart
         $resultSet = $this->fetchData($this->index, $this->getClosedQuery([
             'bool' => [
                 'must' => [
-                    'terms' => ['status.name' => ['Closed', 'Rejected', 'Resolved']],
+                    'terms' => ['status.name' => IssueStatusEnum::closedValues()],
                 ],
                 'must_not' => [
                     'range' => ['updated_on' => ['lte' => new \DateTimeImmutable()->sub(new \DateInterval('P1M'))->format('Y/m/d H:i:s')]],

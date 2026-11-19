@@ -13,6 +13,7 @@ namespace App\Charts\Types;
 
 use App\Charts\Colors;
 use App\Elastic\ElasticUtility;
+use App\Enum\ReviewStatusEnum;
 use Elastica\Index;
 
 /**
@@ -92,7 +93,7 @@ class ReviewsOverTime extends ReviewChart
         $resultSet = $this->fetchData($this->index, $this->getClosedQuery([
             'bool' => [
                 'must' => [
-                    'terms' => ['reviewstatus' => ['MERGED', 'ABANDONED']],
+                    'terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()],
                 ],
                 'must_not' => [
                     [

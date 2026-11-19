@@ -13,6 +13,7 @@ namespace App\Controller;
 
 use App\Elastic\ElasticUtility;
 use App\Entity\SprintBoard;
+use App\Enum\ReviewStatusEnum;
 use App\Repository\SprintBoardCategoryRepository;
 use App\Repository\SprintBoardRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -248,7 +249,7 @@ class SprintController extends AbstractController
                     [
                         'query_string' => [
                             'default_field' => 'reviewstatus',
-                            'query' => 'NEW',
+                            'query' => ReviewStatusEnum::NEW->value,
                         ],
                     ],
                 ],

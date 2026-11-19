@@ -13,6 +13,7 @@ namespace App\Controller;
 
 use App\DTO\TrackerFilters;
 use App\Elastic\ElasticUtility;
+use App\Enum\IssueStatusEnum;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -78,11 +79,7 @@ class ManagementController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'status.name' => [
-                                    'Closed',
-                                    'Rejected',
-                                    'Resolved',
-                                ],
+                                'status.name' => IssueStatusEnum::closedValues(),
                             ],
                         ],
                         [
@@ -181,11 +178,7 @@ class ManagementController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'status.name' => [
-                                    'Closed',
-                                    'Rejected',
-                                    'Resolved',
-                                ],
+                                'status.name' => IssueStatusEnum::closedValues(),
                             ],
                         ],
                         [

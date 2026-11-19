@@ -13,6 +13,7 @@ namespace App\Charts\Types;
 
 use App\Charts\Colors;
 use App\Elastic\ElasticUtility;
+use App\Enum\ReviewStatusEnum;
 use Elastica\Index;
 
 class OpenReviews extends ReviewChart
@@ -63,7 +64,7 @@ class OpenReviews extends ReviewChart
             'query' => [
                 'bool' => [
                     'must_not' => [
-                        ['terms' => ['reviewstatus' => ['ABANDONED', 'MERGED']]],
+                        ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]],
                         ['term' => ['work_in_progress' => true]],
                     ],
                 ],

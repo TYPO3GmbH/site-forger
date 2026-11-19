@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Elastic\ElasticUtility;
+use App\Enum\ReviewStatusEnum;
 use App\Repository\BackportBlacklistEntryRepository;
 use Elastica\Exception\InvalidException;
 use Elastica\Result;
@@ -89,7 +90,7 @@ class BackportCommand extends Command
                 $hasAllBackports = false;
             } else {
                 foreach ($workingArray[$changeId]['releases'] as $review) {
-                    if (is_array($review) && 'NEW' === $review['reviewstatus']) {
+                    if (is_array($review) && ReviewStatusEnum::NEW->value === $review['reviewstatus']) {
                         $hasAllBackports = false;
                     }
                 }
@@ -165,9 +166,7 @@ class BackportCommand extends Command
                     'must' => [
                         [
                             'terms' => [
-                                'reviewstatus' => [
-                                    'MERGED',
-                                ],
+                                'reviewstatus' => [ReviewStatusEnum::MERGED->value],
                             ],
                         ],
                         [
@@ -259,7 +258,7 @@ class BackportCommand extends Command
         $returnValue = 'missing';
         foreach ($relatedChanges as $relatedChange) {
             $relatedChange = $relatedChange->getSource();
-            if ('MERGED' === $relatedChange['reviewstatus']) {
+            if (ReviewStatusEnum::MERGED->value === $relatedChange['reviewstatus']) {
                 $mergingPerson = $this->getPersonWhoMergedTheChange($relatedChange['id']);
                 $relatedChange['owner'] = $mergingPerson['fullname'] ?? '';
             }

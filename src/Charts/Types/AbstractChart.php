@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace App\Charts\Types;
 
+use App\Enum\IssueStatusEnum;
+use App\Enum\ReviewStatusEnum;
 use Elastica\Index;
 use Elastica\ResultSet;
 
@@ -74,18 +76,11 @@ abstract class AbstractChart
     protected function getCumulativeTicketsToDate(int $year, string $key, string $interval = 'day'): array
     {
         $terms = [
-            'status.name' => [
-                'Closed',
-                'Rejected',
-                'Resolved',
-            ],
+            'status.name' => IssueStatusEnum::closedValues(),
         ];
         if ('review' === $this->getDocumentType()) {
             $terms = [
-                'reviewstatus' => [
-                    'ABANDONED',
-                    'MERGED',
-                ],
+                'reviewstatus' => ReviewStatusEnum::closedValues(),
             ];
         }
         $query = [

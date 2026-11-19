@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\ElasticUtility;
+use App\Enum\IssueStatusEnum;
 use Elastica\Aggregation\Terms;
 use Elastica\Query;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -106,11 +107,7 @@ class SearchController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'status.name' => [
-                                    'Closed',
-                                    'Rejected',
-                                    'Resolved',
-                                ],
+                                'status.name' => IssueStatusEnum::closedValues(),
                             ],
                         ],
                     ],
@@ -157,11 +154,7 @@ class SearchController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'status.name' => [
-                                    'Closed',
-                                    'Rejected',
-                                    'Resolved',
-                                ],
+                                'status.name' => IssueStatusEnum::closedValues(),
                             ],
                         ],
                     ],

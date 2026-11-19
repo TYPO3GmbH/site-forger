@@ -13,6 +13,7 @@ namespace App\Charts\Types;
 
 use App\Charts\Colors;
 use App\Elastic\ElasticUtility;
+use App\Enum\ReviewStatusEnum;
 use Elastica\Index;
 
 class Mergeable extends ReviewChart
@@ -50,7 +51,7 @@ class Mergeable extends ReviewChart
             'query' => [
                 'bool' => [
                     'must' => [
-                        'terms' => ['reviewstatus' => ['NEW']],
+                        'terms' => ['reviewstatus' => [ReviewStatusEnum::NEW->value]],
                     ],
                     'must_not' => [
                         [
@@ -87,7 +88,7 @@ class Mergeable extends ReviewChart
                 'bool' => [
                     'must' => [
                         [
-                            'terms' => ['reviewstatus' => ['NEW']],
+                            'terms' => ['reviewstatus' => [ReviewStatusEnum::NEW->value]],
                         ],
                         [
                             'term' => ['work_in_progress' => true],

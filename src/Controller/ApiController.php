@@ -13,6 +13,8 @@ namespace App\Controller;
 
 use App\Charts\ChartRegistry;
 use App\Elastic\ElasticUtility;
+use App\Enum\IssueStatusEnum;
+use App\Enum\ReviewStatusEnum;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -55,7 +57,7 @@ class ApiController extends AbstractController
             'query' => [
                 'bool' => [
                     'must_not' => [
-                        ['terms' => ['status.name' => ['Closed', 'Rejected', 'Resolved']]],
+                        ['terms' => ['status.name' => IssueStatusEnum::closedValues()]],
                     ],
                 ],
             ],
@@ -67,7 +69,7 @@ class ApiController extends AbstractController
             'query' => [
                 'bool' => [
                     'must_not' => [
-                        ['terms' => ['reviewstatus' => ['ABANDONED', 'MERGED']]],
+                        ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]],
                         ['term' => ['work_in_progress' => true]],
                     ],
                 ],
