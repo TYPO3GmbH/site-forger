@@ -307,17 +307,6 @@ class SearchController extends AbstractController
         $phpVer = new Terms('PHP Version');
         $phpVer->setField('php_version');
         $elasticaQuery->addAggregation($phpVer);
-
-        /*$age = new \Elastica\Aggregation\Range('Age');
-        $age->setParams(array(
-            'script' => 'DateTime.now().year - doc[\'updated_on\'].date.year',
-            'ranges' => array(
-                array('from' => 0,'to' => 1),
-                array('from' => 2,'to' => 3),
-                array('from' => 4,'to' => 5),
-            )
-        ));
-        $elasticaQuery->addAggregation($age);*/
     }
 
     protected function getPages(): array

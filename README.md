@@ -36,13 +36,8 @@ GITHUB_ACCESS_TOKEN=...
 |---|---|---|
 | `FORGE_ACCESS_TOKEN` | `forgeFull`, `forgeDelta` imports. Works without, but anonymous requests hit Forge's rate limit quickly. | Log in at [forge.typo3.org](https://forge.typo3.org), open [My account](https://forge.typo3.org/my/account) and click **Show** below **API access key** in the sidebar. |
 | `GITHUB_ACCESS_TOKEN` | `github`, `githubDelta` imports | Create a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new) with repository access **Public repositories (read-only)**. No further permissions are needed. |
-| `DISCORD_ISSUES_WEBHOOK` | Only for imports with `--sendnotifications` | Webhook URL of the Discord channel (Channel settings → Integrations → Webhooks). |
 
 Gerrit imports (`reviewFull`, `reviewDelta`) read the public API of review.typo3.org and need no token.
-
-### Add inline scripts to aggregations in elasticsearch
-
-script.engine.groovy.inline.aggs: on in elasticsearch.yml
 
 ## Imports
 
@@ -56,8 +51,6 @@ Forger allows the following commands to be used on CLI:
 * `ddev exec bin/console app:import --mode=githubDelta --organization=TYPO3-Documentation` will import the latest 100 GitHub changes and create interactions
 * `ddev exec bin/console app:import --mode=githubDelta --organization=TYPO3 --repository=TYPO3.Icons` will import the latest 100 GitHub changes for the specified repository and create interactions
 
-Using `--sendnotifications` on the commands above will trigger Discord notifications.
-
 * `ddev exec bin/console app:truncate-type` truncates a given type and takes the following arguments:
   * `ddev exec bin/console app:truncate-type issue` to delete all issues
   * `ddev exec bin/console app:truncate-type review` to delete all reviews
@@ -67,8 +60,6 @@ Using `--sendnotifications` on the commands above will trigger Discord notificat
   * argument `year` (int) `ddev exec bin/console app:calculate-karma 2019` to select the year to update
   * option `--account` (string) `ddev exec bin/console app:calculate-karma 2019 --account=dermattes` to define a dedicated account to update
 * `ddev exec bin/console app:backport` will populate the backport view
-
-Note that for import Discord messages to be sent you need the `DISCORD_ISSUES_WEBHOOK` env variable.
 
 ## Keycloak
 
