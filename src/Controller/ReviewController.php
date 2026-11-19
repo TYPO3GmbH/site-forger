@@ -771,11 +771,9 @@ class ReviewController extends AbstractController
                     ],
                 ],
             ],
+            // Issues have no insertions, deletions or patch sets: sorting on them makes Elasticsearch reject the query
             'sort' => [
                 'updated_on' => 'asc',
-                'insertions' => 'asc',
-                'deletions' => 'asc',
-                'patchsets' => 'desc',
             ],
             'size' => 1000,
             'from' => 0,
@@ -794,7 +792,7 @@ class ReviewController extends AbstractController
                 ],
             ],
         ];
-        $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
+        $query = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
 
         return $query->search();
     }
