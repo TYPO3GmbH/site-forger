@@ -140,16 +140,16 @@ class SearchController extends AbstractController
      */
     private function findByQuery(string $searchTerms, bool $searchInClosedIssues = false): array
     {
-        $searchTerms = $this->escape($searchTerms);
+        // Without search terms all issues are found, so links can lead straight to a filtered list
+        $searchTerms = trim($searchTerms);
+        $match = '' === $searchTerms
+            ? ['match_all' => new \stdClass()]
+            : ['query_string' => ['query' => $this->escape($searchTerms)]];
         $query = [
             'query' => [
                 'bool' => [
                     'must' => [
-                        [
-                            'query_string' => [
-                                'query' => $searchTerms,
-                            ],
-                        ],
+                        $match,
                     ],
                     'must_not' => [
                         [

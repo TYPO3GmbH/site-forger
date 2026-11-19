@@ -103,6 +103,15 @@ class ForgerTwigExtension
         return implode('', $content);
     }
 
+    /**
+     * A value as the search expects it in "filters[<name>][<value>]", like the filter checkboxes write it.
+     */
+    #[AsTwigFilter(name: 'filterKey')]
+    public function filterKey(string|\Stringable $value): string
+    {
+        return $this->fixWording($value, false);
+    }
+
     private function fixWording(string|\Stringable $in, bool $lowerCase = true): string
     {
         $in = str_replace(' ', '_', (string) $in);
