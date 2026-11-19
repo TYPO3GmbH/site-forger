@@ -1,3 +1,4 @@
+{% import '_macros/status.html.twig' as status %}
 {% if review._source.reviewtags %}
     {% if review._source.reviewtags.0 == 'FEATURE' %}
         {% set reviewTypeClass = 'feature' %}
@@ -24,6 +25,9 @@
         </div>
         <div class="review-title">
             <a href="https://review.typo3.org/c/Packages/TYPO3.CMS/+/{{ review._source.id }}/" target="gerrit{}{{ review._source.id }}">{{review._source.subject}}</a>
+        </div>
+        <div class="review-status">
+            {{ status.review(review._source) }}
         </div>
          {% if review._source.branch != 'main' %}
             <div class="review-branch">

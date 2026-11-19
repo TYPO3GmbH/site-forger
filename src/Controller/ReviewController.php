@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\ElasticUtility;
+use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStatusEnum;
 use Elastica\Exception\InvalidException;
 use Elastica\Query\BoolQuery;
@@ -765,7 +766,7 @@ class ReviewController extends AbstractController
                     'must' => [
                         [
                             'term' => [
-                                'status.id' => '8',
+                                'status.id' => IssueStatusEnum::UNDER_REVIEW->value,
                             ],
                         ],
                     ],

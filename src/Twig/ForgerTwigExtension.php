@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace App\Twig;
 
 use App\DTO\TrackerFilters;
-use App\Enum\TrackerIdEnum;
+use App\Enum\TrackerEnum;
 use App\Renderer\RedmineTextileRenderer;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -88,9 +88,18 @@ class ForgerTwigExtension
     #[AsTwigFunction(name: 'trackerCheckbox', isSafe: ['html'])]
     public function trackerCheckbox(string $trackerType, string $label): string
     {
+        $tracker = null;
+        foreach (TrackerEnum::filterable() as $filterable) {
+            if ($filterable->severity() === $trackerType) {
+                $tracker = $filterable;
+            }
+        }
+        if (null === $tracker) {
+            throw new \InvalidArgumentException(sprintf('The tracker "%s" cannot be filtered.', $trackerType));
+        }
         $checked = '';
         $trackerFilters = new TrackerFilters($this->requestStack->getMainRequest());
-        if ($trackerFilters->{$trackerType}) {
+        if ($trackerFilters->isExcluded($tracker)) {
             $checked = ' checked="checked"';
         }
 
@@ -192,20 +201,8 @@ class ForgerTwigExtension
         /*
          * Tracker Filters
          */
-        if (!$trackerFilters->feature) {
-            $filters['tracker_id']['values'][] = TrackerIdEnum::FEATURE->value;
-        }
-        if (!$trackerFilters->task) {
-            $filters['tracker_id']['values'][] = TrackerIdEnum::TASK->value;
-        }
-        if (!$trackerFilters->bug) {
-            $filters['tracker_id']['values'][] = TrackerIdEnum::BUG->value;
-        }
-        if (!$trackerFilters->epic) {
-            $filters['tracker_id']['values'][] = TrackerIdEnum::EPIC->value;
-        }
-        if (!$trackerFilters->story) {
-            $filters['tracker_id']['values'][] = TrackerIdEnum::STORY->value;
+        foreach ($trackerFilters->included() as $tracker) {
+            $filters['tracker_id']['values'][] = $tracker->value;
         }
         if ('o' === $statusId) {
             $filters['status_id']['type'] = 'o';

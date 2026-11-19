@@ -1,0 +1,21 @@
+{#
+ # Status pills, shared by every list that shows issues or Gerrit changes, so a state looks the same
+ # wherever it appears. Label and severity come from IssueStatusEnum and ReviewStateEnum,
+ # the colors from assets/css/module/_status.scss.
+ #}
+
+{% macro issue(statusName) %}
+    {% set state = issue_status(statusName) %}
+    {% if state %}
+        <span class="status-pill status-pill-{{ state.severity }}" title="Forge status">{{ state.label }}</span>
+    {% elseif statusName %}
+        <span class="status-pill" title="Forge status">{{ statusName }}</span>
+    {% endif %}
+{% endmacro %}
+
+{% macro review(change) %}
+    {% if change.reviewstatus is defined and change.reviewstatus %}
+        {% set state = review_state(change) %}
+        <span class="status-pill status-pill-{{ state.severity }}" title="Gerrit status">{{ state.label }}</span>
+    {% endif %}
+{% endmacro %}

@@ -13,6 +13,7 @@ namespace App\Controller;
 
 use App\Elastic\ElasticUtility;
 use App\Entity\SprintBoard;
+use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStatusEnum;
 use App\Form\SprintBoardWizard;
 use App\Repository\SprintBoardCategoryRepository;
@@ -458,12 +459,14 @@ class SprintController extends AbstractController
             'total' => 0,
         ];
         foreach ((array) $resultSet->getAggregation('status')['buckets'] as $bucket) {
-            match ($bucket['key']) {
-                3, 5, 6 => $count['closed'] += $bucket['doc_count'],
-                8 => $count['review'] += $bucket['doc_count'],
-                4, 7 => $count['blocked'] += $bucket['doc_count'],
-                default => $count['open'] += $bucket['doc_count'],
+            $state = IssueStatusEnum::tryFrom((int) $bucket['key']);
+            $group = match (true) {
+                (bool) $state?->isClosed() => 'closed',
+                IssueStatusEnum::UNDER_REVIEW === $state => 'review',
+                IssueStatusEnum::NEEDS_FEEDBACK === $state, IssueStatusEnum::ON_HOLD === $state => 'blocked',
+                default => 'open',
             };
+            $count[$group] += $bucket['doc_count'];
             $count['total'] += $bucket['doc_count'];
         }
         if ($count['total'] > 0) {

@@ -42,7 +42,7 @@ final readonly class UserWorkQuery
                 ['assigned_to.name.keyword' => $this->names()],
             ],
             'status.name',
-            IssueStatusEnum::closedValues(),
+            IssueStatusEnum::closedLabels(),
         );
     }
 

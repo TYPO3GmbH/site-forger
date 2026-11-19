@@ -57,7 +57,7 @@ class ApiController extends AbstractController
             'query' => [
                 'bool' => [
                     'must_not' => [
-                        ['terms' => ['status.name' => IssueStatusEnum::closedValues()]],
+                        ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]],
                     ],
                 ],
             ],

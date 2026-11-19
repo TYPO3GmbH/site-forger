@@ -75,7 +75,7 @@ class TicketsOverTime extends IssueChart
         $resultSet = $this->fetchData($this->getClosedQuery([
             'bool' => [
                 'must' => [
-                    'terms' => ['status.name' => IssueStatusEnum::closedValues()],
+                    'terms' => ['status.name' => IssueStatusEnum::closedLabels()],
                 ],
             ],
         ], static::DATE_AGGREGATION_FORMAT));

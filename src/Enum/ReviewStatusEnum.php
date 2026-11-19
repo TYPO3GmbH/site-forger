@@ -12,13 +12,36 @@ declare(strict_types=1);
 namespace App\Enum;
 
 /**
- * Gerrit change states, as stored in "reviewstatus" of the review index.
+ * Gerrit change states.
+ *
+ * Gerrit has no numeric ids for them: the value is the state of the Gerrit REST API, stored in
+ * "reviewstatus" of the review index. The label is the name to show.
  */
 enum ReviewStatusEnum: string
 {
     case NEW = 'NEW';
     case MERGED = 'MERGED';
     case ABANDONED = 'ABANDONED';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::NEW => 'Open',
+            self::MERGED => 'Merged',
+            self::ABANDONED => 'Abandoned',
+        };
+    }
+
+    public static function tryFromLabel(string $label): ?self
+    {
+        foreach (self::cases() as $state) {
+            if ($state->label() === $label) {
+                return $state;
+            }
+        }
+
+        return null;
+    }
 
     /**
      * @return list<self>

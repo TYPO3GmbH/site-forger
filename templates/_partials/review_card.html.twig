@@ -1,4 +1,5 @@
 {% import '_macros/buttons.html.twig' as buttons %}
+{% import '_macros/status.html.twig' as status %}
 {% if card is not defined or card is null %}
 
     {% include '_partials/alert.html.twig' with {message: 'Review is missing.', style: 'danger'} %}
@@ -33,6 +34,11 @@
             <div class="review-title">
                 <a href="https://review.typo3.org/c/Packages/TYPO3.CMS/+/{{ card.id }}/" target="gerrit{}{{ card.id }}">{{card.subject}}</a>
             </div>
+            {% if mode != 'backport' %}
+                <div class="review-status">
+                    {{ status.review(card) }}
+                </div>
+            {% endif %}
             {% if card.branch != 'main' %}
                 <div class="review-branch">
                     <span class="badge badge-danger">{{ card.branch }}</span>

@@ -58,7 +58,7 @@ class OpenedClosed extends IssueChart
         $resultSet = $this->fetchData($this->getClosedQuery([
             'bool' => [
                 'must' => [
-                    'terms' => ['status.name' => IssueStatusEnum::closedValues()],
+                    'terms' => ['status.name' => IssueStatusEnum::closedLabels()],
                 ],
                 'must_not' => [
                     'range' => ['updated_on' => ['lte' => new \DateTimeImmutable()->sub(new \DateInterval('P1M'))->format('Y/m/d H:i:s')]],

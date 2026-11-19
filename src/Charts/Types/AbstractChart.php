@@ -81,7 +81,7 @@ abstract class AbstractChart
     protected function getCumulativeTicketsToDate(int $year, string $key, string $interval = 'day'): array
     {
         $terms = [
-            'status.name' => IssueStatusEnum::closedValues(),
+            'status.name' => IssueStatusEnum::closedLabels(),
         ];
         if ('review' === $this->getDocumentType()) {
             $terms = [
