@@ -32,7 +32,7 @@ jobs:
         env:
           COMPOSER_AUTH: '{
               "github-oauth": {
-                "github.com": "${{ secrets.ACTIONS_TOKEN }}"
+                "github.com": "${{ secrets.ACTIONS_TOKEN || github.token }}"
               }
             }'
 
