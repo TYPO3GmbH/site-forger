@@ -87,6 +87,11 @@ final class DashboardListsTemplateTest extends KernelTestCase
         $change = self::CHANGE + [
             'positive_reviews' => 3,
             'positive_verifications' => 2,
+            // A +2 and a +1 review, two +1 verifications
+            'lowest_review_vote' => 0,
+            'highest_review_vote' => 2,
+            'lowest_verification_vote' => 0,
+            'highest_verification_vote' => 1,
             'releases' => ['main', '13.4', 'omitted'],
             'topic' => 'cache',
             'insertions' => 12,
@@ -94,8 +99,8 @@ final class DashboardListsTemplateTest extends KernelTestCase
         ];
         $html = $this->twig->render('dashboard/_ready_to_merge.html.twig', ['changes' => ['documents' => [$change], 'total' => 1]]);
 
-        self::assertStringContainsString('<span class="mywork-vote is-positive" title="Code review: 3 positive">CR <b>+3</b></span>', $html);
-        self::assertStringContainsString('<span class="mywork-vote is-positive" title="Verified: 2 positive">V <b>+2</b></span>', $html);
+        self::assertStringContainsString('status-pill-vote-approved" title="Code review: +2 by a merger">CR +2</span>', $html);
+        self::assertStringContainsString('status-pill-vote-recommended" title="Verified: +1">V +1</span>', $html);
         // The branch of the change and "omitted" are no target releases
         self::assertStringContainsString('→ main</span>', $html);
         self::assertStringContainsString('<span title="Topic">cache</span>', $html);
@@ -115,7 +120,7 @@ final class DashboardListsTemplateTest extends KernelTestCase
         self::assertStringContainsString('[BUGFIX] Repair the cache', $html);
         self::assertStringContainsString('by Benni Mack', $html);
         // Votes missing in old documents count as none
-        self::assertStringContainsString('<span class="mywork-vote" title="Code review: 0 positive">CR <b>+0</b></span>', $html);
+        self::assertStringContainsString('status-pill-vote-none" title="Code review: no votes">CR 0</span>', $html);
         self::assertStringNotContainsString('Lines added and removed', $html);
         self::assertStringContainsString('mywork-tag is-backport', $html);
         self::assertStringContainsString('<span class="overview-list-count">7</span>', $html);

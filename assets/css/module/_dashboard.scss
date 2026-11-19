@@ -415,19 +415,8 @@
     color: var(--overview-muted);
     font-size: .75rem;
 
-    .status-pill,
-    .mywork-vote {
+    .status-pill {
         font-size: .6875rem;
-    }
-
-    // The whole badge in the color of the vote, as the status pills
-    .mywork-vote.is-positive {
-        background: #e5f6eb;
-        color: #15803d;
-
-        b {
-            color: inherit;
-        }
     }
 }
 

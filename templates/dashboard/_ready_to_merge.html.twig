@@ -2,6 +2,7 @@
  # The Gerrit changes ready to merge that were updated last: the subject, below it owner, votes, releases, topic and size.
  # Expects: changes (documents, total)
  #}
+{% import '_macros/status.html.twig' as status %}
 <section class="overview-list" aria-labelledby="overview-ready-to-merge">
     <header class="overview-list-header">
         <h2 class="overview-list-title" id="overview-ready-to-merge">Ready to merge <span class="overview-list-count">{{ changes.total }}</span></h2>
@@ -20,8 +21,8 @@
                             <span class="overview-list-item-title"><span class="overview-list-item-id">{{ change.id }}</span>{{ change.subject }}</span>
                             <span class="overview-list-item-meta">
                                 {% if change.owner is defined %}<span>by {{ change.owner }}</span>{% endif %}
-                                {% set votes = change.positive_reviews ?? 0 %}<span class="mywork-vote{{ votes > 0 ? ' is-positive' }}" title="Code review: {{ votes }} positive">CR <b>+{{ votes }}</b></span>
-                                {% set votes = change.positive_verifications ?? 0 %}<span class="mywork-vote{{ votes > 0 ? ' is-positive' }}" title="Verified: {{ votes }} positive">V <b>+{{ votes }}</b></span>
+                                {{ status.vote(change, 'review') }}
+                                {{ status.vote(change, 'verification') }}
                                 {% if releases is not empty %}<span title="Target releases">→ {{ releases|join(', ') }}</span>{% endif %}
                                 {% if change.topic is defined and change.topic != 'no topic' %}<span title="Topic">{{ change.topic }}</span>{% endif %}
                                 {% if change.insertions is defined and change.deletions is defined %}

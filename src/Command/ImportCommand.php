@@ -17,6 +17,7 @@ use App\Elastic\IndexSetup;
 use App\Elastic\ProjectIssues;
 use App\Elastic\ReviewSubject;
 use App\Enum\IssueStatusEnum;
+use App\Enum\ReviewVoteEnum;
 use App\Service\CommandRunRecorder;
 use App\Service\GithubService;
 use Elastica\Document;
@@ -791,6 +792,10 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 'negative_reviews' => $labels['negative_reviews'],
                 'positive_verifications' => $labels['positive_verifications'],
                 'negative_verifications' => $labels['negative_verifications'],
+                'lowest_review_vote' => $labels['lowest_review_vote'],
+                'highest_review_vote' => $labels['highest_review_vote'],
+                'lowest_verification_vote' => $labels['lowest_verification_vote'],
+                'highest_verification_vote' => $labels['highest_verification_vote'],
                 'patchsets' => $change['revisions'][$change['current_revision']]['_number'],
                 'created_on' => $this->fixDateFormat($change['created'], 'Gerrit'),
                 'updated_on' => $this->fixDateFormat($change['updated'], 'Gerrit'),
@@ -837,6 +842,9 @@ class ImportCommand extends Command implements LoggerAwareInterface
     }
 
     /**
+     * The sums of the positive and the negative votes of each label, and its lowest and highest single vote:
+     * only these tell the +2 and -2 of a merger from two +1 or -1, see ReviewVoteEnum.
+     *
      * @throws \Exception
      */
     protected function extractLabels(array $labels): array
@@ -846,7 +854,10 @@ class ImportCommand extends Command implements LoggerAwareInterface
             'negative_reviews' => 0,
             'positive_verifications' => 0,
             'negative_verifications' => 0,
-
+            'lowest_review_vote' => 0,
+            'highest_review_vote' => 0,
+            'lowest_verification_vote' => 0,
+            'highest_verification_vote' => 0,
         ];
         foreach ($labels as $labelType => $subRow) {
             $key = match ($labelType) {
@@ -854,9 +865,12 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 'Code-Review' => '_reviews',
                 default => throw new \InvalidArgumentException('Unknown Label type ' . $labelType),
             };
+            $voteKey = '_' . array_search($labelType, ReviewVoteEnum::LABELS, true) . '_vote';
             if (array_key_exists('all', $subRow)) {
                 foreach ($subRow['all'] as $vote) {
                     if (isset($vote['value']) && !in_array($vote['_account_id'], self::BAMBOO_USER_ID, true)) {
+                        $out['lowest' . $voteKey] = min($out['lowest' . $voteKey], (int) $vote['value']);
+                        $out['highest' . $voteKey] = max($out['highest' . $voteKey], (int) $vote['value']);
                         switch ($vote['value']) {
                             case 1:
                                 ++$out['positive' . $key];
