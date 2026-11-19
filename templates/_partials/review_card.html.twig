@@ -14,7 +14,7 @@
         {% set reviewTypeClass = 'bugfix' %}
     {% endif %}
     <div class="review review-card review-type-{{ reviewTypeClass }}">
-        {% if card.mergeable is defined and card.mergeable == 'no' %}
+        {% if card.mergeable is defined and card.mergeable == 'no' and (card.reviewstatus ?? 'NEW') == 'NEW' %}
             <div class="review-note review-note-danger">Merge conflict</div>
         {% endif %}
         {% if mode == 'backport' %}
