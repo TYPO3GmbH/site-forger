@@ -1,43 +1,126 @@
 {% extends 'base.html.twig' %}
+{% import _self as my %}
 {% block title %}My Work{% endblock %}
 {% block headline %}My Work{% endblock %}
-{% block body %}
 
-    <div class="content-section content-section-small">
+{#
+ # One state chip of a filter bar.
+ #}
+{% macro chip(label, count, href, active, finished) %}
+    <a href="{{ href }}" class="mywork-chip{{ active ? ' is-active' }}{{ finished ? ' is-finished' }}"{% if active %} aria-current="true"{% endif %}>
+        {{ label }} <span class="mywork-chip-count">{{ count }}</span>
+    </a>
+{% endmacro %}
+
+{% block body %}
+    {% set hiddenReviews = includeClosed ? 0 : reviewStateCounts|filter((count, state) => state in finishedReviewStates)|reduce((sum, count) => sum + count, 0) %}
+    {% set hiddenIssues = includeClosed ? 0 : issueStatusCounts|filter((count, state) => state in finishedIssueStates)|reduce((sum, count) => sum + count, 0) %}
+
+    {# Each filter keeps the other one, so issues and changes can be narrowed down independently #}
+    {% set baseParams = (includeClosed ? {'state': 'all'} : {})
+        |merge(issueStatusId is not null ? {'status': issueStatusId} : {})
+        |merge(reviewState is not null ? {'review': reviewState} : {}) %}
+
+    <div class="content-section content-section-small mywork">
         <div class="container">
-            <p>
-                Issues you reported or are assigned to, and your Gerrit changes.
-                They are found by your email address <strong>{{ email }}</strong> or your name <strong>{{ name }}</strong>.
-            </p>
-            <div class="btn-group mb-4" role="group" aria-label="State">
-                <a href="{{ path('my_index') }}" class="btn btn-sm {{ includeClosed ? 'btn-default' : 'btn-primary' }}">Open</a>
-                <a href="{{ path('my_index', {'state': 'all'}) }}" class="btn btn-sm {{ includeClosed ? 'btn-primary' : 'btn-default' }}">All</a>
+
+            <div class="mywork-intro">
+                <p>
+                    Your Gerrit changes and the Forge issues you reported or are assigned to,
+                    found by <strong>{{ email }}</strong> or <strong>{{ name }}</strong>.
+                </p>
+                <nav class="mywork-toggle" aria-label="Finished work">
+                    <a href="{{ path('my_index') }}" class="{{ includeClosed ? '' : 'is-active' }}"{% if not includeClosed %} aria-current="true"{% endif %}>Open work</a>
+                    <a href="{{ path('my_index', {'state': 'all'}) }}" class="{{ includeClosed ? 'is-active' : '' }}"{% if includeClosed %} aria-current="true"{% endif %}>Including finished</a>
+                </nav>
             </div>
 
-            <h2 id="reviews">Gerrit changes <span class="badge badge-secondary">{{ reviewsTotal }}</span></h2>
-            {% if reviews is empty %}
-                {% include '_partials/alert.html.twig' with {'message': includeClosed ? 'There are no Gerrit changes of yours.' : 'You have no open Gerrit changes.', 'style': 'info'} only %}
-            {% else %}
-                {% if reviewsTotal > reviews|length %}
-                    <p><small>Showing the {{ reviews|length }} most recently updated of {{ reviewsTotal }} changes.</small></p>
-                {% endif %}
-                {% for result in reviews %}
-                    {% include '_partials/review.html.twig' with {'review': result.hit} only %}
+            <div class="mywork-stats">
+                {% for stat in [
+                    {'label': reviewStateLabels.ready, 'count': reviewStateCounts.ready ?? 0, 'href': path('my_index', baseParams|merge({'review': 'ready'})) ~ '#reviews', 'tone': review_state({'reviewstatus': 'NEW'}).severity},
+                    {'label': reviewStateLabels.wip, 'count': reviewStateCounts.wip ?? 0, 'href': path('my_index', baseParams|merge({'review': 'wip'})) ~ '#reviews', 'tone': review_state({'reviewstatus': 'NEW', 'work_in_progress': true}).severity},
+                    {'label': 'Merge conflicts', 'count': conflictCount, 'href': '#reviews', 'tone': 'conflict'},
+                    {'label': 'Issues in progress', 'count': issueStatusCounts['In Progress'] ?? 0, 'href': path('my_index', baseParams|merge({'status': issueStatusIds['In Progress']})) ~ '#issues', 'tone': issue_status('In Progress').severity},
+                    {'label': 'Under review', 'count': issueStatusCounts['Under Review'] ?? 0, 'href': path('my_index', baseParams|merge({'status': issueStatusIds['Under Review']})) ~ '#issues', 'tone': issue_status('Under Review').severity},
+                    {'label': 'Needs feedback', 'count': issueStatusCounts['Needs Feedback'] ?? 0, 'href': path('my_index', baseParams|merge({'status': issueStatusIds['Needs Feedback']})) ~ '#issues', 'tone': issue_status('Needs Feedback').severity},
+                ] %}
+                    <a href="{{ stat.href }}" class="mywork-stat status-pill-{{ stat.tone }}{{ stat.count == 0 ? ' is-empty' }}">
+                        <span class="mywork-stat-count">{{ stat.count }}</span>
+                        <span class="mywork-stat-label">{{ stat.label }}</span>
+                    </a>
                 {% endfor %}
-            {% endif %}
+            </div>
 
-            <h2 id="issues" class="mt-5">Issues <span class="badge badge-secondary">{{ issuesTotal }}</span></h2>
-            {% if issues is empty %}
-                {% include '_partials/alert.html.twig' with {'message': includeClosed ? 'There are no issues of yours.' : 'You have no open issues.', 'style': 'info'} only %}
-            {% else %}
-                {% if issuesTotal > issues|length %}
-                    <p><small>Showing the {{ issues|length }} most recently updated of {{ issuesTotal }} issues.</small></p>
+            <section class="mywork-section" id="reviews" aria-labelledby="reviews-title">
+                <header class="mywork-section-header">
+                    <h2 id="reviews-title">Gerrit changes <span class="mywork-section-count">{{ reviewsTotal }}</span></h2>
+                    {% if reviewStateCounts is not empty %}
+                        <nav class="mywork-chips" aria-label="Change status">
+                            {{ my.chip('All', includeClosed ? reviewStateTotal : reviewStateTotal - hiddenReviews, path('my_index', baseParams|filter((v, k) => k != 'review')) ~ '#reviews', reviewState is null, false) }}
+                            {% for state, count in reviewStateCounts %}
+                                {{ my.chip(reviewStateLabels[state], count, path('my_index', baseParams|merge({'review': state})) ~ '#reviews', reviewState == state, state in finishedReviewStates and not includeClosed) }}
+                            {% endfor %}
+                        </nav>
+                    {% endif %}
+                </header>
+
+                {% if reviewGroups is empty %}
+                    <div class="mywork-empty">
+                        {% if reviewState is not null %}
+                            No Gerrit changes are {{ reviewStateLabels[reviewState]|lower }}.
+                        {% else %}
+                            {{ includeClosed ? 'You have no Gerrit changes.' : 'You have no open Gerrit changes.' }}
+                        {% endif %}
+                    </div>
+                {% else %}
+                    {% include 'my/_review_rows.html.twig' with {'groups': reviewGroups, 'labels': reviewStateLabels} only %}
+                    {% if reviewsTotal > reviewsShown %}
+                        <p class="mywork-note">Showing the {{ reviewsShown }} most recently updated of {{ reviewsTotal }} changes.</p>
+                    {% endif %}
                 {% endif %}
-                {% for result in issues %}
-                    {% include '_partials/issue.html.twig' with {'issue': result.hit} only %}
-                {% endfor %}
-            {% endif %}
+                {% if hiddenReviews > 0 and reviewState is null %}
+                    <p class="mywork-note">
+                        {{ hiddenReviews }} merged or abandoned {{ hiddenReviews == 1 ? 'change is' : 'changes are' }} hidden.
+                        <a href="{{ path('my_index', baseParams|merge({'state': 'all'})) }}#reviews">Show</a>
+                    </p>
+                {% endif %}
+            </section>
+
+            <section class="mywork-section" id="issues" aria-labelledby="issues-title">
+                <header class="mywork-section-header">
+                    <h2 id="issues-title">Issues <span class="mywork-section-count">{{ issuesTotal }}</span></h2>
+                    {% if issueStatusCounts is not empty %}
+                        <nav class="mywork-chips" aria-label="Issue status">
+                            {{ my.chip('All', includeClosed ? issueStatusTotal : issueStatusTotal - hiddenIssues, path('my_index', baseParams|filter((v, k) => k != 'status')) ~ '#issues', issueStatus is null, false) }}
+                            {% for statusName, count in issueStatusCounts %}
+                                {{ my.chip(statusName, count, path('my_index', baseParams|merge({'status': issueStatusIds[statusName] ?? statusName})) ~ '#issues', issueStatus == statusName, statusName in finishedIssueStates and not includeClosed) }}
+                            {% endfor %}
+                        </nav>
+                    {% endif %}
+                </header>
+
+                {% if issueGroups is empty %}
+                    <div class="mywork-empty">
+                        {% if issueStatus is not null %}
+                            No issues have the status “{{ issueStatus }}”.
+                        {% else %}
+                            {{ includeClosed ? 'You have no issues.' : 'You have no open issues.' }}
+                        {% endif %}
+                    </div>
+                {% else %}
+                    {% include 'my/_issue_rows.html.twig' with {'groups': issueGroups, 'name': name} only %}
+                    {% if issuesTotal > issuesShown %}
+                        <p class="mywork-note">Showing the {{ issuesShown }} most recently updated of {{ issuesTotal }} issues.</p>
+                    {% endif %}
+                {% endif %}
+                {% if hiddenIssues > 0 and issueStatus is null %}
+                    <p class="mywork-note">
+                        {{ hiddenIssues }} resolved, closed or rejected {{ hiddenIssues == 1 ? 'issue is' : 'issues are' }} hidden.
+                        <a href="{{ path('my_index', baseParams|merge({'state': 'all'})) }}#issues">Show</a>
+                    </p>
+                {% endif %}
+            </section>
+
         </div>
     </div>
-
 {% endblock %}

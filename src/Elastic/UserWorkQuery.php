@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Elastic;
 
 use App\Enum\IssueStatusEnum;
+use App\Enum\ReviewStateEnum;
 use App\Enum\ReviewStatusEnum;
 
 /**
@@ -27,45 +28,68 @@ final readonly class UserWorkQuery
         private string $name,
         private bool $includeClosed = false,
         private int $size = 100,
+        private ?IssueStatusEnum $issueStatus = null,
+        private ?ReviewStateEnum $reviewState = null,
     ) {
     }
 
     /**
      * Issues the person reported or is assigned to.
+     *
+     * The states are counted over all issues of the person, so the hidden closed ones can be offered, too.
+     * Hiding the closed issues and the selected state only narrow down the listed issues.
      */
     public function issues(): array
     {
-        return $this->request(
-            [
-                ['author.email' => $this->emails()],
-                ['author.name' => $this->names()],
-                ['assigned_to.name.keyword' => $this->names()],
-            ],
-            'status.name',
-            IssueStatusEnum::closedLabels(),
+        $request = $this->request([
+            ['author.email' => $this->emails()],
+            ['author.name' => $this->names()],
+            ['assigned_to.name.keyword' => $this->names()],
+        ]);
+        $request['aggs'] = [
+            'status' => ['terms' => ['field' => 'status.name', 'size' => 20]],
+        ];
+
+        return $this->withPostFilter(
+            $request,
+            ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]],
+            null === $this->issueStatus ? null : ['term' => ['status.name' => $this->issueStatus->label()]],
         );
     }
 
     /**
-     * Gerrit changes the person is the commit author of.
+     * Gerrit changes the person is the commit author of, counted like the issues.
      */
     public function reviews(): array
     {
-        return $this->request(
-            [
-                ['ownerEmail' => $this->emails()],
-                ['owner' => $this->names()],
-            ],
-            'reviewstatus',
-            ReviewStatusEnum::closedValues(),
+        $request = $this->request([
+            ['ownerEmail' => $this->emails()],
+            ['owner' => $this->names()],
+        ]);
+        $states = [];
+        foreach (ReviewStateEnum::cases() as $state) {
+            $states[$state->value] = $state->query();
+        }
+        $request['aggs'] = [
+            'status' => ['filters' => ['filters' => $states]],
+            // Open changes that need a rebase, counted apart: they are ready for review or work in progress, too
+            'conflicts' => ['filter' => ['bool' => ['filter' => [
+                ['term' => ['reviewstatus' => ReviewStatusEnum::NEW->value]],
+                ['term' => ['mergeable' => 'no']],
+            ]]]],
+        ];
+
+        return $this->withPostFilter(
+            $request,
+            ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]],
+            $this->reviewState?->query(),
         );
     }
 
     /**
      * @param list<array<string, list<string>>> $identityTerms field => values, one of them has to match
-     * @param list<string>                      $closedStates
      */
-    private function request(array $identityTerms, string $statusField, array $closedStates): array
+    private function request(array $identityTerms): array
     {
         $should = [];
         foreach ($identityTerms as $term) {
@@ -74,16 +98,10 @@ final readonly class UserWorkQuery
                 $should[] = ['terms' => $term];
             }
         }
-        $bool = [
-            'should' => $should,
-            'minimum_should_match' => 1,
-        ];
-        if ([] === $should) {
+        $bool = [] === $should
             // Without email and name nothing can belong to the person
-            $bool = ['must_not' => [['match_all' => new \stdClass()]]];
-        } elseif (!$this->includeClosed) {
-            $bool['must_not'] = [['terms' => [$statusField => $closedStates]]];
-        }
+            ? ['must_not' => [['match_all' => new \stdClass()]]]
+            : ['should' => $should, 'minimum_should_match' => 1];
 
         return [
             'query' => ['bool' => $bool],
@@ -91,6 +109,28 @@ final readonly class UserWorkQuery
             'size' => $this->size,
             'track_total_hits' => true,
         ];
+    }
+
+    /**
+     * Narrows down the listed documents without changing the counts of the aggregations.
+     *
+     * @param array<string, mixed>      $closed   matches the closed documents
+     * @param array<string, mixed>|null $selected matches the selected state
+     */
+    private function withPostFilter(array $request, array $closed, ?array $selected): array
+    {
+        $bool = [];
+        if (!$this->includeClosed) {
+            $bool['must_not'] = [$closed];
+        }
+        if (null !== $selected) {
+            $bool['filter'] = [$selected];
+        }
+        if ([] !== $bool) {
+            $request['post_filter'] = ['bool' => $bool];
+        }
+
+        return $request;
     }
 
     /**

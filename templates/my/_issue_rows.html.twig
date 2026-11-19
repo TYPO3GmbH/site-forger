@@ -1,0 +1,45 @@
+{#
+ # Forge issues as a list, grouped by status.
+ # Expects: groups (status => list of issue documents), name (the name of the logged-in user)
+ #}
+{% import '_macros/status.html.twig' as status %}
+<div class="mywork-list">
+    {% for statusName, issues in groups %}
+        <div class="mywork-group">
+            <h3 class="mywork-group-title">{{ statusName }} <span>{{ issues|length }}</span></h3>
+            <ul>
+                {% for issue in issues %}
+                    {% set assignee = issue.assigned_to.name ?? null %}
+                    {% set tracker = issue_tracker(issue.tracker.name ?? null) %}
+                    {% set priority = issue_priority(issue.priority.name ?? null) %}
+                    <li>
+                        <a class="mywork-item" href="https://forge.typo3.org/issues/{{ issue.id }}" target="issue{{ issue.id }}">
+                            <span class="mywork-item-status">{{ status.issue(issue.status.name ?? null) }}</span>
+                            <span class="mywork-item-main">
+                                <span class="mywork-item-title"><span class="mywork-item-id">{{ issue.id }}</span>{{ issue.subject }}</span>
+                                <span class="mywork-item-meta">
+                                    <span class="mywork-tag mywork-tag-{{ tracker.severity ?? 'default' }}">{{ tracker.label ?? issue.tracker.name ?? 'Issue' }}</span>
+                                    {% if issue.category.name is defined %}<span>{{ issue.category.name }}</span>{% endif %}
+                                    {% if issue.fixed_version.name is defined %}<span title="Target version">→ {{ issue.fixed_version.name }}</span>{% endif %}
+                                    {% if priority and not priority.isDefault %}<span class="mywork-priority priority-{{ priority.severity }}" title="Priority">{{ priority.label }}</span>{% endif %}
+                                </span>
+                            </span>
+                            <span class="mywork-item-side">
+                                <span class="mywork-role">
+                                    {% if assignee == name %}
+                                        Assigned to you
+                                    {% elseif assignee is not null %}
+                                        Assigned to {{ assignee }}
+                                    {% else %}
+                                        Unassigned
+                                    {% endif %}
+                                </span>
+                                <time class="mywork-item-date" datetime="{{ to_datetime(issue.updated_on)|date('c') }}" title="Updated {{ issue.updated_on }}">{{ relativetime(to_datetime(issue.updated_on)) }}</time>
+                            </span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endfor %}
+</div>
