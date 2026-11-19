@@ -1,0 +1,48 @@
+{#
+ # The frame of the two views of My Work: the switch between the Gerrit changes and the issues,
+ # who the work is found for, and whether finished work is shown.
+ # Expects: view ("changes" or "issues"), email, name, includeClosed, openChanges, openIssues
+ #}
+{% extends 'base.html.twig' %}
+{% block headline %}My Work{% endblock %}
+
+{#
+ # One state chip of a filter bar.
+ #}
+{% macro chip(label, count, href, active, finished) %}
+    <a href="{{ href }}" class="mywork-chip{{ active ? ' is-active' }}{{ finished ? ' is-finished' }}"{% if active %} aria-current="true"{% endif %}>
+        {{ label }} <span class="mywork-chip-count">{{ count }}</span>
+    </a>
+{% endmacro %}
+
+{% block body %}
+    {% set route = 'my_' ~ view %}
+    <div class="content-section content-section-small mywork mywork-view-{{ view }}">
+        <div class="container">
+
+            <nav class="mywork-views" aria-label="My Work">
+                <a href="{{ path('my_changes') }}" class="mywork-views-item is-changes{{ view == 'changes' ? ' is-active' }}"{% if view == 'changes' %} aria-current="page"{% endif %}>
+                    {{ icon('actions-code-pull-request') }}
+                    <span>My changes</span>
+                    <span class="mywork-views-count" title="Open Gerrit changes">{{ openChanges }}</span>
+                </a>
+                <a href="{{ path('my_issues') }}" class="mywork-views-item is-issues{{ view == 'issues' ? ' is-active' }}"{% if view == 'issues' %} aria-current="page"{% endif %}>
+                    {{ icon('actions-list') }}
+                    <span>My issues</span>
+                    <span class="mywork-views-count" title="Open issues">{{ openIssues }}</span>
+                </a>
+            </nav>
+
+            <div class="mywork-intro">
+                <p>{% block intro %}{% endblock %} Found by <strong>{{ email }}</strong> or <strong>{{ name }}</strong>.</p>
+                <nav class="mywork-toggle" aria-label="Finished work">
+                    <a href="{{ path(route) }}" class="{{ includeClosed ? '' : 'is-active' }}"{% if not includeClosed %} aria-current="true"{% endif %}>Open</a>
+                    <a href="{{ path(route, {'state': 'all'}) }}" class="{{ includeClosed ? 'is-active' : '' }}"{% if includeClosed %} aria-current="true"{% endif %}>Including finished</a>
+                </nav>
+            </div>
+
+            {% block view %}{% endblock %}
+
+        </div>
+    </div>
+{% endblock %}

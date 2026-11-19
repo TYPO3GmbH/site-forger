@@ -94,6 +94,21 @@ final class UserWorkQueryTest extends TestCase
         );
     }
 
+    public function testOpenCountsLeaveOutTheClosedDocuments(): void
+    {
+        $query = new UserWorkQuery('jane@example.org', 'Jane Doe', true);
+
+        self::assertSame(
+            [['terms' => ['status.name' => ['Closed', 'Rejected', 'Resolved']]]],
+            $query->openIssuesCount()['query']['bool']['must_not']
+        );
+        self::assertSame($query->reviews()['query'], $query->openReviewsCount()['query']['bool']['must'][0]);
+        self::assertSame(
+            [['terms' => ['reviewstatus' => ['MERGED', 'ABANDONED']]]],
+            $query->openReviewsCount()['query']['bool']['must_not']
+        );
+    }
+
     public function testEmptyIdentityMatchesNothing(): void
     {
         $request = (new UserWorkQuery(' ', ''))->issues();

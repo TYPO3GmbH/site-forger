@@ -1,0 +1,57 @@
+{% extends 'my/_layout.html.twig' %}
+{% import 'my/_layout.html.twig' as my %}
+{% block title %}My changes{% endblock %}
+{% block intro %}Your Gerrit changes.{% endblock %}
+
+{% block view %}
+    {% set hidden = includeClosed ? 0 : counts|filter((count, state) => state in closedStates)|reduce((sum, count) => sum + count, 0) %}
+    {% set baseParams = (includeClosed ? {'state': 'all'} : {})|merge(selected is not null ? {'review': selected} : {}) %}
+
+    <div class="mywork-stats">
+        {% for stat in [
+            {'label': labels.ready, 'count': counts.ready ?? 0, 'href': path('my_changes', baseParams|merge({'review': 'ready'})), 'tone': review_state({'reviewstatus': 'NEW'}).severity},
+            {'label': labels.wip, 'count': counts.wip ?? 0, 'href': path('my_changes', baseParams|merge({'review': 'wip'})), 'tone': review_state({'reviewstatus': 'NEW', 'work_in_progress': true}).severity},
+            {'label': 'Merge conflicts', 'count': conflictCount, 'href': path('my_changes', baseParams|filter((v, k) => k != 'review')), 'tone': 'conflict'},
+        ] %}
+            <a href="{{ stat.href }}" class="mywork-stat status-pill-{{ stat.tone }}{{ stat.count == 0 ? ' is-empty' }}">
+                <span class="mywork-stat-count">{{ stat.count }}</span>
+                <span class="mywork-stat-label">{{ stat.label }}</span>
+            </a>
+        {% endfor %}
+    </div>
+
+    <section class="mywork-section" aria-labelledby="changes-title">
+        <header class="mywork-section-header">
+            <h2 id="changes-title">Gerrit changes <span class="mywork-section-count">{{ total }}</span></h2>
+            {% if counts is not empty %}
+                <nav class="mywork-chips" aria-label="Change status">
+                    {{ my.chip('All', counts|reduce((sum, count) => sum + count, 0) - hidden, path('my_changes', baseParams|filter((v, k) => k != 'review')), selected is null, false) }}
+                    {% for state, count in counts %}
+                        {{ my.chip(labels[state], count, path('my_changes', baseParams|merge({'review': state})), selected == state, state in closedStates and not includeClosed) }}
+                    {% endfor %}
+                </nav>
+            {% endif %}
+        </header>
+
+        {% if groups is empty %}
+            <div class="mywork-empty">
+                {% if selected is not null %}
+                    No Gerrit changes are {{ labels[selected]|lower }}.
+                {% else %}
+                    {{ includeClosed ? 'You have no Gerrit changes.' : 'You have no open Gerrit changes.' }}
+                {% endif %}
+            </div>
+        {% else %}
+            {% include 'my/_review_rows.html.twig' with {'groups': groups, 'labels': labels} only %}
+            {% if total > shown %}
+                <p class="mywork-note">Showing the {{ shown }} most recently updated of {{ total }} changes.</p>
+            {% endif %}
+        {% endif %}
+        {% if hidden > 0 and selected is null %}
+            <p class="mywork-note">
+                {{ hidden }} merged or abandoned {{ hidden == 1 ? 'change is' : 'changes are' }} hidden.
+                <a href="{{ path('my_changes', baseParams|merge({'state': 'all'})) }}">Show</a>
+            </p>
+        {% endif %}
+    </section>
+{% endblock %}

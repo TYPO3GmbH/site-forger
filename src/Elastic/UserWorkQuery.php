@@ -87,6 +87,31 @@ final readonly class UserWorkQuery
     }
 
     /**
+     * Counts the open issues of the person, without listing them.
+     */
+    public function openIssuesCount(): array
+    {
+        return $this->openCount($this->issues(), ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]]);
+    }
+
+    /**
+     * Counts the open Gerrit changes of the person, the ones in progress included, without listing them.
+     */
+    public function openReviewsCount(): array
+    {
+        return $this->openCount($this->reviews(), ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]]);
+    }
+
+    /**
+     * @param array<string, mixed> $request a request of issues() or reviews()
+     * @param array<string, mixed> $closed  matches the closed documents
+     */
+    private function openCount(array $request, array $closed): array
+    {
+        return ['query' => ['bool' => ['must' => [$request['query']], 'must_not' => [$closed]]]];
+    }
+
+    /**
      * @param list<array<string, list<string>>> $identityTerms field => values, one of them has to match
      */
     private function request(array $identityTerms): array
