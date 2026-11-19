@@ -17,6 +17,7 @@ use App\Service\GithubService;
 use Elastica\Document;
 use Exception;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ServerException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerAwareInterface;
@@ -350,14 +351,9 @@ class ImportCommand extends Command implements LoggerAwareInterface
     {
         $moreChanges = false;
         $out = [];
-        try {
-            $response = $this->getCommitsFromGerrit($perRun, $current);
-            $data = json_decode(str_replace(")]}'", '', (string) $response->getBody()), true, 512, JSON_THROW_ON_ERROR);
-        } catch (\Exception $e) {
-            $this->logger->warning($e->getMessage());
-
-            return $out;
-        }
+        // Errors end the import: an empty result would silently skip the changes of this block
+        $response = $this->getCommitsFromGerrit($perRun, $current);
+        $data = json_decode(str_replace(")]}'", '', (string) $response->getBody()), true, 512, JSON_THROW_ON_ERROR);
         foreach ($data as $change) {
             $mainProgressbar->advance();
             $labels = $this->extractLabels($change['labels']);
@@ -805,18 +801,20 @@ class ImportCommand extends Command implements LoggerAwareInterface
             $url = sprintf('/changes/?%s', $httpQuery);
 
             return $this->client->request('GET', $url);
-        } catch (ServerException $e) {
-            if ($retry <= 3) {
+        } catch (ServerException|ClientException $e) {
+            $status = $e->getResponse()->getStatusCode();
+            // Gerrit rate-limits the heavy change queries now and then with 429
+            if ((429 === $status || $e instanceof ServerException) && $retry <= 3) {
                 ++$retry;
-                // Give Gerrit some time to relax
-                $sleepTime = 5 * $retry;
-                $this->logger->warning(sprintf('Failed to fetch data from Gerrit, retrying in %d seconds...', $sleepTime));
+                $retryAfter = (int) $e->getResponse()->getHeaderLine('Retry-After');
+                $sleepTime = $retryAfter > 0 ? min($retryAfter, 300) : 30 * $retry;
+                $this->logger->warning(sprintf('Gerrit responded with %d, retrying in %d seconds (attempt %d)...', $status, $sleepTime, $retry));
                 sleep($sleepTime);
 
                 return $this->getCommitsFromGerrit($perRun, $current, $retry);
             }
 
-            throw $e;
+            throw new \RuntimeException(sprintf('Fetching changes from Gerrit failed with status %d', $status), 0, $e);
         }
     }
 
