@@ -641,9 +641,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
             case 'review':
                 $elasticType = ElasticUtility::getIndexByName('review');
                 break;
-            case 'user':
-                $elasticType = ElasticUtility::getIndexByName('user');
-                break;
             case 'interactions':
                 $elasticType = ElasticUtility::getIndexByName('interactions');
                 break;
