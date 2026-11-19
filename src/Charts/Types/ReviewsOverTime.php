@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace App\Charts\Types;
 
 use App\Charts\Colors;
+use App\Elastic\ElasticUtility;
 use Elastica\Index;
-use T3G\ElasticUtility\ElasticUtility;
 
 /**
  * Generates a charts about open reviews over time.

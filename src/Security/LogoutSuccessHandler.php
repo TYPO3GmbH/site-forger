@@ -14,19 +14,26 @@ namespace App\Security;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Security\Http\Event\LogoutEvent;
-use T3G\Bundle\Datahub\Service\UrlService;
+use T3G\Bundle\Keycloak\Service\OpenIdService;
 
 readonly class LogoutSuccessHandler implements EventSubscriberInterface
 {
     public function __construct(
-        private UrlService $urlService,
+        private OpenIdService $openIdService,
+        private string $keycloakBaseUri,
+        private string $keycloakRealm,
+        private string $keycloakClientId,
         private string $appUrl
     ) {
     }
 
     public function onLogout(LogoutEvent $logoutEvent): void
     {
-        $logoutEvent->setResponse(new RedirectResponse('/oauth/logout?redirect=' . urlencode($this->urlService->getLogoutUrlWithRedirectToApp($this->appUrl))));
+        $realmUrl = rtrim($this->keycloakBaseUri, '/') . '/realms/' . $this->keycloakRealm;
+        $endSessionEndpoint = $this->openIdService->getOpenIdConfiguration($realmUrl)['end_session_endpoint'];
+        $logoutUrl = $endSessionEndpoint . '?client_id=' . $this->keycloakClientId . '&post_logout_redirect_uri=' . urlencode('https://' . $this->appUrl);
+
+        $logoutEvent->setResponse(new RedirectResponse('/oauth/logout?redirect=' . urlencode($logoutUrl)));
     }
 
     /**

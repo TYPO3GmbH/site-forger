@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Elastic\ElasticUtility;
 use App\Service\GithubService;
 use Elastica\Document;
 use Exception;
@@ -30,7 +31,6 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use T3G\ElasticUtility\ElasticUtility;
 
 #[AsCommand(name: 'app:import', description: 'Imports data from Redmine (forge.typo3.org), Gerrit (review.typo3.org) and Github')]
 class ImportCommand extends Command implements LoggerAwareInterface

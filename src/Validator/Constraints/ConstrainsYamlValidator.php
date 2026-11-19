@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Validator\Constraints;
 
+use App\Elastic\ElasticUtility;
 use Elastica\Exception\InvalidException;
 use Elastica\Exception\ResponseException;
 use Symfony\Component\Validator\Constraint;
@@ -18,7 +19,6 @@ use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
-use T3G\ElasticUtility\ElasticUtility;
 
 class ConstrainsYamlValidator extends ConstraintValidator
 {

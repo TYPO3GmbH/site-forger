@@ -11,13 +11,13 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Elastic\ElasticUtility;
 use Elastica\Aggregation\Terms;
 use Elastica\Query;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use T3G\ElasticUtility\ElasticUtility;
 
 #[Route(path: '/search', name: 'search_')]
 class SearchController extends AbstractController

@@ -1,2 +1,0 @@
-usercentrics:
-  id: '%env(USERCENTRICS_ID)%'

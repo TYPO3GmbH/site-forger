@@ -160,7 +160,10 @@ services:
   App\Security\LogoutSuccessHandler:
     class: App\Security\LogoutSuccessHandler
     arguments:
-      $urlService: '@datahub.typo3.com.urlService'
+      $openIdService: '@T3G\Bundle\Keycloak\Service\OpenIdService'
+      $keycloakBaseUri: '%env(KEYCLOAK_BASE_URI)%'
+      $keycloakRealm: '%env(KEYCLOAK_REALM)%'
+      $keycloakClientId: '%env(KEYCLOAK_CLIENT_ID)%'
       $appUrl: '%env(APP_URL)%'
 
   App\Renderer\Factory\RedmineTextileRendererFactory: ~

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Elastic\ElasticUtility;
 use App\Repository\EmploymentTimeRepository;
 use Elastica\Document;
 use Elastica\Result;
@@ -25,7 +26,6 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use T3G\ElasticUtility\ElasticUtility;
 
 #[AsCommand(name: 'app:calculate-karma', description: 'Calculate Karma point based on the data from forger')]
 class CalculateKarmaCommand extends Command

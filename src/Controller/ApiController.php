@@ -12,10 +12,10 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Charts\ChartRegistry;
+use App\Elastic\ElasticUtility;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
-use T3G\ElasticUtility\ElasticUtility;
 
 class ApiController extends AbstractController
 {
@@ -76,7 +76,7 @@ class ApiController extends AbstractController
     public function chart(string $chartName): JsonResponse
     {
         $indexName = ('ticket_progress' === $chartName) ? 'issue' : 'review';
-        $index = ElasticUtility::getIndexByName($indexName, 'en');
+        $index = ElasticUtility::getIndexByName($indexName);
         $chartInstance = ChartRegistry::getChartInstance($chartName, $index);
         $data = $chartInstance->getData();
 

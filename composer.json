@@ -32,11 +32,8 @@
         "symfony/validator": "^6.4",
         "symfony/webpack-encore-bundle": "^2.0",
         "symfony/yaml": "^6.4",
-        "t3g/elastic-utility": "^7.0.2",
-        "t3g/symfony-datahub-bundle": "^3.0",
         "t3g/symfony-keycloak-bundle": "^3.0",
         "t3g/symfony-template-bundle": "^6.1",
-        "t3g/symfony-usercentrics-bundle": "^2.0",
         "twig/twig": "^3.15",
         "typo3/html-sanitizer": "^2.3"
     },
@@ -63,11 +60,8 @@
     },
     "repositories": [
         {
-            "type": "composer",
-            "url": "https://repo.packagist.com/typo3gmbh/"
-        },
-        {
-            "packagist.org": false
+            "type": "vcs",
+            "url": "https://github.com/TYPO3GmbH/symfony-keycloak-bundle"
         }
     ],
     "autoload": {
@@ -90,10 +84,7 @@
         "platform": {
             "php": "8.3"
         },
-        "preferred-install": {
-            "*": "dist",
-            "t3g/*": "src"
-        },
+        "preferred-install": "dist",
         "sort-packages": true
     },
     "extra": {
