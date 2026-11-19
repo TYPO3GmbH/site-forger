@@ -30,6 +30,8 @@ use Symfony\Component\Yaml\Yaml;
  * "<type>_<language>_b", the alias "<type>_<language>" (used by the application) and the alias
  * "<type>" point to the active one. Mapping changes are applied by building the inactive index with
  * the new configuration, copying the documents and switching the aliases, so the data stays available.
+ *
+ * Indices of the types listed under "removed_types" in Elasticorn.yaml are deleted.
  */
 final readonly class IndexSetup
 {
@@ -38,6 +40,7 @@ final readonly class IndexSetup
     public const string REMAPPED = 'remapped';
     public const string MIGRATED = 'migrated';
     public const string RECONNECTED = 'reconnected';
+    public const string REMOVED = 'removed';
 
     /**
      * Stored in the "_meta" of the mapping, identifies the configuration an index was built with.
@@ -68,6 +71,14 @@ final readonly class IndexSetup
                     $results[$this->aliasName($type, $language)] = $this->ensure($type, $language, 0 === $position);
                 }
             }
+            foreach ($this->getRemovedTypes() as $type) {
+                foreach ($this->getLanguages() as $language) {
+                    $documents = $this->remove($type, $language);
+                    if (null !== $documents) {
+                        $results[$this->aliasName($type, $language)] = ['action' => self::REMOVED, 'documents' => $documents];
+                    }
+                }
+            }
 
             return $results;
         } finally {
@@ -88,8 +99,56 @@ final readonly class IndexSetup
                 $plan[$this->aliasName($type, $language)] = $this->plan($type, $language);
             }
         }
+        foreach ($this->getRemovedTypes() as $type) {
+            foreach ($this->getLanguages() as $language) {
+                if ([] !== $this->findIndicesOfRemovedType($type, $language)) {
+                    $plan[$this->aliasName($type, $language)] = self::REMOVED;
+                }
+            }
+        }
 
         return $plan;
+    }
+
+    /**
+     * Deletes the indices of a removed type, their aliases go with them.
+     *
+     * @return int|null the number of deleted documents, null if there was nothing to delete
+     */
+    private function remove(string $type, string $language): ?int
+    {
+        $indices = $this->findIndicesOfRemovedType($type, $language);
+        if ([] === $indices) {
+            return null;
+        }
+        $documents = 0;
+        foreach ($indices as $index) {
+            $documents += $index->count();
+            $index->delete();
+        }
+
+        return $documents;
+    }
+
+    /**
+     * The physical indices and an index Elasticsearch created on its own under the alias name.
+     *
+     * @return list<Index>
+     */
+    private function findIndicesOfRemovedType(string $type, string $language): array
+    {
+        $names = [
+            $this->physicalIndexName($type, $language, 'a'),
+            $this->physicalIndexName($type, $language, 'b'),
+            $this->aliasName($type, $language),
+        ];
+        // Only real indices, Index::exists() is also true for an alias
+        $existing = $this->client()->getStatus()->getIndexNames();
+
+        return array_values(array_map(
+            $this->client()->getIndex(...),
+            array_intersect($names, $existing),
+        ));
     }
 
     /**
@@ -197,6 +256,20 @@ final readonly class IndexSetup
         sort($types);
 
         return $types;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function getRemovedTypes(): array
+    {
+        $removed = Yaml::parseFile($this->configurationPath . '/Elasticorn.yaml')['removed_types'] ?? [];
+        $stillConfigured = array_intersect($removed, $this->getTypes());
+        if ([] !== $stillConfigured) {
+            throw new \LogicException(sprintf('The index types "%s" are configured and listed as removed in Elasticorn.yaml.', implode('", "', $stillConfigured)));
+        }
+
+        return $removed;
     }
 
     /**

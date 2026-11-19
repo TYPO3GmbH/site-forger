@@ -26,6 +26,10 @@ missing indices, rebuilds indices whose configuration changed (the documents are
 switched afterwards) and takes over indices Elasticsearch created on its own. Use `--dry-run` to see what
 it would do.
 
+To remove an index type, delete its directory and add the type to `removed_types` in
+`config/Elasticorn/Elasticorn.yaml`. The next run deletes its indices in every environment; the type can
+leave the list once all environments are deployed.
+
 There is no separate setup step: every deployment runs it before the new release goes live, and every
 import runs it as a health check before writing. When nothing changed, the check costs one request per index.
 

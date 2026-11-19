@@ -26,6 +26,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
           * missing indices are created with the configured mapping
           * indices whose mapping differs from the configuration are rebuilt, the documents are copied
           * indices Elasticsearch created on its own (dynamic mapping) are replaced, the documents are copied
+          * indices of the types listed under <comment>removed_types</comment> in Elasticorn.yaml are deleted
 
         With <info>--dry-run</info> nothing is changed (a temporary "<type>_<language>_probe" index is used to compare mappings).
         HELP
