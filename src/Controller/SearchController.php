@@ -26,6 +26,9 @@ class SearchController extends AbstractController
     protected int $currentPage = 1;
     protected int $totalHits = 0;
 
+    /** @var array<string, array<string, string>> */
+    private array $filters = [];
+
     /**
      * @throws \Exception
      */
@@ -34,6 +37,7 @@ class SearchController extends AbstractController
     {
         $this->currentPage = (int) $request->query->get('page', 1);
         $query = (string) $request->query->get('query');
+        $this->filters = $request->query->all('filters');
 
         $viewData = [];
         $searchClosed = false;
@@ -59,7 +63,7 @@ class SearchController extends AbstractController
         if ($searchClosed) {
             $viewData['searchClosed'] = '1';
         }
-        $viewData['filters'] = $request->query->all('filters');
+        $viewData['filters'] = $this->filters;
         $viewData['routeName'] = 'search_search';
 
         return $this->render('search/search.html.twig', $viewData);
@@ -233,10 +237,7 @@ class SearchController extends AbstractController
     {
         $filters = new Query\BoolQuery();
 
-        if (!array_key_exists('filters', $_GET)) {
-            return $filters;
-        }
-        foreach ($_GET['filters'] as $key => $filterValue) {
+        foreach ($this->filters as $key => $filterValue) {
             $key = $this->mapFilterNames($key);
             $filterCatCount = 0;
             $filterPart = new Query\BoolQuery();
