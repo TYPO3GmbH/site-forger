@@ -21,14 +21,16 @@ use App\Enum\CommandRunStatusEnum;
  * "Usual" is learned from the runs, there is no schedule to configure: the median gap between the
  * starts of the latest runs. A job is overdue when its last start or its last successful run is more
  * than OVERDUE_FACTOR gaps ago (at least MIN_GRACE seconds), e.g. because cron no longer starts it
- * or every run fails. A run skipped for a lock counts as fine: another run of the import does the work
- * (e.g. reviewFull blocks reviewDelta for hours), and the lock goes with the process holding it.
+ * or every run fails. A run skipped for a lock counts as fine for up to MAX_LOCKED seconds: another run
+ * does the work (e.g. reviewFull blocks reviewDelta for hours). Without a successful run for longer the
+ * job is overdue all the same, e.g. when two jobs share a lock they should not.
  */
 final readonly class CommandJobOverview
 {
     private const int OVERDUE_FACTOR = 3;
     private const int MIN_GRACE = 900;
     private const int SAMPLE = 10;
+    private const int MAX_LOCKED = 43200;
 
     public ?CommandRun $lastSuccess;
     /** Seconds, null with fewer than three runs */
@@ -53,8 +55,9 @@ final readonly class CommandJobOverview
             $limit = max(self::OVERDUE_FACTOR * $this->interval, $this->interval + self::MIN_GRACE);
             $sinceStart = $now->getTimestamp() - $this->lastRun()->getStartedAt()->getTimestamp();
             $lastFine = array_find($runs, static fn (CommandRun $run): bool => $run->getStatus($now)->isSuccessful() || CommandRunStatusEnum::LOCKED === $run->getStatus($now));
-            $sinceSuccess = null === $lastFine ? PHP_INT_MAX : $now->getTimestamp() - $lastFine->getStartedAt()->getTimestamp();
-            $overdue = $sinceStart > $limit || $sinceSuccess > $limit;
+            $sinceFine = null === $lastFine ? PHP_INT_MAX : $now->getTimestamp() - $lastFine->getStartedAt()->getTimestamp();
+            $sinceSuccess = null === $this->lastSuccess ? PHP_INT_MAX : $now->getTimestamp() - $this->lastSuccess->getStartedAt()->getTimestamp();
+            $overdue = $sinceStart > $limit || $sinceFine > $limit || $sinceSuccess > max($limit, self::MAX_LOCKED);
         }
         $this->overdue = $overdue;
     }
