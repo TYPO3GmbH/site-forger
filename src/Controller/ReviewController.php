@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\ElasticUtility;
+use App\Elastic\ReviewLists;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStatusEnum;
@@ -50,31 +51,7 @@ class ReviewController extends AbstractController
     public function status(): Response
     {
         $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        [
-                            'terms' => [
-                                'reviewstatus' => [ReviewStatusEnum::NEW->value],
-                            ],
-
-                        ],
-                    ],
-                    'must_not' => [
-                        [
-                            'terms' => [
-                                'reviewstatus' => ReviewStatusEnum::closedValues(),
-                            ],
-
-                        ],
-                        [
-                            'term' => [
-                                'work_in_progress' => true,
-                            ],
-                        ],
-                    ],
-                ],
-            ],
+            'query' => ReviewLists::query(ReviewLists::READY),
             'sort' => static::QUERY_SORTING,
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
@@ -91,39 +68,7 @@ class ReviewController extends AbstractController
     public function hasVerifications(): Response
     {
         $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        [
-                            'range' => [
-                                'positive_reviews' => [
-                                    'gte' => 1,
-                                ],
-                            ],
-                        ],
-                        [
-                            'range' => [
-                                'positive_verifications' => [
-                                    'gte' => 1,
-                                ],
-                            ],
-                        ],
-                    ],
-                    'must_not' => [
-                        [
-                            'terms' => [
-                                'reviewstatus' => ReviewStatusEnum::closedValues(),
-                            ],
-
-                        ],
-                        [
-                            'term' => [
-                                'work_in_progress' => true,
-                            ],
-                        ],
-                    ],
-                ],
-            ],
+            'query' => ReviewLists::query(ReviewLists::REVIEWED_AND_VERIFIED),
             'sort' => static::QUERY_SORTING,
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
@@ -140,39 +85,7 @@ class ReviewController extends AbstractController
     public function missesVerifications(): Response
     {
         $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        [
-                            'range' => [
-                                'positive_reviews' => [
-                                    'gte' => 1,
-                                ],
-                            ],
-                        ],
-                        [
-                            'range' => [
-                                'positive_verifications' => [
-                                    'lt' => 1,
-                                ],
-                            ],
-                        ],
-                    ],
-                    'must_not' => [
-                        [
-                            'terms' => [
-                                'reviewstatus' => ReviewStatusEnum::closedValues(),
-                            ],
-
-                        ],
-                        [
-                            'term' => [
-                                'work_in_progress' => true,
-                            ],
-                        ],
-                    ],
-                ],
-            ],
+            'query' => ReviewLists::query(ReviewLists::NEEDS_VERIFICATION),
             'sort' => static::QUERY_SORTING,
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
@@ -189,39 +102,7 @@ class ReviewController extends AbstractController
     public function missesReview(): Response
     {
         $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        [
-                            'range' => [
-                                'positive_reviews' => [
-                                    'lt' => 1,
-                                ],
-                            ],
-                        ],
-                        [
-                            'range' => [
-                                'positive_verifications' => [
-                                    'gte' => 1,
-                                ],
-                            ],
-                        ],
-                    ],
-                    'must_not' => [
-                        [
-                            'terms' => [
-                                'reviewstatus' => ReviewStatusEnum::closedValues(),
-                            ],
-
-                        ],
-                        [
-                            'term' => [
-                                'work_in_progress' => true,
-                            ],
-                        ],
-                    ],
-                ],
-            ],
+            'query' => ReviewLists::query(ReviewLists::NEEDS_REVIEW),
             'sort' => static::QUERY_SORTING,
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
@@ -240,30 +121,7 @@ class ReviewController extends AbstractController
         $aggs = $this->queryAggregations();
         unset($aggs['Mergeable'], $aggs['Patchsets'], $aggs['Releases'], $aggs['Topic']);
         $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        [
-                            'term' => [
-                                'mergeable' => 'no',
-                            ],
-                        ],
-                    ],
-                    'must_not' => [
-                        [
-                            'terms' => [
-                                'reviewstatus' => ReviewStatusEnum::closedValues(),
-                            ],
-
-                        ],
-                        [
-                            'term' => [
-                                'work_in_progress' => true,
-                            ],
-                        ],
-                    ],
-                ],
-            ],
+            'query' => ReviewLists::query(ReviewLists::NEEDS_REBASE),
             'sort' => static::QUERY_SORTING,
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
@@ -290,36 +148,12 @@ class ReviewController extends AbstractController
                 $searchClosed = true;
             }
             $fullRequest = [
-                'query' => [
-                    'bool' => [
-                        'must' => [
-                            [
-                                'terms' => [
-                                    'files' => [
-                                        htmlspecialchars($this->query()->getString('query')),
-                                    ],
-                                ],
-
-                            ],
-                        ],
-                        'must_not' => [
-                            [
-                                'terms' => [
-                                    'reviewstatus' => ReviewStatusEnum::closedValues(),
-                                ],
-
-                            ],
-                        ],
-                    ],
-                ],
+                'query' => ReviewLists::query(ReviewLists::FILES, $this->query()->getString('query'), $searchClosed),
                 'sort' => static::QUERY_SORTING,
                 'size' => $this->perPage,
                 'from' => $this->currentPage * $this->perPage - $this->perPage,
                 'aggregations' => $this->queryAggregations(),
             ];
-            if ($searchClosed) {
-                unset($fullRequest['query']['bool']['must_not']);
-            }
             $viewData = $this->search($fullRequest);
             $viewData['routeName'] = 'gerrit_files';
             if ($searchClosed) {
@@ -343,39 +177,7 @@ class ReviewController extends AbstractController
             $aggregations['Owner']
         );
         $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'should' => [
-                        [
-                            'range' => [
-                                'negative_reviews' => [
-                                    'gte' => 1,
-                                ],
-                            ],
-                        ],
-                        [
-                            'range' => [
-                                'negative_verifications' => [
-                                    'gte' => 1,
-                                ],
-                            ],
-                        ],
-                    ],
-                    'must_not' => [
-                        [
-                            'terms' => [
-                                'reviewstatus' => ReviewStatusEnum::closedValues(),
-                            ],
-
-                        ],
-                        [
-                            'term' => [
-                                'work_in_progress' => true,
-                            ],
-                        ],
-                    ],
-                ],
-            ],
+            'query' => ReviewLists::query(ReviewLists::NEGATIVE_VOTES),
             'sort' => static::QUERY_SORTING,
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
@@ -397,25 +199,7 @@ class ReviewController extends AbstractController
             $aggregations['Affected Files']
         );
         $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        [
-                            'term' => [
-                                'work_in_progress' => true,
-                            ],
-                        ],
-                    ],
-                    'must_not' => [
-                        [
-                            'terms' => [
-                                'reviewstatus' => ReviewStatusEnum::closedValues(),
-                            ],
-
-                        ],
-                    ],
-                ],
-            ],
+            'query' => ReviewLists::query(ReviewLists::WORK_IN_PROGRESS),
             'sort' => [
                 'updated_on' => 'asc',
                 'insertions' => 'asc',
@@ -443,58 +227,7 @@ class ReviewController extends AbstractController
             $aggregations['Affected Files']
         );
         $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        [
-                            'range' => [
-                                'positive_reviews' => [
-                                    'gte' => 1,
-                                ],
-                            ],
-                        ],
-                        [
-                            'range' => [
-                                'positive_verifications' => [
-                                    'gte' => 1,
-                                ],
-                            ],
-                        ],
-                        [
-                            'term' => [
-                                'mergeable' => 'yes',
-                            ],
-                        ],
-                    ],
-                    'must_not' => [
-                        [
-                            'terms' => [
-                                'reviewstatus' => ReviewStatusEnum::closedValues(),
-                            ],
-
-                        ],
-                        [
-                            'term' => [
-                                'work_in_progress' => true,
-                            ],
-                        ],
-                        [
-                            'range' => [
-                                'negative_reviews' => [
-                                    'gte' => 1,
-                                ],
-                            ],
-                        ],
-                        [
-                            'range' => [
-                                'negative_verifications' => [
-                                    'gte' => 1,
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
+            'query' => ReviewLists::query(ReviewLists::READY_TO_MERGE),
             'sort' => static::QUERY_SORTING,
             'size' => $this->perPage,
             'from' => $this->currentPage * $this->perPage - $this->perPage,
