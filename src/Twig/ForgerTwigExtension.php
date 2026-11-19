@@ -107,7 +107,7 @@ class ForgerTwigExtension extends AbstractExtension
         $checked = '';
         $trackerFilters = new TrackerFilters($this->requestStack->getMainRequest());
         if ($trackerFilters->{$trackerType}) {
-            $checked = ' checked="checked';
+            $checked = ' checked="checked"';
         }
 
         $content = [];
