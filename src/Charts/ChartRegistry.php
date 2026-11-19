@@ -12,11 +12,10 @@ declare(strict_types=1);
 namespace App\Charts;
 
 use App\Charts\Types\ChartInterface;
-use Elastica\Index;
 
 final class ChartRegistry
 {
-    private static array $charts = [
+    private const array CHARTS = [
         'mergeable' => Types\Mergeable::class,
         'open_reviews' => Types\OpenReviews::class,
         'opened_closed' => Types\OpenedClosed::class,
@@ -27,10 +26,11 @@ final class ChartRegistry
         'tracker_types' => Types\TrackerTypes::class,
     ];
 
-    public static function getChartInstance(string $identifier, Index $index): ChartInterface
+    public static function getChartInstance(string $identifier): ChartInterface
     {
-        if (isset(self::$charts[$identifier])) {
-            return new self::$charts[$identifier]($index);
+        $class = self::CHARTS[$identifier] ?? null;
+        if (null !== $class) {
+            return new $class();
         }
 
         throw new \InvalidArgumentException('Chart "' . $identifier . '" is unknown', 1565269002);

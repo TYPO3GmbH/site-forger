@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Charts\Types;
 
+use App\Elastic\ElasticUtility;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStatusEnum;
 use Elastica\Index;
@@ -23,8 +24,12 @@ abstract class AbstractChart
 
     abstract protected function getDocumentType(): string;
 
-    public function __construct(private readonly Index $index)
+    /**
+     * The index the chart reads, given by its document type ("issue" or "review").
+     */
+    protected function getIndex(): Index
     {
+        return ElasticUtility::getIndexByName($this->getDocumentType());
     }
 
     protected function convertDateToFormat(string $input, string $outputFormat = 'Y-m-d'): string
@@ -34,9 +39,9 @@ abstract class AbstractChart
         return $dateTime->format($outputFormat);
     }
 
-    protected function fetchData(Index $index, array $query): ResultSet
+    protected function fetchData(array $query): ResultSet
     {
-        $search = $index->createSearch($query);
+        $search = $this->getIndex()->createSearch($query);
 
         return $search->search();
     }
@@ -110,7 +115,7 @@ abstract class AbstractChart
                 ],
             ],
         ];
-        $resultSet = $this->fetchData($this->index, $query);
+        $resultSet = $this->fetchData($query);
         $data = $resultSet->getAggregations();
         $openSum = 0;
         $result = [];

@@ -12,23 +12,13 @@ declare(strict_types=1);
 namespace App\Charts\Types;
 
 use App\Charts\Colors;
-use App\Elastic\ElasticUtility;
 use App\Enum\ReviewStatusEnum;
-use Elastica\Index;
 
 class OpenReviews extends ReviewChart
 {
-    protected readonly Index $index;
-
-    public function __construct()
-    {
-        $this->index = ElasticUtility::getIndexByName('review');
-        parent::__construct($this->index);
-    }
-
     public function getData(): array
     {
-        $search = $this->index->createSearch($this->getFullRequest());
+        $search = $this->getIndex()->createSearch($this->getFullRequest());
         $resultSet = $search->search();
         $data = $resultSet->getAggregations();
 

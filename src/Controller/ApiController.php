@@ -93,9 +93,11 @@ class ApiController extends AbstractController
     #[Route(path: '/chart/{chartName}', name: 'chart')]
     public function chart(string $chartName): JsonResponse
     {
-        $indexName = ('ticket_progress' === $chartName) ? 'issue' : 'review';
-        $index = ElasticUtility::getIndexByName($indexName);
-        $chartInstance = ChartRegistry::getChartInstance($chartName, $index);
+        try {
+            $chartInstance = ChartRegistry::getChartInstance($chartName);
+        } catch (\InvalidArgumentException $e) {
+            throw $this->createNotFoundException($e->getMessage(), $e);
+        }
         $data = $chartInstance->getData();
 
         return new JsonResponse($data);

@@ -12,20 +12,10 @@ declare(strict_types=1);
 namespace App\Charts\Types;
 
 use App\Charts\Colors;
-use App\Elastic\ElasticUtility;
 use App\Enum\IssueStatusEnum;
-use Elastica\Index;
 
 class OpenedClosed extends IssueChart
 {
-    protected readonly Index $index;
-
-    public function __construct()
-    {
-        $this->index = ElasticUtility::getIndexByName('issue');
-        parent::__construct($this->index);
-    }
-
     public function getData(): array
     {
         $openedDataSet = $this->getOpenedDataSet();
@@ -43,7 +33,7 @@ class OpenedClosed extends IssueChart
 
     private function getOpenedDataSet(): array
     {
-        $resultSet = $this->fetchData($this->index, $this->getOpenedQuery([
+        $resultSet = $this->fetchData($this->getOpenedQuery([
             'bool' => [
                 'must_not' => [
                     'range' => ['created_on' => ['lte' => new \DateTimeImmutable()->sub(new \DateInterval('P1M'))->format('Y/m/d H:i:s')]],
@@ -65,7 +55,7 @@ class OpenedClosed extends IssueChart
 
     private function getClosedDataSet(): array
     {
-        $resultSet = $this->fetchData($this->index, $this->getClosedQuery([
+        $resultSet = $this->fetchData($this->getClosedQuery([
             'bool' => [
                 'must' => [
                     'terms' => ['status.name' => IssueStatusEnum::closedValues()],
