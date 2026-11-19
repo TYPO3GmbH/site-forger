@@ -40,7 +40,7 @@ class TruncateTypeCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $type = $input->getArgument('type');
 
-        if ('review' === $type || 'issue' === $type || 'interactions' === $type || 'karmapoints' === $type) {
+        if ('review' === $type || 'issue' === $type || 'interactions' === $type) {
             $typeToWorkOn = ElasticUtility::getIndexByName($type);
             $query = new MatchAll();
             $typeToWorkOn->deleteByQuery($query);

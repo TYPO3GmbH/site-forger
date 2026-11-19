@@ -213,16 +213,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         );
         if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
             $menu['management']->addChild(
-                'management-companies',
-                [
-                    'label' => 'Companies',
-                    'route' => 'management_companies',
-                    'extras' => [
-                        'icon' => 'actions-building',
-                    ],
-                ]
-            );
-            $menu['management']->addChild(
                 'sprintcategory_index',
                 [
                     'label' => 'Sprint Categories',
@@ -341,17 +331,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     ],
                 ]
             );
-            $menu['username']->addChild(
-                'profile_employment',
-                [
-                    'label' => 'Company Employment',
-                    'route' => 'user_employment',
-                    'extras' => [
-                        'icon' => 'actions-id-badge',
-                    ],
-                ]
-            );
-            $menu['username']->addChild($this->getDivider());
             if ($this->isKeycloakSession()) {
                 $this->addAccountItems($menu['username'], 't3g_keycloak_logout');
             } else {

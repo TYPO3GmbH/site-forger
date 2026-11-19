@@ -14,7 +14,7 @@ no Packagist or GitHub credentials are needed to install them.
 3. `ddev composer install`
 4. `ddev exec npm ci`
 5. `ddev exec npm run build`
-6. `ddev exec bin/console doctrine:schema:create`
+6. `ddev exec bin/console doctrine:migrations:migrate`
 7. `ddev exec bin/console app:import --mode=forgeDelta` to import the latest 100 Forge issues
 8. Open https://forger.ddev.site
 
@@ -77,10 +77,6 @@ Forger allows the following commands to be used on CLI:
   * `ddev exec bin/console app:truncate-type issue` to delete all issues
   * `ddev exec bin/console app:truncate-type review` to delete all reviews
   * `ddev exec bin/console app:truncate-type interactions` to delete all interactions
-  * `ddev exec bin/console app:truncate-type karmapoints` to delete all karma points (BE CAREFUL WITH THIS!)
-* `ddev exec bin/console app:calculate-karma` to calculate karmapoints (based on the year set in arguments)
-  * argument `year` (int) `ddev exec bin/console app:calculate-karma 2019` to select the year to update
-  * option `--account` (string) `ddev exec bin/console app:calculate-karma 2019 --account=dermattes` to define a dedicated account to update
 * `ddev exec bin/console app:backport` will populate the backport view
 
 ## Keycloak

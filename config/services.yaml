@@ -22,68 +22,6 @@ parameters:
     'WIP':
     'Review':
     'Done':
-  karmaPoints:
-    core:review:comment: 1
-    core:review:codereview: 3
-    core:review:testing: 5
-    core:review:patchset: 2
-    core:review:merge: 10
-    core:review:merge-lastpatchset: 10
-    core:review:merge-author: 10
-    core:review:abandon: 3
-
-    # GitHub Contribution
-    # Due to negative feedback from the community
-    # the following committee adjusted the values
-    # reasoning is noted.
-    #
-    # - Oliver Hader
-    # - Benjamin Franzke
-    # - Benjamin Kott
-    # - Andreas Kienast
-    #
-    # pullrequestreviewcomment:
-    # is triggered for each and every comment
-    # mapping -> core:review:comment
-    # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_review_comment
-    #
-    # pullrequestreview:
-    # is triggered when a code review is submitted
-    # mapping -> core:review:codereview
-    # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_review
-    #
-    # push:generic:
-    # is triggered when ever a commit or tag is pushed
-    # mapping -> core:review:patchset
-    # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#push
-    #
-    # pullrequest:opened:
-    # is triggered when ever a pull request is opened
-    # we currently do not track merges of pull request
-    # mapping: -> core:review:merge-author
-    # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
-    github:typo3-documentation:issue:closed: 1
-    github:typo3-documentation:pr:merged: 10
-    github:typo3-documentation:pullrequestreviewcomment:created: 1
-    github:typo3-documentation:pullrequestreview:created: 3
-    github:typo3-documentation:push:generic: 2
-    github:typo3-documentation:issuecomment:created: 1
-    github:typo3-documentation:pullrequest:opened: 10
-    github:friendsoftypo3:issue:closed: 1
-    github:friendsoftypo3:pr:merged: 10
-    github:friendsoftypo3:pullrequestreviewcomment:created: 1
-    github:friendsoftypo3:pullrequestreview:created: 3
-    github:friendsoftypo3:push:generic: 2
-    github:friendsoftypo3:issuecomment:created: 1
-    github:friendsoftypo3:pullrequest:opened: 10
-    github:typo3:issue:closed: 1
-    github:typo3:pr:merged: 10
-    github:typo3:pullrequestreviewcomment:created: 1
-    github:typo3:pullrequestreview:created: 3
-    github:typo3:push:generic: 2
-    github:typo3:issuecomment:created: 1
-    github:typo3:pullrequest:opened: 10
-
 services:
   # default configuration for services in *this* file
   _defaults:
