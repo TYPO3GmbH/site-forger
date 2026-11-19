@@ -1,4 +1,5 @@
 {% import '_macros/status.html.twig' as status %}
+{% import '_macros/refresh.html.twig' as refresh %}
 {% set reviewTags = review._source.reviewtags ?? [] %}
 {% if 'FEATURE' in reviewTags %}
     {% set reviewTypeClass = 'feature' %}
@@ -19,6 +20,7 @@
         </div>
     {% endif %}
     <div class="review-header">
+        {{ refresh.change(review._source.id) }}
         <div class="review-issue">
             #{{review._source.id}}
         </div>

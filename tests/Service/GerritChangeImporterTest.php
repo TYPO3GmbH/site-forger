@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Service;
 
+use App\Service\ChangeRefreshResult;
 use App\Service\CommandRunRecorder;
 use App\Service\GerritChangeImporter;
 use Doctrine\DBAL\Connection;
@@ -72,6 +73,15 @@ final class GerritChangeImporterTest extends TestCase
     public function testGerritDatesInTheFormatOfTheIndex(): void
     {
         self::assertSame('2026/11/19 17:42:30', GerritChangeImporter::gerritDate('2026-11-19 17:42:30.000000000'));
+    }
+
+    public function testRefreshAsksForTheChangeInTheProjectOnly(): void
+    {
+        $importer = $this->importer([new Response(200, [], ")]}'\n[]")]);
+
+        self::assertSame(ChangeRefreshResult::NOT_FOUND, $importer->refresh(95026));
+        parse_str($this->requests[0]['request']->getUri()->getQuery(), $query);
+        self::assertSame('project:Packages/TYPO3.CMS change:95026', $query['q']);
     }
 
     public function testRateLimitIsAnErrorAtOnceWithoutAHandler(): void

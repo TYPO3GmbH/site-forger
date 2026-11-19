@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller;
 
-use App\Controller\IssueRefreshController;
+use App\Controller\RefreshController;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,9 +22,9 @@ use Symfony\Component\Security\Core\User\InMemoryUser;
 use Twig\Environment;
 
 /**
- * Who sees the refresh button of an issue, and where the refresh leads back to.
+ * Who sees the refresh buttons of issues and changes, and where a refresh leads back to.
  */
-final class IssueRefreshTest extends KernelTestCase
+final class RefreshTest extends KernelTestCase
 {
     /**
      * @return iterable<string, array{string, bool}>
@@ -43,7 +43,7 @@ final class IssueRefreshTest extends KernelTestCase
     #[DataProvider('targets')]
     public function testOnlyPathsOfTheSiteAreFollowed(string $target, bool $followed): void
     {
-        self::assertSame($followed, IssueRefreshController::isLocalPath($target));
+        self::assertSame($followed, RefreshController::isLocalPath($target));
     }
 
     /**
@@ -62,7 +62,7 @@ final class IssueRefreshTest extends KernelTestCase
      * @param list<string>|null $roles
      */
     #[DataProvider('users')]
-    public function testOnlyAdminsSeeTheButton(?array $roles, bool $shown): void
+    public function testOnlyAdminsSeeTheButtons(?array $roles, bool $shown): void
     {
         self::bootKernel();
         $container = self::getContainer();
@@ -75,22 +75,40 @@ final class IssueRefreshTest extends KernelTestCase
         /** @var Environment $twig */
         $twig = $container->get('twig');
 
-        $html = $twig->createTemplate("{% import '_macros/issue.html.twig' as issueActions %}{{ issueActions.refresh(91089) }}")->render();
+        $buttons = $twig->createTemplate("{% import '_macros/refresh.html.twig' as refresh %}{{ refresh.issue(91089) }}{{ refresh.change(95026) }}")->render();
+        $form = $twig->render('_partials/refresh_form.html.twig');
 
         if ($shown) {
-            self::assertStringContainsString('action="/issue/91089/refresh" method="post"', $html);
-            self::assertStringContainsString('name="_target_path" value="/search?query=cache"', $html);
-            self::assertMatchesRegularExpression('/name="_token" value="[^"]+"/', $html);
+            self::assertStringContainsString('form="refresh-form" formaction="/issue/91089/refresh" formmethod="post"', $buttons);
+            self::assertStringContainsString('form="refresh-form" formaction="/change/95026/refresh" formmethod="post"', $buttons);
+            // No form of their own: in the lists they stand inside the form of the filters
+            self::assertStringNotContainsString('<form', $buttons);
+            self::assertStringContainsString('<form id="refresh-form" method="post" hidden>', $form);
+            self::assertStringContainsString('name="_target_path" value="/search?query=cache"', $form);
+            self::assertMatchesRegularExpression('/name="_token" value="[^"]+"/', $form);
         } else {
-            self::assertStringNotContainsString('issue-refresh', $html);
+            self::assertSame('', trim($buttons));
+            self::assertSame('', trim($form));
         }
     }
 
-    public function testTheRoleOfTheButtonIsTheRoleOfTheRefresh(): void
+    public function testTheFormStandsOutsideOfTheFormsOfThePage(): void
     {
-        self::assertStringContainsString(
-            "is_granted('" . IssueRefreshController::ROLE . "')",
-            (string) file_get_contents(__DIR__ . '/../../templates/_macros/issue.html.twig')
+        // The javascripts block is the end of the body, after the content of the page
+        self::assertMatchesRegularExpression(
+            "/\\{% block javascripts %\\}\\s*\\{% include '_partials\\/refresh_form.html.twig' %\\}/",
+            (string) file_get_contents(__DIR__ . '/../../templates/base.html.twig')
         );
+    }
+
+    public function testTheRoleOfTheButtonsIsTheRoleOfTheRefresh(): void
+    {
+        foreach (['_macros/refresh.html.twig', '_partials/refresh_form.html.twig'] as $template) {
+            self::assertStringContainsString(
+                "is_granted('" . RefreshController::ROLE . "')",
+                (string) file_get_contents(__DIR__ . '/../../templates/' . $template),
+                $template
+            );
+        }
     }
 }

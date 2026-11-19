@@ -1,7 +1,7 @@
-// Actions on a single issue, see templates/_macros/issue.html.twig
+// Refresh of a single issue or change, see templates/_macros/refresh.html.twig
 
-// The refresh button sits in the top right corner of the issue, the status line keeps clear of it
-.issue-content:has(> .issue-refresh) {
+// The button sits in the top right corner of the card, the status line keeps clear of it
+.issue-content:has(> .refresh-action) {
     position: relative;
 
     > .issue-status {
@@ -9,14 +9,26 @@
     }
 }
 
-.issue-refresh {
+.review-header:has(> .refresh-action) {
+    position: relative;
+    padding-right: 2.25rem;
+
+    // One line: in the middle of it, beside the status
+    > .refresh-action {
+        top: 50%;
+        transform: translateY(-50%);
+    }
+}
+
+.refresh-action {
+    display: block;
     position: absolute;
     top: .5rem;
     right: .5rem;
     margin: 0;
 }
 
-.issue-refresh-button {
+.refresh-action-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;

@@ -21,7 +21,8 @@ use GuzzleHttp\Exception\ServerException;
 use Psr\Http\Message\ResponseInterface;
 
 /**
- * Writes Gerrit changes and their interactions to the indices, for the import.
+ * Writes Gerrit changes and their interactions to the indices, as the import and the refresh of a single
+ * change do.
  *
  * Gerrit rate-limits the heavy queries now and then (429) or fails (5xx). Without a handler, see onRetry(),
  * that is an error at once: a page waiting for minutes helps nobody. The import waits and tries again.
@@ -58,10 +59,27 @@ final class GerritChangeImporter
     }
 
     /**
+     * Loads a change of the project from Gerrit again and writes it and its interactions to the indices.
+     * A change Gerrit does not find (any more) stays in the index as it is.
+     *
+     * @throws \RuntimeException Gerrit could not be asked, the index keeps the change as it is
+     */
+    public function refresh(int $number): ChangeRefreshResult
+    {
+        $documents = $this->documents($this->find(self::PROJECT . ' change:' . $number, 1));
+        if (!isset($documents[$number])) {
+            return ChangeRefreshResult::NOT_FOUND;
+        }
+        $this->write($documents[$number], refresh: true);
+
+        return ChangeRefreshResult::UPDATED;
+    }
+
+    /**
      * Writes the document of a change to the review index.
      *
      * @param array<string, mixed> $document see documents()
-     * @param bool                 $refresh  whether the index shows the change right away
+     * @param bool                 $refresh  whether the index shows the change right away, for the page that asked
      */
     public function write(array $document, bool $refresh = false): void
     {
