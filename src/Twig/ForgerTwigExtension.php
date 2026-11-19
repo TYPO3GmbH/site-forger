@@ -40,7 +40,7 @@ class ForgerTwigExtension
                 $key = $bucket['key'];
             }
 
-            $filters = $this->requestStack->getMainRequest()?->get('filters');
+            $filters = $this->requestStack->getMainRequest()?->query->all('filters') ?? [];
             if (isset($filters[$category][$key]) && 'true' === $filters[$category][$key]) {
                 ++$activeCount;
             }
@@ -64,7 +64,7 @@ class ForgerTwigExtension
             $key = $bucket['key'];
         }
 
-        $filters = $this->requestStack->getMainRequest()?->get('filters');
+        $filters = $this->requestStack->getMainRequest()?->query->all('filters') ?? [];
         if (isset($filters[$category][$key]) && 'true' === $filters[$category][$key]) {
             $checked = ' checked';
         } else {
