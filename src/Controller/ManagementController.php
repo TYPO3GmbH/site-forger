@@ -40,10 +40,16 @@ class ManagementController extends AbstractController
         'Riccardo De Contardi',
         'Simon Praetorius',
         'Stefan Bürk',
-        // Added until Server Team managed to fix the broken umlauts in Gerrit
-        'Annett J�hnichen',
-        'Jasmina Lie�mann',
-        'Stefan B�rk',
+    ];
+    /**
+     * Names as Gerrit delivers them with broken umlauts, mapped to the correct
+     * name. Only used to query and merge the data, never shown.
+     * Needed until the Server Team fixed the broken umlauts in Gerrit.
+     */
+    private array $nameAliases = [
+        'Annett J�hnichen' => 'Annett Jähnichen',
+        'Jasmina Lie�mann' => 'Jasmina Ließmann',
+        'Stefan B�rk' => 'Stefan Bürk',
     ];
     private array $docTeam = [
         'Alexander Nitsche',
@@ -252,7 +258,7 @@ class ManagementController extends AbstractController
                         ],
                         [
                             'terms' => [
-                                'fullname' => $this->coreMergers,
+                                'fullname' => $this->withNameAliases($this->coreMergers),
                             ],
                         ],
                     ],
@@ -294,9 +300,10 @@ class ManagementController extends AbstractController
                     $out[$dateIdent][$coreMember] = [];
                 }
                 foreach ($bucket['member']['buckets'] as $member) {
+                    $name = $this->nameAliases[$member['key']] ?? $member['key'];
                     foreach ($member['interaction_type']['buckets'] as $interactionType) {
                         $key = str_replace(':', '_', (string) $interactionType['key']);
-                        $out[$dateIdent][$member['key']][$key] = $interactionType['doc_count'];
+                        $out[$dateIdent][$name][$key] = ($out[$dateIdent][$name][$key] ?? 0) + $interactionType['doc_count'];
                     }
                 }
             }
@@ -386,6 +393,18 @@ class ManagementController extends AbstractController
             'aggs' => $out,
             'docTeam' => $this->docTeam,
         ]);
+    }
+
+    /**
+     * @param string[] $names
+     *
+     * @return string[]
+     */
+    private function withNameAliases(array $names): array
+    {
+        $aliases = array_keys(array_intersect($this->nameAliases, $names));
+
+        return array_values(array_unique([...$names, ...$aliases]));
     }
 
     private function sanitizeTaggles(array $taggles): array
