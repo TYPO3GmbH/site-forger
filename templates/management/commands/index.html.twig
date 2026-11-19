@@ -1,0 +1,245 @@
+{% extends 'base.html.twig' %}
+{% block title %}Command runs{% endblock %}
+{% block headline %}Command runs{% endblock %}
+
+{#
+ # What the cron jobs did, see App\Controller\CommandRunController.
+ # Status colors come from the status pills in assets/css/module/_status.scss, the layout from _command-runs.scss.
+ #}
+
+{% macro duration(seconds) %}
+    {%- if seconds < 60 -%}
+        {{ seconds }} s
+    {%- elseif seconds < 3600 -%}
+        {{ (seconds / 60)|round(0, 'floor') }} min
+    {%- elseif seconds < 172800 -%}
+        {{ (seconds / 3600)|round(0, 'floor') }} h {{ ((seconds % 3600) / 60)|round(0, 'floor') }} min
+    {%- else -%}
+        {{ (seconds / 86400)|round(0, 'floor') }} days
+    {%- endif -%}
+{% endmacro %}
+
+{% macro ago(date, now) %}
+    {%- if date -%}
+        <time datetime="{{ date|date('c') }}" title="{{ date|date('Y-m-d H:i:s') }}">{{ _self.duration(now.timestamp - date.timestamp) }} ago</time>
+    {%- else -%}
+        <span class="runs-muted">never</span>
+    {%- endif -%}
+{% endmacro %}
+
+{% macro status(run, now) %}
+    {% set state = run.status(now) %}
+    <span class="status-pill status-pill-{{ state.severity }}">{{ state.label }}</span>
+{% endmacro %}
+
+{% macro progress(run) %}
+    {% set percent = run.progressPercent %}
+    <div class="runs-progress">
+        <div class="runs-progress-label">
+            <span>{{ run.phase ?? 'Starting' }}</span>
+            <span class="runs-numeric">
+                {% if percent is not null %}
+                    {{ run.progressCurrent|number_format(0, '.', ',') }} of {{ run.progressTotal|number_format(0, '.', ',') }} · {{ percent }} %
+                {% elseif run.progressCurrent is not null %}
+                    {{ run.progressCurrent|number_format(0, '.', ',') }}
+                {% endif %}
+            </span>
+        </div>
+        <div class="runs-progress-track{{ percent is null ? ' is-indeterminate' }}" role="progressbar" aria-label="{{ run.phase ?? 'Progress' }}"{% if percent is not null %} aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ percent }}"{% endif %}>
+            <span class="runs-progress-bar" style="width: {{ percent ?? 100 }}%"></span>
+        </div>
+    </div>
+{% endmacro %}
+
+{% block body %}
+    {% import _self as runs %}
+
+    <div class="content-section content-section-small runs" data-runs-page{% if running is not empty %} data-runs-refresh="{{ refreshSeconds }}"{% endif %}>
+        <div class="container">
+
+            <div class="runs-intro">
+                <p>
+                    Every run of an <code>app:*</code> command, started by cron, a deployment or by hand, of the last {{ retention }}
+                    and at most {{ constant('App\\Service\\CommandRunRecorder::MAX_RUNS_PER_JOB') }} per job.
+                    A job is overdue when its last start or its last successful run is much longer ago than its usual interval.
+                </p>
+                {% if running is not empty %}
+                    <label class="runs-refresh">
+                        <input type="checkbox" data-runs-refresh-toggle checked>
+                        Refresh every {{ refreshSeconds }} s
+                    </label>
+                {% endif %}
+            </div>
+
+            {% if jobs is empty %}
+                {% include '_partials/alert.html.twig' with {'title': 'No runs recorded', 'message': 'No command ran in the last ' ~ retention ~ '. If cron should start the imports, it does not.', 'style': 'danger'} %}
+            {% else %}
+
+                {% if overdue is not empty %}
+                    <section class="runs-notice" role="alert">
+                        <span class="runs-notice-icon" aria-hidden="true">!</span>
+                        <div class="runs-notice-body">
+                            <p class="runs-notice-title">
+                                {{ overdue|length }} {{ overdue|length == 1 ? 'job is' : 'jobs are' }} overdue
+                                <span class="runs-muted">The data {{ overdue|length == 1 ? 'it imports' : 'they import' }} may be out of date.</span>
+                            </p>
+                            <ul class="runs-notice-list">
+                                {% for overview in overdue %}
+                                    <li>
+                                        <a class="runs-job" href="{{ path('management_command_runs', {'job': overview.job}) }}#runs" data-runs-link data-runs-reveal><code>{{ overview.job }}</code></a>
+                                        <span class="runs-muted">Last start {{ runs.ago(overview.lastRun.startedAt, now) }} · last success {{ runs.ago(overview.lastSuccess ? overview.lastSuccess.startedAt : null, now) }}{% if overview.interval %} · usually every {{ runs.duration(overview.interval) }}{% endif %}</span>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </section>
+                {% endif %}
+
+                <div class="runs-stats">
+                    <div class="runs-stat">
+                        <span class="runs-stat-label">Jobs</span>
+                        <span class="runs-stat-value">{{ jobs|length }}</span>
+                        <span class="runs-stat-note">Ran in the last {{ retention }}</span>
+                    </div>
+                    <div class="runs-stat">
+                        <span class="runs-stat-label">Running now</span>
+                        <span class="runs-stat-value{{ running is not empty ? ' runs-tone-running' }}">{{ running|length }}</span>
+                        <span class="runs-stat-note">With a heartbeat in the last {{ runs.duration(constant('App\\Entity\\CommandRun::HEARTBEAT_TIMEOUT')) }}</span>
+                    </div>
+                    <div class="runs-stat">
+                        <span class="runs-stat-label">Overdue</span>
+                        <span class="runs-stat-value{{ overdue is not empty ? ' runs-tone-danger' }}">{{ overdue|length }}</span>
+                        <span class="runs-stat-note">Jobs without a recent successful run</span>
+                    </div>
+                    <div class="runs-stat">
+                        <span class="runs-stat-label">Failed runs</span>
+                        <span class="runs-stat-value{{ failedRuns > 0 ? ' runs-tone-warning' }}">{{ failedRuns }}</span>
+                        <span class="runs-stat-note">Failed or aborted, last {{ retention }}</span>
+                    </div>
+                </div>
+
+                {% if running is not empty %}
+                    <section class="runs-section">
+                        <h2 class="runs-heading">Running now</h2>
+                        <div class="runs-running">
+                            {% for run in running %}
+                                <article class="runs-card runs-card-running">
+                                    <header class="runs-card-header">
+                                        <code class="runs-job">{{ run.job }}</code>
+                                        {{ runs.status(run, now) }}
+                                    </header>
+                                    {{ runs.progress(run) }}
+                                    <dl class="runs-facts">
+                                        <div><dt>Started</dt><dd>{{ runs.ago(run.startedAt, now) }}</dd></div>
+                                        <div><dt>Last heartbeat</dt><dd>{{ runs.ago(run.heartbeatAt, now) }}</dd></div>
+                                        <div><dt>Documents</dt><dd class="runs-numeric">{{ run.documents|number_format(0, '.', ',') }}</dd></div>
+                                        <div><dt>Warnings</dt><dd class="runs-numeric">{{ run.warnings }}</dd></div>
+                                    </dl>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    </section>
+                {% endif %}
+
+                <section class="runs-section">
+                    <h2 class="runs-heading">Jobs</h2>
+                    <div class="runs-jobs">
+                        {% for overview in jobs %}
+                            {% set last = overview.lastRun %}
+                            <article class="runs-card{{ overview.needsAttention(now) ? ' is-overdue' }}{{ job == overview.job ? ' is-selected' }}">
+                                <header class="runs-card-header">
+                                    <a class="runs-job" href="{{ path('management_command_runs', {'job': overview.job}) }}#runs" data-runs-link data-runs-reveal><code>{{ overview.job }}</code></a>
+                                    {% if overview.overdue %}
+                                        <span class="status-pill status-pill-run-failed">Overdue</span>
+                                    {% else %}
+                                        {{ runs.status(last, now) }}
+                                    {% endif %}
+                                </header>
+                                <dl class="runs-facts">
+                                    <div><dt>Last start</dt><dd>{{ runs.ago(last.startedAt, now) }}</dd></div>
+                                    <div><dt>Last success</dt><dd>{{ runs.ago(overview.lastSuccess ? overview.lastSuccess.startedAt : null, now) }}</dd></div>
+                                    <div><dt>Usual interval</dt><dd>{{ overview.interval is null ? '–' : runs.duration(overview.interval) }}</dd></div>
+                                    <div><dt>Failed</dt><dd class="runs-numeric">{{ overview.failures }} of {{ overview.runs|length }}</dd></div>
+                                </dl>
+                                <ol class="runs-history" aria-label="Latest runs, oldest first">
+                                    {% for run in overview.history %}
+                                        {% set state = run.status(now) %}
+                                        <li class="runs-history-item status-pill-{{ state.severity }}" title="{{ run.startedAt|date('Y-m-d H:i') }}: {{ state.label }}, {{ run.documents|number_format(0, '.', ',') }} documents"><span class="visually-hidden">{{ run.startedAt|date('Y-m-d H:i') }}: {{ state.label }}</span></li>
+                                    {% endfor %}
+                                </ol>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="runs-section" id="runs" data-runs-list>
+                    <div class="runs-list-header">
+                        <h2 class="runs-heading">
+                            {% if job %}Runs of <code>{{ job }}</code>{% else %}Latest runs{% endif %}
+                        </h2>
+                        <nav class="runs-filters" aria-label="Filter the runs">
+                            {% if job %}
+                                <a class="runs-filter" href="{{ path('management_command_runs', {'problems': problemsOnly ? 1 : null}) }}#runs" data-runs-link>All jobs</a>
+                            {% endif %}
+                            <a class="runs-filter{{ not problemsOnly ? ' is-active' }}" href="{{ path('management_command_runs', {'job': job}) }}#runs" data-runs-link{% if not problemsOnly %} aria-current="true"{% endif %}>All runs</a>
+                            <a class="runs-filter{{ problemsOnly ? ' is-active' }}" href="{{ path('management_command_runs', {'job': job, 'problems': 1}) }}#runs" data-runs-link{% if problemsOnly %} aria-current="true"{% endif %}>Problems only</a>
+                        </nav>
+                    </div>
+
+                    {% if runs is empty %}
+                        {% include '_partials/alert.html.twig' with {'message': problemsOnly ? 'No failed, aborted or warning runs.' : 'No runs.', 'style': 'success'} %}
+                    {% else %}
+                        <div class="runs-table-card">
+                            <table class="runs-table">
+                                <thead>
+                                <tr>
+                                    <th scope="col">Started</th>
+                                    {% if not job %}<th scope="col">Job</th>{% endif %}
+                                    <th scope="col">Status</th>
+                                    <th scope="col" class="runs-numeric">Duration</th>
+                                    <th scope="col" class="runs-numeric">Documents</th>
+                                    <th scope="col" class="runs-numeric">Warnings</th>
+                                </tr>
+                                </thead>
+                                {% for run in runs %}
+                                    <tbody class="runs-row">
+                                    <tr>
+                                        <td class="runs-nowrap" title="{{ run.host }}, pid {{ run.pid }}">{{ run.startedAt|date('Y-m-d H:i:s') }}</td>
+                                        {% if not job %}<td><code class="runs-job">{{ run.job }}</code></td>{% endif %}
+                                        <td class="runs-nowrap">
+                                            {{ runs.status(run, now) }}
+                                            {% if run.exitCode is not null and run.exitCode != 0 %}<span class="runs-muted">exit {{ run.exitCode }}</span>{% endif %}
+                                        </td>
+                                        <td class="runs-numeric runs-nowrap">{{ runs.duration(run.duration) }}</td>
+                                        <td class="runs-numeric">{{ run.documents|number_format(0, '.', ',') }}</td>
+                                        <td class="runs-numeric">{{ run.warnings }}</td>
+                                    </tr>
+                                    {% if run.message or run.status(now).value == 'running' %}
+                                        <tr class="runs-detail">
+                                            <td colspan="{{ job ? 5 : 6 }}">
+                                                {% if run.status(now).value == 'running' %}
+                                                    {{ runs.progress(run) }}
+                                                {% endif %}
+                                                {% if run.message %}
+                                                    {% set lines = run.message|split("\n") %}
+                                                    <details class="runs-message">
+                                                        <summary>{{ lines|first }}{% if lines|length > 1 %} <span class="runs-muted">({{ lines|length - 1 }} more)</span>{% endif %}</summary>
+                                                        <pre>{{ run.message }}</pre>
+                                                    </details>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                    </tbody>
+                                {% endfor %}
+                            </table>
+                        </div>
+                        {% if runs|length >= limit and limit < maxLimit %}
+                            <p class="runs-more"><a href="{{ path('management_command_runs', {'job': job, 'problems': problemsOnly ? 1 : null, 'limit': maxLimit}) }}#runs" data-runs-link>Show the latest {{ maxLimit }} runs</a></p>
+                        {% endif %}
+                    {% endif %}
+                </section>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

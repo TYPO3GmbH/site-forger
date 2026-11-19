@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Enum;
 
+use App\Enum\CommandRunStatusEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStateEnum;
 use App\Enum\ReviewStatusEnum;
@@ -88,12 +89,15 @@ final class StatusEnumTest extends TestCase
         self::assertSame('wip', ReviewStateEnum::WORK_IN_PROGRESS->severity());
         self::assertSame($issueSeverities, array_values(array_unique($issueSeverities)));
         self::assertSame($reviewSeverities, array_values(array_unique($reviewSeverities)));
+
+        $runSeverities = array_map(static fn (CommandRunStatusEnum $state): string => $state->severity(), CommandRunStatusEnum::cases());
+        self::assertSame($runSeverities, array_values(array_unique($runSeverities)));
     }
 
     public function testEverySeverityHasAStyle(): void
     {
         $styles = (string) file_get_contents(__DIR__ . '/../../assets/css/module/_status.scss');
-        foreach ([...IssueStatusEnum::cases(), ...ReviewStateEnum::cases()] as $state) {
+        foreach ([...IssueStatusEnum::cases(), ...ReviewStateEnum::cases(), ...CommandRunStatusEnum::cases()] as $state) {
             self::assertMatchesRegularExpression('/\\.status-pill-' . preg_quote($state->severity(), '/') . '[\\s,{]/', $styles, $state->name . ' has no status pill style');
         }
     }

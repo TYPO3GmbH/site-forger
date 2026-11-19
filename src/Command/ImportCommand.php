@@ -14,6 +14,7 @@ namespace App\Command;
 use App\Elastic\ElasticUtility;
 use App\Elastic\IndexSetup;
 use App\Enum\IssueStatusEnum;
+use App\Service\CommandRunRecorder;
 use App\Service\GithubService;
 use Elastica\Document;
 use Exception;
@@ -52,6 +53,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         private readonly GithubService $githubService,
         private readonly ClientInterface $client,
         private readonly IndexSetup $indexSetup,
+        private readonly CommandRunRecorder $recorder,
     ) {
         parent::__construct();
     }
@@ -94,7 +96,9 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $mode = $input->getOption('mode');
         $startAt = (int) $input->getOption('startAt');
         if (!in_array($mode, self::$importModes, true)) {
-            $io->note('Please select one of the modes: "' . implode('" ', self::$importModes) . '"');
+            $io->error('Please select one of the modes: "' . implode('", "', self::$importModes) . '"');
+
+            return Command::INVALID;
         }
 
         // Health check before writing: a missing index would be created by Elasticsearch with a dynamic mapping
@@ -115,6 +119,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                         }
                     } else {
                         $output->writeln('Locked by another forge import');
+                        $this->recorder->locked();
 
                         return Command::SUCCESS;
                     }
@@ -128,6 +133,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                         }
                     } else {
                         $output->writeln('Locked by another forge import');
+                        $this->recorder->locked();
 
                         return Command::SUCCESS;
                     }
@@ -150,6 +156,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                         }
                     } else {
                         $output->writeln('Locked by another gerrit import');
+                        $this->recorder->locked();
 
                         return Command::SUCCESS;
                     }
@@ -183,6 +190,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                         }
                     } else {
                         $output->writeln('Locked by another gerrit import');
+                        $this->recorder->locked();
 
                         return Command::SUCCESS;
                     }
@@ -198,6 +206,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                         }
                     } else {
                         $output->writeln('Locked by another github import');
+                        $this->recorder->locked();
                     }
 
                     return Command::SUCCESS;
@@ -213,6 +222,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                         }
                     } else {
                         $output->writeln('Locked by another github import');
+                        $this->recorder->locked();
                     }
 
                     return Command::SUCCESS;
@@ -220,6 +230,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         } catch (\Exception $exception) {
             // If any exception occurs, release the lock, else the process will run never again.
             $this->logger->error($exception->getMessage());
+            $this->recorder->fail($exception::class . ': ' . $exception->getMessage());
             $output->writeln('Release lock because of exception: ' . $exception->getMessage());
             $this->release();
 
@@ -251,13 +262,16 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 try {
                     $this->getTicketAndJournal($doc);
                     $this->refreshLock();
-                } catch (\Exception) {
+                } catch (\Exception $e) {
+                    // The import goes on with the next issue
+                    $this->recorder->warning(sprintf('Forge issue #%s: %s', $doc['id'] ?? '?', $e->getMessage()));
                 } finally {
                     // Stephan Großberndt asked for a sleep of between 50 - 100ms between requests to Forge on April 15th, 2024 in Slack channel #t3a-t3g-infra
                     // Since we run into a lot of requests here, 50ms should be fine to not block the overall import process for too long
                     usleep(50000);
                 }
                 $progressBar->advance();
+                $this->reportProgress($importDelta ? 'Latest Forge issues' : 'Forge issues', $progressBar);
             }
             $offset += $limit;
         }
@@ -275,9 +289,11 @@ class ImportCommand extends Command implements LoggerAwareInterface
         // import journals only if issue status is "Under review"
         if (isset($issue['status']['id']) && IssueStatusEnum::UNDER_REVIEW === IssueStatusEnum::tryFrom((int) $issue['status']['id'])) {
             $issueWithJournals = $this->callRedmine(fn () => $this->forgeClient->getApi('issue')->show($issue['id'], ['include' => ['journals']]));
-            if (is_array($issueWithJournals)) {
-                $this->addDocumentToElastic($this->injectUserData($issueWithJournals['issue']));
+            if (!is_array($issueWithJournals) || !isset($issueWithJournals['issue'])) {
+                // Forge answered without the issue, it keeps its previous state in the index
+                throw new \RuntimeException(sprintf('Loading the journals failed, Forge answered: %s', mb_substr(is_string($issueWithJournals) ? trim($issueWithJournals) : get_debug_type($issueWithJournals), 0, 200)));
             }
+            $this->addDocumentToElastic($this->injectUserData($issueWithJournals['issue']));
         } else {
             $this->addDocumentToElastic($this->injectUserData($issue));
         }
@@ -316,16 +332,19 @@ class ImportCommand extends Command implements LoggerAwareInterface
             foreach ($this->githubService->getInteractionsForRepository($organization, $repo, $pageCount) as $interaction) {
                 $this->addDocumentToElastic($interaction, 'interactions');
                 $progressBar->advance();
+                $this->reportProgress('GitHub ' . $organization . '/' . $repo, $progressBar);
             }
             foreach ($this->githubService->getInteractionsForIssuesInRepository($organization, $repo, $pageCount) as $interaction) {
                 $this->addDocumentToElastic($interaction, 'interactions');
                 $progressBar->advance();
+                $this->reportProgress('GitHub ' . $organization . '/' . $repo, $progressBar);
             }
         } catch (\Exception $e) {
             // GitHub respond sometimes with 500 errors, so we have to catch them and continue
             // A very wired case is that page 3 and 4 throw 500 errors, but page 5 and higher work again.
             // It looks like the GitHub API is not stable and have a bug 😳
             $io->error($e->getMessage());
+            $this->recorder->warning(sprintf('GitHub %s/%s: %s', $organization, $repo, $e->getMessage()));
         }
         $progressBar->finish();
         $io->newLine(1);
@@ -337,8 +356,16 @@ class ImportCommand extends Command implements LoggerAwareInterface
         // The author could be empty, so we have to check for that
         $userId = $issue['author']['id'] ?? null;
         if (null !== $userId && !isset($this->userCache[$userId])) {
-            $userRecord = $this->callRedmine(fn () => $this->forgeClient->getApi('user')->show($userId));
-            $this->userCache[$userId] = $userRecord['user']['mail'] ?? '';
+            try {
+                $userRecord = $this->callRedmine(fn () => $this->forgeClient->getApi('user')->show($userId));
+            } catch (\RuntimeException $e) {
+                // E.g. a deleted or locked user (404, 403): the issue is imported without the email
+                if (429 === $e->getCode()) {
+                    throw $e;
+                }
+                $userRecord = null;
+            }
+            $this->userCache[$userId] = is_array($userRecord) ? ($userRecord['user']['mail'] ?? '') : '';
         }
         $issue['author']['email'] = $this->userCache[$userId] ?? '';
 
@@ -357,6 +384,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $data = json_decode(str_replace(")]}'", '', (string) $response->getBody()), true, 512, JSON_THROW_ON_ERROR);
         foreach ($data as $change) {
             $mainProgressbar->advance();
+            $this->reportProgress('Gerrit changes', $mainProgressbar);
             $labels = $this->extractLabels($change['labels']);
             if (!array_key_exists('mergeable', $change)) {
                 $change['mergeable'] = false;
@@ -650,6 +678,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 $doc = new Document((string) $document['id'], $document);
             }
             $elasticType->addDocument($doc);
+            $this->recorder->document();
         }
     }
 
@@ -751,23 +780,38 @@ class ImportCommand extends Command implements LoggerAwareInterface
         return $interaction;
     }
 
+    /**
+     * Calls Forge, waits and retries while it rate-limits (429), and fails on any other error status.
+     *
+     * The Redmine client returns the body of an error response (e.g. the HTML page of a 429) instead of
+     * throwing, so the status of the last response decides.
+     *
+     * @throws \RuntimeException
+     */
     private function callRedmine(callable $callback, int $attempt = 0): mixed
     {
         try {
-            return $callback();
+            $result = $callback();
+            $status = $this->forgeClient->getLastResponseStatusCode();
         } catch (UnexpectedResponseException $e) {
-            if (429 === $e->getResponse()->getStatusCode() && $attempt <= 3) {
-                ++$attempt;
-                // Give Forge some time to relax
-                $sleepTime = 10 * $attempt;
-                $this->logger->warning(sprintf('[RECV] Failed to fetch data from Forge, response code %s, retrying in %d seconds, attempt #%d...', $e->getResponse()->getStatusCode(), $sleepTime, $attempt));
-                sleep($sleepTime);
-
-                return $this->callRedmine($callback, $attempt);
-            }
-
-            throw $e;
+            $result = null;
+            $status = $e->getResponse()->getStatusCode();
         }
+        if (429 === $status && $attempt <= 3) {
+            ++$attempt;
+            // Give Forge some time to relax
+            $sleepTime = 10 * $attempt;
+            $this->logger->warning(sprintf('[RECV] Failed to fetch data from Forge, response code %s, retrying in %d seconds, attempt #%d...', $status, $sleepTime, $attempt));
+            $this->recorder->progress(sprintf('Forge rate limit, waiting %d s', $sleepTime));
+            sleep($sleepTime);
+
+            return $this->callRedmine($callback, $attempt);
+        }
+        if ($status >= 400) {
+            throw new \RuntimeException(sprintf('Forge responded with status %d', $status), $status);
+        }
+
+        return $result;
     }
 
     private function getAllForgeIssuesPaginated(int $limit, int $offset): array
@@ -817,6 +861,14 @@ class ImportCommand extends Command implements LoggerAwareInterface
 
             throw new \RuntimeException(sprintf('Fetching changes from Gerrit failed with status %d', $status), 0, $e);
         }
+    }
+
+    /**
+     * Shows the progress of the console on the command runs page too.
+     */
+    private function reportProgress(string $phase, ProgressBar $progressBar): void
+    {
+        $this->recorder->progress($phase, $progressBar->getProgress(), $progressBar->getMaxSteps() > 0 ? $progressBar->getMaxSteps() : null);
     }
 
     /**
