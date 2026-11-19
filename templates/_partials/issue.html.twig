@@ -11,6 +11,7 @@
     <div class="issue-content">
         <div class="issue-status">
             {{ status.issue(card.status.name ?? null) }}
+            {{ status.issueActivity(card) }}
             {% if card.category.name is defined %}
                 <span class="badge badge-light">{{ card.category.name }}</span>
             {% endif %}
@@ -43,6 +44,19 @@
                     <span class="issue-meta-item-value">{{ card.author.name }}</span>
                 </span>
             </div>
+            {% if card.assigned_to.name is defined %}
+                <div class="issue-meta-item issue-meta-assignee">
+                    {% if '@' in (card.assigned_to.email ?? '') %}
+                        <span class="issue-meta-item-avatar">
+                            {{ avatar(card.assigned_to.email) }}
+                        </span>
+                    {% endif %}
+                    <span class="issue-meta-item-body">
+                        <span class="issue-meta-item-label">Assigned to</span>
+                        <span class="issue-meta-item-value">{{ card.assigned_to.name }}</span>
+                    </span>
+                </div>
+            {% endif %}
         </div>
         <div class="issue-meta-group issue-meta-group-stacked ">
                 <div class="issue-meta-item issue-meta-created">

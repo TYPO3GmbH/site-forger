@@ -14,7 +14,14 @@
                             <div class="section-filter">
                                 <form action="{{ path('search_search') }}" method="get">
                                     <input type="hidden" name="query" value="{{ (query is defined) ? query : '' }}">
-                                    {% include '_partials/aggregations.html.twig' with {'aggregations': aggs, 'query': query} only %}
+                                    {% include '_partials/aggregations.html.twig' with {
+                                        'aggregations': aggs,
+                                        'query': query,
+                                        'personSearch': {
+                                            'Author': {'filter': 'author', 'url': path('search_people', {'filter': 'author'}), 'label': 'Find an author'},
+                                            'Assigned to': {'filter': 'assigned_to', 'url': path('search_people', {'filter': 'assigned_to'}), 'label': 'Find an assignee'},
+                                        },
+                                    } only %}
                                 </form>
                             </div>
                             <div class="section-main">

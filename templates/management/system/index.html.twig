@@ -1,0 +1,188 @@
+{% extends 'base.html.twig' %}
+{% block title %}System{% endblock %}
+{% block headline %}System{% endblock %}
+
+{#
+ # What Forger runs on and whether its data is complete, see App\Controller\SystemController.
+ # The layout comes from _command-runs.scss and _system.scss, the colors of the results from the status pills in _status.scss.
+ #}
+
+{% macro result(result) %}
+    <span class="status-pill status-pill-{{ result.severity }}">{{ result.label }}</span>
+{% endmacro %}
+
+{% macro bytes(bytes) %}
+    {%- if bytes is null -%}
+        –
+    {%- elseif bytes >= 1073741824 -%}
+        {{ (bytes / 1073741824)|number_format(1, '.', ',') }} GB
+    {%- elseif bytes >= 1048576 -%}
+        {{ (bytes / 1048576)|number_format(1, '.', ',') }} MB
+    {%- else -%}
+        {{ (bytes / 1024)|number_format(0, '.', ',') }} KB
+    {%- endif -%}
+{% endmacro %}
+
+{% block body %}
+    {% import _self as system %}
+    {% set configurationLabels = {
+        'current': 'Built from the configuration as it is',
+        'outdated': 'The configuration changed since, app:elasticsearch:setup builds it again',
+        'unknown': 'Built before the configuration was stored with it, app:elasticsearch:setup compares the mapping',
+        'missing': 'No index has this alias, app:elasticsearch:setup creates it',
+    } %}
+    {% set waiting = pending|filter(check => check.result.value != 'ok') %}
+
+    <div class="content-section content-section-small runs system">
+        <div class="container">
+
+            <div class="runs-intro">
+                <p>
+                    What Forger runs on and whether its data is complete. The page only reads, it changes nothing.
+                    Documents imported before a change of the import get the new data with a full import with <code>--force</code>:
+                    without it, the import skips what did not change in Forge or Gerrit.
+                </p>
+            </div>
+
+            {% if not elasticsearch.reachable %}
+                <section class="runs-notice" role="alert">
+                    <span class="runs-notice-icon" aria-hidden="true">!</span>
+                    <div class="runs-notice-body">
+                        <p class="runs-notice-title">Elasticsearch cannot be reached <span class="runs-muted">Lists, search and imports do not work.</span></p>
+                        <pre class="system-error">{{ elasticsearch.error }}</pre>
+                    </div>
+                </section>
+            {% elseif waiting is not empty %}
+                <section class="runs-notice system-notice-attention" role="status">
+                    <span class="runs-notice-icon" aria-hidden="true">!</span>
+                    <div class="runs-notice-body">
+                        <p class="runs-notice-title">
+                            {{ waiting|length }} {{ waiting|length == 1 ? 'change of the import waits' : 'changes of the import wait' }} for a full import
+                            <span class="runs-muted">Everything works, some documents show without the new data.</span>
+                        </p>
+                        <ul class="runs-notice-list">
+                            {% for command in waiting|map(check => check.command)|reduce((unique, command) => command in unique ? unique : unique|merge([command]), []) %}
+                                <li><code>bin/console {{ command }}</code></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </section>
+            {% endif %}
+
+            <div class="runs-stats">
+                <div class="runs-stat">
+                    <span class="runs-stat-label">Overall</span>
+                    <span class="runs-stat-value">{{ system.result(overall) }}</span>
+                    <span class="runs-stat-note">The worst of the checks below</span>
+                </div>
+                <div class="runs-stat">
+                    <span class="runs-stat-label">Elasticsearch</span>
+                    <span class="runs-stat-value runs-numeric">{{ elasticsearch.version ?? '–' }}</span>
+                    <span class="runs-stat-note">{{ system.result(elasticsearch.versionResult) }} needs {{ minimumVersion }} or newer 7.x</span>
+                </div>
+                <div class="runs-stat">
+                    <span class="runs-stat-label">Cluster</span>
+                    <span class="runs-stat-value">{{ elasticsearch.health ?? '–' }}</span>
+                    <span class="runs-stat-note">{{ system.result(elasticsearch.healthResult) }}{% if elasticsearch.reachable %} {{ elasticsearch.nodes }} {{ elasticsearch.nodes == 1 ? 'node' : 'nodes' }}{% endif %}</span>
+                </div>
+                <div class="runs-stat">
+                    <span class="runs-stat-label">Waiting for an import</span>
+                    <span class="runs-stat-value runs-numeric{{ waiting is not empty ? ' runs-tone-warning' }}">{{ waiting|length }}</span>
+                    <span class="runs-stat-note">Changes of the import that not all documents have</span>
+                </div>
+            </div>
+
+            {% if elasticsearch.reachable %}
+                <section class="runs-section">
+                    <h2 class="runs-heading">Elasticsearch</h2>
+                    <article class="runs-card">
+                        <dl class="runs-facts">
+                            <div><dt>Version</dt><dd class="runs-numeric">{{ elasticsearch.version }}</dd></div>
+                            <div><dt>Cluster</dt><dd>{{ elasticsearch.cluster }}</dd></div>
+                            <div><dt>Health</dt><dd>{{ elasticsearch.health }}</dd></div>
+                            <div><dt>Nodes</dt><dd class="runs-numeric">{{ elasticsearch.nodes }}</dd></div>
+                            <div><dt>Unassigned shards</dt><dd class="runs-numeric">{{ elasticsearch.unassignedShards }}</dd></div>
+                        </dl>
+                        <p class="system-note runs-muted">
+                            The search in the filters of people needs {{ minimumVersion }}: before, the wildcard query cannot ignore the case.
+                            {% if elasticsearch.health == 'yellow' and elasticsearch.nodes == 1 %}
+                                "Yellow" on a single node is fine: it has no second node for the replicas, the data is complete.
+                            {% endif %}
+                        </p>
+                    </article>
+                </section>
+
+                <section class="runs-section">
+                    <h2 class="runs-heading">Indices</h2>
+                    <div class="runs-table-card">
+                        <table class="runs-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Alias</th>
+                                    <th scope="col">Index</th>
+                                    <th scope="col" class="runs-numeric">Documents</th>
+                                    <th scope="col" class="runs-numeric">Size</th>
+                                    <th scope="col">Configuration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for index in indices %}
+                                    <tr>
+                                        <td><code>{{ index.alias }}</code></td>
+                                        <td>{% if index.index %}<code>{{ index.index }}</code>{% else %}<span class="runs-muted">none</span>{% endif %}</td>
+                                        <td class="runs-numeric">{{ index.documents is null ? '–' : index.documents|number_format(0, '.', ',') }}</td>
+                                        <td class="runs-numeric runs-nowrap">{{ system.bytes(index.bytes) }}</td>
+                                        <td>
+                                            {{ system.result(index.result) }}
+                                            <span class="runs-muted system-detail">{{ configurationLabels[index.configuration] }}</span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="runs-section">
+                    <h2 class="runs-heading">Waiting for a full import</h2>
+                    <div class="system-checks">
+                        {% for check in pending %}
+                            <article class="runs-card">
+                                <header class="runs-card-header">
+                                    <span class="system-check-label">{{ check.label }}</span>
+                                    {{ system.result(check.result) }}
+                                </header>
+                                <p class="system-check-count">
+                                    {% if check.kind == constant('App\\Elastic\\PendingImport::MATCHES_WAIT') %}
+                                        <strong class="runs-numeric">{{ check.matches|number_format(0, '.', ',') }}</strong>
+                                        of {{ check.documents|number_format(0, '.', ',') }} {{ check.index == 'issue' ? 'issues' : 'changes' }} wait
+                                    {% else %}
+                                        <strong class="runs-numeric">{{ check.matches|number_format(0, '.', ',') }}</strong>
+                                        of {{ check.documents|number_format(0, '.', ',') }} {{ check.index == 'issue' ? 'issues' : 'changes' }} have it
+                                    {% endif %}
+                                </p>
+                                <p class="runs-muted system-check-description">{{ check.description }}</p>
+                                {% if check.result.value != 'ok' %}
+                                    <p class="system-check-command"><code>bin/console {{ check.command }}</code></p>
+                                {% endif %}
+                            </article>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endif %}
+
+            <section class="runs-section">
+                <h2 class="runs-heading">Application</h2>
+                <article class="runs-card">
+                    <dl class="runs-facts">
+                        <div><dt>PHP</dt><dd class="runs-numeric">{{ application.php }}</dd></div>
+                        <div><dt>Symfony</dt><dd class="runs-numeric">{{ application.symfony }}</dd></div>
+                        <div><dt>Environment</dt><dd><code>{{ application.environment }}</code>{% if application.debug %} <span class="runs-muted">with debug</span>{% endif %}</dd></div>
+                        <div><dt>Imports</dt><dd><a href="{{ path('management_command_runs') }}">Command runs</a></dd></div>
+                    </dl>
+                </article>
+            </section>
+
+        </div>
+    </div>
+{% endblock %}

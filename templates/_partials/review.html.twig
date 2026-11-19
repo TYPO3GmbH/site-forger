@@ -1,12 +1,11 @@
 {% import '_macros/status.html.twig' as status %}
-{% if review._source.reviewtags %}
-    {% if review._source.reviewtags.0 == 'FEATURE' %}
-        {% set reviewTypeClass = 'feature' %}
-    {% elseif review._source.reviewtags.0 == 'TASK' %}
-        {% set reviewTypeClass = 'task' %}
-    {% elseif review._source.reviewtags.0 == 'BUGFIX' %}
-        {% set reviewTypeClass = 'bugfix' %}
-    {% endif %}
+{% set reviewTags = review._source.reviewtags ?? [] %}
+{% if 'FEATURE' in reviewTags %}
+    {% set reviewTypeClass = 'feature' %}
+{% elseif 'TASK' in reviewTags %}
+    {% set reviewTypeClass = 'task' %}
+{% elseif 'BUGFIX' in reviewTags %}
+    {% set reviewTypeClass = 'bugfix' %}
 {% endif %}
 
 {% if reviewTypeClass is not defined %}
@@ -28,7 +27,13 @@
         </div>
         <div class="review-status">
             {{ status.review(review._source) }}
+            {{ status.activity(review._source) }}
         </div>
+        {% if '!!!' in reviewTags %}
+            <div class="review-breaking">
+                <span class="badge badge-danger" title="Breaking change">!!!</span>
+            </div>
+        {% endif %}
          {% if review._source.branch != 'main' %}
             <div class="review-branch">
                 <span class="badge badge-danger">{{review._source.branch}}</span>
@@ -36,6 +41,15 @@
         {% endif %}
     </div>
     <div class="review-data">
+        <div class="review-data-item">
+            <span class="review-data-item-label">Author</span>
+            <span class="review-data-item-value review-owner">
+                {% if '@' in (review._source.ownerEmail ?? '') %}
+                    <span class="review-owner-avatar">{{ avatar(review._source.ownerEmail, 20) }}</span>
+                {% endif %}
+                {{ review._source.owner }}
+            </span>
+        </div>
         <div class="review-data-item">
             <span class="review-data-item-label">Topic</span>
             <span class="review-data-item-value">{{review._source.topic}}</span>

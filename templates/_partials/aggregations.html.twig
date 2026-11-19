@@ -19,6 +19,9 @@
             </div>
             <div id="collapse-{{ loop.index }}" class="collapse" role="tabpanel" aria-labelledby="aggregation-title-{{ loop.index }}" data-bs-parent="#aggregations">
                 <div class="aggregation-body">
+                    {% if personSearch[title] is defined %}
+                        {% include '_partials/person_search.html.twig' with personSearch[title]|merge({'id': 'person-search-' ~ loop.index}) only %}
+                    {% endif %}
                     {% for index, bucket in buckets.buckets %}
                         {% if bucket.doc_count > 0 %}
                             {{ aggregationBucket(title, index, bucket) }}

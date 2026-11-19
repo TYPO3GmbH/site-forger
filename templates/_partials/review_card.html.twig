@@ -6,12 +6,13 @@
 
 {% else %}
 
+    {% set reviewTags = card.reviewtags ?? [] %}
     {% set reviewTypeClass = 'default' %}
-    {% if card.reviewtags.0 == 'FEATURE' %}
+    {% if 'FEATURE' in reviewTags %}
         {% set reviewTypeClass = 'feature' %}
-    {% elseif card.reviewtags.0 == 'TASK' %}
+    {% elseif 'TASK' in reviewTags %}
         {% set reviewTypeClass = 'task' %}
-    {% elseif card.reviewtags.0 == 'BUGFIX' %}
+    {% elseif 'BUGFIX' in reviewTags %}
         {% set reviewTypeClass = 'bugfix' %}
     {% endif %}
     <div class="review review-card review-type-{{ reviewTypeClass }}">
@@ -37,6 +38,12 @@
             {% if mode != 'backport' %}
                 <div class="review-status">
                     {{ status.review(card) }}
+                    {{ status.activity(card) }}
+                </div>
+            {% endif %}
+            {% if '!!!' in reviewTags %}
+                <div class="review-breaking">
+                    <span class="badge badge-danger" title="Breaking change">!!!</span>
                 </div>
             {% endif %}
             {% if card.branch != 'main' %}
@@ -48,7 +55,12 @@
         <div class="review-data">
             <div class="review-data-item">
                 <span class="review-data-item-label">Author</span>
-                <span class="review-data-item-value">{{ card.owner }}</span>
+                <span class="review-data-item-value review-owner">
+                    {% if '@' in (card.ownerEmail ?? '') %}
+                        <span class="review-owner-avatar">{{ avatar(card.ownerEmail, 20) }}</span>
+                    {% endif %}
+                    {{ card.owner }}
+                </span>
             </div>
             <div class="review-data-item">
                 <span class="review-data-item-label">Updated</span>

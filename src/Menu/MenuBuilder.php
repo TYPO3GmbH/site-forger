@@ -78,7 +78,8 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         $this->addLink($issues, 'management-by-category', 'By category', 'management_bycategory', 'actions-tag');
         $this->addLink($issues, 'gerrit_stale_issues', 'Stale issues', 'gerrit_stale_issues', 'actions-clock');
 
-        $sprints = $menu->addChild('sprint', ['label' => 'Sprints', 'uri' => '#']);
+        $sprints = $menu->addChild('sprint', ['label' => 'Sprints', 'route' => 'sprint_overview']);
+        $this->addLink($sprints, 'sprint_overview', 'Overview', 'sprint_overview', 'actions-viewmode-layout');
         /** @var SprintBoardCategory $category */
         foreach ($this->categoryRepository->findAll() as $category) {
             $this->addLink($sprints, 'sprint_' . $category->getIdentifier(), $category->getName(), 'sprint', $category->getIcon(), ['category' => $category->getIdentifier()]);
@@ -163,6 +164,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             $this->addLink($admin, 'management-docs-interactions', 'Docs team interactions', 'management_docs_interactions', 'actions-users');
             $this->addHeader($admin, 'Operations');
             $this->addLink($admin, 'management-command-runs', 'Command runs', 'management_command_runs', 'actions-history');
+            $this->addLink($admin, 'management-system', 'System', 'management_system', 'actions-database');
         }
         if ($this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
             /** @var KeyCloakUser $user */

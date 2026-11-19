@@ -2,12 +2,17 @@
 // Modules
 @use "module/interactions";
 @use "module/sprint-wizard";
+@use "module/sprint-overview";
 @use "module/my-work";
 @use "module/status";
 @use "module/dashboard";
 @use "module/command-runs";
 @use "module/navigation";
 @use "module/rst-helper";
+@use "module/help";
+@use "module/review";
+@use "module/person-search";
+@use "module/system";
 
 .js-chart {
     height: 100%;

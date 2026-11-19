@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Mock;
 
+use App\Enum\ActivityEnum;
 use App\Enum\IssueStatusEnum;
 use App\Mock\MockDataGenerator;
 use PHPUnit\Framework\TestCase;
@@ -112,6 +113,34 @@ final class MockDataGeneratorTest extends TestCase
 
         self::assertMatchesRegularExpression('#^\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}$#', $issue['updated_on']);
         self::assertMatchesRegularExpression('#^\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}$#', $review['created_on']);
+    }
+
+    public function testOpenChangesExistInEveryActivityStage(): void
+    {
+        $now = new \DateTimeImmutable('2026-11-19 12:00:00');
+        $stages = [];
+        foreach ($this->generator->reviews() as $review) {
+            $stage = ActivityEnum::fromChange($review, $now);
+            if (null !== $stage) {
+                $stages[$stage->value] = $stage;
+            }
+        }
+
+        self::assertEqualsCanonicalizing(ActivityEnum::cases(), array_values($stages));
+    }
+
+    public function testOpenIssuesExistInEveryActivityStage(): void
+    {
+        $now = new \DateTimeImmutable('2026-11-19 12:00:00');
+        $stages = [];
+        foreach ($this->generator->issues() as $issue) {
+            $stage = ActivityEnum::fromIssue($issue, $now);
+            if (null !== $stage) {
+                $stages[$stage->value] = $stage;
+            }
+        }
+
+        self::assertEqualsCanonicalizing(ActivityEnum::cases(), array_values($stages));
     }
 
     public function testTheSameInputGivesTheSameDocuments(): void

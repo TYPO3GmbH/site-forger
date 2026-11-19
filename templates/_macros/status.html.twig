@@ -1,6 +1,6 @@
 {#
  # Status pills, shared by every list that shows issues or Gerrit changes, so a state looks the same
- # wherever it appears. Label and severity come from IssueStatusEnum and ReviewStateEnum,
+ # wherever it appears. Label and severity come from IssueStatusEnum, ReviewStateEnum and ActivityEnum,
  # the colors from assets/css/module/_status.scss.
  #}
 
@@ -17,5 +17,32 @@
     {% if change.reviewstatus is defined and change.reviewstatus %}
         {% set state = review_state(change) %}
         <span class="status-pill status-pill-{{ state.severity }}" title="Gerrit status">{{ state.label }}</span>
+    {% endif %}
+{% endmacro %}
+
+{#
+ # How long ago an open Gerrit change was last updated, nothing for closed ones.
+ #}
+{% macro activity(change) %}
+    {{ _self.activityPill(review_activity(change), change) }}
+{% endmacro %}
+
+{#
+ # How long ago an open Forge issue was last updated, nothing for closed ones.
+ #}
+{% macro issueActivity(issue) %}
+    {{ _self.activityPill(issue_activity(issue), issue) }}
+{% endmacro %}
+
+{% macro activityPill(stage, document) %}
+    {% if stage %}
+        {% set tooltip = [stage.description] %}
+        {% if document.updated_on is defined %}
+            {% set tooltip = tooltip|merge(['updated ' ~ relativetime(to_datetime(document.updated_on))]) %}
+        {% endif %}
+        {% if document.created_on is defined %}
+            {% set tooltip = tooltip|merge(['created ' ~ relativetime(to_datetime(document.created_on))]) %}
+        {% endif %}
+        <span class="status-pill status-pill-icon status-pill-{{ stage.severity }}" title="{{ tooltip|join(' · ') }}">{{ icon(stage.icon) }}{{ stage.label }}</span>
     {% endif %}
 {% endmacro %}

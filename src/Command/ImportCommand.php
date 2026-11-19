@@ -15,6 +15,7 @@ use App\Elastic\ElasticUtility;
 use App\Elastic\ImportWatermark;
 use App\Elastic\IndexSetup;
 use App\Elastic\ProjectIssues;
+use App\Elastic\ReviewSubject;
 use App\Enum\IssueStatusEnum;
 use App\Service\CommandRunRecorder;
 use App\Service\GithubService;
@@ -64,7 +65,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
     private const string GERRIT_PROJECT = 'project:Packages/TYPO3.CMS';
     private const array GERRIT_DETAIL_OPTIONS = ['DETAILED_LABELS', 'ALL_REVISIONS', 'ALL_FILES', 'CURRENT_COMMIT', 'MESSAGES', 'DETAILED_ACCOUNTS'];
     /**
-     * Seconds the email of a Forge user is kept, so a run does not ask Forge for authors it knows.
+     * Seconds the email of a Forge user is kept, so a run does not ask Forge for authors and assignees it knows.
      */
     private const int USER_CACHE_LIFETIME = 86400;
     protected static array $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta', 'github', 'githubDelta'];
@@ -605,12 +606,30 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $io->newLine(1);
     }
 
+    /**
+     * Adds the email of the author and of the assignee, for their avatars.
+     */
     private function injectUserData(array $issue): array
     {
-        // @todo maybe the runtime cache ain't the smartest thing here
         // The author could be empty, so we have to check for that
-        $userId = $issue['author']['id'] ?? null;
-        if (null !== $userId && !isset($this->userCache[$userId])) {
+        $issue['author']['email'] = $this->forgeUserEmail($issue['author']['id'] ?? null);
+        if (isset($issue['assigned_to']['id'])) {
+            // A group can be assigned, too: Forge has no user for it, so it gets no email
+            $issue['assigned_to']['email'] = $this->forgeUserEmail($issue['assigned_to']['id']);
+        }
+
+        return $issue;
+    }
+
+    /**
+     * The email of a Forge user, empty if Forge does not know it.
+     */
+    private function forgeUserEmail(int|string|null $userId): string
+    {
+        if (null === $userId) {
+            return '';
+        }
+        if (!isset($this->userCache[$userId])) {
             // A rate limit (429) is thrown and not cached, the next run asks again
             $this->userCache[$userId] = $this->cache->get('forge_user_mail_' . (int) $userId, function (ItemInterface $item) use ($userId): string {
                 $item->expiresAfter(self::USER_CACHE_LIFETIME);
@@ -627,9 +646,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 return is_array($userRecord) ? ($userRecord['user']['mail'] ?? '') : '';
             });
         }
-        $issue['author']['email'] = $this->userCache[$userId] ?? '';
 
-        return $issue;
+        return $this->userCache[$userId];
     }
 
     /**
@@ -755,7 +773,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 $change['revisions'][$change['current_revision']]['commit']['message'] = '6.0';
             }
 
-            $reviewTags = $this->extractReviewTags($change['subject']);
+            $reviewTags = ReviewSubject::tags($change['subject']);
 
             $out[$change['_number']] = [
                 'id' => $change['_number'],
@@ -782,7 +800,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 'owner' => $author ?? 'Unknown',
                 'ownerEmail' => $authorEmail ?? 'Unknown',
                 'files' => $filesInPatchset,
-                'work_in_progress' => in_array('WIP', $reviewTags, true) || ($change['work_in_progress'] ?? false),
+                'work_in_progress' => ReviewSubject::isWorkInProgress($reviewTags) || ($change['work_in_progress'] ?? false),
             ];
         }
 
@@ -864,14 +882,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
         }
 
         return $out;
-    }
-
-    protected function extractReviewTags(string $message): array
-    {
-        $pattern = '/\[([a-zA-Z0-9]*)\]/';
-        preg_match_all($pattern, $message, $matches, PREG_SET_ORDER);
-
-        return array_map(static fn (array $match) => $match[1], $matches);
     }
 
     /**

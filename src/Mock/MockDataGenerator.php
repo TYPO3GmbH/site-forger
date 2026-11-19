@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Mock;
 
+use App\Elastic\ReviewSubject;
 use App\Enum\IssueStatusEnum;
 use App\Enum\PriorityEnum;
 use App\Enum\TrackerEnum;
@@ -282,7 +283,7 @@ final readonly class MockDataGenerator
         $stateIndex = intdiv($index, count($this->people));
         if (0 !== $stateIndex % 3) {
             $assignee = $this->people[($personIndex + $stateIndex % 2) % count($this->people)];
-            $issue['assigned_to'] = ['id' => 50000 + array_search($assignee, $this->people, true), 'name' => $assignee['name']];
+            $issue['assigned_to'] = ['id' => 50000 + array_search($assignee, $this->people, true), 'name' => $assignee['name'], 'email' => $assignee['email']];
         }
         if (0 === $index % 7) {
             $issue['parent'] = ['id' => self::ID_OFFSET + 1];
@@ -330,10 +331,12 @@ final readonly class MockDataGenerator
     {
         $id = self::ID_OFFSET + 1 + $index;
         $prefix = $this->pick(self::SUBJECT_PREFIXES, $index);
+        // "[WIP]" and "[POC]" make a change work in progress, so only such changes get them
+        for ($offset = 1; !$workInProgress && ReviewSubject::isWorkInProgress(ReviewSubject::tags($prefix)); ++$offset) {
+            $prefix = $this->pick(self::SUBJECT_PREFIXES, $index + $offset);
+        }
         $subject = trim($prefix . ' ' . $this->pick(self::SUBJECTS, $index + 3));
-        // The import reads the tags with this pattern, "[!!!]" is not one of them
-        preg_match_all('/\[([a-zA-Z0-9]*)\]/', $subject, $matches);
-        $reviewTags = $matches[1];
+        $reviewTags = ReviewSubject::tags($subject);
         $releases = $this->pick(self::RELEASES, $index);
         [$positiveReviews, $negativeReviews, $positiveVerifications, $negativeVerifications] = $this->pick(self::VOTES, $index);
         if ('MERGED' === $status) {
@@ -368,18 +371,19 @@ final readonly class MockDataGenerator
             'owner' => $person['name'],
             'ownerEmail' => $person['email'],
             'files' => $files,
-            'work_in_progress' => $workInProgress || in_array('WIP', $reviewTags, true),
+            'work_in_progress' => $workInProgress || ReviewSubject::isWorkInProgress($reviewTags),
         ];
     }
 
     /**
      * Spreads the updates from an hour to about two years ago, so recent, stale and old documents exist.
+     * Steps of three run through all ages even for a few consecutive documents, such as the open changes.
      */
     private function age(int $index): \DateTimeImmutable
     {
         $hours = [1, 5, 30, 24 * 4, 24 * 12, 24 * 35, 24 * 70, 24 * 150, 24 * 400, 24 * 700];
 
-        return $this->now->modify('-' . $hours[$index % count($hours)] . ' hours')->modify('-' . $index . ' minutes');
+        return $this->now->modify('-' . $hours[($index * 3) % count($hours)] . ' hours')->modify('-' . $index . ' minutes');
     }
 
     /**

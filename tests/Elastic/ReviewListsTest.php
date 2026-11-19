@@ -1,0 +1,100 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
+
+namespace App\Tests\Elastic;
+
+use App\Elastic\ReviewLists;
+use App\Enum\ReviewStatusEnum;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+final class ReviewListsTest extends TestCase
+{
+    private const array CLOSED = ['terms' => ['reviewstatus' => ['MERGED', 'ABANDONED']]];
+    private const array WORK_IN_PROGRESS = ['term' => ['work_in_progress' => true]];
+
+    protected function setUp(): void
+    {
+        self::assertSame(self::CLOSED['terms']['reviewstatus'], ReviewStatusEnum::closedValues());
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function openLists(): iterable
+    {
+        foreach ([
+            ReviewLists::READY, ReviewLists::REVIEWED_AND_VERIFIED, ReviewLists::NEEDS_VERIFICATION,
+            ReviewLists::NEEDS_REVIEW, ReviewLists::NEEDS_REBASE, ReviewLists::NEGATIVE_VOTES,
+        ] as $list) {
+            yield $list => [$list];
+        }
+    }
+
+    #[DataProvider('openLists')]
+    public function testListsLeaveOutClosedChangesAndWorkInProgress(string $list): void
+    {
+        self::assertSame([self::CLOSED, self::WORK_IN_PROGRESS], ReviewLists::query($list)['bool']['must_not']);
+    }
+
+    public function testReadyToMergeHasPositiveAndNoNegativeVotes(): void
+    {
+        self::assertSame(
+            ['bool' => [
+                'must' => [
+                    ['range' => ['positive_reviews' => ['gte' => 1]]],
+                    ['range' => ['positive_verifications' => ['gte' => 1]]],
+                    ['term' => ['mergeable' => 'yes']],
+                ],
+                'must_not' => [
+                    self::CLOSED,
+                    self::WORK_IN_PROGRESS,
+                    ['range' => ['negative_reviews' => ['gte' => 1]]],
+                    ['range' => ['negative_verifications' => ['gte' => 1]]],
+                ],
+            ]],
+            ReviewLists::query(ReviewLists::READY_TO_MERGE)
+        );
+    }
+
+    public function testNegativeVotesNeedOneOfThem(): void
+    {
+        self::assertSame(
+            [['range' => ['negative_reviews' => ['gte' => 1]]], ['range' => ['negative_verifications' => ['gte' => 1]]]],
+            ReviewLists::query(ReviewLists::NEGATIVE_VOTES)['bool']['should']
+        );
+    }
+
+    public function testWorkInProgressShowsOpenOnesOnly(): void
+    {
+        self::assertSame(
+            ['bool' => ['must' => [self::WORK_IN_PROGRESS], 'must_not' => [self::CLOSED]]],
+            ReviewLists::query(ReviewLists::WORK_IN_PROGRESS)
+        );
+    }
+
+    public function testFindByFileFindsClosedChangesOnRequest(): void
+    {
+        $file = ['terms' => ['files' => ['typo3/sysext/core/Classes/Foo.php']]];
+
+        self::assertSame(
+            ['bool' => ['must' => [$file], 'must_not' => [self::CLOSED]]],
+            ReviewLists::query(ReviewLists::FILES, 'typo3/sysext/core/Classes/Foo.php')
+        );
+        self::assertSame(['bool' => ['must' => [$file]]], ReviewLists::query(ReviewLists::FILES, 'typo3/sysext/core/Classes/Foo.php', true));
+    }
+
+    public function testUnknownListHasNoQuery(): void
+    {
+        self::assertNull(ReviewLists::query('gerrit_stale_issues'));
+        self::assertNull(ReviewLists::query(''));
+    }
+}
