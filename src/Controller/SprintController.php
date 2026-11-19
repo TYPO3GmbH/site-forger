@@ -409,54 +409,42 @@ class SprintController extends AbstractController
         foreach ($resultSet->getResults() as $ticket) {
             $status = $ticket->getSource()['status'];
             $getBoardGroup = $this->defineBoardGroup($status['name']);
-            if ('Review' === $getBoardGroup) {
-                $out[$getBoardGroup][] = $this->getReviewCard($ticket->getData());
-            } else {
-                $out[$getBoardGroup][] = $ticket->getData();
-            }
+            // Issues in review show their Gerrit review, if it is known
+            $out[$getBoardGroup][] = ('Review' === $getBoardGroup ? $this->getReviewCard($ticket->getData()) : null) ?? $ticket->getData();
         }
 
         return $out;
     }
 
-    private function getReviewCard(array $ticket): array
+    /**
+     * The Gerrit review linked in the journal of an issue, null if there is none or it was not imported.
+     */
+    private function getReviewCard(array $ticket): ?array
     {
-        $returnValue = [];
         $notes = '';
-        if (isset($ticket['journals'])) {
-            foreach ((array) $ticket['journals'] as $journalEntry) {
-                if (isset($journalEntry['notes'])
-                    && (
-                        str_contains((string) $journalEntry['notes'], 'It is available at http://review.typo3.org/')
-                        || str_contains((string) $journalEntry['notes'], 'It is available at https://review.typo3.org/')
-                    )
-                ) {
-                    $notes = $journalEntry['notes'];
-                }
+        foreach ((array) ($ticket['journals'] ?? []) as $journalEntry) {
+            if (isset($journalEntry['notes'])
+                && (
+                    str_contains((string) $journalEntry['notes'], 'It is available at http://review.typo3.org/')
+                    || str_contains((string) $journalEntry['notes'], 'It is available at https://review.typo3.org/')
+                )
+            ) {
+                $notes = $journalEntry['notes'];
             }
-            if ('' === $notes) {
-                return $ticket;
-            }
-            $pattern = '|.*https:\/\/review\.typo3\.org\/(?>(c\/)?)(?>Packages\/TYPO3\.CMS\/\+\/)?(?<reviewId>[\d]{2,6})|';
-            preg_match($pattern, (string) $notes, $matches);
-            if (!isset($matches['reviewId'])) {
-                throw new \InvalidArgumentException('There should be a review id in ' . $notes);
-            }
-            $reviewType = ElasticUtility::getIndexByName('review');
-
-            try {
-                $item = $reviewType->getDocument($matches['reviewId']);
-            } catch (\Exception) {
-                return $ticket;
-            }
-            $returnValue = $item->getData();
-            $returnValue['_redmine_issue_id'] = $ticket['id'];
-
-            return $returnValue;
         }
-        $returnValue['_redmine_issue_id'] = $ticket['id'];
+        $pattern = '|.*https?:\/\/review\.typo3\.org\/(?>(c\/)?)(?>Packages\/TYPO3\.CMS\/\+\/)?(?<reviewId>[\d]{2,6})|';
+        if ('' === $notes || 1 !== preg_match($pattern, (string) $notes, $matches)) {
+            return null;
+        }
 
-        return $returnValue;
+        try {
+            $review = ElasticUtility::getIndexByName('review')->getDocument($matches['reviewId'])->getData();
+        } catch (\Exception) {
+            return null;
+        }
+        $review['_redmine_issue_id'] = $ticket['id'];
+
+        return $review;
     }
 
     private function defineBoardGroup(string $status): string
