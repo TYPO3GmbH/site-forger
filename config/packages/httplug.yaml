@@ -1,7 +1,0 @@
-# t3g/symfony-keycloak-bundle prepends Nyholm\Psr7\Factory\Psr17Factory as HTTPlug
-# message/stream factory, but nyholm/psr7 no longer implements the HTTPlug interfaces.
-# Fall back to HTTPlug discovery so the service aliases stay valid (checked by lint:container).
-httplug:
-    classes:
-        message_factory: ~
-        stream_factory: ~
