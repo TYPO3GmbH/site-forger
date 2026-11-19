@@ -1,7 +1,7 @@
 <div class="section">
     {% if results is defined %}
         <div class="section-filter">
-            {% include '_partials/aggregations.html.twig' with {'aggregations': aggregations, 'query': query} only %}
+            {% include '_partials/aggregations.html.twig' with {'aggregations': aggregations, 'query': query, 'ownerSearchList': routeName} only %}
         </div>
         <div class="section-main">
             {% include '_partials/pagination.html.twig' with {

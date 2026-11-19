@@ -55,7 +55,12 @@
         <div class="review-data">
             <div class="review-data-item">
                 <span class="review-data-item-label">Author</span>
-                <span class="review-data-item-value">{{ card.owner }}</span>
+                <span class="review-data-item-value review-owner">
+                    {% if '@' in (card.ownerEmail ?? '') %}
+                        <span class="review-owner-avatar">{{ avatar(card.ownerEmail, 20) }}</span>
+                    {% endif %}
+                    {{ card.owner }}
+                </span>
             </div>
             <div class="review-data-item">
                 <span class="review-data-item-label">Updated</span>

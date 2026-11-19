@@ -19,6 +19,9 @@
             </div>
             <div id="collapse-{{ loop.index }}" class="collapse" role="tabpanel" aria-labelledby="aggregation-title-{{ loop.index }}" data-bs-parent="#aggregations">
                 <div class="aggregation-body">
+                    {% if title == 'Owner' and ownerSearchList is defined %}
+                        {% include '_partials/owner_search.html.twig' with {'list': ownerSearchList} only %}
+                    {% endif %}
                     {% for index, bucket in buckets.buckets %}
                         {% if bucket.doc_count > 0 %}
                             {{ aggregationBucket(title, index, bucket) }}
