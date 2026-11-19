@@ -14,6 +14,7 @@ namespace App\Command;
 use App\Elastic\ElasticUtility;
 use App\Elastic\ImportWatermark;
 use App\Elastic\IndexSetup;
+use App\Elastic\ProjectIssues;
 use App\Enum\IssueStatusEnum;
 use App\Service\CommandRunRecorder;
 use App\Service\GithubService;
@@ -79,6 +80,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         private readonly CommandRunRecorder $recorder,
         private readonly ImportWatermark $watermark,
         private readonly CacheInterface $cache,
+        private readonly ProjectIssues $projectIssues,
     ) {
         parent::__construct();
     }
@@ -145,6 +147,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 case 'forgeFull':
                     if ($this->lock('forge')) {
                         try {
+                            $this->removeIssuesOfOtherProjects();
                             $this->importFromForge($startAt, $force);
                         } finally {
                             $this->release();
@@ -159,6 +162,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 case 'forgeDelta':
                     if ($this->lock('forge')) {
                         try {
+                            $this->removeIssuesOfOtherProjects();
                             $this->importForgeDelta();
                         } finally {
                             $this->release();
@@ -235,6 +239,9 @@ class ImportCommand extends Command implements LoggerAwareInterface
      * Goes through every issue, newest first. Only the issues the index does not have in their current state
      * are imported (journals, user, write), unless forced: the full import is a safety net for what the deltas
      * missed and costs little more than listing the issues.
+     *
+     * After a complete listing the issues the index has but Forge did not list are checked one by one, see
+     * removeVanishedIssues().
      */
     private function importFromForge(int $startOffset, bool $force): void
     {
@@ -245,6 +252,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
 
         $skipped = 0;
+        $listed = [];
         while ($offset < $totalCount) {
             if ($offset > max(0, $startOffset)) {
                 $page = $this->getAllForgeIssuesPaginated(self::PAGE_SIZE, $offset);
@@ -253,12 +261,62 @@ class ImportCommand extends Command implements LoggerAwareInterface
             if ([] === ($page['issues'] ?? [])) {
                 break;
             }
+            foreach ($page['issues'] as $doc) {
+                $listed[(string) $doc['id']] = true;
+            }
             $skipped += $this->importIssues($page['issues'], 'Forge issues', $progressBar, !$force);
             $offset += self::PAGE_SIZE;
         }
         $progressBar->finish();
         $this->output->writeln('');
         $this->output->writeln(sprintf('%d issues up to date in the index, skipped', $skipped));
+
+        if (0 === $startOffset && $offset >= $totalCount) {
+            $this->removeVanishedIssues($listed);
+        }
+    }
+
+    /**
+     * Issues the index has but Forge did not list: deleted on Forge, moved to another project, or only missed,
+     * as the order of the list shifts while the import runs for hours. Each of them is asked for on its own:
+     * gone or in another project, it is removed from the index, otherwise imported again.
+     *
+     * @param array<string, true> $listed the ids Forge listed
+     */
+    private function removeVanishedIssues(array $listed): void
+    {
+        $vanished = [];
+        foreach ($this->projectIssues->indexedIds() as $id) {
+            if (!isset($listed[$id])) {
+                $vanished[] = $id;
+            }
+        }
+        $this->output->writeln(sprintf('%d issues in the index that Forge did not list, checking them one by one', count($vanished)));
+
+        $remove = [];
+        foreach ($vanished as $position => $id) {
+            $this->recorder->progress('Checking issues Forge did not list', $position + 1, count($vanished));
+            try {
+                $issue = $this->callRedmine(fn () => $this->forgeClient->getApi('issue')->show((int) $id));
+            } catch (\RuntimeException $e) {
+                if (in_array($e->getCode(), [403, 404], true)) {
+                    // Deleted on Forge
+                    $remove[] = $id;
+                    continue;
+                }
+                $this->recorder->warning(sprintf('Forge issue #%s could not be checked: %s', $id, $e->getMessage()));
+                continue;
+            } finally {
+                usleep(50000);
+                $this->refreshLock();
+            }
+            if (is_array($issue) && isset($issue['issue'])) {
+                // importIssues() removes it if it is in another project, and imports it otherwise
+                $this->importIssues([$issue['issue']], 'Checking issues Forge did not list', null, false);
+            }
+        }
+        $removed = $this->projectIssues->remove($remove);
+        $this->output->writeln(sprintf('Removed %d issues that are gone from Forge', $removed));
     }
 
     /**
@@ -311,6 +369,21 @@ class ImportCommand extends Command implements LoggerAwareInterface
      */
     private function importIssues(array $issues, string $phase, ?ProgressBar $progressBar, bool $skipUnchanged): int
     {
+        // Issues of other projects (subprojects) are not imported, and removed if the index has them from before
+        $otherProjects = [];
+        foreach ($issues as $position => $doc) {
+            if (!$this->projectIssues->belongsToProject($doc)) {
+                $otherProjects[] = $doc['id'];
+                unset($issues[$position]);
+                if (null !== $progressBar) {
+                    $progressBar->advance();
+                }
+            }
+        }
+        if ([] !== $otherProjects && ($removed = $this->projectIssues->remove($otherProjects)) > 0) {
+            $this->output->writeln(sprintf('Removed %d issues of other projects from the index', $removed));
+        }
+
         $changed = null;
         if ($skipUnchanged) {
             $updated = [];
@@ -457,9 +530,20 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 // Forge answered without the issue, it keeps its previous state in the index
                 throw new \RuntimeException(sprintf('Loading the journals failed, Forge answered: %s', mb_substr(is_string($issueWithJournals) ? trim($issueWithJournals) : get_debug_type($issueWithJournals), 0, 200)));
             }
-            $this->addDocumentToElastic($this->injectUserData($issueWithJournals['issue']));
+            $this->addDocumentToElastic($this->injectUserData($this->projectIssues->withoutPrivateNotes($issueWithJournals['issue'])));
         } else {
             $this->addDocumentToElastic($this->injectUserData($issue));
+        }
+    }
+
+    /**
+     * Removes the issues of other projects the index has from before, see ProjectIssues.
+     */
+    private function removeIssuesOfOtherProjects(): void
+    {
+        $removed = $this->projectIssues->removeOtherProjects();
+        if ($removed > 0) {
+            $this->output->writeln(sprintf('Removed %d issues of other projects from the index', $removed));
         }
     }
 
