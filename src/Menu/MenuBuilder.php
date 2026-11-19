@@ -45,7 +45,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
 
     /**
      * The main menu, by task: what needs a review, the issues, the sprint boards, the tools.
-     * Items for a role are only added for users who have it.
+     * Items for a role are only added for users who have it, the admin pages are in the menu on the right.
      */
     #[\Override]
     public function mainDefault(array $options): ItemInterface
@@ -88,12 +88,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             $this->addHeader($sprints, 'Manage');
             $this->addLink($sprints, 'sprint_list', 'Sprint boards', 'sprint_list', 'actions-viewmode-tiles');
             $this->addLink($sprints, 'sprintcategory_index', 'Categories', 'sprintcategory_index', 'actions-category');
-        }
-
-        if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
-            $reports = $menu->addChild('reports', ['label' => 'Reports', 'route' => 'management_interactions']);
-            $this->addLink($reports, 'management-interactions', 'Core team interactions', 'management_interactions', 'actions-users');
-            $this->addLink($reports, 'management-docs-interactions', 'Docs team interactions', 'management_docs_interactions', 'actions-users');
         }
 
         $tools = $menu->addChild('utility', ['label' => 'Tools', 'uri' => '#']);
@@ -157,6 +151,19 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 ],
             ]
         );
+        // Every page only admins may open, next to the account
+        if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
+            $admin = $menu->addChild('admin', [
+                'label' => 'Admin',
+                'uri' => '#',
+                'extras' => ['icon' => 'actions-cog'],
+            ]);
+            $this->addHeader($admin, 'Reports');
+            $this->addLink($admin, 'management-interactions', 'Core team interactions', 'management_interactions', 'actions-users');
+            $this->addLink($admin, 'management-docs-interactions', 'Docs team interactions', 'management_docs_interactions', 'actions-users');
+            $this->addHeader($admin, 'Operations');
+            $this->addLink($admin, 'management-command-runs', 'Command runs', 'management_command_runs', 'actions-history');
+        }
         if ($this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
             /** @var KeyCloakUser $user */
             $user = $this->tokenStorage->getToken()->getUser();
