@@ -36,7 +36,7 @@ class SprintController extends AbstractController
     }
 
     #[Route(path: '/sprint/list', name: 'sprint_list')]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
     public function list(): Response
     {
         return $this->render('management/sprint/index.html.twig', [
@@ -56,7 +56,7 @@ class SprintController extends AbstractController
     }
 
     #[Route(path: '/sprint/create', name: 'sprint_create')]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
     public function createSprint(
         Request $request,
         EntityManagerInterface $entityManager
@@ -84,7 +84,7 @@ class SprintController extends AbstractController
     }
 
     #[Route(path: '/sprint/edit/{sprintId}', name: 'sprint_edit')]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
     public function editSprint(
         Request $request,
         int $sprintId,
@@ -115,7 +115,7 @@ class SprintController extends AbstractController
     }
 
     #[Route(path: '/sprint/delete/{sprintId}', name: 'sprint_delete')]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
     public function deleteSprint(
         int $sprintId,
         EntityManagerInterface $entityManager
@@ -132,7 +132,7 @@ class SprintController extends AbstractController
     }
 
     #[Route(path: '/sprint/delete/{sprintId}/confirm', name: 'sprint_delete_confirm')]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
     public function deleteSprintConfirm(
         int $sprintId
     ): Response {

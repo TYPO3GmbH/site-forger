@@ -211,7 +211,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 ],
             ]
         );
-        if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
+        if ($this->authorizationChecker->isGranted('ROLE_CORE_COMPONENT')) {
             $menu['management']->addChild(
                 'sprintcategory_index',
                 [
