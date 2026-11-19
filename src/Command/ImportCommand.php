@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Elastic\ElasticUtility;
+use App\Elastic\ImportWatermark;
 use App\Elastic\IndexSetup;
 use App\Enum\IssueStatusEnum;
 use App\Service\CommandRunRecorder;
@@ -35,6 +36,8 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 
 #[AsCommand(name: 'app:import', description: 'Imports data from Redmine (forge.typo3.org), Gerrit (review.typo3.org) and Github')]
 class ImportCommand extends Command implements LoggerAwareInterface
@@ -42,9 +45,29 @@ class ImportCommand extends Command implements LoggerAwareInterface
     use LockableTrait;
     use LoggerAwareTrait;
     protected const BAMBOO_USER_ID = [49454, 51735, 52386];
+    /**
+     * At most this many issues or changes per delta run. The rest follows in the next run (Forge),
+     * or with the weekly reviewFull (Gerrit, which only lists the newest changes first).
+     */
+    private const int DELTA_LIMIT_FORGE = 2000;
+    private const int DELTA_LIMIT_GERRIT = 3000;
+    private const int PAGE_SIZE = 100;
+    /**
+     * Retries of a rate-limited request to Forge, see callRedmine().
+     */
+    private const int FORGE_RETRIES = 6;
+    /**
+     * Changes per request when loading the details of the changed ones.
+     */
+    private const int GERRIT_DETAIL_BATCH = 25;
+    private const string GERRIT_PROJECT = 'project:Packages/TYPO3.CMS';
+    private const array GERRIT_DETAIL_OPTIONS = ['DETAILED_LABELS', 'ALL_REVISIONS', 'ALL_FILES', 'CURRENT_COMMIT', 'MESSAGES', 'DETAILED_ACCOUNTS'];
+    /**
+     * Seconds the email of a Forge user is kept, so a run does not ask Forge for authors it knows.
+     */
+    private const int USER_CACHE_LIFETIME = 86400;
     protected static array $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta', 'github', 'githubDelta'];
     private array $userCache = [];
-    private bool $moreIssuesFromGerrit = true;
     protected OutputInterface $output;
 
     public function __construct(
@@ -54,6 +77,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
         private readonly ClientInterface $client,
         private readonly IndexSetup $indexSetup,
         private readonly CommandRunRecorder $recorder,
+        private readonly ImportWatermark $watermark,
+        private readonly CacheInterface $cache,
     ) {
         parent::__construct();
     }
@@ -73,6 +98,12 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 InputOption::VALUE_OPTIONAL,
                 'at which line should the script start',
                 0
+            )
+            ->addOption(
+                'force',
+                null,
+                InputOption::VALUE_NONE,
+                '(mode=forgeFull, reviewFull only) Import every issue or change, also those the index has in their current state, e.g. after a change of what is imported'
             )
             ->addOption(
                 'organization',
@@ -95,6 +126,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $this->output = $output;
         $mode = $input->getOption('mode');
         $startAt = (int) $input->getOption('startAt');
+        $force = (bool) $input->getOption('force');
         if (!in_array($mode, self::$importModes, true)) {
             $io->error('Please select one of the modes: "' . implode('", "', self::$importModes) . '"');
 
@@ -113,7 +145,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 case 'forgeFull':
                     if ($this->lock('forge')) {
                         try {
-                            $this->importFromForge(100, $startAt);
+                            $this->importFromForge($startAt, $force);
                         } finally {
                             $this->release();
                         }
@@ -127,7 +159,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 case 'forgeDelta':
                     if ($this->lock('forge')) {
                         try {
-                            $this->importFromForge(100, $startAt, true);
+                            $this->importForgeDelta();
                         } finally {
                             $this->release();
                         }
@@ -142,15 +174,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 case 'reviewDelta':
                     if ($this->lock('gerrit')) {
                         try {
-                            $mainSection = $output->section();
-                            $subSection = $output->section();
-                            $progressBar = new ProgressBar($mainSection, 100);
-                            $subBar = new ProgressBar($subSection);
-                            $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
-                            $result = $this->getReviewBlock(0, 100, $subBar, $progressBar);
-                            foreach ($result as $review) {
-                                $this->addDocumentToElastic($review, 'review');
-                            }
+                            $this->importReviewDelta($output);
                         } finally {
                             $this->release();
                         }
@@ -164,27 +188,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 case 'reviewFull':
                     if ($this->lock('gerrit')) {
                         try {
-                            $totalCount = 30000;
-                            $currentSlot = 0;
-                            if ($startAt > 0) {
-                                $currentSlot = $startAt;
-                            }
-                            $perRun = 100;
-                            $mainSection = $output->section();
-                            $subSection = $output->section();
-                            $progressBar = new ProgressBar($mainSection, $totalCount);
-                            $progressBar->setProgress($currentSlot);
-                            $subBar = new ProgressBar($subSection);
-                            $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
-                            while ($currentSlot <= $totalCount) {
-                                if ($this->moreIssuesFromGerrit) {
-                                    $result = $this->getReviewBlock($currentSlot, $perRun, $subBar, $progressBar);
-                                    foreach ($result as $review) {
-                                        $this->addDocumentToElastic($review, 'review');
-                                    }
-                                }
-                                $currentSlot += $perRun;
-                            }
+                            $this->importReviews($output, null, $force, $startAt);
                         } finally {
                             $this->release();
                         }
@@ -196,32 +200,19 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     }
                     break;
                 case 'github':
-                    if ($this->lock('github')) {
-                        try {
-                            $organization = $input->getOption('organization');
-                            $repo = $input->hasOption('repository') ? $input->getOption('repository') : null;
-                            $this->importFromGithub($organization, $repo, $io);
-                        } finally {
-                            $this->release();
-                        }
-                    } else {
-                        $output->writeln('Locked by another github import');
-                        $this->recorder->locked();
-                    }
-
-                    return Command::SUCCESS;
                 case 'githubDelta':
-                    if ($this->lock('github')) {
+                    $organization = (string) $input->getOption('organization');
+                    $repo = $input->getOption('repository');
+                    // One lock per organization (and repository): cron starts the organizations at the same minute
+                    $lockName = 'github:' . strtolower($organization) . (null === $repo ? '' : '/' . strtolower((string) $repo));
+                    if ($this->lock($lockName)) {
                         try {
-                            $organization = $input->getOption('organization');
-                            $repo = $input->hasOption('repository') ? $input->getOption('repository') : null;
-                            $pageCount = 1;
-                            $this->importFromGithub($organization, $repo, $io, $pageCount);
+                            $this->importFromGithub($organization, $repo, $io, 'githubDelta' === $mode ? 1 : null);
                         } finally {
                             $this->release();
                         }
                     } else {
-                        $output->writeln('Locked by another github import');
+                        $output->writeln(sprintf('Locked by another github import of %s', $organization . (null === $repo ? '' : '/' . $repo)));
                         $this->recorder->locked();
                     }
 
@@ -240,41 +231,214 @@ class ImportCommand extends Command implements LoggerAwareInterface
         return Command::SUCCESS;
     }
 
-    private function importFromForge(int $limit, int $startOffset = 0, bool $importDelta = false): void
+    /**
+     * Goes through every issue, newest first. Only the issues the index does not have in their current state
+     * are imported (journals, user, write), unless forced: the full import is a safety net for what the deltas
+     * missed and costs little more than listing the issues.
+     */
+    private function importFromForge(int $startOffset, bool $force): void
     {
-        $offset = 0;
-        if ($startOffset > 0) {
-            $offset = $startOffset;
-        }
-
-        $data = $this->getAllForgeIssuesPaginated($limit, $offset);
-        $totalCount = $importDelta ? $limit : (int) $data['total_count'];
-        $progressBar = new ProgressBar($this->output, $totalCount - $offset);
+        $offset = max(0, $startOffset);
+        $page = $this->getAllForgeIssuesPaginated(self::PAGE_SIZE, $offset);
+        $totalCount = (int) ($page['total_count'] ?? 0);
+        $progressBar = new ProgressBar($this->output, max(0, $totalCount - $offset));
         $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
 
+        $skipped = 0;
         while ($offset < $totalCount) {
-            $result = $this->getAllForgeIssuesPaginated($limit, $offset);
+            if ($offset > max(0, $startOffset)) {
+                $page = $this->getAllForgeIssuesPaginated(self::PAGE_SIZE, $offset);
+            }
             // break a soon as the API returns no more issues
-            if (0 === (is_countable($result['issues']) ? count($result['issues']) : 0)) {
+            if ([] === ($page['issues'] ?? [])) {
                 break;
             }
-            foreach ($result['issues'] as $doc) {
-                try {
-                    $this->getTicketAndJournal($doc);
-                    $this->refreshLock();
-                } catch (\Exception $e) {
-                    // The import goes on with the next issue
-                    $this->recorder->warning(sprintf('Forge issue #%s: %s', $doc['id'] ?? '?', $e->getMessage()));
-                } finally {
-                    // Stephan Großberndt asked for a sleep of between 50 - 100ms between requests to Forge on April 15th, 2024 in Slack channel #t3a-t3g-infra
-                    // Since we run into a lot of requests here, 50ms should be fine to not block the overall import process for too long
-                    usleep(50000);
-                }
-                $progressBar->advance();
-                $this->reportProgress($importDelta ? 'Latest Forge issues' : 'Forge issues', $progressBar);
-            }
-            $offset += $limit;
+            $skipped += $this->importIssues($page['issues'], 'Forge issues', $progressBar, !$force);
+            $offset += self::PAGE_SIZE;
         }
+        $progressBar->finish();
+        $this->output->writeln('');
+        $this->output->writeln(sprintf('%d issues up to date in the index, skipped', $skipped));
+    }
+
+    /**
+     * Imports the issues changed since the latest change in the index, oldest first: a run that ends early
+     * (limit, error) leaves the index at a consistent point, and the next run goes on from there.
+     */
+    private function importForgeDelta(): void
+    {
+        $since = $this->watermark->since('issue');
+        if (null === $since) {
+            // An empty index needs forgeFull, until then the latest issues at least
+            $this->recorder->warning('The issue index is empty, run --mode=forgeFull. Imported the latest issues only.');
+            $this->importIssues($this->getAllForgeIssuesPaginated(self::PAGE_SIZE, 0)['issues'] ?? [], 'Latest Forge issues', null, false);
+
+            return;
+        }
+
+        $filter = ImportWatermark::redmineFilter($since);
+        $first = $this->getAllForgeIssuesPaginated(self::PAGE_SIZE, 0, $filter);
+        $total = (int) ($first['total_count'] ?? 0);
+        $limit = min($total, self::DELTA_LIMIT_FORGE);
+        $this->output->writeln(sprintf('%d issues changed since %s, importing %d', $total, $since->format('Y-m-d H:i:s'), $limit));
+        if ($total > self::DELTA_LIMIT_FORGE) {
+            $this->recorder->warning(sprintf('%d issues changed since %s, imported the oldest %d, the next run goes on', $total, $since->format('Y-m-d H:i:s'), self::DELTA_LIMIT_FORGE));
+        }
+
+        $progressBar = new ProgressBar($this->output, $limit);
+        $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
+        $page = $first;
+        $unchanged = 0;
+        for ($offset = 0; $offset < $limit; $offset += self::PAGE_SIZE) {
+            if ($offset > 0) {
+                $page = $this->getAllForgeIssuesPaginated(self::PAGE_SIZE, $offset, $filter);
+            }
+            if ([] === ($page['issues'] ?? [])) {
+                break;
+            }
+            $unchanged += $this->importIssues(array_slice($page['issues'], 0, $limit - $offset), 'Changed Forge issues', $progressBar, true);
+        }
+        $progressBar->finish();
+        $this->output->writeln('');
+        $this->output->writeln(sprintf('%d of them unchanged since the last import, skipped', $unchanged));
+    }
+
+    /**
+     * @param list<array<string, mixed>> $issues
+     * @param bool                       $skipUnchanged skip the issues the index has with the same "updated_on"
+     *
+     * @return int the number of skipped issues
+     */
+    private function importIssues(array $issues, string $phase, ?ProgressBar $progressBar, bool $skipUnchanged): int
+    {
+        $changed = null;
+        if ($skipUnchanged) {
+            $updated = [];
+            foreach ($issues as $doc) {
+                $updated[(string) $doc['id']] = $this->fixDateFormat((string) $doc['updated_on'], 'Redmine');
+            }
+            $changed = array_flip(ImportWatermark::changed($updated, $this->watermark->storedUpdates('issue', array_keys($updated))));
+        }
+        $skipped = 0;
+        foreach ($issues as $doc) {
+            if (null !== $changed && !isset($changed[(string) $doc['id']])) {
+                ++$skipped;
+                if (null !== $progressBar) {
+                    $progressBar->advance();
+                    $this->reportProgress($phase, $progressBar);
+                }
+                continue;
+            }
+            try {
+                $this->getTicketAndJournal($doc);
+                $this->refreshLock();
+            } catch (\Exception $e) {
+                // The import goes on with the next issue
+                $this->recorder->warning(sprintf('Forge issue #%s: %s', $doc['id'] ?? '?', $e->getMessage()));
+            } finally {
+                // Stephan Großberndt asked for a sleep of between 50 - 100ms between requests to Forge on April 15th, 2024 in Slack channel #t3a-t3g-infra
+                // Since we run into a lot of requests here, 50ms should be fine to not block the overall import process for too long
+                usleep(50000);
+            }
+            if (null !== $progressBar) {
+                $progressBar->advance();
+                $this->reportProgress($phase, $progressBar);
+            }
+        }
+
+        return $skipped;
+    }
+
+    /**
+     * Imports the Gerrit changes updated since the latest change in the index, see importReviews().
+     */
+    private function importReviewDelta(OutputInterface $output): void
+    {
+        $since = $this->watermark->since('review');
+        if (null === $since) {
+            $this->recorder->warning('The review index is empty, run --mode=reviewFull. Imported the latest changes only.');
+            $progressBar = new ProgressBar($output->section());
+            foreach ($this->getReviewBlock(0, self::PAGE_SIZE, new ProgressBar($output->section()), $progressBar) as $review) {
+                $this->addDocumentToElastic($review, 'review');
+            }
+
+            return;
+        }
+        $this->importReviews($output, $since, false);
+    }
+
+    /**
+     * Imports the Gerrit changes in two steps: a light query lists the changes with their update time (all of
+     * them, or those updated since), only those the index does not have in this state are loaded with their
+     * revisions, files and messages, unless forced.
+     *
+     * Gerrit lists the newest changes first. The delta writes the changes once all of them are loaded, so a run
+     * that fails half way does not move the latest change in the index, and the next run tries again. The full
+     * import writes them batch by batch, it handles far more changes than fit in memory.
+     * The interactions are written on the way, writing them twice does no harm.
+     */
+    private function importReviews(OutputInterface $output, ?\DateTimeImmutable $since, bool $force, int $startAt = 0): void
+    {
+        $delta = null !== $since;
+        $mainSection = $output->section();
+        $subSection = $output->section();
+        $progressBar = new ProgressBar($mainSection);
+        $subBar = new ProgressBar($subSection);
+        $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
+
+        // Step 1: which changes are not up to date in the index, without their details
+        $query = self::GERRIT_PROJECT . ($delta ? ' ' . ImportWatermark::gerritOperator($since) : '');
+        $listed = 0;
+        $changed = [];
+        $more = true;
+        for ($start = max(0, $startAt); $more && (!$delta || $start < self::DELTA_LIMIT_GERRIT); $start += self::PAGE_SIZE) {
+            $changes = $this->decodeGerrit($this->getCommitsFromGerrit(self::PAGE_SIZE, $start, $query, []));
+            $updated = [];
+            foreach ($changes as $change) {
+                $updated[(string) $change['_number']] = $this->fixDateFormat($change['updated'], 'Gerrit');
+            }
+            $listed += count($updated);
+            array_push($changed, ...($force ? array_map('strval', array_keys($updated)) : ImportWatermark::changed($updated, $this->watermark->storedUpdates('review', array_keys($updated)))));
+            $more = [] !== $changes && array_key_exists('_more_changes', array_last($changes));
+            $this->recorder->progress('Listing Gerrit changes', $listed);
+            $this->refreshLock();
+        }
+        if ($delta && $more) {
+            $this->recorder->warning(sprintf('More than %d changes were updated since %s, older ones are missing until the next reviewFull', self::DELTA_LIMIT_GERRIT, $since->format('Y-m-d H:i:s')));
+        }
+        $output->writeln(sprintf(
+            '%d changes %s, %d of them not up to date in the index',
+            $listed,
+            $delta ? 'updated since ' . $since->format('Y-m-d H:i:s') : 'in Gerrit',
+            count($changed),
+        ));
+
+        // Step 2: the details of the changes that are not up to date
+        $reviews = [];
+        $progressBar->setMaxSteps(count($changed));
+        foreach (array_chunk($changed, self::GERRIT_DETAIL_BATCH) as $batch) {
+            $batchQuery = implode(' OR ', array_map(static fn (string $number): string => 'change:' . $number, $batch));
+            $block = $this->getReviewBlock(0, count($batch), $subBar, $progressBar, $batchQuery);
+            if ($delta) {
+                $reviews += $block;
+                continue;
+            }
+            foreach ($block as $review) {
+                $this->addDocumentToElastic($review, 'review');
+            }
+        }
+
+        foreach ($reviews as $review) {
+            $this->addDocumentToElastic($review, 'review');
+        }
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function decodeGerrit(ResponseInterface $response): array
+    {
+        return json_decode(str_replace(")]}'", '', (string) $response->getBody()), true, 512, JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -339,6 +503,13 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 $progressBar->advance();
                 $this->reportProgress('GitHub ' . $organization . '/' . $repo, $progressBar);
             }
+        } catch (ClientException $e) {
+            // Without valid credentials or with the rate limit used up no repository can be read: the run fails
+            if (in_array($e->getResponse()->getStatusCode(), [401, 403], true)) {
+                throw new \RuntimeException(sprintf('GitHub responded with %d for %s/%s: %s', $e->getResponse()->getStatusCode(), $organization, $repo, $e->getMessage()), 0, $e);
+            }
+            $io->error($e->getMessage());
+            $this->recorder->warning(sprintf('GitHub %s/%s: %s', $organization, $repo, $e->getMessage()));
         } catch (\Exception $e) {
             // GitHub respond sometimes with 500 errors, so we have to catch them and continue
             // A very wired case is that page 3 and 4 throw 500 errors, but page 5 and higher work again.
@@ -356,16 +527,21 @@ class ImportCommand extends Command implements LoggerAwareInterface
         // The author could be empty, so we have to check for that
         $userId = $issue['author']['id'] ?? null;
         if (null !== $userId && !isset($this->userCache[$userId])) {
-            try {
-                $userRecord = $this->callRedmine(fn () => $this->forgeClient->getApi('user')->show($userId));
-            } catch (\RuntimeException $e) {
-                // E.g. a deleted or locked user (404, 403): the issue is imported without the email
-                if (429 === $e->getCode()) {
-                    throw $e;
+            // A rate limit (429) is thrown and not cached, the next run asks again
+            $this->userCache[$userId] = $this->cache->get('forge_user_mail_' . (int) $userId, function (ItemInterface $item) use ($userId): string {
+                $item->expiresAfter(self::USER_CACHE_LIFETIME);
+                try {
+                    $userRecord = $this->callRedmine(fn () => $this->forgeClient->getApi('user')->show($userId));
+                } catch (\RuntimeException $e) {
+                    // E.g. a deleted or locked user (404, 403): the issue is imported without the email
+                    if (429 === $e->getCode()) {
+                        throw $e;
+                    }
+                    $userRecord = null;
                 }
-                $userRecord = null;
-            }
-            $this->userCache[$userId] = is_array($userRecord) ? ($userRecord['user']['mail'] ?? '') : '';
+
+                return is_array($userRecord) ? ($userRecord['user']['mail'] ?? '') : '';
+            });
         }
         $issue['author']['email'] = $this->userCache[$userId] ?? '';
 
@@ -375,13 +551,11 @@ class ImportCommand extends Command implements LoggerAwareInterface
     /**
      * @throws \Exception
      */
-    protected function getReviewBlock(int $current, int $perRun, ProgressBar $subBar, ProgressBar $mainProgressbar): array
+    protected function getReviewBlock(int $current, int $perRun, ProgressBar $subBar, ProgressBar $mainProgressbar, string $query = self::GERRIT_PROJECT): array
     {
-        $moreChanges = false;
         $out = [];
         // Errors end the import: an empty result would silently skip the changes of this block
-        $response = $this->getCommitsFromGerrit($perRun, $current);
-        $data = json_decode(str_replace(")]}'", '', (string) $response->getBody()), true, 512, JSON_THROW_ON_ERROR);
+        $data = $this->decodeGerrit($this->getCommitsFromGerrit($perRun, $current, $query));
         foreach ($data as $change) {
             $mainProgressbar->advance();
             $this->reportProgress('Gerrit changes', $mainProgressbar);
@@ -526,12 +700,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 'files' => $filesInPatchset,
                 'work_in_progress' => in_array('WIP', $reviewTags, true) || ($change['work_in_progress'] ?? false),
             ];
-            if (array_key_exists('_more_changes', $change)) {
-                $moreChanges = true;
-            }
-        }
-        if (false === $moreChanges) {
-            $this->moreIssuesFromGerrit = false;
         }
 
         return $out;
@@ -783,6 +951,10 @@ class ImportCommand extends Command implements LoggerAwareInterface
     /**
      * Calls Forge, waits and retries while it rate-limits (429), and fails on any other error status.
      *
+     * The pause doubles from 10 seconds up to 5 minutes, about 10 minutes in all: enough for a full import
+     * running unattended over night not to end at a rate limit. A delta waiting that long holds its lock,
+     * the next delta is skipped meanwhile.
+     *
      * The Redmine client returns the body of an error response (e.g. the HTML page of a 429) instead of
      * throwing, so the status of the last response decides.
      *
@@ -797,13 +969,14 @@ class ImportCommand extends Command implements LoggerAwareInterface
             $result = null;
             $status = $e->getResponse()->getStatusCode();
         }
-        if (429 === $status && $attempt <= 3) {
+        if (429 === $status && $attempt < self::FORGE_RETRIES) {
             ++$attempt;
             // Give Forge some time to relax
-            $sleepTime = 10 * $attempt;
+            $sleepTime = min(10 * 2 ** ($attempt - 1), 300);
             $this->logger->warning(sprintf('[RECV] Failed to fetch data from Forge, response code %s, retrying in %d seconds, attempt #%d...', $status, $sleepTime, $attempt));
-            $this->recorder->progress(sprintf('Forge rate limit, waiting %d s', $sleepTime));
+            $this->recorder->progress(sprintf('Forge rate limit, waiting %d s (attempt %d of %d)', $sleepTime, $attempt, self::FORGE_RETRIES));
             sleep($sleepTime);
+            $this->refreshLock();
 
             return $this->callRedmine($callback, $attempt);
         }
@@ -814,25 +987,36 @@ class ImportCommand extends Command implements LoggerAwareInterface
         return $result;
     }
 
-    private function getAllForgeIssuesPaginated(int $limit, int $offset): array
+    /**
+     * @param string|null $updatedOn a Redmine filter, see ImportWatermark::redmineFilter(); with a filter the oldest come first
+     */
+    private function getAllForgeIssuesPaginated(int $limit, int $offset, ?string $updatedOn = null): array
     {
-        return $this->callRedmine(fn () => $this->forgeClient->getApi('issue')->list([
+        $parameters = [
             'limit' => $limit,
             'offset' => $offset,
             'project_id' => $this->parameters->get('redmine_project_id'),
             'status_id' => '*',
-            'sort' => 'updated_on:desc',
-        ]));
+            'sort' => null === $updatedOn ? 'updated_on:desc' : 'updated_on',
+        ];
+        if (null !== $updatedOn) {
+            $parameters['updated_on'] = $updatedOn;
+        }
+
+        return $this->callRedmine(fn () => $this->forgeClient->getApi('issue')->list($parameters));
     }
 
-    private function getCommitsFromGerrit(int $perRun, int $current, $retry = 0): ResponseInterface
+    /**
+     * @param list<string> $options the details Gerrit adds to every change, none for just the list
+     */
+    private function getCommitsFromGerrit(int $perRun, int $current, string $query = self::GERRIT_PROJECT, array $options = self::GERRIT_DETAIL_OPTIONS, int $retry = 0): ResponseInterface
     {
         try {
             $httpQueryData = [
-                'q' => 'project:Packages/TYPO3.CMS',
+                'q' => $query,
                 'n' => $perRun,
                 'start' => $current,
-                'o' => ['DETAILED_LABELS', 'ALL_REVISIONS', 'ALL_FILES', 'CURRENT_COMMIT', 'MESSAGES', 'DETAILED_ACCOUNTS'],
+                'o' => $options,
             ];
             $query = [];
             // http_build_query() doesn't work as it generates o[0]=a&o[1]=b&o[2]=c instead of o=a&o=b&o=c
@@ -856,7 +1040,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 $this->logger->warning(sprintf('Gerrit responded with %d, retrying in %d seconds (attempt %d)...', $status, $sleepTime, $retry));
                 sleep($sleepTime);
 
-                return $this->getCommitsFromGerrit($perRun, $current, $retry);
+                return $this->getCommitsFromGerrit($perRun, $current, $query, $options, $retry);
             }
 
             throw new \RuntimeException(sprintf('Fetching changes from Gerrit failed with status %d', $status), 0, $e);

@@ -100,6 +100,19 @@ final class CommandRunTest extends TestCase
         self::assertSame(0, $overview->failures);
     }
 
+    public function testAJobThatIsAlwaysLockedIsOverdueAfterAWhile(): void
+    {
+        // e.g. three organizations sharing one lock, two of them never get it
+        $starts = [];
+        for ($i = 0; $i < 30; ++$i) {
+            $starts[] = '-' . (2 + $i * 30) . ' minutes';
+        }
+        $statuses = array_fill(0, 29, CommandRunStatusEnum::LOCKED);
+        $statuses[] = CommandRunStatusEnum::SUCCESS;
+
+        self::assertTrue($this->overview($starts, $statuses)->overdue);
+    }
+
     public function testAJobWithFewRunsHasNoIntervalAndIsNeverOverdue(): void
     {
         $overview = $this->overview(['-10 days', '-11 days']);
