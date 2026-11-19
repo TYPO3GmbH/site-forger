@@ -16,9 +16,9 @@ use App\Elastic\ImportWatermark;
 use App\Elastic\IndexSetup;
 use App\Elastic\ProjectIssues;
 use App\Elastic\ReviewSubject;
-use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewVoteEnum;
 use App\Service\CommandRunRecorder;
+use App\Service\ForgeIssueImporter;
 use App\Service\GithubService;
 use Elastica\Document;
 use Exception;
@@ -29,7 +29,6 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Redmine\Client\Client;
-use Redmine\Exception\UnexpectedResponseException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Command\LockableTrait;
@@ -39,8 +38,6 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use Symfony\Contracts\Cache\CacheInterface;
-use Symfony\Contracts\Cache\ItemInterface;
 
 #[AsCommand(name: 'app:import', description: 'Imports data from Redmine (forge.typo3.org), Gerrit (review.typo3.org) and Github')]
 class ImportCommand extends Command implements LoggerAwareInterface
@@ -56,7 +53,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
     private const int DELTA_LIMIT_GERRIT = 3000;
     private const int PAGE_SIZE = 100;
     /**
-     * Retries of a rate-limited request to Forge, see callRedmine().
+     * Retries of a rate-limited request to Forge, see waitForForge().
      */
     private const int FORGE_RETRIES = 6;
     /**
@@ -65,12 +62,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
     private const int GERRIT_DETAIL_BATCH = 25;
     private const string GERRIT_PROJECT = 'project:Packages/TYPO3.CMS';
     private const array GERRIT_DETAIL_OPTIONS = ['DETAILED_LABELS', 'ALL_REVISIONS', 'ALL_FILES', 'CURRENT_COMMIT', 'MESSAGES', 'DETAILED_ACCOUNTS'];
-    /**
-     * Seconds the email of a Forge user is kept, so a run does not ask Forge for authors and assignees it knows.
-     */
-    private const int USER_CACHE_LIFETIME = 86400;
     protected static array $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta', 'github', 'githubDelta'];
-    private array $userCache = [];
     protected OutputInterface $output;
 
     public function __construct(
@@ -81,8 +73,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
         private readonly IndexSetup $indexSetup,
         private readonly CommandRunRecorder $recorder,
         private readonly ImportWatermark $watermark,
-        private readonly CacheInterface $cache,
         private readonly ProjectIssues $projectIssues,
+        private readonly ForgeIssueImporter $issueImporter,
     ) {
         parent::__construct();
     }
@@ -128,6 +120,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
     {
         $io = new SymfonyStyle($input, $output);
         $this->output = $output;
+        $this->issueImporter->onRateLimit($this->waitForForge(...), self::FORGE_RETRIES);
         $mode = $input->getOption('mode');
         $startAt = (int) $input->getOption('startAt');
         $force = (bool) $input->getOption('force');
@@ -405,7 +398,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 continue;
             }
             try {
-                $this->getTicketAndJournal($doc);
+                $this->issueImporter->import($doc);
                 $this->refreshLock();
             } catch (\Exception $e) {
                 // The import goes on with the next issue
@@ -517,28 +510,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
     }
 
     /**
-     * Imports a single ticket.
-     * A sleep(1) might be useful here to not hammer forge.
-     *
-     * @throws \InvalidArgumentException
-     * @throws \Exception
-     */
-    private function getTicketAndJournal(array $issue): void
-    {
-        // import journals only if issue status is "Under review"
-        if (isset($issue['status']['id']) && IssueStatusEnum::UNDER_REVIEW === IssueStatusEnum::tryFrom((int) $issue['status']['id'])) {
-            $issueWithJournals = $this->callRedmine(fn () => $this->forgeClient->getApi('issue')->show($issue['id'], ['include' => ['journals']]));
-            if (!is_array($issueWithJournals) || !isset($issueWithJournals['issue'])) {
-                // Forge answered without the issue, it keeps its previous state in the index
-                throw new \RuntimeException(sprintf('Loading the journals failed, Forge answered: %s', mb_substr(is_string($issueWithJournals) ? trim($issueWithJournals) : get_debug_type($issueWithJournals), 0, 200)));
-            }
-            $this->addDocumentToElastic($this->injectUserData($this->projectIssues->withoutPrivateNotes($issueWithJournals['issue'])));
-        } else {
-            $this->addDocumentToElastic($this->injectUserData($issue));
-        }
-    }
-
-    /**
      * Removes the issues of other projects the index has from before, see ProjectIssues.
      */
     private function removeIssuesOfOtherProjects(): void
@@ -605,50 +576,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
         }
         $progressBar->finish();
         $io->newLine(1);
-    }
-
-    /**
-     * Adds the email of the author and of the assignee, for their avatars.
-     */
-    private function injectUserData(array $issue): array
-    {
-        // The author could be empty, so we have to check for that
-        $issue['author']['email'] = $this->forgeUserEmail($issue['author']['id'] ?? null);
-        if (isset($issue['assigned_to']['id'])) {
-            // A group can be assigned, too: Forge has no user for it, so it gets no email
-            $issue['assigned_to']['email'] = $this->forgeUserEmail($issue['assigned_to']['id']);
-        }
-
-        return $issue;
-    }
-
-    /**
-     * The email of a Forge user, empty if Forge does not know it.
-     */
-    private function forgeUserEmail(int|string|null $userId): string
-    {
-        if (null === $userId) {
-            return '';
-        }
-        if (!isset($this->userCache[$userId])) {
-            // A rate limit (429) is thrown and not cached, the next run asks again
-            $this->userCache[$userId] = $this->cache->get('forge_user_mail_' . (int) $userId, function (ItemInterface $item) use ($userId): string {
-                $item->expiresAfter(self::USER_CACHE_LIFETIME);
-                try {
-                    $userRecord = $this->callRedmine(fn () => $this->forgeClient->getApi('user')->show($userId));
-                } catch (\RuntimeException $e) {
-                    // E.g. a deleted or locked user (404, 403): the issue is imported without the email
-                    if (429 === $e->getCode()) {
-                        throw $e;
-                    }
-                    $userRecord = null;
-                }
-
-                return is_array($userRecord) ? ($userRecord['user']['mail'] ?? '') : '';
-            });
-        }
-
-        return $this->userCache[$userId];
     }
 
     /**
@@ -901,44 +828,10 @@ class ImportCommand extends Command implements LoggerAwareInterface
     /**
      * @throws \Exception
      */
-    private function addDocumentToElastic(array $document, string $type = 'issue'): void
+    private function addDocumentToElastic(array $document, string $type): void
     {
         $elasticType = null;
         switch ($type) {
-            case 'issue':
-                if (isset($document['custom_fields'])) {
-                    foreach ($document['custom_fields'] as $customField) {
-                        switch ($customField['id']) {
-                            case 3:
-                                if (!empty($customField['value'])) {
-                                    $document['tags'] = array_map(trim(...), explode(',', (string) $customField['value']));
-                                }
-                                break;
-                            case 4:
-                                $document['typo3_version'] = $customField['value'] ?? '-';
-                                break;
-                            case 5:
-                                $document['php_version'] = $customField['value'] ?? '-';
-                                break;
-                            case 8:
-                                $document['complexity'] = $customField['value'] ?? '-';
-                                break;
-                            case 15:
-                                // custom field for regression could not be set, empty, 0 or 1.
-                                $document['isregression'] = ($customField['value'] ?? '0') === '1';
-                                break;
-                            case 18:
-                                $document['focus']['name'] = $customField['value'] ?? '-';
-                                break;
-                            default:
-                        }
-                    }
-                }
-                $document['updated_on'] = $this->fixDateFormat($document['updated_on'], 'Redmine');
-                $document['created_on'] = $this->fixDateFormat($document['created_on'], 'Redmine');
-                unset($document['start_date'], $document['due_date']);
-                $elasticType = ElasticUtility::getIndexByName('issue');
-                break;
             case 'review':
                 $elasticType = ElasticUtility::getIndexByName('review');
                 break;
@@ -966,7 +859,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
     {
         switch ($source) {
             case 'Redmine':
-                break;
+                return ForgeIssueImporter::indexDate($dateTimeString);
             case 'Gerrit':
                 $subString = substr($dateTimeString, 0, 19);
                 $dateTimeString = $subString;
@@ -1068,31 +961,21 @@ class ImportCommand extends Command implements LoggerAwareInterface
      *
      * @throws \RuntimeException
      */
-    private function callRedmine(callable $callback, int $attempt = 0): mixed
+    private function callRedmine(callable $callback): mixed
     {
-        try {
-            $result = $callback();
-            $status = $this->forgeClient->getLastResponseStatusCode();
-        } catch (UnexpectedResponseException $e) {
-            $result = null;
-            $status = $e->getResponse()->getStatusCode();
-        }
-        if (429 === $status && $attempt < self::FORGE_RETRIES) {
-            ++$attempt;
-            // Give Forge some time to relax
-            $sleepTime = min(10 * 2 ** ($attempt - 1), 300);
-            $this->logger->warning(sprintf('[RECV] Failed to fetch data from Forge, response code %s, retrying in %d seconds, attempt #%d...', $status, $sleepTime, $attempt));
-            $this->recorder->progress(sprintf('Forge rate limit, waiting %d s (attempt %d of %d)', $sleepTime, $attempt, self::FORGE_RETRIES));
-            sleep($sleepTime);
-            $this->refreshLock();
+        return $this->issueImporter->call($callback);
+    }
 
-            return $this->callRedmine($callback, $attempt);
-        }
-        if ($status >= 400) {
-            throw new \RuntimeException(sprintf('Forge responded with status %d', $status), $status);
-        }
-
-        return $result;
+    /**
+     * Gives Forge some time to relax after a rate limit, longer with each attempt.
+     */
+    private function waitForForge(int $attempt): void
+    {
+        $sleepTime = min(10 * 2 ** ($attempt - 1), 300);
+        $this->logger->warning(sprintf('[RECV] Failed to fetch data from Forge, response code 429, retrying in %d seconds, attempt #%d...', $sleepTime, $attempt));
+        $this->recorder->progress(sprintf('Forge rate limit, waiting %d s (attempt %d of %d)', $sleepTime, $attempt, self::FORGE_RETRIES));
+        sleep($sleepTime);
+        $this->refreshLock();
     }
 
     /**

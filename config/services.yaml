@@ -86,6 +86,10 @@ services:
       $forgeClient: '@redmine.client.forge'
       $client: '@guzzle.client.gerrit'
 
+  App\Service\ForgeIssueImporter:
+    arguments:
+      $forgeClient: '@redmine.client.forge'
+
   App\Menu\MenuBuilder:
     tags:
       - name: 'knp_menu.menu_builder'
