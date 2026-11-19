@@ -48,6 +48,31 @@ class SprintController extends AbstractController
         ]);
     }
 
+    /**
+     * All sprint boards by category, each with how far its issues have got.
+     */
+    #[Route(path: '/sprint', name: 'sprint_overview', priority: 1)]
+    public function overview(): Response
+    {
+        $categories = [];
+        foreach ($this->sprintBoardCategoryRepository->findBy([], ['sorting' => 'ASC', 'name' => 'ASC']) as $category) {
+            $boards = [];
+            foreach ($this->sprintBoardRepository->findBy(['category' => $category], ['sorting' => 'ASC', 'name' => 'ASC']) as $board) {
+                try {
+                    $count = $this->getTicketByBoardQuery((string) $board->getQuery());
+                } catch (ParseException) {
+                    $count = null;
+                }
+                $boards[] = ['board' => $board, 'count' => $count];
+            }
+            $categories[] = ['category' => $category, 'boards' => $boards];
+        }
+
+        return $this->render('sprint/overview.html.twig', [
+            'categories' => $categories,
+        ]);
+    }
+
     #[Route(path: '/sprint/reviews/{reviewType}', name: 'sprint_reviews', defaults: ['reviewType' => 'bugfix'])]
     public function reviewSprintAction(string $reviewType): Response
     {
@@ -63,14 +88,28 @@ class SprintController extends AbstractController
     #[IsGranted('ROLE_CORE_COMPONENT')]
     public function createSprint(Request $request): Response
     {
-        return $this->handleBoardForm($request, new SprintBoard(), SprintBoardWizard::class);
+        return $this->handleBoardForm($request, $this->newBoard($request), SprintBoardWizard::class);
     }
 
     #[Route(path: '/sprint/create/yaml', name: 'sprint_create_yaml')]
     #[IsGranted('ROLE_CORE_COMPONENT')]
     public function createSprintAsYaml(Request $request): Response
     {
-        return $this->handleBoardForm($request, new SprintBoard(), \App\Form\SprintBoard::class);
+        return $this->handleBoardForm($request, $this->newBoard($request), \App\Form\SprintBoard::class);
+    }
+
+    /**
+     * A new board, in the category the link it was created from names (?category=identifier).
+     */
+    private function newBoard(Request $request): SprintBoard
+    {
+        $board = new SprintBoard();
+        $identifier = $request->query->getString('category');
+        if ('' !== $identifier) {
+            $board->setCategory($this->sprintBoardCategoryRepository->findOneBy(['identifier' => $identifier]));
+        }
+
+        return $board;
     }
 
     #[Route(path: '/sprint/edit/{sprintId}', name: 'sprint_edit')]

@@ -1,0 +1,50 @@
+// Sprint overview, see templates/sprint/overview.html.twig
+// The tiles and the segmented bar come from the dashboard, see _dashboard.scss
+
+.sprint-overview-category {
+    margin-bottom: 1.5rem;
+}
+
+.sprint-overview-category-header {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: .75rem;
+}
+
+// Creates a board in the category, kept quiet next to the headline
+.sprint-overview-add {
+    display: inline-flex;
+    padding: .2rem;
+    border-radius: 4px;
+    color: var(--overview-muted);
+    line-height: 1;
+
+    &:hover,
+    &:focus-visible {
+        background: var(--overview-border);
+        color: inherit;
+    }
+}
+
+.sprint-overview-category-headline {
+    margin-bottom: 0;
+    font-size: 1.25rem;
+
+    a {
+        color: inherit;
+    }
+}
+
+.sprint-overview-board {
+    grid-column: span 2;
+
+    @media (max-width: 575.98px) {
+        grid-column: auto;
+    }
+}
+
+.sprint-overview-segment-closed { background: #15803d; }
+.sprint-overview-segment-review { background: #fab219; }
+.sprint-overview-segment-blocked { background: #d03b3b; }
+.sprint-overview-segment-open { background: #2a78d6; }

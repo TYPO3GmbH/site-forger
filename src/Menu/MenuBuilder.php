@@ -78,7 +78,8 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         $this->addLink($issues, 'management-by-category', 'By category', 'management_bycategory', 'actions-tag');
         $this->addLink($issues, 'gerrit_stale_issues', 'Stale issues', 'gerrit_stale_issues', 'actions-clock');
 
-        $sprints = $menu->addChild('sprint', ['label' => 'Sprints', 'uri' => '#']);
+        $sprints = $menu->addChild('sprint', ['label' => 'Sprints', 'route' => 'sprint_overview']);
+        $this->addLink($sprints, 'sprint_overview', 'Overview', 'sprint_overview', 'actions-viewmode-layout');
         /** @var SprintBoardCategory $category */
         foreach ($this->categoryRepository->findAll() as $category) {
             $this->addLink($sprints, 'sprint_' . $category->getIdentifier(), $category->getName(), 'sprint', $category->getIcon(), ['category' => $category->getIdentifier()]);

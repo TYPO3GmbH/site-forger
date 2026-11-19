@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+{% block title %}Sprints{% endblock %}
+{% block headline %}Sprints{% endblock %}
+{% block body %}
+    <div class="content-section content-section-small overview">
+        <div class="container">
+            {% for item in categories %}
+                <section class="sprint-overview-category">
+                    <div class="sprint-overview-category-header">
+                        <h2 class="sprint-overview-category-headline">
+                            <a href="{{ path('sprint', {'category': item.category.identifier}) }}">{{ icon(item.category.icon) }} {{ item.category.name }}</a>
+                        </h2>
+                        {% if is_granted('ROLE_CORE_COMPONENT') %}
+                            <a class="sprint-overview-add" href="{{ path('sprint_create', {'category': item.category.identifier}) }}" title="New sprint board in {{ item.category.name }}">
+                                {{ icon('actions-plus') }}<span class="visually-hidden">New sprint board in {{ item.category.name }}</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                    {% if item.boards is not empty %}
+                        <div class="overview-stats">
+                            {% for entry in item.boards %}
+                                {% include 'sprint/_overview_board.html.twig' with {'board': entry.board, 'count': entry.count} only %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="overview-stat-note">This category has no sprint boards yet.</p>
+                    {% endif %}
+                </section>
+            {% else %}
+                {% include '_partials/alert.html.twig' with {'message': 'No sprint boards have been defined yet. If you think there should be something here, get in touch with us on Slack.', 'style': 'info'} %}
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}

@@ -5,7 +5,7 @@
 {% block body %}
 
     {% set steps = ['Board', 'Issues', 'Check and save'] %}
-    {% set yamlPath = sprint.id ? path('sprint_edit_yaml', {'sprintId': sprint.id}) : path('sprint_create_yaml') %}
+    {% set yamlPath = sprint.id ? path('sprint_edit_yaml', {'sprintId': sprint.id}) : path('sprint_create_yaml', sprint.category ? {'category': sprint.category.identifier} : {}) %}
 
     <div class="content-section">
         <div class="container">

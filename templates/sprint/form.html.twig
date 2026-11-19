@@ -17,7 +17,7 @@
                 {% if wizardAvailable is defined and wizardAvailable %}
                     <div class="header-actions">
                         {{ buttons.link(
-                            sprint.id ? path('sprint_edit', {'sprintId': sprint.id}) : path('sprint_create'),
+                            sprint.id ? path('sprint_edit', {'sprintId': sprint.id}) : path('sprint_create', sprint.category ? {'category': sprint.category.identifier} : {}),
                             'Use the wizard',
                             'secondary',
                             'actions-open'
