@@ -382,9 +382,10 @@
     }
 }
 
+// Also used outside of My Work, on the dashboard
 .mywork-tag {
     padding: 0 .45rem;
-    border: 1px solid var(--mywork-border);
+    border: 1px solid var(--mywork-border, #e6e8eb);
     border-radius: .35rem;
     color: #374151;
     font-size: .75rem;

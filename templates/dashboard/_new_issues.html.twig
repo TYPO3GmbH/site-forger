@@ -1,0 +1,37 @@
+{#
+ # The open issues created last, newest first: the title, below it status, priority, category, version and author.
+ # Expects: issues (documents, total)
+ #}
+{% import '_macros/status.html.twig' as status %}
+<section class="overview-list" aria-labelledby="overview-new-issues">
+    <header class="overview-list-header">
+        <h2 class="overview-list-title" id="overview-new-issues">New issues</h2>
+        <a class="overview-list-all" href="{{ path('search_search', {'sort': 'newest'}) }}">Show all</a>
+    </header>
+    {% if issues.documents is empty %}
+        <p class="overview-list-empty">There are no open issues.</p>
+    {% else %}
+        <ul class="overview-list-items">
+            {% for issue in issues.documents %}
+                {% set tracker = issue_tracker(issue.tracker.name ?? null) %}
+                <li>
+                    {% set priority = issue_priority(issue.priority.name ?? null) %}
+                    <a class="overview-list-item" href="https://forge.typo3.org/issues/{{ issue.id }}" target="issue{{ issue.id }}" title="{{ issue.subject }}">
+                        <span class="mywork-tag mywork-tag-{{ tracker.severity ?? 'default' }}">{{ tracker.label ?? issue.tracker.name ?? 'Issue' }}</span>
+                        <span class="overview-list-item-main">
+                            <span class="overview-list-item-title"><span class="overview-list-item-id">{{ issue.id }}</span>{{ issue.subject }}</span>
+                            <span class="overview-list-item-meta">
+                                {{ status.issue(issue.status.name ?? null) }}
+                                {% if priority and not priority.isDefault %}<span class="overview-list-priority priority-{{ priority.severity }}" title="Priority">{{ priority.label }}</span>{% endif %}
+                                {% if issue.category.name is defined %}<span title="Category">{{ issue.category.name }}</span>{% endif %}
+                                {% if issue.typo3_version is defined %}<span title="TYPO3 version">v{{ issue.typo3_version }}</span>{% endif %}
+                                {% if issue.author.name is defined %}<span>by {{ issue.author.name }}</span>{% endif %}
+                            </span>
+                        </span>
+                        <time class="overview-list-item-date" datetime="{{ to_datetime(issue.created_on)|date('c') }}" title="Created {{ issue.created_on }}">{{ relativetime(to_datetime(issue.created_on)) }}</time>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</section>

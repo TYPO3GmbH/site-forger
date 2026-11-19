@@ -1,0 +1,38 @@
+{#
+ # The Gerrit changes ready to merge that were updated last: the subject, below it owner, votes, releases, topic and size.
+ # Expects: changes (documents, total)
+ #}
+<section class="overview-list" aria-labelledby="overview-ready-to-merge">
+    <header class="overview-list-header">
+        <h2 class="overview-list-title" id="overview-ready-to-merge">Ready to merge <span class="overview-list-count">{{ changes.total }}</span></h2>
+        <a class="overview-list-all" href="{{ path('gerrit_coreteam_merge') }}">Show all</a>
+    </header>
+    {% if changes.documents is empty %}
+        <p class="overview-list-empty">No changes are ready to merge.</p>
+    {% else %}
+        <ul class="overview-list-items">
+            {% for change in changes.documents %}
+                <li>
+                    {% set releases = (change.releases ?? [])|filter(release => release != change.branch and release != 'omitted') %}
+                    <a class="overview-list-item" href="https://review.typo3.org/c/Packages/TYPO3.CMS/+/{{ change.id }}/" target="gerrit{{ change.id }}" title="{{ change.subject }}">
+                        <span class="mywork-tag{{ change.branch != 'main' ? ' is-backport' }}" title="Branch">{{ change.branch }}</span>
+                        <span class="overview-list-item-main">
+                            <span class="overview-list-item-title"><span class="overview-list-item-id">{{ change.id }}</span>{{ change.subject }}</span>
+                            <span class="overview-list-item-meta">
+                                {% if change.owner is defined %}<span>by {{ change.owner }}</span>{% endif %}
+                                {% set votes = change.positive_reviews ?? 0 %}<span class="mywork-vote{{ votes > 0 ? ' is-positive' }}" title="Code review: {{ votes }} positive">CR <b>+{{ votes }}</b></span>
+                                {% set votes = change.positive_verifications ?? 0 %}<span class="mywork-vote{{ votes > 0 ? ' is-positive' }}" title="Verified: {{ votes }} positive">V <b>+{{ votes }}</b></span>
+                                {% if releases is not empty %}<span title="Target releases">→ {{ releases|join(', ') }}</span>{% endif %}
+                                {% if change.topic is defined and change.topic != 'no topic' %}<span title="Topic">{{ change.topic }}</span>{% endif %}
+                                {% if change.insertions is defined and change.deletions is defined %}
+                                    <span class="overview-list-size" title="Lines added and removed"><span class="is-added">+{{ change.insertions }}</span> <span class="is-removed">&minus;{{ change.deletions }}</span></span>
+                                {% endif %}
+                            </span>
+                        </span>
+                        <time class="overview-list-item-date" datetime="{{ to_datetime(change.updated_on)|date('c') }}" title="Updated {{ change.updated_on }}">{{ relativetime(to_datetime(change.updated_on)) }}</time>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</section>

@@ -74,6 +74,11 @@
                 {{ dashboard.chart('Closed changes per year', 'Merged or abandoned, summed up month by month', 'line', path('chart', {'chartName': 'review_progress'}), chartOptionsWithLegend, 'Month') }}
             </div>
 
+            <div class="overview-lists">
+                {% include 'dashboard/_new_issues.html.twig' with {'issues': newIssues} only %}
+                {% include 'dashboard/_ready_to_merge.html.twig' with {'changes': readyToMerge} only %}
+            </div>
+
         </div>
     </div>
 {% endblock %}
