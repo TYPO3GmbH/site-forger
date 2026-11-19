@@ -139,6 +139,24 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'route' => 'static_help',
             ]
         );
+        // Without JavaScript the link opens the search page, assets/js/header-search.js opens a dialog instead
+        $menu->addChild(
+            'search',
+            [
+                'label' => 'Search',
+                'route' => 'search_search',
+                'attributes' => ['class' => 'nav-item nav-item-search'],
+                'linkAttributes' => [
+                    'class' => 'nav-link js-header-search-toggle',
+                    'title' => 'Search',
+                    'aria-controls' => 'header-search',
+                    'aria-expanded' => 'false',
+                ],
+                'extras' => [
+                    'icon' => 'actions-search',
+                ],
+            ]
+        );
         if ($this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
             /** @var KeyCloakUser $user */
             $user = $this->tokenStorage->getToken()->getUser();

@@ -11,6 +11,7 @@ import './css/app.scss';
 import './js/rst.js';
 import './js/sprint-wizard.js';
 import './js/chart-table.js';
+import './js/header-search.js';
 
 import ace from 'ace-builds/src-noconflict/ace.js';
 import 'ace-builds/src-noconflict/mode-yaml.js';
