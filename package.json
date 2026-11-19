@@ -9,7 +9,7 @@
         "sass-loader": "^16.0.6",
         "webpack-notifier": "^1.15.0"
     },
-    "license": "UNLICENSED",
+    "license": "GPL-2.0-or-later",
     "browserslist": [
         "last 2 versions",
         "ios >= 8"
