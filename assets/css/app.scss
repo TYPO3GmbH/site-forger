@@ -1,10 +1,6 @@
 
-// Dependencies
-@import 'variables';
-
 // Modules
-@import "module/interactions";
-@import "module/leaderboard";
+@use "module/interactions";
 
 .js-chart {
     height: 100%;

@@ -8,38 +8,37 @@
 // any CSS you import will output into a single css file (app.css in this case)
 import './css/app.scss';
 
-require('./js/quickstats.js');
-require('./js/rst.js');
+import './js/quickstats.js';
+import './js/rst.js';
 
-let ace = require('ace-builds/src-noconflict/ace');
-require('ace-builds/src-noconflict/mode-yaml');
-require('ace-builds/src-noconflict/theme-github');
+import ace from 'ace-builds/src-noconflict/ace.js';
+import 'ace-builds/src-noconflict/mode-yaml.js';
+import 'ace-builds/src-noconflict/theme-github.js';
 
-$(function () {
-    $('textarea[data-editor]').each(function () {
-        var textarea = $(this);
+function initializeEditor(textarea) {
+    const style = window.getComputedStyle(textarea);
+    const editDiv = document.createElement('div');
+    // Same size as the content box of the textarea it replaces
+    editDiv.style.width = (textarea.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)) + 'px';
+    editDiv.style.height = (textarea.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) + 'px';
+    textarea.before(editDiv);
+    textarea.style.display = 'none';
 
-        var mode = textarea.data('editor');
+    const editor = ace.edit(editDiv);
+    editor.renderer.setShowGutter(true);
+    editor.setShowPrintMargin(false);
+    // The syntax check workers are not part of the build
+    editor.setOption('useWorker', false);
+    editor.getSession().setValue(textarea.value);
+    editor.getSession().setMode('ace/mode/' + textarea.dataset.editor);
+    editor.setTheme('ace/theme/github');
+    editor.setFontSize('18px');
 
-        var editDiv = $('<div>', {
-            position: 'absolute',
-            width: textarea.width(),
-            height: textarea.height(),
-        }).insertBefore(textarea);
-
-        textarea.css('display', 'none');
-
-        var editor = ace.edit(editDiv[0]);
-        editor.renderer.setShowGutter(true);
-        editor.setShowPrintMargin(false);
-        editor.getSession().setValue(textarea.val());
-        editor.getSession().setMode("ace/mode/" + mode);
-        editor.setTheme("ace/theme/github");
-        editor.setFontSize("18px");
-
-        editor.getSession().on('change', function(){
-            textarea.val(editor.getSession().getValue());
-        });
-
+    editor.getSession().on('change', function () {
+        textarea.value = editor.getSession().getValue();
     });
+}
+
+window.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('textarea[data-editor]').forEach(initializeEditor);
 });

@@ -17,9 +17,11 @@ use Knp\Menu\FactoryInterface;
 use Knp\Menu\ItemInterface;
 use Knp\Menu\Matcher\MatcherInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use T3G\Bundle\Keycloak\Security\KeyCloakAuthenticator;
 use T3G\Bundle\Keycloak\Security\KeyCloakUser;
 use T3G\Bundle\TemplateBundle\Utility\AvatarUtility;
 
@@ -35,7 +37,8 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         AuthorizationCheckerInterface $authorizationChecker,
         TokenStorageInterface $tokenStorage,
         TranslatorInterface $translator,
-        private readonly SprintBoardCategoryRepository $categoryRepository
+        private readonly SprintBoardCategoryRepository $categoryRepository,
+        private readonly RequestStack $requestStack,
     ) {
         parent::__construct($parameters, $factory, $matcher, $authorizationChecker, $tokenStorage, $translator);
     }
@@ -210,16 +213,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         );
         if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
             $menu['management']->addChild(
-                'management-companies',
-                [
-                    'label' => 'Companies',
-                    'route' => 'management_companies',
-                    'extras' => [
-                        'icon' => 'actions-building',
-                    ],
-                ]
-            );
-            $menu['management']->addChild(
                 'sprintcategory_index',
                 [
                     'label' => 'Sprint Categories',
@@ -338,18 +331,18 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     ],
                 ]
             );
-            $menu['username']->addChild(
-                'profile_employment',
-                [
-                    'label' => 'Company Employment',
-                    'route' => 'user_employment',
+            if ($this->isKeycloakSession()) {
+                $this->addAccountItems($menu['username'], 't3g_keycloak_logout');
+            } else {
+                // Fixed dev users have no Keycloak account, sign them out locally
+                $menu['username']->addChild('logout', [
+                    'label' => 'Sign out',
+                    'route' => 'logout',
                     'extras' => [
-                        'icon' => 'actions-id-badge',
+                        'icon' => 'actions-logout',
                     ],
-                ]
-            );
-            $menu['username']->addChild($this->getDivider());
-            $this->addAccountItems($menu['username'], 't3g_keycloak_logout');
+                ]);
+            }
         } else {
             $menu->addChild(
                 'login',
@@ -364,5 +357,14 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         }
 
         return $menu;
+    }
+
+    private function isKeycloakSession(): bool
+    {
+        $request = $this->requestStack->getCurrentRequest();
+
+        return null !== $request
+            && $request->hasSession()
+            && $request->getSession()->has(KeyCloakAuthenticator::SESSION_KEYCLOAK_ACCESS_TOKEN);
     }
 }

@@ -71,8 +71,8 @@ class UtilityController extends AbstractController
             return $this->redirectToRoute('utilities_backport_index');
         }
 
-        if (null !== $request->get('changeId')) {
-            $form->get('changeId')->setData($request->get('changeId'));
+        if ($request->query->has('changeId')) {
+            $form->get('changeId')->setData($request->query->getString('changeId'));
         }
 
         return $this->render(
@@ -89,7 +89,7 @@ class UtilityController extends AbstractController
         string $changeId,
         EntityManagerInterface $entityManager
     ): Response {
-        $entry = (new BackportBlacklistEntry())
+        $entry = new BackportBlacklistEntry()
             ->setChangeId($changeId)
             ->setComment('');
         $entityManager->persist($entry);

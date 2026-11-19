@@ -19,7 +19,7 @@
                 {% for backport in backports %}
                     <tr>
                         {% for version in versions %}
-                            {% set normalizedVersion = version|replace({'\.': ''}) %}
+                            {% set normalizedVersion = version|replace({'.': ''}) %}
                             {% set key = 't3_' ~ normalizedVersion %}
                             <td>
                                 {% if backport.releases.(key) is defined and backport.releases.(key) == 'missing' %}

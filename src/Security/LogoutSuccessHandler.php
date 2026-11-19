@@ -11,29 +11,38 @@ declare(strict_types=1);
 
 namespace App\Security;
 
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Security\Http\Event\LogoutEvent;
-use T3G\Bundle\Datahub\Service\UrlService;
+use T3G\Bundle\Keycloak\Security\KeyCloakAuthenticator;
+use T3G\Bundle\Keycloak\Service\OpenIdService;
 
-readonly class LogoutSuccessHandler implements EventSubscriberInterface
+readonly class LogoutSuccessHandler
 {
     public function __construct(
-        private UrlService $urlService,
+        private OpenIdService $openIdService,
+        private string $keycloakBaseUri,
+        private string $keycloakRealm,
+        private string $keycloakClientId,
         private string $appUrl
     ) {
     }
 
+    #[AsEventListener(event: LogoutEvent::class, priority: 64)]
     public function onLogout(LogoutEvent $logoutEvent): void
     {
-        $logoutEvent->setResponse(new RedirectResponse('/oauth/logout?redirect=' . urlencode($this->urlService->getLogoutUrlWithRedirectToApp($this->appUrl))));
-    }
+        $request = $logoutEvent->getRequest();
+        if (!$request->hasSession() || !$request->getSession()->has(KeyCloakAuthenticator::SESSION_KEYCLOAK_ACCESS_TOKEN)) {
+            // Not logged in via Keycloak (e.g. a fixed dev user), so there is no Keycloak session to end
+            $logoutEvent->setResponse(new RedirectResponse('/'));
 
-    /**
-     * @return array<string, mixed>
-     */
-    public static function getSubscribedEvents(): array
-    {
-        return [LogoutEvent::class => ['onLogout', 64]];
+            return;
+        }
+
+        $realmUrl = rtrim($this->keycloakBaseUri, '/') . '/realms/' . $this->keycloakRealm;
+        $endSessionEndpoint = $this->openIdService->getOpenIdConfiguration($realmUrl)['end_session_endpoint'];
+        $logoutUrl = $endSessionEndpoint . '?client_id=' . $this->keycloakClientId . '&post_logout_redirect_uri=' . urlencode('https://' . $this->appUrl);
+
+        $logoutEvent->setResponse(new RedirectResponse('/oauth/logout?redirect=' . urlencode($logoutUrl)));
     }
 }

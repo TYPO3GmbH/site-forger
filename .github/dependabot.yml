@@ -15,8 +15,6 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    registries:
-      - private-packagist
     commit-message:
       prefix: "[DEP]"
       prefix-development: "[DEP-DEV]"
@@ -27,10 +25,3 @@ updates:
       interval: "monthly"
     commit-message:
       prefix: "[DEP]"
-
-registries:
-  private-packagist:
-    type: composer-repository
-    url: https://repo.packagist.com/typo3gmbh/
-    username: token
-    password: ${{secrets.PACKAGIST_AUTH_TOKEN}}

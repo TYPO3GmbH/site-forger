@@ -1,3 +1,5 @@
+import { sprintf } from 'sprintf-js';
+
 (function() {
     'use strict';
 
@@ -14,77 +16,82 @@
     const Rst = {
         initialize: function () {
             if (document.querySelector(Selectors.form) !== null) {
-                require('sprintf-js');
                 Rst.initializeEvents();
             }
         },
         initializeEvents: function () {
             Rst.togglePalettes('breaking');
-            $(document).on('change', Selectors.classificationToggle, function (e) {
-                Rst.togglePalettes(e.currentTarget.value);
-            }).on('click', Selectors.fetchTicket, Rst.fetchTicket);
+            document.addEventListener('change', function (e) {
+                if (e.target.matches(Selectors.classificationToggle)) {
+                    Rst.togglePalettes(e.target.value);
+                }
+            });
+            document.addEventListener('click', function (e) {
+                const trigger = e.target.closest(Selectors.fetchTicket);
+                if (trigger !== null) {
+                    Rst.fetchTicket(trigger);
+                }
+            });
 
-            $(Selectors.form).on('submit', Rst.generateDocument);
+            document.querySelector(Selectors.form).addEventListener('submit', Rst.generateDocument);
         },
-        fetchTicket: function (e) {
+        fetchTicket: async function (trigger) {
             const ticketIdField = document.querySelector(Selectors.ticketIdField);
             const titleField = document.querySelector(Selectors.ticketTitleField);
-            const $trigger = $(e.currentTarget);
             const ticketId = parseInt(ticketIdField.value.replace(/\D/g, ''));
 
             if (isNaN(ticketId)) {
                 return;
             }
 
-            $.ajax({
-                url: '/api/issue/' + ticketId,
-                dataType: 'json',
-                beforeSend: function() {
-                    ticketIdField.disabled = true;
-                    $trigger.disabled = true;
-
-                    $(Selectors.flashMessageContainer).empty();
-                },
-                success: function(issue) {
-                    titleField.value = issue.subject;
-                },
-                error: function (xhr) {
-                    $(Selectors.flashMessageContainer).append(
-                        $('<div/>', {class: 'alert alert-danger alert-dismissible fade show', role: 'alert'}).append(
-                            $('<button/>', {type: 'button', class: 'close', 'data-dismiss': 'alert', 'aria-label': 'Close'}).append(
-                                $('<span/>', {'aria-hidden': 'true'}).html('&times;')
-                            ),
-                            $('<strong/>').text(xhr.responseText)
-                        ).fadeIn()
-                    );
-                },
-                complete: function() {
-                    ticketIdField.disabled = false;
-                    $trigger.disabled = false;
+            ticketIdField.disabled = true;
+            trigger.disabled = true;
+            document.querySelector(Selectors.flashMessageContainer).replaceChildren();
+            try {
+                const response = await fetch('/api/issue/' + ticketId, {headers: {Accept: 'application/json'}});
+                const data = await response.json().catch(() => null);
+                if (!response.ok || data === null) {
+                    throw new Error(typeof data === 'string' ? data : 'Fetching the ticket failed with status ' + response.status);
                 }
-            })
+                titleField.value = data.subject;
+            } catch (error) {
+                Rst.showError(error.message);
+            } finally {
+                ticketIdField.disabled = false;
+                trigger.disabled = false;
+            }
+        },
+        showError: function (message) {
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-danger alert-dismissible fade show';
+            alert.setAttribute('role', 'alert');
+            const text = document.createElement('strong');
+            text.textContent = message;
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.className = 'btn-close';
+            close.dataset.bsDismiss = 'alert';
+            close.setAttribute('aria-label', 'Close');
+            alert.append(text, close);
+            document.querySelector(Selectors.flashMessageContainer).append(alert);
         },
         togglePalettes: function (classification) {
-            const $palettes = $('[data-classified-as]');
-            const $palettesToShow = $palettes.filter(function(index, element) {
-                return element.dataset.classifiedAs.indexOf(classification) > -1;
+            document.querySelectorAll('[data-classified-as]').forEach(function (palette) {
+                const show = palette.dataset.classifiedAs.split(' ').includes(classification);
+                palette.hidden = !show;
+                palette.querySelectorAll('input, select, textarea, button').forEach(function (field) {
+                    field.disabled = !show;
+                });
             });
-            const $palettesToHide = $palettes.not($palettesToShow);
-
-            $palettesToShow.prop('hidden', false);
-            $palettesToShow.find(':input').prop('disabled', false);
-            $palettesToHide.prop('hidden', true);
-            $palettesToHide.find(':input').prop('disabled', true);
         },
         generateDocument: function (e) {
             e.preventDefault();
 
-            const $modal = $(Selectors.modal);
             const ticketId = document.querySelector(Selectors.ticketIdField).value.replace(/\D/g, '');
             const timestamp = Math.floor(Date.now() / 1000);
-            const title = $.trim(document.querySelector(Selectors.ticketTitleField).value);
+            const title = document.querySelector(Selectors.ticketTitleField).value.trim();
             const classificationType = document.querySelector(Selectors.classificationToggle + ':checked').value;
-            const classificationTitle = $.trim(document.querySelector(Selectors.classificationToggle + ':checked').parentElement.textContent);
+            const classificationTitle = document.querySelector(Selectors.classificationToggle + ':checked').parentElement.textContent.trim();
             const headline = sprintf('%s: #%d - %s', classificationTitle, ticketId, title);
             const filename = sprintf('%s-%d-%s', classificationTitle, ticketId, title.toUpperCamelCase().replace(/[^0-9a-z-_]/gi, '')) + '.rst';
 
@@ -95,12 +102,12 @@
             restContent += sprintf('..  _%s-%d-%d:\n\n', classificationType, ticketId, timestamp);
             restContent += sprintf('%s\n%s\n%s\n\n%s', '='.repeat(headline.length), headline, '='.repeat(headline.length), forgeRef);
 
-            $('textarea:visible').each(function () {
-                const $me = $(this);
-                const label = $me.attr('title');
-                const value = $.trim($me.val());
+            // Only the sections of the current classification are visible
+            e.currentTarget.querySelectorAll('textarea').forEach(function (textarea) {
+                const label = textarea.title;
+                const value = textarea.value.trim();
 
-                if (value.length > 0) {
+                if (textarea.getClientRects().length > 0 && value.length > 0) {
                     restBody += sprintf('\n\n\n%s\n%s\n\n%s', label, '='.repeat(label.length), value);
                 }
             });
@@ -125,8 +132,8 @@
             }
             restContent += restBody.replace('\n', '');
 
-            const icon = document.createElement('i');
-            icon.classList.add('fa', 'fa-file-download', 'me-1');
+            const icon = document.querySelector(`${Selectors.modal} template[data-template="download-icon"]`).content.firstElementChild.cloneNode(true);
+            icon.classList.add('me-1');
             const link = document.createElement('a');
             link.setAttribute('href', window.URL.createObjectURL(new Blob([restContent], {type: 'text/plain;charset=utf-8'})));
             link.setAttribute('download', filename);

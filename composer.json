@@ -1,9 +1,9 @@
 {
     "name": "t3g/forger",
-    "license": "proprietary",
+    "license": "GPL-2.0-or-later",
     "type": "project",
     "require": {
-        "php": "^8.3",
+        "php": "^8.5",
         "ext-ctype": "*",
         "ext-iconv": "*",
         "ext-json": "*",
@@ -14,29 +14,26 @@
         "kbsali/redmine-api": "^2.2",
         "knplabs/knp-menu-bundle": "^3.2",
         "netcarver/textile": "^4.1",
-        "psr/log": "^2.0",
+        "psr/log": "^3.0",
         "ruflin/elastica": "^7.3",
-        "symfony/console": "^6.4",
-        "symfony/dependency-injection": "^6.4",
-        "symfony/dotenv": "^6.4",
+        "symfony/console": "^7.4",
+        "symfony/dependency-injection": "^7.4",
+        "symfony/dotenv": "^7.4",
         "symfony/flex": "^2.3",
-        "symfony/form": "^6.4",
-        "symfony/framework-bundle": "^6.4",
-        "symfony/http-foundation": "^6.4",
-        "symfony/lock": "^6.4",
-        "symfony/monolog-bundle": "^3.8",
-        "symfony/routing": "^6.4",
-        "symfony/runtime": "^6.4",
-        "symfony/security-bundle": "^6.4",
-        "symfony/twig-bundle": "^6.4",
-        "symfony/validator": "^6.4",
+        "symfony/form": "^7.4",
+        "symfony/framework-bundle": "^7.4",
+        "symfony/http-foundation": "^7.4",
+        "symfony/lock": "^7.4",
+        "symfony/monolog-bundle": "^4.0",
+        "symfony/routing": "^7.4",
+        "symfony/runtime": "^7.4",
+        "symfony/security-bundle": "^7.4",
+        "symfony/twig-bundle": "^7.4",
+        "symfony/validator": "^7.4",
         "symfony/webpack-encore-bundle": "^2.0",
-        "symfony/yaml": "^6.4",
-        "t3g/elastic-utility": "^7.0.2",
-        "t3g/symfony-datahub-bundle": "^3.0",
-        "t3g/symfony-keycloak-bundle": "^3.0",
+        "symfony/yaml": "^7.4",
+        "t3g/symfony-keycloak-bundle": "^4.0",
         "t3g/symfony-template-bundle": "^6.1",
-        "t3g/symfony-usercentrics-bundle": "^2.0",
         "twig/twig": "^3.15",
         "typo3/html-sanitizer": "^2.3"
     },
@@ -45,8 +42,8 @@
         "phpunit/phpunit": "^12.5",
         "rector/rector": "^2.0",
         "symfony/maker-bundle": "^1.49",
-        "symfony/stopwatch": "^6.4",
-        "symfony/web-profiler-bundle": "^6.4"
+        "symfony/stopwatch": "^7.4",
+        "symfony/web-profiler-bundle": "^7.4"
     },
     "conflict": {
         "symfony/symfony": "*"
@@ -59,15 +56,14 @@
         "symfony/polyfill-php80": "*",
         "symfony/polyfill-php81": "*",
         "symfony/polyfill-php82": "*",
-        "symfony/polyfill-php83": "*"
+        "symfony/polyfill-php83": "*",
+        "symfony/polyfill-php84": "*",
+        "symfony/polyfill-php85": "*"
     },
     "repositories": [
         {
-            "type": "composer",
-            "url": "https://repo.packagist.com/typo3gmbh/"
-        },
-        {
-            "packagist.org": false
+            "type": "vcs",
+            "url": "https://github.com/TYPO3GmbH/symfony-keycloak-bundle"
         }
     ],
     "autoload": {
@@ -88,18 +84,15 @@
         },
         "bin-dir": "bin",
         "platform": {
-            "php": "8.3"
+            "php": "8.5"
         },
-        "preferred-install": {
-            "*": "dist",
-            "t3g/*": "src"
-        },
+        "preferred-install": "dist",
         "sort-packages": true
     },
     "extra": {
         "symfony": {
             "allow-contrib": false,
-            "require": "^6.4"
+            "require": "7.4.*"
         }
     },
     "scripts": {

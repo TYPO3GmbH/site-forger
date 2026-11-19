@@ -197,7 +197,7 @@ final class RedmineTextileRenderer
      */
     private function neutralizeUnsupportedBlocks(string $text): string
     {
-        $tags = implode('|', array_map('preg_quote', self::UNSUPPORTED_BLOCKS));
+        $tags = implode('|', array_map(preg_quote(...), self::UNSUPPORTED_BLOCKS));
 
         return preg_replace_callback(
             '/^(' . $tags . ')([^\s.]*)\.(?=\s)/mi',

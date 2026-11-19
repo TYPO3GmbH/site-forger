@@ -1,7 +1,8 @@
 name: Check out
 inputs:
   token:
-    required: true
+    description: Token for the checkout; falls back to the workflow token (e.g. for fork pull requests without secrets)
+    required: false
     default: ''
 runs:
   using: composite
@@ -11,4 +12,4 @@ runs:
         repository: TYPO3GmbH/infra-github-actions
         ref: main
         path: ./.github/actions/t3g
-        token: ${{ inputs.token }}
+        token: ${{ inputs.token || github.token }}

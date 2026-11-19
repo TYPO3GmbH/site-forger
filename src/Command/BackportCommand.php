@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Elastic\ElasticUtility;
 use App\Repository\BackportBlacklistEntryRepository;
 use Elastica\Exception\InvalidException;
 use Elastica\Result;
@@ -21,7 +22,6 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use T3G\ElasticUtility\ElasticUtility;
 
 #[AsCommand(name: 'app:backports', description: 'Creates a list of available backports')]
 class BackportCommand extends Command

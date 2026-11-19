@@ -122,12 +122,10 @@ class GithubService
             return 1;
         }
         $parsed = Header::parse($linkHeader);
-        $last = array_values(
-            array_filter(
-                $parsed,
-                static fn (array $set): bool => 'last' === $set['rel']
-            )
-        )[0][0] ?? '&page=1';
+        $last = array_first(array_filter(
+            $parsed,
+            static fn (array $set): bool => 'last' === $set['rel']
+        ))[0] ?? '&page=1';
         preg_match('#&page=(\d+)#', (string) $last, $matches);
 
         return (int) $matches[1];

@@ -11,15 +11,17 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Elastic\ElasticUtility;
 use Elastica\Exception\InvalidException;
 use Elastica\Query\BoolQuery;
 use Elastica\Query\Range;
 use Elastica\Query\Term;
 use Elastica\ResultSet;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\InputBag;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use T3G\ElasticUtility\ElasticUtility;
 
 class ReviewController extends AbstractController
 {
@@ -34,11 +36,10 @@ class ReviewController extends AbstractController
     private ?int $totalHits = null;
     private string $dateInterval = 'month';
 
-    public function __construct()
-    {
-        if (array_key_exists('page', $_GET)) {
-            $this->currentPage = (int) $_GET['page'];
-        }
+    public function __construct(
+        private readonly RequestStack $requestStack,
+    ) {
+        $this->currentPage = $this->query()->getInt('page', 1);
     }
 
     #[Route(path: '/gerrit/status', name: 'gerrit_index')]
@@ -296,9 +297,9 @@ class ReviewController extends AbstractController
         $viewData['searchRouteName'] = 'gerrit_files';
         $viewData['searchPlaceholder'] = 'full relative path in GIT repo';
         $viewData['results'] = [];
-        if (array_key_exists('query', $_GET)) {
+        if ($this->query()->has('query')) {
             $searchClosed = false;
-            if (array_key_exists('searchClosed', $_GET) && '1' === $_GET['searchClosed']) {
+            if ('1' === $this->query()->getString('searchClosed')) {
                 $searchClosed = true;
             }
             $fullRequest = [
@@ -308,7 +309,7 @@ class ReviewController extends AbstractController
                             [
                                 'terms' => [
                                     'files' => [
-                                        htmlspecialchars((string) $_GET['query']),
+                                        htmlspecialchars($this->query()->getString('query')),
                                     ],
                                 ],
 
@@ -340,7 +341,7 @@ class ReviewController extends AbstractController
             if ($searchClosed) {
                 $viewData['searchClosed'] = '1';
             }
-            $viewData['query'] = htmlspecialchars((string) $_GET['query']);
+            $viewData['query'] = htmlspecialchars($this->query()->getString('query'));
         }
 
         return $this->render('review/files.html.twig', $viewData);
@@ -595,18 +596,15 @@ class ReviewController extends AbstractController
         $viewData['totalResults'] = $this->totalHits;
         $viewData['startingAtItem'] = ($this->currentPage * $this->perPage) - ($this->perPage - 1);
         $viewData['aggregations'] = $resultSet->getAggregations();
-        if (array_key_exists('filters', $_GET)) {
-            $viewData['filters'] = $_GET['filters'];
-        } else {
-            $viewData['filters'] = [];
-        }
-        if (array_key_exists('query', $_GET)) {
-            $viewData['query'] = $_GET['query'];
-        } else {
-            $viewData['query'] = '';
-        }
+        $viewData['filters'] = $this->query()->all('filters');
+        $viewData['query'] = $this->query()->getString('query');
 
         return $viewData;
+    }
+
+    private function query(): InputBag
+    {
+        return $this->requestStack->getCurrentRequest()?->query ?? new InputBag();
     }
 
     /**
@@ -621,10 +619,7 @@ class ReviewController extends AbstractController
     {
         $filters = new BoolQuery();
 
-        if (!array_key_exists('filters', $_GET)) {
-            return $filters;
-        }
-        foreach ($_GET['filters'] as $key => $filterValue) {
+        foreach ($this->query()->all('filters') as $key => $filterValue) {
             $filterPart = new BoolQuery();
             $filterCatCount = 0;
             foreach ($filterValue as $term => $enabled) {
@@ -633,7 +628,7 @@ class ReviewController extends AbstractController
                     if ('updated_on' === $key) {
                         $filter = new Range();
                         $startDate = new \DateTime('@' . (int) ($term / 1000));
-                        $endDate = (new \DateTime('@' . (int) ($term / 1000)))->modify('+1 month -1 second');
+                        $endDate = new \DateTime('@' . (int) ($term / 1000))->modify('+1 month -1 second');
                         $filter->addField(
                             $key,
                             [

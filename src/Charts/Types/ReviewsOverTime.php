@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace App\Charts\Types;
 
 use App\Charts\Colors;
+use App\Elastic\ElasticUtility;
 use Elastica\Index;
-use T3G\ElasticUtility\ElasticUtility;
 
 /**
  * Generates a charts about open reviews over time.
@@ -38,7 +38,7 @@ class ReviewsOverTime extends ReviewChart
         $closedDataSet = $this->getClosedDataSet();
         $mergedDataSets = array_replace_recursive($openedDataSet, $closedDataSet);
 
-        $dateToFilter = (new \DateTimeImmutable())->sub(new \DateInterval('P3Y'));
+        $dateToFilter = new \DateTimeImmutable()->sub(new \DateInterval('P3Y'));
         $mergedDataSets = array_filter($mergedDataSets, static function (string $key) use ($dateToFilter) {
             $date = \DateTimeImmutable::createFromFormat(static::DATE_FORMAT, $key);
 

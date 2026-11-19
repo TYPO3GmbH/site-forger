@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace App\Charts\Types;
 
 use App\Charts\Colors;
+use App\Elastic\ElasticUtility;
 use Elastica\Index;
-use T3G\ElasticUtility\ElasticUtility;
 
 class OpenedClosed extends IssueChart
 {
@@ -45,7 +45,7 @@ class OpenedClosed extends IssueChart
         $resultSet = $this->fetchData($this->index, $this->getOpenedQuery([
             'bool' => [
                 'must_not' => [
-                    'range' => ['created_on' => ['lte' => (new \DateTimeImmutable())->sub(new \DateInterval('P1M'))->format('Y/m/d H:i:s')]],
+                    'range' => ['created_on' => ['lte' => new \DateTimeImmutable()->sub(new \DateInterval('P1M'))->format('Y/m/d H:i:s')]],
                 ],
             ],
         ]));
@@ -70,7 +70,7 @@ class OpenedClosed extends IssueChart
                     'terms' => ['status.name' => ['Closed', 'Rejected', 'Resolved']],
                 ],
                 'must_not' => [
-                    'range' => ['updated_on' => ['lte' => (new \DateTimeImmutable())->sub(new \DateInterval('P1M'))->format('Y/m/d H:i:s')]],
+                    'range' => ['updated_on' => ['lte' => new \DateTimeImmutable()->sub(new \DateInterval('P1M'))->format('Y/m/d H:i:s')]],
                 ],
             ],
         ]));

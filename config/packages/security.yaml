@@ -4,7 +4,8 @@ security:
         id: keycloak.typo3.com.user.provider
     firewalls:
         dev:
-            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            # Ensure dev tools and static assets are always allowed
+            pattern: ^/(_profiler(/|$)|(_wdt|assets|build)/)
             security: false
         main:
             lazy: true
@@ -18,6 +19,23 @@ security:
       ROLE_CORE_COMPONENT: ROLE_USER
       ROLE_CORE_FRAMEWORK: ROLE_CORE_COMPONENT
       ROLE_ADMIN: ROLE_CORE_FRAMEWORK
+
+# Second login in dev: log in as one of these fixed users at /_dev/login (keys are the user identifiers).
+# Keycloak login keeps working next to it. ROLE_USER is always added.
+when@dev:
+    parameters:
+        app.dev_login.users:
+            dev-admin: { name: 'Dev Admin', roles: ['ROLE_ADMIN'] }
+            dev-framework: { name: 'Dev Core Framework', roles: ['ROLE_CORE_FRAMEWORK'] }
+            dev-component: { name: 'Dev Core Component', roles: ['ROLE_CORE_COMPONENT'] }
+            dev-user: { name: 'Dev User', roles: ['ROLE_USER'] }
+
+    security:
+        firewalls:
+            main:
+                entry_point: App\Security\Dev\DevLoginAuthenticator
+                custom_authenticators:
+                    - App\Security\Dev\DevLoginAuthenticator
 
 when@test:
     security:

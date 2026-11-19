@@ -12,8 +12,6 @@
 .idea/
 .vscode/
 
-/util/vendor/
-/util/bin/
 
 ###< symfony/framework-bundle ###
 

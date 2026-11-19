@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Elastic\ElasticUtility;
 use Elastica\Query\MatchAll;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -18,7 +19,6 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use T3G\ElasticUtility\ElasticUtility;
 
 #[AsCommand(name: 'app:truncate-type', description: 'Clears a type in the current index')]
 class TruncateTypeCommand extends Command
@@ -40,7 +40,7 @@ class TruncateTypeCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $type = $input->getArgument('type');
 
-        if ('review' === $type || 'issue' === $type || 'interactions' === $type || 'karmapoints' === $type) {
+        if ('review' === $type || 'issue' === $type || 'interactions' === $type) {
             $typeToWorkOn = ElasticUtility::getIndexByName($type);
             $query = new MatchAll();
             $typeToWorkOn->deleteByQuery($query);

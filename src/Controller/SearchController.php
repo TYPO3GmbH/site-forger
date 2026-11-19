@@ -11,13 +11,13 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Elastic\ElasticUtility;
 use Elastica\Aggregation\Terms;
 use Elastica\Query;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use T3G\ElasticUtility\ElasticUtility;
 
 #[Route(path: '/search', name: 'search_')]
 class SearchController extends AbstractController
@@ -25,6 +25,9 @@ class SearchController extends AbstractController
     protected int $perPage = 25;
     protected int $currentPage = 1;
     protected int $totalHits = 0;
+
+    /** @var array<string, array<string, string>> */
+    private array $filters = [];
 
     /**
      * @throws \Exception
@@ -34,10 +37,11 @@ class SearchController extends AbstractController
     {
         $this->currentPage = (int) $request->query->get('page', 1);
         $query = (string) $request->query->get('query');
+        $this->filters = $request->query->all('filters');
 
         $viewData = [];
         $searchClosed = false;
-        if ($request->get('searchClosed') && 1 === (int) $request->get('searchClosed')) {
+        if (1 === $request->query->getInt('searchClosed')) {
             $searchClosed = true;
         }
         $results = [];
@@ -59,7 +63,7 @@ class SearchController extends AbstractController
         if ($searchClosed) {
             $viewData['searchClosed'] = '1';
         }
-        $viewData['filters'] = $request->get('filters') ?? [];
+        $viewData['filters'] = $this->filters;
         $viewData['routeName'] = 'search_search';
 
         return $this->render('search/search.html.twig', $viewData);
@@ -233,10 +237,7 @@ class SearchController extends AbstractController
     {
         $filters = new Query\BoolQuery();
 
-        if (!array_key_exists('filters', $_GET)) {
-            return $filters;
-        }
-        foreach ($_GET['filters'] as $key => $filterValue) {
+        foreach ($this->filters as $key => $filterValue) {
             $key = $this->mapFilterNames($key);
             $filterCatCount = 0;
             $filterPart = new Query\BoolQuery();
@@ -307,17 +308,6 @@ class SearchController extends AbstractController
         $phpVer = new Terms('PHP Version');
         $phpVer->setField('php_version');
         $elasticaQuery->addAggregation($phpVer);
-
-        /*$age = new \Elastica\Aggregation\Range('Age');
-        $age->setParams(array(
-            'script' => 'DateTime.now().year - doc[\'updated_on\'].date.year',
-            'ranges' => array(
-                array('from' => 0,'to' => 1),
-                array('from' => 2,'to' => 3),
-                array('from' => 4,'to' => 5),
-            )
-        ));
-        $elasticaQuery->addAggregation($age);*/
     }
 
     protected function getPages(): array
