@@ -13,16 +13,19 @@ namespace App\Controller;
 
 use App\Elastic\ElasticUtility;
 use App\Entity\SprintBoard;
+use App\Enum\ReviewStatusEnum;
+use App\Form\SprintBoardWizard;
 use App\Repository\SprintBoardCategoryRepository;
 use App\Repository\SprintBoardRepository;
+use App\Sprint\BoardFilter;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
 
 class SprintController extends AbstractController
@@ -31,12 +34,12 @@ class SprintController extends AbstractController
         private readonly SprintBoardCategoryRepository $sprintBoardCategoryRepository,
         private readonly SprintBoardRepository $sprintBoardRepository,
         private readonly ParameterBagInterface $parameters,
-        private readonly ManagerRegistry $managerRegistry
+        private readonly EntityManagerInterface $entityManager
     ) {
     }
 
     #[Route(path: '/sprint/list', name: 'sprint_list')]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
     public function list(): Response
     {
         return $this->render('management/sprint/index.html.twig', [
@@ -56,66 +59,151 @@ class SprintController extends AbstractController
     }
 
     #[Route(path: '/sprint/create', name: 'sprint_create')]
-    #[IsGranted('ROLE_ADMIN')]
-    public function createSprint(
-        Request $request,
-        EntityManagerInterface $entityManager
-    ): Response {
-        $sprint = new SprintBoard();
-        $form = $this->createForm(\App\Form\SprintBoard::class, $sprint, ['entity_manager' => $this->managerRegistry->getManager()]);
-        $form->handleRequest($request);
+    #[IsGranted('ROLE_CORE_COMPONENT')]
+    public function createSprint(Request $request): Response
+    {
+        return $this->handleBoardForm($request, new SprintBoard(), SprintBoardWizard::class);
+    }
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $category = $sprint->getCategory();
-            if (null !== $category) {
-                $sprint->setCategory($category);
-                $entityManager->persist($sprint);
-                $entityManager->flush();
-
-                $this->addFlash('success', 'Sprint board created.');
-
-                return $this->redirectToRoute('sprint', ['category' => $category->getIdentifier(), 'sprintId' => $sprint->getId()]);
-            }
-        }
-
-        return $this->render('sprint/form.html.twig', [
-            'form' => $form,
-        ]);
+    #[Route(path: '/sprint/create/yaml', name: 'sprint_create_yaml')]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
+    public function createSprintAsYaml(Request $request): Response
+    {
+        return $this->handleBoardForm($request, new SprintBoard(), \App\Form\SprintBoard::class);
     }
 
     #[Route(path: '/sprint/edit/{sprintId}', name: 'sprint_edit')]
-    #[IsGranted('ROLE_ADMIN')]
-    public function editSprint(
-        Request $request,
-        int $sprintId,
-        EntityManagerInterface $entityManager
-    ): Response {
+    #[IsGranted('ROLE_CORE_COMPONENT')]
+    public function editSprint(Request $request, int $sprintId): Response
+    {
         $sprint = $this->sprintBoardRepository->find($sprintId);
-
         if (null === $sprint) {
             return $this->redirectToRoute('sprint_create');
         }
 
-        $form = $this->createForm(\App\Form\SprintBoard::class, $sprint, ['entity_manager' => $this->managerRegistry->getManager()]);
+        if (null !== BoardFilter::fromYaml($sprint->getQuery())) {
+            return $this->handleBoardForm($request, $sprint, SprintBoardWizard::class);
+        }
+
+        // A query written by hand opens in the wizard with the filters it comes closest to, saving replaces it
+        $import = $this->importHandWrittenQuery($sprint);
+        if (null === $import) {
+            return $this->handleBoardForm($request, $sprint, \App\Form\SprintBoard::class);
+        }
+        $handWrittenQuery = (string) $sprint->getQuery();
+        $sprint->setQuery($import['filter']->toYaml());
+
+        return $this->handleBoardForm($request, $sprint, SprintBoardWizard::class, [
+            'handWrittenQuery' => $handWrittenQuery,
+            'droppedClauses' => $import['dropped'],
+        ]);
+    }
+
+    #[Route(path: '/sprint/edit/{sprintId}/yaml', name: 'sprint_edit_yaml')]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
+    public function editSprintAsYaml(Request $request, int $sprintId): Response
+    {
+        $sprint = $this->sprintBoardRepository->find($sprintId);
+        if (null === $sprint) {
+            return $this->redirectToRoute('sprint_create_yaml');
+        }
+
+        return $this->handleBoardForm($request, $sprint, \App\Form\SprintBoard::class);
+    }
+
+    /**
+     * The issues the filters of the wizard currently select, grouped like on the board.
+     */
+    #[Route(path: '/sprint/wizard/preview', name: 'sprint_wizard_preview', methods: ['POST'])]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
+    public function previewSprint(Request $request): Response
+    {
+        $form = $this->createForm(SprintBoardWizard::class, new SprintBoard());
+        $form->handleRequest($request);
+        $filter = $form->isSubmitted() ? $form->get('query')->getNormData() : null;
+        if (!$filter instanceof BoardFilter || !$filter->hasFilter()) {
+            return $this->render('sprint/_wizard_preview.html.twig', ['hasFilter' => false]);
+        }
+
+        /** @var array<string, int|null> $columns */
+        $columns = $this->parameters->get('ColumnOrder');
+        $resultSet = ElasticUtility::getIndexByName('issue')->createSearch([
+            'query' => $filter->toQuery(),
+            'size' => 10000,
+            '_source' => ['id', 'subject', 'status', 'tracker'],
+            'sort' => [['updated_on' => ['order' => 'desc']]],
+        ])->search();
+        $issues = [];
+        foreach ($resultSet->getResults() as $result) {
+            $issue = $result->getSource();
+            $issue['column'] = $this->defineBoardGroup((string) ($issue['status']['name'] ?? ''));
+            $columns[$issue['column']] = ($columns[$issue['column']] ?? 0) + 1;
+            $issues[] = $issue;
+        }
+
+        return $this->render('sprint/_wizard_preview.html.twig', [
+            'hasFilter' => true,
+            'columns' => array_map(static fn (?int $count): int => $count ?? 0, $columns),
+            'total' => count($issues),
+            'issues' => array_slice($issues, 0, 25),
+        ]);
+    }
+
+    /**
+     * @param class-string<SprintBoardWizard|\App\Form\SprintBoard> $formType
+     * @param array<string, mixed>                                  $wizardContext
+     */
+    private function handleBoardForm(Request $request, SprintBoard $sprint, string $formType, array $wizardContext = []): Response
+    {
+        $isNew = null === $sprint->getId();
+        $form = $this->createForm($formType, $sprint);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->persist($sprint);
-            $entityManager->flush();
+        if ($form->isSubmitted() && $form->isValid() && null !== $sprint->getCategory()) {
+            $this->entityManager->persist($sprint);
+            $this->entityManager->flush();
 
-            $this->addFlash('success', 'Sprint board edited.');
+            $this->addFlash('success', $isNew ? 'Sprint board created.' : 'Sprint board edited.');
 
             return $this->redirectToRoute('sprint', ['category' => $sprint->getCategory()->getIdentifier(), 'sprintId' => $sprint->getId()]);
         }
 
+        if (SprintBoardWizard::class === $formType) {
+            return $this->render('sprint/wizard.html.twig', $wizardContext + [
+                'form' => $form,
+                'sprint' => $sprint,
+                'handWrittenQuery' => null,
+                'droppedClauses' => [],
+            ]);
+        }
+
         return $this->render('sprint/form.html.twig', [
             'form' => $form,
-            'edit' => true,
+            'sprint' => $sprint,
+            'edit' => !$isNew,
+            'wizardAvailable' => $isNew || null !== BoardFilter::fromYaml($sprint->getQuery()) || null !== $this->importHandWrittenQuery($sprint),
         ]);
     }
 
+    /**
+     * The filters of the wizard a query written by hand comes closest to, null if it has none of them.
+     *
+     * @return array{filter: BoardFilter, dropped: list<string>}|null
+     */
+    private function importHandWrittenQuery(SprintBoard $sprint): ?array
+    {
+        try {
+            $query = Yaml::parse((string) $sprint->getQuery());
+        } catch (ParseException) {
+            return null;
+        }
+        $import = is_array($query) ? BoardFilter::approximate($query) : null;
+
+        return null !== $import && $import['filter']->hasFilter() ? $import : null;
+    }
+
     #[Route(path: '/sprint/delete/{sprintId}', name: 'sprint_delete')]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
     public function deleteSprint(
         int $sprintId,
         EntityManagerInterface $entityManager
@@ -132,7 +220,7 @@ class SprintController extends AbstractController
     }
 
     #[Route(path: '/sprint/delete/{sprintId}/confirm', name: 'sprint_delete_confirm')]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('ROLE_CORE_COMPONENT')]
     public function deleteSprintConfirm(
         int $sprintId
     ): Response {
@@ -248,7 +336,7 @@ class SprintController extends AbstractController
                     [
                         'query_string' => [
                             'default_field' => 'reviewstatus',
-                            'query' => 'NEW',
+                            'query' => ReviewStatusEnum::NEW->value,
                         ],
                     ],
                 ],
@@ -409,54 +497,42 @@ class SprintController extends AbstractController
         foreach ($resultSet->getResults() as $ticket) {
             $status = $ticket->getSource()['status'];
             $getBoardGroup = $this->defineBoardGroup($status['name']);
-            if ('Review' === $getBoardGroup) {
-                $out[$getBoardGroup][] = $this->getReviewCard($ticket->getData());
-            } else {
-                $out[$getBoardGroup][] = $ticket->getData();
-            }
+            // Issues in review show their Gerrit review, if it is known
+            $out[$getBoardGroup][] = ('Review' === $getBoardGroup ? $this->getReviewCard($ticket->getData()) : null) ?? $ticket->getData();
         }
 
         return $out;
     }
 
-    private function getReviewCard(array $ticket): array
+    /**
+     * The Gerrit review linked in the journal of an issue, null if there is none or it was not imported.
+     */
+    private function getReviewCard(array $ticket): ?array
     {
-        $returnValue = [];
         $notes = '';
-        if (isset($ticket['journals'])) {
-            foreach ((array) $ticket['journals'] as $journalEntry) {
-                if (isset($journalEntry['notes'])
-                    && (
-                        str_contains((string) $journalEntry['notes'], 'It is available at http://review.typo3.org/')
-                        || str_contains((string) $journalEntry['notes'], 'It is available at https://review.typo3.org/')
-                    )
-                ) {
-                    $notes = $journalEntry['notes'];
-                }
+        foreach ((array) ($ticket['journals'] ?? []) as $journalEntry) {
+            if (isset($journalEntry['notes'])
+                && (
+                    str_contains((string) $journalEntry['notes'], 'It is available at http://review.typo3.org/')
+                    || str_contains((string) $journalEntry['notes'], 'It is available at https://review.typo3.org/')
+                )
+            ) {
+                $notes = $journalEntry['notes'];
             }
-            if ('' === $notes) {
-                return $ticket;
-            }
-            $pattern = '|.*https:\/\/review\.typo3\.org\/(?>(c\/)?)(?>Packages\/TYPO3\.CMS\/\+\/)?(?<reviewId>[\d]{2,6})|';
-            preg_match($pattern, (string) $notes, $matches);
-            if (!isset($matches['reviewId'])) {
-                throw new \InvalidArgumentException('There should be a review id in ' . $notes);
-            }
-            $reviewType = ElasticUtility::getIndexByName('review');
-
-            try {
-                $item = $reviewType->getDocument($matches['reviewId']);
-            } catch (\Exception) {
-                return $ticket;
-            }
-            $returnValue = $item->getData();
-            $returnValue['_redmine_issue_id'] = $ticket['id'];
-
-            return $returnValue;
         }
-        $returnValue['_redmine_issue_id'] = $ticket['id'];
+        $pattern = '|.*https?:\/\/review\.typo3\.org\/(?>(c\/)?)(?>Packages\/TYPO3\.CMS\/\+\/)?(?<reviewId>[\d]{2,6})|';
+        if ('' === $notes || 1 !== preg_match($pattern, (string) $notes, $matches)) {
+            return null;
+        }
 
-        return $returnValue;
+        try {
+            $review = ElasticUtility::getIndexByName('review')->getDocument($matches['reviewId'])->getData();
+        } catch (\Exception) {
+            return null;
+        }
+        $review['_redmine_issue_id'] = $ticket['id'];
+
+        return $review;
     }
 
     private function defineBoardGroup(string $status): string

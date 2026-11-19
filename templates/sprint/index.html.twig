@@ -24,7 +24,7 @@
             <div class="container-fluid">
                 <div class="header">
                     <h2 class="header-headline">{{ boardInfo }} ({{ progress.total }})</h2>
-                    {% if sprintId is defined and sprintId > 0 and is_granted('ROLE_ADMIN') %}
+                    {% if sprintId is defined and sprintId > 0 and is_granted('ROLE_CORE_COMPONENT') %}
                         <div class="header-actions">
                             {{ buttons.link(
                                 path('sprint_edit', {'sprintId': sprintId}),
@@ -68,7 +68,7 @@
                         </div>
                         <div class="board-column-content">
                             {% for card in cardList %}
-                                {% if columnName == "Review" %}
+                                {% if card._redmine_issue_id is defined %}
                                     {% include '_partials/review_card.html.twig' with {'card': card, 'mode': ''} only %}
                                 {% else %}
                                     {% include '_partials/issue_card.html.twig' with {'card': card} only %}

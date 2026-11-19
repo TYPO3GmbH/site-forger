@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\ElasticUtility;
+use App\Enum\ReviewStatusEnum;
 use Elastica\Exception\InvalidException;
 use Elastica\Query\BoolQuery;
 use Elastica\Query\Range;
@@ -51,9 +52,7 @@ class ReviewController extends AbstractController
                     'must' => [
                         [
                             'terms' => [
-                                'reviewstatus' => [
-                                    'NEW',
-                                ],
+                                'reviewstatus' => [ReviewStatusEnum::NEW->value],
                             ],
 
                         ],
@@ -61,10 +60,7 @@ class ReviewController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'reviewstatus' => [
-                                    'MERGED',
-                                    'ABANDONED',
-                                ],
+                                'reviewstatus' => ReviewStatusEnum::closedValues(),
                             ],
 
                         ],
@@ -113,10 +109,7 @@ class ReviewController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'reviewstatus' => [
-                                    'MERGED',
-                                    'ABANDONED',
-                                ],
+                                'reviewstatus' => ReviewStatusEnum::closedValues(),
                             ],
 
                         ],
@@ -165,10 +158,7 @@ class ReviewController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'reviewstatus' => [
-                                    'MERGED',
-                                    'ABANDONED',
-                                ],
+                                'reviewstatus' => ReviewStatusEnum::closedValues(),
                             ],
 
                         ],
@@ -217,10 +207,7 @@ class ReviewController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'reviewstatus' => [
-                                    'MERGED',
-                                    'ABANDONED',
-                                ],
+                                'reviewstatus' => ReviewStatusEnum::closedValues(),
                             ],
 
                         ],
@@ -262,10 +249,7 @@ class ReviewController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'reviewstatus' => [
-                                    'MERGED',
-                                    'ABANDONED',
-                                ],
+                                'reviewstatus' => ReviewStatusEnum::closedValues(),
                             ],
 
                         ],
@@ -318,10 +302,7 @@ class ReviewController extends AbstractController
                         'must_not' => [
                             [
                                 'terms' => [
-                                    'reviewstatus' => [
-                                        'MERGED',
-                                        'ABANDONED',
-                                    ],
+                                    'reviewstatus' => ReviewStatusEnum::closedValues(),
                                 ],
 
                             ],
@@ -380,10 +361,7 @@ class ReviewController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'reviewstatus' => [
-                                    'MERGED',
-                                    'ABANDONED',
-                                ],
+                                'reviewstatus' => ReviewStatusEnum::closedValues(),
                             ],
 
                         ],
@@ -428,10 +406,7 @@ class ReviewController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'reviewstatus' => [
-                                    'MERGED',
-                                    'ABANDONED',
-                                ],
+                                'reviewstatus' => ReviewStatusEnum::closedValues(),
                             ],
 
                         ],
@@ -491,10 +466,7 @@ class ReviewController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'reviewstatus' => [
-                                    'MERGED',
-                                    'ABANDONED',
-                                ],
+                                'reviewstatus' => ReviewStatusEnum::closedValues(),
                             ],
 
                         ],
@@ -761,10 +733,7 @@ class ReviewController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'reviewstatus' => [
-                                    'MERGED',
-                                    'ABANDONED',
-                                ],
+                                'reviewstatus' => ReviewStatusEnum::closedValues(),
                             ],
                         ],
                     ],

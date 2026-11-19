@@ -1,0 +1,112 @@
+{% extends 'base.html.twig' %}
+{% import '_macros/buttons.html.twig' as buttons %}
+{% block title %}Sprint Boards{% endblock %}
+{% block headline %}Sprint Boards{% endblock %}
+{% block body %}
+
+    {% set steps = ['Board', 'Issues', 'Check and save'] %}
+    {% set yamlPath = sprint.id ? path('sprint_edit_yaml', {'sprintId': sprint.id}) : path('sprint_create_yaml') %}
+
+    <div class="content-section">
+        <div class="container">
+            <div class="header">
+                <h2 class="header-headline">{{ sprint.id ? 'Edit the Sprint Board "' ~ sprint.name ~ '"' : 'Add a Sprint Board' }}</h2>
+                <div class="header-actions">
+                    {{ buttons.link(yamlPath, 'Edit the query as YAML', 'secondary', 'actions-open') }}
+                </div>
+            </div>
+
+            {{ form_start(form, {'attr': {'class': 'sprint-wizard', 'data-sprint-wizard': '', 'data-preview-url': path('sprint_wizard_preview'), 'novalidate': 'novalidate'}}) }}
+            {{ form_errors(form) }}
+
+            {% if handWrittenQuery %}
+                <div class="alert alert-warning" role="alert">
+                    <div class="alert-inner">
+                        <h4 class="alert-heading">This board's query was written by hand</h4>
+                        <p>
+                            The wizard took over the filters it understands. Check them, and the issues in the step "Check and save":
+                            saving replaces the query written by hand. To keep that query, edit it as YAML instead.
+                        </p>
+                        {% if droppedClauses|length > 0 %}
+                            <p class="mb-1">These parts have no counterpart in the wizard and are left out:</p>
+                            <ul>
+                                {% for clause in droppedClauses %}
+                                    <li><code>{{ clause }}</code></li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        <details>
+                            <summary>Query written by hand</summary>
+                            <pre class="mb-0"><code>{{ handWrittenQuery }}</code></pre>
+                        </details>
+                    </div>
+                </div>
+            {% endif %}
+
+            <ol class="sprint-wizard-steps" data-wizard-nav hidden>
+                {% for step in steps %}
+                    <li class="sprint-wizard-step">
+                        <button type="button" class="sprint-wizard-step-button" data-wizard-goto="{{ loop.index0 }}">
+                            <span class="sprint-wizard-step-number">{{ loop.index }}</span>
+                            <span class="sprint-wizard-step-label">{{ step }}</span>
+                        </button>
+                    </li>
+                {% endfor %}
+            </ol>
+
+            <div class="card">
+                <div class="card-body">
+                    <fieldset class="sprint-wizard-panel" data-wizard-step>
+                        <legend>{{ steps[0] }}</legend>
+                        <p class="text-muted">Name the board and choose the category it is listed in.</p>
+                        {{ form_row(form.name) }}
+                        {{ form_row(form.identifier) }}
+                        {{ form_row(form.category) }}
+                    </fieldset>
+
+                    <fieldset class="sprint-wizard-panel" data-wizard-step>
+                        <legend>{{ steps[1] }}</legend>
+                        <p class="text-muted">
+                            An issue is on the board if it matches every filter you set. Within a filter, any of the selected values is enough.
+                            Hold Ctrl (Cmd on a Mac) to select several values in a list.
+                        </p>
+                        {{ form_errors(form.query) }}
+                        {{ form_row(form.query.trackers) }}
+                        <div class="row">
+                            {% for filter in ['categories', 'fixedVersions', 'focuses', 'tags', 'typo3Versions'] %}
+                                <div class="col-md-6 col-lg-4">
+                                    {{ form_row(form.query[filter]) }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form_row(form.query.excludedTrackers) }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form_row(form.query.closedVisibleDays) }}
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="sprint-wizard-panel" data-wizard-step>
+                        <legend>{{ steps[2] }}</legend>
+                        <p class="text-muted">These issues match your filters right now. The board updates itself as issues change on Forge.</p>
+                        <div data-wizard-preview aria-live="polite">
+                            <p class="text-muted" data-wizard-preview-placeholder>The preview needs JavaScript. Your filters are checked when you save.</p>
+                        </div>
+                    </fieldset>
+                </div>
+                <div class="card-footer sprint-wizard-actions">
+                    <button type="button" class="btn btn-secondary" data-wizard-back hidden>Back</button>
+                    <button type="button" class="btn btn-primary" data-wizard-next hidden>Next</button>
+                    {{ form_widget(form.submit) }}
+                </div>
+            </div>
+
+            {{ form_end(form) }}
+        </div>
+    </div>
+
+{% endblock %}

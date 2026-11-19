@@ -1,17 +1,33 @@
 {% extends 'base.html.twig' %}
+{% import '_macros/buttons.html.twig' as buttons %}
 {% block title %}Sprint Boards{% endblock %}
 {% block headline %}Sprint Boards{% endblock %}
 {% block body %}
 
     <div class="content-section">
         <div class="container">
-            <h2>
-                {% if edit is defined %}
-                    Edit a Sprint Board
-                {% else %}
-                    Add a Sprint Board
+            <div class="header">
+                <h2 class="header-headline">
+                    {% if edit is defined and edit %}
+                        Edit a Sprint Board
+                    {% else %}
+                        Add a Sprint Board
+                    {% endif %}
+                </h2>
+                {% if wizardAvailable is defined and wizardAvailable %}
+                    <div class="header-actions">
+                        {{ buttons.link(
+                            sprint.id ? path('sprint_edit', {'sprintId': sprint.id}) : path('sprint_create'),
+                            'Use the wizard',
+                            'secondary',
+                            'actions-open'
+                        ) }}
+                    </div>
                 {% endif %}
-            </h2>
+            </div>
+            {% if wizardAvailable is defined and not wizardAvailable %}
+                {% include '_partials/alert.html.twig' with {'message': 'The query of this board does not filter by anything the wizard offers, so it can only be edited as YAML.', 'style': 'info'} only %}
+            {% endif %}
             <div class="row">
                 <div class="col-md-12">
                     <div class="card">

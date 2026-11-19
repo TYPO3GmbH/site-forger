@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Charts\Types;
 
 use App\Charts\Colors;
+use App\Enum\IssueStatusEnum;
 
 class TrackerTypes extends IssueChart
 {
@@ -22,11 +23,7 @@ class TrackerTypes extends IssueChart
                 'bool' => [
                     'must_not' => [
                         'terms' => [
-                            'status.name' => [
-                                'Closed',
-                                'Rejected',
-                                'Resolved',
-                            ],
+                            'status.name' => IssueStatusEnum::closedValues(),
                         ],
                     ],
                 ],
@@ -52,12 +49,12 @@ class TrackerTypes extends IssueChart
         $labelBuckets = $data['trackerType']['buckets'] ?? [];
 
         $typeColors = [
-            'New' => Colors::getAsRgb(Colors::RED),
-            'Accepted' => Colors::getAsRgb(Colors::YELLOW),
-            'Under Review' => Colors::getAsRgb(Colors::GREEN),
-            'Needs Feedback' => Colors::getAsRgb(Colors::BLUE),
-            'In Progress' => Colors::getAsRgb(Colors::ORANGE),
-            'On Hold' => Colors::getAsRgb(Colors::GREY),
+            IssueStatusEnum::NEW->value => Colors::getAsRgb(Colors::RED),
+            IssueStatusEnum::ACCEPTED->value => Colors::getAsRgb(Colors::YELLOW),
+            IssueStatusEnum::UNDER_REVIEW->value => Colors::getAsRgb(Colors::GREEN),
+            IssueStatusEnum::NEEDS_FEEDBACK->value => Colors::getAsRgb(Colors::BLUE),
+            IssueStatusEnum::IN_PROGRESS->value => Colors::getAsRgb(Colors::ORANGE),
+            IssueStatusEnum::ON_HOLD->value => Colors::getAsRgb(Colors::GREY),
         ];
 
         // Prepare data

@@ -211,7 +211,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 ],
             ]
         );
-        if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
+        if ($this->authorizationChecker->isGranted('ROLE_CORE_COMPONENT')) {
             $menu['management']->addChild(
                 'sprintcategory_index',
                 [
@@ -331,6 +331,13 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     ],
                 ]
             );
+            $menu['username']->addChild('my_work', [
+                'label' => 'My Work',
+                'route' => 'my_index',
+                'extras' => [
+                    'icon' => 'actions-user',
+                ],
+            ]);
             if ($this->isKeycloakSession()) {
                 $this->addAccountItems($menu['username'], 't3g_keycloak_logout');
             } else {

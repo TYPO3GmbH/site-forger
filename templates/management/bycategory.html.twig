@@ -21,10 +21,17 @@
                     </thead>
                     <tbody>
                         {% for category, trackers in data %}
+                            {% set categoryFilter = {(category|filterKey): 'true'} %}
                             <tr>
-                                <th data-type="title">{{ category }}</th>
-                                {% for tracker,amount in trackers %}
-                                    <td>{{ (amount > 0) ? amount : '' }}</td>
+                                <th data-type="title">
+                                    <a href="{{ path('search_search', {'filters': {'category': categoryFilter}}) }}" title="Show the open issues of {{ category }}">{{ category }}</a>
+                                </th>
+                                {% for tracker, amount in trackers %}
+                                    <td>
+                                        {% if amount > 0 %}
+                                            <a href="{{ path('search_search', {'filters': {'category': categoryFilter, 'tracker': {(tracker|filterKey): 'true'}}}) }}" title="Show the open {{ tracker }} issues of {{ category }}">{{ amount }}</a>
+                                        {% endif %}
+                                    </td>
                                 {% endfor %}
                             </tr>
                         {% endfor %}

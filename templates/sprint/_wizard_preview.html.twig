@@ -1,0 +1,35 @@
+{% if not hasFilter %}
+    {% include '_partials/alert.html.twig' with {'message': 'Choose at least one tracker, category, version, focus or tag in the step "Issues", otherwise the board shows every issue.', 'style': 'warning'} only %}
+{% elseif total == 0 %}
+    {% include '_partials/alert.html.twig' with {'message': 'No issue matches these filters right now. Go back and choose other values, or save the board if matching issues are still to come.', 'style': 'warning'} only %}
+{% else %}
+    <h3><strong>{{ total }}</strong> {{ total == 1 ? 'issue' : 'issues' }} on the board</h3>
+    <ul class="sprint-wizard-columns">
+        {% for column, count in columns %}
+            <li class="sprint-wizard-column status-{{ column }}"><strong>{{ count }}</strong> {{ column }}</li>
+        {% endfor %}
+    </ul>
+    <table class="table table-sm">
+        <thead>
+        <tr>
+            <th scope="col">Issue</th>
+            <th scope="col">Tracker</th>
+            <th scope="col">Status</th>
+            <th scope="col">Column</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for issue in issues %}
+            <tr>
+                <td><a href="https://forge.typo3.org/issues/{{ issue.id }}" target="issue{{ issue.id }}">#{{ issue.id }} {{ issue.subject|default('') }}</a></td>
+                <td>{{ issue.tracker.name|default('') }}</td>
+                <td>{{ issue.status.name|default('') }}</td>
+                <td>{{ issue.column }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% if total > issues|length %}
+        <p class="text-muted">The {{ issues|length }} issues updated last are shown, {{ total - issues|length }} more are on the board.</p>
+    {% endif %}
+{% endif %}

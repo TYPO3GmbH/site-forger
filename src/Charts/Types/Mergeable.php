@@ -12,19 +12,10 @@ declare(strict_types=1);
 namespace App\Charts\Types;
 
 use App\Charts\Colors;
-use App\Elastic\ElasticUtility;
-use Elastica\Index;
+use App\Enum\ReviewStatusEnum;
 
 class Mergeable extends ReviewChart
 {
-    protected readonly Index $index;
-
-    public function __construct()
-    {
-        $this->index = ElasticUtility::getIndexByName('review');
-        parent::__construct($this->index);
-    }
-
     public function getData(): array
     {
         return [
@@ -50,7 +41,7 @@ class Mergeable extends ReviewChart
             'query' => [
                 'bool' => [
                     'must' => [
-                        'terms' => ['reviewstatus' => ['NEW']],
+                        'terms' => ['reviewstatus' => [ReviewStatusEnum::NEW->value]],
                     ],
                     'must_not' => [
                         [
@@ -66,7 +57,7 @@ class Mergeable extends ReviewChart
                 ],
             ],
         ];
-        $search = $this->index->createSearch($query);
+        $search = $this->getIndex()->createSearch($query);
         $resultSet = $search->search();
         $data = $resultSet->getAggregations();
 
@@ -87,7 +78,7 @@ class Mergeable extends ReviewChart
                 'bool' => [
                     'must' => [
                         [
-                            'terms' => ['reviewstatus' => ['NEW']],
+                            'terms' => ['reviewstatus' => [ReviewStatusEnum::NEW->value]],
                         ],
                         [
                             'term' => ['work_in_progress' => true],
@@ -98,7 +89,7 @@ class Mergeable extends ReviewChart
             'size' => 0,
         ];
 
-        $search = $this->index->createSearch($query);
+        $search = $this->getIndex()->createSearch($query);
         $resultSet = $search->search();
 
         return $resultSet->getTotalHits();

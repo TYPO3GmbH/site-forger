@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\ElasticUtility;
+use App\Enum\IssueStatusEnum;
 use Elastica\Aggregation\Terms;
 use Elastica\Query;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -106,11 +107,7 @@ class SearchController extends AbstractController
                     'must_not' => [
                         [
                             'terms' => [
-                                'status.name' => [
-                                    'Closed',
-                                    'Rejected',
-                                    'Resolved',
-                                ],
+                                'status.name' => IssueStatusEnum::closedValues(),
                             ],
                         ],
                     ],
@@ -143,25 +140,21 @@ class SearchController extends AbstractController
      */
     private function findByQuery(string $searchTerms, bool $searchInClosedIssues = false): array
     {
-        $searchTerms = $this->escape($searchTerms);
+        // Without search terms all issues are found, so links can lead straight to a filtered list
+        $searchTerms = trim($searchTerms);
+        $match = '' === $searchTerms
+            ? ['match_all' => new \stdClass()]
+            : ['query_string' => ['query' => $this->escape($searchTerms)]];
         $query = [
             'query' => [
                 'bool' => [
                     'must' => [
-                        [
-                            'query_string' => [
-                                'query' => $searchTerms,
-                            ],
-                        ],
+                        $match,
                     ],
                     'must_not' => [
                         [
                             'terms' => [
-                                'status.name' => [
-                                    'Closed',
-                                    'Rejected',
-                                    'Resolved',
-                                ],
+                                'status.name' => IssueStatusEnum::closedValues(),
                             ],
                         ],
                     ],
