@@ -11,63 +11,52 @@ declare(strict_types=1);
 
 namespace App\Charts\Types;
 
-use App\Charts\Colors;
+use App\Charts\ChartStyle;
 use App\Enum\ReviewStatusEnum;
 
+/**
+ * The open Gerrit changes waiting for a review, by the time of their last activity:
+ * the right end of the chart are the changes nobody looks at.
+ */
 class OpenReviews extends ReviewChart
 {
+    /**
+     * Label => range of "updated_on", from the most recent activity on.
+     */
+    private const array AGES = [
+        'This week' => ['from' => 'now-7d/d'],
+        '1–4 weeks' => ['from' => 'now-30d/d', 'to' => 'now-7d/d'],
+        '1–3 months' => ['from' => 'now-90d/d', 'to' => 'now-30d/d'],
+        '3–12 months' => ['from' => 'now-365d/d', 'to' => 'now-90d/d'],
+        'Over a year' => ['to' => 'now-365d/d'],
+    ];
+
     public function getData(): array
     {
-        $search = $this->getIndex()->createSearch($this->getFullRequest());
-        $resultSet = $search->search();
-        $data = $resultSet->getAggregations();
-
-        $labels = [];
-        $chartData = [];
-
-        if (is_array($data['over_time']['buckets'])) {
-            foreach ($data['over_time']['buckets'] as $i => $frame) {
-                $date = $this->convertDateToFormat($frame['key_as_string'], 'Y [W]');
-                $labels[] = $date;
-                $chartData[] = $frame['doc_count'];
-            }
+        $ranges = [];
+        foreach (self::AGES as $label => $range) {
+            $ranges[] = ['key' => $label, ...$range];
+        }
+        $result = $this->fetchData([
+            'query' => ['bool' => [
+                'filter' => [...$this->scope(), ['term' => ['reviewstatus' => ReviewStatusEnum::NEW->value]]],
+            ]],
+            'size' => 0,
+            'aggregations' => ['age' => ['date_range' => ['field' => 'updated_on', 'ranges' => $ranges]]],
+        ]);
+        $counts = [];
+        foreach ($result->getAggregation('age')['buckets'] ?? [] as $bucket) {
+            $counts[(string) $bucket['key']] = (int) $bucket['doc_count'];
         }
 
-        return [
-            'labels' => $labels,
-            'datasets' => [
-                [
-                    'label' => 'Reviews',
-                    'data' => $chartData,
-                    'backgroundColor' => Colors::getAsRgba(Colors::BLUE),
-                    'borderColor' => Colors::getAsRgb(Colors::BLUE),
-                    'borderWidth' => static::BORDER_WIDTH,
-                    'pointRadius' => static::POINT_RADIUS,
-                ],
-            ],
-        ];
-    }
+        $values = array_map(static fn (string $label): int => $counts[$label] ?? 0, array_keys(self::AGES));
 
-    private function getFullRequest(): array
-    {
         return [
-            'query' => [
-                'bool' => [
-                    'must_not' => [
-                        ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]],
-                        ['term' => ['work_in_progress' => true]],
-                    ],
-                ],
-            ],
-            'size' => 0,
-            'aggregations' => [
-                'over_time' => [
-                    'date_histogram' => [
-                        'field' => 'updated_on',
-                        'interval' => 'week',
-                    ],
-                ],
-            ],
+            // The count beside the name, so it reads without hovering
+            'labels' => array_map(static fn (string $label, int $count): string => $label . ' · ' . $count, array_keys(self::AGES), $values),
+            // The table has its own column for the count
+            'tableLabels' => array_keys(self::AGES),
+            'datasets' => [ChartStyle::bar('Open changes', $values, ChartStyle::CHANGES)],
         ];
     }
 }

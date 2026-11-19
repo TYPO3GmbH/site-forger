@@ -11,83 +11,38 @@ declare(strict_types=1);
 
 namespace App\Charts\Types;
 
-use App\Charts\Colors;
-use App\Enum\IssueStatusEnum;
+use App\Charts\ChartStyle;
+use App\Charts\TimeSeries;
 
+/**
+ * The issues opened and closed in each of the last twelve weeks.
+ */
 class OpenedClosed extends IssueChart
 {
+    private const int WEEKS = 12;
+
     public function getData(): array
     {
-        $openedDataSet = $this->getOpenedDataSet();
-        $closedDataSet = $this->getClosedDataSet();
-
-        $labels = array_keys($openedDataSet['data']);
-        $openedDataSet['data'] = array_values($openedDataSet['data']);
-        $closedDataSet['data'] = array_values($closedDataSet['data']);
+        $now = new \DateTimeImmutable();
+        $from = $now->modify('-' . (self::WEEKS - 1) . ' weeks')->modify('monday this week')->setTime(0, 0);
+        $keys = TimeSeries::keys($from, $now, TimeSeries::WEEK);
+        $opened = $this->countsOverTime([$this->since('created_on', $from)], 'created_on', TimeSeries::WEEK, $from);
+        $closed = $this->countsOverTime([$this->closed(), $this->since('updated_on', $from)], 'updated_on', TimeSeries::WEEK, $from);
 
         return [
-            'labels' => $labels,
-            'datasets' => [$openedDataSet, $closedDataSet],
-        ];
-    }
-
-    private function getOpenedDataSet(): array
-    {
-        $resultSet = $this->fetchData($this->getOpenedQuery([
-            'bool' => [
-                'must_not' => [
-                    'range' => ['created_on' => ['lte' => new \DateTimeImmutable()->sub(new \DateInterval('P1M'))->format('Y/m/d H:i:s')]],
-                ],
+            'labels' => $this->labels($keys, 'j M'),
+            'datasets' => [
+                ChartStyle::bar('Opened', TimeSeries::align($opened, $keys), ChartStyle::ISSUES),
+                ChartStyle::bar('Closed', TimeSeries::align($closed, $keys), ChartStyle::CLOSED),
             ],
-        ]));
-        $data = $resultSet->getAggregations();
-        $chartData = $this->extractDataFromAggregation($data);
-
-        return [
-            'label' => 'Opened',
-            'data' => $chartData,
-            'backgroundColor' => Colors::getAsRgba(Colors::RED),
-            'borderColor' => Colors::getAsRgb(Colors::RED),
-            'borderWidth' => static::BORDER_WIDTH,
-            'pointRadius' => static::POINT_RADIUS,
         ];
     }
 
-    private function getClosedDataSet(): array
+    /**
+     * @return array<string, mixed>
+     */
+    private function since(string $field, \DateTimeImmutable $from): array
     {
-        $resultSet = $this->fetchData($this->getClosedQuery([
-            'bool' => [
-                'must' => [
-                    'terms' => ['status.name' => IssueStatusEnum::closedLabels()],
-                ],
-                'must_not' => [
-                    'range' => ['updated_on' => ['lte' => new \DateTimeImmutable()->sub(new \DateInterval('P1M'))->format('Y/m/d H:i:s')]],
-                ],
-            ],
-        ]));
-        $data = $resultSet->getAggregations();
-        $chartData = $this->extractDataFromAggregation($data);
-
-        return [
-            'label' => 'Closed',
-            'data' => $chartData,
-            'backgroundColor' => Colors::getAsRgba(Colors::GREEN),
-            'borderColor' => Colors::getAsRgb(Colors::GREEN),
-            'borderWidth' => static::BORDER_WIDTH,
-            'pointRadius' => static::POINT_RADIUS,
-        ];
-    }
-
-    private function extractDataFromAggregation(array $data): array
-    {
-        $chartData = [];
-        if (is_array($data['over_time']['buckets'])) {
-            foreach ($data['over_time']['buckets'] as $i => $frame) {
-                $date = $this->convertDateToFormat($frame['key_as_string'], 'd.m');
-                $chartData[$date] = $frame['doc_count'];
-            }
-        }
-
-        return $chartData;
+        return ['range' => [$field => ['gte' => $from->format('Y/m/d H:i:s')]]];
     }
 }

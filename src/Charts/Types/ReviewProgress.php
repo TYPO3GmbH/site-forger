@@ -11,51 +11,24 @@ declare(strict_types=1);
 
 namespace App\Charts\Types;
 
-use App\Charts\Colors;
+use App\Charts\ChartStyle;
 
+/**
+ * The changes closed in this and the two years before, summed up month by month, so the years can be compared.
+ */
 class ReviewProgress extends ReviewChart
 {
     public function getData(): array
     {
-        $currentPeriodStart = new \DateTimeImmutable();
-        $currentYear = (int) $currentPeriodStart->format('Y');
-
-        $dataSetCurrentYear = $this->getCumulativeTicketsToDate($currentYear, 'current', 'month');
-        $dataSetPreviousYear = $this->getCumulativeTicketsToDate($currentYear - 1, 'previous', 'month');
-        $dataSetPreviousYear2 = $this->getCumulativeTicketsToDate($currentYear - 2, 'previous2', 'month');
+        $year = (int) (new \DateTimeImmutable())->format('Y');
+        $datasets = [];
+        foreach (ChartStyle::YEARS as $offset => $color) {
+            $datasets[] = ChartStyle::line((string) ($year - $offset), $this->closedPerYear($year - $offset), $color);
+        }
 
         return [
-            'labels' => array_replace_recursive(
-                array_keys($dataSetCurrentYear),
-                array_keys($dataSetPreviousYear),
-                array_keys($dataSetPreviousYear2)
-            ),
-            'datasets' => [
-                [
-                    'label' => $currentYear,
-                    'data' => array_values($dataSetCurrentYear),
-                    'backgroundColor' => Colors::getAsRgba(Colors::ORANGE),
-                    'borderColor' => Colors::getAsRgb(Colors::ORANGE),
-                    'borderWidth' => static::BORDER_WIDTH,
-                    'pointRadius' => static::POINT_RADIUS,
-                ],
-                [
-                    'label' => $currentYear - 1,
-                    'data' => array_values($dataSetPreviousYear),
-                    'backgroundColor' => Colors::getAsRgba(Colors::GREY),
-                    'borderColor' => Colors::getAsRgb(Colors::GREY),
-                    'borderWidth' => static::BORDER_WIDTH,
-                    'pointRadius' => static::POINT_RADIUS,
-                ],
-                [
-                    'label' => $currentYear - 2,
-                    'data' => array_values($dataSetPreviousYear2),
-                    'backgroundColor' => Colors::getAsRgba(Colors::GREY),
-                    'borderColor' => Colors::getAsRgb(Colors::GREY),
-                    'borderWidth' => static::BORDER_WIDTH,
-                    'pointRadius' => static::POINT_RADIUS,
-                ],
-            ],
+            'labels' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            'datasets' => $datasets,
         ];
     }
 }

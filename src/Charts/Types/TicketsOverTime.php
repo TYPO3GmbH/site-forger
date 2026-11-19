@@ -11,86 +11,20 @@ declare(strict_types=1);
 
 namespace App\Charts\Types;
 
-use App\Charts\Colors;
-use App\Enum\IssueStatusEnum;
+use App\Charts\ChartStyle;
 
+/**
+ * The open issues at the end of each of the last three years' months.
+ */
 class TicketsOverTime extends IssueChart
 {
-    private const string DATE_FORMAT = 'M Y';
-    private const string DATE_AGGREGATION_FORMAT = 'quarter';
-
     public function getData(): array
     {
-        $openedDataSet = $this->getOpenedDataSet();
-        $closedDataSet = $this->getClosedDataSet();
-        $mergedDataSets = array_replace_recursive($openedDataSet, $closedDataSet);
-
-        $dateToFilter = new \DateTimeImmutable()->sub(new \DateInterval('P3Y'));
-        $mergedDataSets = array_filter($mergedDataSets, static function (string $key) use ($dateToFilter) {
-            $date = \DateTimeImmutable::createFromFormat(static::DATE_FORMAT, $key);
-
-            return $date > $dateToFilter;
-        }, ARRAY_FILTER_USE_KEY);
-
-        $labels = array_keys($mergedDataSets);
-        $chartData = array_values(array_map(static fn (array $metrics): int => $metrics['open'] - ($metrics['closed'] ?? 0), $mergedDataSets));
+        $series = $this->openOverTime(36);
 
         return [
-            'labels' => $labels,
-            'datasets' => [
-                [
-                    'label' => 'Tickets',
-                    'data' => $chartData,
-                    'backgroundColor' => Colors::getAsRgba(Colors::ORANGE),
-                    'borderColor' => Colors::getAsRgb(Colors::ORANGE),
-                    'borderWidth' => static::BORDER_WIDTH,
-                    'pointRadius' => static::POINT_RADIUS,
-                ],
-            ],
+            'labels' => $this->labels($series['keys'], 'M Y'),
+            'datasets' => [ChartStyle::line('Open issues', $series['values'], ChartStyle::ISSUES, true)],
         ];
-    }
-
-    private function getOpenedDataSet(): array
-    {
-        $resultSet = $this->fetchData($this->getOpenedQuery([
-            'match_all' => new \stdClass(),
-        ], static::DATE_AGGREGATION_FORMAT));
-
-        $data = $resultSet->getAggregations();
-        $openSum = 0;
-        $opened = [];
-        if (\is_array($data['over_time']['buckets'])) {
-            foreach ($data['over_time']['buckets'] as $frame) {
-                $openSum += $frame['doc_count'];
-                $date = $this->convertDateToFormat($frame['key_as_string'], static::DATE_FORMAT);
-                $opened[$date]['open'] = $openSum;
-            }
-        }
-
-        return $opened;
-    }
-
-    private function getClosedDataSet(): array
-    {
-        $resultSet = $this->fetchData($this->getClosedQuery([
-            'bool' => [
-                'must' => [
-                    'terms' => ['status.name' => IssueStatusEnum::closedLabels()],
-                ],
-            ],
-        ], static::DATE_AGGREGATION_FORMAT));
-
-        $data = $resultSet->getAggregations();
-        $closeSum = 0;
-        $closed = [];
-        if (\is_array($data['over_time']['buckets'])) {
-            foreach ($data['over_time']['buckets'] as $frame) {
-                $closeSum += $frame['doc_count'];
-                $date = $this->convertDateToFormat($frame['key_as_string'], static::DATE_FORMAT);
-                $closed[$date]['closed'] = $closeSum;
-            }
-        }
-
-        return $closed;
     }
 }

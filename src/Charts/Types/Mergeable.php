@@ -11,87 +11,72 @@ declare(strict_types=1);
 
 namespace App\Charts\Types;
 
-use App\Charts\Colors;
 use App\Enum\ReviewStatusEnum;
 
+/**
+ * The open Gerrit changes: ready to be merged, with a merge conflict, or in progress.
+ */
 class Mergeable extends ReviewChart
 {
+    public const array LABELS = [
+        'ready' => 'Mergeable',
+        'conflict' => 'Merge conflict',
+        'wip' => 'Work in progress',
+    ];
+
+    /**
+     * Colors of the status pills: ready for review, merge conflict, work in progress.
+     */
+    private const array COLORS = [
+        'ready' => '#2a78d6',
+        'conflict' => '#d03b3b',
+        'wip' => '#fab219',
+    ];
+
     public function getData(): array
     {
+        $counts = $this->counts();
+
         return [
-            'labels' => ['Yes', 'No', 'WIP'],
+            'labels' => array_values(self::LABELS),
             'datasets' => [
                 [
-                    'data' => array_merge($this->getMergeable(), [
-                        $this->getWorkInProgress(),
-                    ]),
-                    'backgroundColor' => [
-                        Colors::getAsRgb(Colors::GREEN),
-                        Colors::getAsRgb(Colors::RED),
-                        Colors::getAsRgb(Colors::BLUE),
-                    ],
+                    'data' => array_values($counts),
+                    'backgroundColor' => array_values(self::COLORS),
+                    'borderColor' => '#ffffff',
+                    'borderWidth' => 2,
                 ],
             ],
         ];
     }
 
-    private function getMergeable(): array
+    /**
+     * The open changes by state. Changes in progress count as such, whether they can be merged or not.
+     *
+     * @return array{ready: int, conflict: int, wip: int}
+     */
+    public function counts(): array
     {
-        $query = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        'terms' => ['reviewstatus' => [ReviewStatusEnum::NEW->value]],
-                    ],
-                    'must_not' => [
-                        [
-                            'term' => ['work_in_progress' => true],
-                        ],
-                    ],
-                ],
-            ],
+        $open = ['term' => ['reviewstatus' => ReviewStatusEnum::NEW->value]];
+        $workInProgress = ['term' => ['work_in_progress' => true]];
+        $result = $this->fetchData([
+            'query' => ['bool' => ['filter' => [$open]]],
             'size' => 0,
             'aggregations' => [
-                'Mergeable' => [
-                    'terms' => ['field' => 'mergeable'],
-                ],
+                'state' => ['filters' => ['filters' => [
+                    'ready' => ['bool' => ['must_not' => [$workInProgress, ['term' => ['mergeable' => 'no']]]]],
+                    'conflict' => ['bool' => ['filter' => [['term' => ['mergeable' => 'no']]], 'must_not' => [$workInProgress]]],
+                    'wip' => $workInProgress,
+                ]]],
             ],
+        ]);
+        $buckets = $result->getAggregation('state')['buckets'] ?? [];
+
+        // Keyed by state: Elasticsearch orders terms buckets by count, which mixed up the states before
+        return [
+            'ready' => (int) ($buckets['ready']['doc_count'] ?? 0),
+            'conflict' => (int) ($buckets['conflict']['doc_count'] ?? 0),
+            'wip' => (int) ($buckets['wip']['doc_count'] ?? 0),
         ];
-        $search = $this->getIndex()->createSearch($query);
-        $resultSet = $search->search();
-        $data = $resultSet->getAggregations();
-
-        $chartData = [];
-        if (isset($data['Mergeable']['buckets'])) {
-            foreach ($data['Mergeable']['buckets'] as $bucket) {
-                $chartData[] = $bucket['doc_count'];
-            }
-        }
-
-        return $chartData;
-    }
-
-    private function getWorkInProgress(): int
-    {
-        $query = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        [
-                            'terms' => ['reviewstatus' => [ReviewStatusEnum::NEW->value]],
-                        ],
-                        [
-                            'term' => ['work_in_progress' => true],
-                        ],
-                    ],
-                ],
-            ],
-            'size' => 0,
-        ];
-
-        $search = $this->getIndex()->createSearch($query);
-        $resultSet = $search->search();
-
-        return $resultSet->getTotalHits();
     }
 }
