@@ -66,7 +66,7 @@ class SprintController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $category = $this->sprintBoardCategoryRepository->find($request->get('sprint_board')['categoryId']);
+            $category = $sprint->getCategory();
             if (null !== $category) {
                 $sprint->setCategory($category);
                 $entityManager->persist($sprint);

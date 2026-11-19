@@ -44,8 +44,8 @@ class SprintBoardCategory
     private ?int $sorting = null;
 
     #[ORM\OneToMany(mappedBy: 'category', targetEntity: SprintBoard::class, orphanRemoval: true)]
-    #[ORM\OrderBy(['name' => 'ASC'])]
-    private readonly Collection $sprintBoards;
+    #[ORM\OrderBy(['name' => \SortDirection::Ascending])]
+    private Collection $sprintBoards;
 
     public function __construct()
     {
