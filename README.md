@@ -4,18 +4,41 @@ Next generation of forger
 
 ## Developer Start-Up-Guide
 
-### Configuration
+### Setup
 
-* clone repository
-* call `ddev start`
-* put your personal redmine access token into `.env.local` with the key `FORGE_ACCESS_TOKEN`
-* put your personal `GITHUB_ACCESS_TOKEN` and `GITHUB_USERNAME` in `.env.local`
-* call `ddev composer install`
-* call `ddev composer install --working-dir=./util`
-* call `ddev exec ./util/bin/elasticorn.php index:init -c /var/www/html/config/Elasticorn` to create indices
-* call `ddev exec npm ci`
-* call `ddev exec npm run build`
-* call `ddev exec bin/console doctrine:schema:create`
+Requirements: [DDEV](https://ddev.com). All Composer and npm dependencies are public,
+no Packagist or GitHub credentials are needed to install them.
+
+1. Clone the repository and run `ddev start`
+2. Create `.env.local` with your personal access tokens (see [Access tokens](#access-tokens))
+3. `ddev composer install`
+4. `ddev composer install --working-dir=./util`
+5. `ddev exec ./util/bin/elasticorn.php index:init -c /var/www/html/config/Elasticorn` to create the Elasticsearch indices
+6. `ddev exec npm ci`
+7. `ddev exec npm run build`
+8. `ddev exec bin/console doctrine:schema:create`
+9. `ddev exec bin/console app:import --mode=forgeDelta` to import the latest 100 Forge issues
+10. Open https://forger.ddev.site
+
+Pages that require a login redirect to login.typo3.com and only work with a valid
+`KEYCLOAK_CLIENT_SECRET`.
+
+### Access tokens
+
+Put your personal tokens into `.env.local` (git-ignored, overrides `.env`):
+
+```dotenv
+FORGE_ACCESS_TOKEN=...
+GITHUB_ACCESS_TOKEN=...
+```
+
+| Variable | Needed for | How to get it |
+|---|---|---|
+| `FORGE_ACCESS_TOKEN` | `forgeFull`, `forgeDelta` imports. Works without, but anonymous requests hit Forge's rate limit quickly. | Log in at [forge.typo3.org](https://forge.typo3.org), open [My account](https://forge.typo3.org/my/account) and click **Show** below **API access key** in the sidebar. |
+| `GITHUB_ACCESS_TOKEN` | `github`, `githubDelta` imports | Create a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new) with repository access **Public repositories (read-only)**. No further permissions are needed. |
+| `DISCORD_ISSUES_WEBHOOK` | Only for imports with `--sendnotifications` | Webhook URL of the Discord channel (Channel settings → Integrations → Webhooks). |
+
+Gerrit imports (`reviewFull`, `reviewDelta`) read the public API of review.typo3.org and need no token.
 
 ### Add inline scripts to aggregations in elasticsearch
 
