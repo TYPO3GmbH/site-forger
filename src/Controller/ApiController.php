@@ -13,8 +13,7 @@ namespace App\Controller;
 
 use App\Charts\ChartRegistry;
 use App\Elastic\Indices;
-use App\Enum\IssueStatusEnum;
-use App\Enum\ReviewStatusEnum;
+use App\Elastic\KeyFigures;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,6 +26,7 @@ class ApiController extends AbstractController
     public function __construct(
         private readonly Indices $indices,
         private readonly ChartRegistry $chartRegistry,
+        private readonly KeyFigures $keyFigures,
     ) {
     }
 
@@ -61,39 +61,12 @@ class ApiController extends AbstractController
     #[Route(path: '/quick_stats', name: 'quick_stats')]
     public function quickStats(): JsonResponse
     {
-        $index = $this->indices->issues();
-        $openIssuesQuery = [
-            'query' => [
-                'bool' => [
-                    'must_not' => [
-                        ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]],
-                    ],
-                ],
-            ],
-            'size' => 0,
-        ];
-        $openIssues = $index->search($openIssuesQuery)->getTotalHits();
-
-        $openReviewsQuery = [
-            'query' => [
-                'bool' => [
-                    'must_not' => [
-                        ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]],
-                        ['term' => ['work_in_progress' => true]],
-                    ],
-                ],
-            ],
-            'size' => 0,
-        ];
-        $index = $this->indices->reviews();
-        $openReviews = $index->search($openReviewsQuery)->getTotalHits();
-
         return new JsonResponse([
             'forge' => [
-                'value' => $openIssues,
+                'value' => $this->keyFigures->openIssues(),
             ],
             'gerrit' => [
-                'value' => $openReviews,
+                'value' => $this->keyFigures->openChanges(),
                 'link' => $this->generateUrl('gerrit_index'),
             ],
         ]);

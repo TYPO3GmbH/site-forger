@@ -53,15 +53,22 @@ final readonly class StaleIssues
      */
     public function page(int $page, int $perPage, IssueSortEnum $sort): array
     {
-        $resultSet = $this->indices->issues()->createSearch(self::issuesRequest($page, $perPage, $sort))->search();
-        $issues = array_map(static fn (Result $result): array => $result->getData(), $resultSet->getResults());
+        $request = self::issuesRequest($page, $perPage, $sort);
+        $resultSet = $this->indices->issues()->createSearch($request)->search();
+        $issues = array_map(
+            static fn (Result $result): array => $result->getData(),
+            $resultSet->getResults(),
+        );
         $changesRequest = self::changesRequest($issues);
         $changes = null === $changesRequest ? [] : array_map(
             static fn (Result $result): array => $result->getData(),
             $this->indices->reviews()->createSearch($changesRequest)->search()->getResults(),
         );
 
-        return ['issues' => self::withChanges($issues, $changes), 'total' => $resultSet->getTotalHits()];
+        return [
+            'issues' => self::withChanges($issues, $changes),
+            'total' => $resultSet->getTotalHits(),
+        ];
     }
 
     /**

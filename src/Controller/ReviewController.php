@@ -41,37 +41,61 @@ class ReviewController extends AbstractController
     #[Route(path: '/gerrit/status', name: 'gerrit_index')]
     public function status(): Response
     {
-        return $this->listView(ReviewLists::READY, 'Ready for review', ReviewLists::aggregations());
+        return $this->listView(
+            ReviewLists::READY,
+            'Ready for review',
+            ReviewLists::aggregations(),
+        );
     }
 
     #[Route(path: '/gerrit/merge-ready', name: 'gerrit_hasverifications')]
     public function hasVerifications(): Response
     {
-        return $this->listView(ReviewLists::REVIEWED_AND_VERIFIED, 'Reviewed and verified', ReviewLists::aggregations());
+        return $this->listView(
+            ReviewLists::REVIEWED_AND_VERIFIED,
+            'Reviewed and verified',
+            ReviewLists::aggregations(),
+        );
     }
 
     #[Route(path: '/gerrit/misses-verification', name: 'gerrit_missesverifications')]
     public function missesVerifications(): Response
     {
-        return $this->listView(ReviewLists::NEEDS_VERIFICATION, 'Needs verification', ReviewLists::aggregations());
+        return $this->listView(
+            ReviewLists::NEEDS_VERIFICATION,
+            'Needs verification',
+            ReviewLists::aggregations(),
+        );
     }
 
     #[Route(path: '/gerrit/misses-review', name: 'gerrit_missesreview')]
     public function missesReview(): Response
     {
-        return $this->listView(ReviewLists::NEEDS_REVIEW, 'Needs review', ReviewLists::aggregations());
+        return $this->listView(
+            ReviewLists::NEEDS_REVIEW,
+            'Needs review',
+            ReviewLists::aggregations(),
+        );
     }
 
     #[Route(path: '/gerrit/rebase', name: 'gerrit_rebase')]
     public function rebase(): Response
     {
-        return $this->listView(ReviewLists::NEEDS_REBASE, 'Needs rebase', ReviewLists::aggregations(without: ['Mergeable', 'Patchsets', 'Releases', 'Topic']));
+        return $this->listView(
+            ReviewLists::NEEDS_REBASE,
+            'Needs rebase',
+            ReviewLists::aggregations(without: ['Mergeable', 'Patchsets', 'Releases', 'Topic']),
+        );
     }
 
     #[Route(path: '/gerrit/negative-vote-cleanup', name: 'gerrit_negative_vote_cleanup')]
     public function negativeVoteCleanup(): Response
     {
-        return $this->listView(ReviewLists::NEGATIVE_VOTES, 'Negative votes', ReviewLists::aggregations(without: ['Mergeable', 'Patchsets', 'Affected Files', 'Topic', 'Owner']));
+        return $this->listView(
+            ReviewLists::NEGATIVE_VOTES,
+            'Negative votes',
+            ReviewLists::aggregations(without: ['Mergeable', 'Patchsets', 'Affected Files', 'Topic', 'Owner']),
+        );
     }
 
     /**
@@ -80,13 +104,22 @@ class ReviewController extends AbstractController
     #[Route(path: '/gerrit/wip', name: 'gerrit_wip')]
     public function wip(): Response
     {
-        return $this->listView(ReviewLists::WORK_IN_PROGRESS, 'Work in progress', ReviewLists::aggregations(without: ['Patchsets', 'Affected Files']), ReviewSortEnum::LEAST_UPDATED);
+        return $this->listView(
+            ReviewLists::WORK_IN_PROGRESS,
+            'Work in progress',
+            ReviewLists::aggregations(without: ['Patchsets', 'Affected Files']),
+            ReviewSortEnum::LEAST_UPDATED,
+        );
     }
 
     #[Route(path: '/gerrit/core-team-merge', name: 'gerrit_coreteam_merge')]
     public function coreTeamActionRequired(): Response
     {
-        return $this->listView(ReviewLists::READY_TO_MERGE, 'Ready to merge', ReviewLists::aggregations(without: ['Mergeable', 'Patchsets', 'Affected Files']));
+        return $this->listView(
+            ReviewLists::READY_TO_MERGE,
+            'Ready to merge',
+            ReviewLists::aggregations(without: ['Mergeable', 'Patchsets', 'Affected Files']),
+        );
     }
 
     /**
@@ -107,7 +140,11 @@ class ReviewController extends AbstractController
         $viewData['tabs'] = $this->globalSearch->tabs(
             $searchTerms,
             $searchClosed,
-            [GlobalSearch::ISSUES => GlobalSearch::peopleQuery(GlobalSearch::ISSUES, $this->query()->all('filters'), $this->users)],
+            [GlobalSearch::ISSUES => GlobalSearch::peopleQuery(
+                GlobalSearch::ISSUES,
+                $this->query()->all('filters'),
+                $this->users,
+            )],
             [GlobalSearch::CHANGES => (int) $viewData['totalResults']],
         );
         $viewData['exactMatches'] = $this->globalSearch->exactMatches($searchTerms);
@@ -125,12 +162,18 @@ class ReviewController extends AbstractController
     {
         $list = $this->query()->getString('list');
         $query = $this->query()->getString('query');
-        $listQuery = ReviewLists::query($list, '1' === $this->query()->getString('searchClosed'), $query);
+        $listQuery = ReviewLists::query(
+            $list,
+            '1' === $this->query()->getString('searchClosed'),
+            $query,
+        );
         if (null === $listQuery) {
             return new JsonResponse('Unknown list', Response::HTTP_BAD_REQUEST);
         }
 
-        return new JsonResponse($this->reviewListSearch->owners($this->query()->getString('term'), $listQuery));
+        $owners = $this->reviewListSearch->owners($this->query()->getString('term'), $listQuery);
+
+        return new JsonResponse($owners);
     }
 
     /**
@@ -151,11 +194,17 @@ class ReviewController extends AbstractController
     #[Route(path: '/gerrit/stale-issues', name: 'gerrit_stale_issues')]
     public function staleIssues(): Response
     {
-        $sort = IssueSortEnum::fromRequest($this->query()->getString('sort'), false, StaleIssues::DEFAULT_SORT);
+        $sort = IssueSortEnum::fromRequest(
+            $this->query()->getString('sort'),
+            false,
+            StaleIssues::DEFAULT_SORT,
+        );
         $page = $this->page();
         $found = $this->staleIssues->page($page->page, $page->perPage, $sort);
 
-        return $this->render('review/stale_issues.html.twig', $page->withTotal($found['total'])->viewData() + [
+        $pageData = $page->withTotal($found['total'])->viewData();
+
+        return $this->render('review/stale_issues.html.twig', $pageData + [
             'issues' => $found['issues'],
             'stages' => StaleIssues::STAGES,
             'sort' => $sort,
@@ -170,8 +219,12 @@ class ReviewController extends AbstractController
      *
      * @param array<string, mixed> $aggregations
      */
-    private function listView(string $list, string $headline, array $aggregations, ReviewSortEnum $listDefault = ReviewSortEnum::UPDATED): Response
-    {
+    private function listView(
+        string $list,
+        string $headline,
+        array $aggregations,
+        ReviewSortEnum $listDefault = ReviewSortEnum::UPDATED,
+    ): Response {
         $searchTerms = $this->query()->getString('query');
         $viewData = $this->listData(
             ReviewLists::query($list, false, $searchTerms),
@@ -197,9 +250,18 @@ class ReviewController extends AbstractController
      *
      * @throws InvalidException
      */
-    private function listData(?array $listQuery, string $routeName, array $aggregations, ReviewSortEnum $listDefault = ReviewSortEnum::UPDATED, bool $withRelevance = false): array
-    {
-        $sort = ReviewSortEnum::fromRequest($this->query()->getString('sort'), $withRelevance, $listDefault);
+    private function listData(
+        ?array $listQuery,
+        string $routeName,
+        array $aggregations,
+        ReviewSortEnum $listDefault = ReviewSortEnum::UPDATED,
+        bool $withRelevance = false,
+    ): array {
+        $sort = ReviewSortEnum::fromRequest(
+            $this->query()->getString('sort'),
+            $withRelevance,
+            $listDefault,
+        );
         $page = $this->page();
         $filters = $this->query()->all('filters');
         $viewData = $this->reviewListSearch->search($listQuery, $sort, $aggregations, $filters, $page);
@@ -209,7 +271,8 @@ class ReviewController extends AbstractController
         $viewData['sort'] = $sort;
         $viewData['sortOptions'] = ReviewSortEnum::options($withRelevance);
         // Links leave out the default, so changed search words keep their own default
-        $viewData['sortParameter'] = $sort === ReviewSortEnum::default($withRelevance, $listDefault) ? [] : ['sort' => $sort->value];
+        $isDefault = $sort === ReviewSortEnum::default($withRelevance, $listDefault);
+        $viewData['sortParameter'] = $isDefault ? [] : ['sort' => $sort->value];
         // What the pages, the filters and the sort field send again
         $searchClosed = '1' === $this->query()->getString('searchClosed');
         $viewData['listParameters'] = array_filter(

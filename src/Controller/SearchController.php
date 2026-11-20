@@ -51,7 +51,11 @@ class SearchController extends AbstractController
         $viewData['tabs'] = $this->globalSearch->tabs(
             $query,
             $searchClosed,
-            [GlobalSearch::CHANGES => GlobalSearch::peopleQuery(GlobalSearch::CHANGES, $filters, $this->users)],
+            [GlobalSearch::CHANGES => GlobalSearch::peopleQuery(
+                GlobalSearch::CHANGES,
+                $filters,
+                $this->users,
+            )],
             [GlobalSearch::ISSUES => (int) $viewData['totalResults']],
         );
         $viewData['exactMatches'] = $this->globalSearch->exactMatches($query);
