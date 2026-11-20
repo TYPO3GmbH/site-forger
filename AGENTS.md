@@ -18,7 +18,12 @@ Rules for everyone who works on this repository, people and coding agents.
 - Write the body of a commit message in sentences. Avoid lists.
 - Keep every line of a commit message at 72 characters or less, the subject included.
 - Use short class names in commit messages, without the namespace.
+- Commit fixes as fixups into the commit that introduced the code. Ask before you rewrite commits that are already pushed.
 - Do not add `Co-Authored-By` or other attribution trailers to commit messages.
+
+## UI
+- Use icons from the template bundle (`{{ icon('actions-…') }}`), not text symbols.
+- The UI must fit phone viewports (575px and less).
 
 ## Checks
 - Tests: `bin/phpunit -c build/phpunit.xml`
@@ -28,5 +33,7 @@ Rules for everyone who works on this repository, people and coding agents.
 - Assets: `ddev exec npm run dev`
 
 ## Conventions
-- Enums: the value is the source system's id (Redmine id, Gerrit value), `label()` returns the name, `severity()` the style key. Each severity needs a rule in `assets/css/module/_status.scss`, and a test checks that.
+- Enums: back an enum only when its value goes outside: a source system's id (Redmine id, Gerrit value), a URL parameter or a database column. Otherwise use a pure enum. `label()` returns the name, `severity()` the style key. Not every enum needs `severity()`. Each severity needs a rule in `assets/css/module/_status.scss`, and a test checks that.
+- Enums hold no Elasticsearch queries. Put those in `App\Search`.
+- Repositories go in `App\Repository`, whatever the storage. Read Elasticsearch documents through the value objects in `App\Document`.
 - Elasticsearch date histograms need `extended_bounds` in the format of their keys. Align series through `App\Charts\TimeSeries`.
