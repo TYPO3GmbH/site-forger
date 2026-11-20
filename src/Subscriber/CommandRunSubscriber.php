@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Subscriber;
 
-use App\Service\CommandRunRecorder;
+use App\CommandRun\CommandRunRecorder;
 use Symfony\Component\Console\ConsoleEvents;
 use Symfony\Component\Console\Event\ConsoleCommandEvent;
 use Symfony\Component\Console\Event\ConsoleErrorEvent;

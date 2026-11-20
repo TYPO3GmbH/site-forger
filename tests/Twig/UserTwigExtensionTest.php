@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Twig;
 
 use App\Elastic\Indices;
-use App\Elastic\Users;
+use App\People\Users;
 use App\Twig\UserTwigExtension;
 use Elastica\Client;
 use PHPUnit\Framework\TestCase;

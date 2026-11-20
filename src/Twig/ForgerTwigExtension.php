@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
-use App\Elastic\GlobalSearch;
 use App\Renderer\RedmineTextileRenderer;
+use App\Search\GlobalSearch;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Twig\Attribute\AsTwigFilter;

@@ -11,10 +11,10 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Elastic\CommitMessage;
-use App\Elastic\GlobalSearch;
+use App\Document\CommitMessage;
+use App\Document\Relations;
 use App\Elastic\Indices;
-use App\Elastic\Relations;
+use App\Search\GlobalSearch;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;

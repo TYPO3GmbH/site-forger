@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Subscriber;
 
-use App\Elastic\Users;
+use App\People\Users;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;

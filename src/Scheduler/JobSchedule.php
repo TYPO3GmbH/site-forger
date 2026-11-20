@@ -13,8 +13,8 @@ namespace App\Scheduler;
 
 use App\Command\ImportUsersCommand;
 use App\Import\ForgeImport;
+use App\Import\ForgeUserSync;
 use App\Import\GerritImport;
-use App\Service\ForgeUserSync;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;

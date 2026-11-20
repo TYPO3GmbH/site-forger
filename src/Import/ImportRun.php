@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Import;
 
-use App\Service\CommandRunRecorder;
+use App\CommandRun\CommandRunRecorder;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;

@@ -11,13 +11,8 @@ declare(strict_types=1);
 
 namespace App\Import;
 
-use App\Elastic\ImportWatermark;
+use App\CommandRun\CommandRunRecorder;
 use App\Elastic\Indices;
-use App\Elastic\IssueReconciliation;
-use App\Elastic\ProjectIssues;
-use App\Service\CommandRunRecorder;
-use App\Service\ForgeIssueImporter;
-use App\Service\ForgeIssueList;
 use Symfony\Component\Console\Helper\ProgressBar;
 
 final readonly class ForgeImport

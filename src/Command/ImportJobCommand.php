@@ -11,12 +11,12 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\CommandRun\CommandRunRecorder;
+use App\CommandRun\JobStopped;
 use App\Elastic\IndexSetup;
 use App\Http\ApiRequests;
 use App\Http\RetryPolicy;
 use App\Import\ImportRun;
-use App\Service\CommandRunRecorder;
-use App\Service\JobStopped;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\Console\Command\Command;

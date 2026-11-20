@@ -311,7 +311,7 @@ Caused by {{ _self.exception(exception.previous) }}{% endif %}
             <div class="runs-intro">
                 <p>
                     The runs of the jobs of the schedule, of the last {{ retention }}
-                    and at most {{ constant('App\\Service\\CommandRunRecorder::MAX_RUNS_PER_JOB') }} per job.
+                    and at most {{ constant('App\\CommandRun\\CommandRunRecorder::MAX_RUNS_PER_JOB') }} per job.
                     A job is overdue when a planned run did not start, or three planned runs in a row did not succeed.
                 </p>
                 <div class="runs-intro-actions">

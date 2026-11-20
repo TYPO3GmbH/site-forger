@@ -11,13 +11,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Templates;
 
-use App\Elastic\CategoryOverview;
-use App\Elastic\MonthOverview;
-use App\Elastic\StaleIssues;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
 use App\Enum\TrackerEnum;
+use App\Report\CategoryOverview;
+use App\Report\MonthOverview;
+use App\Report\StaleIssues;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Finder\Finder;
 use Twig\Environment;

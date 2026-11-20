@@ -28,7 +28,7 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 class BackportCommand extends Command
 {
     /**
-     * The versions of the footer "Releases:" and their branches in Gerrit, see also App\Elastic\Backports.
+     * The versions of the footer "Releases:" and their branches in Gerrit, see also App\Report\Backports.
      */
     public const array VERSION_BRANCHES = [
         'main' => 'main',

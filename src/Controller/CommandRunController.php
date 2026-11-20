@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\CommandRun\CommandRunRecorder;
 use App\DTO\CommandJobOverview;
 use App\Entity\CommandRun;
 use App\Entity\JobPause;
@@ -21,7 +22,6 @@ use App\Repository\JobPauseRepository;
 use App\Repository\QueuedJobRepository;
 use App\Scheduler\JobControl;
 use App\Scheduler\ScheduledJobs;
-use App\Service\CommandRunRecorder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,7 +31,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * What the jobs of the schedule did and do, see App\Scheduler\JobSchedule and App\Service\CommandRunRecorder,
+ * What the jobs of the schedule did and do, see App\Scheduler\JobSchedule and App\CommandRun\CommandRunRecorder,
  * and what admins do with them: run now, pause, resume, cancel, see App\Scheduler\JobControl. Other runs, like
  * app:elasticsearch:setup of a deployment, are recorded but not shown.
  */

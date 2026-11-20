@@ -12,9 +12,9 @@ declare(strict_types=1);
 namespace App\Tests\Elastic;
 
 use App\Elastic\ElasticsearchVersion;
-use App\Elastic\ImportSchema;
-use App\Elastic\PendingImport;
 use App\Enum\SystemCheckEnum;
+use App\Import\ImportSchema;
+use App\Import\PendingImport;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

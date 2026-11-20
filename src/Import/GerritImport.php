@@ -11,11 +11,8 @@ declare(strict_types=1);
 
 namespace App\Import;
 
-use App\Elastic\ImportWatermark;
+use App\CommandRun\CommandRunRecorder;
 use App\Elastic\Indices;
-use App\Elastic\ProjectChanges;
-use App\Service\CommandRunRecorder;
-use App\Service\GerritChangeImporter;
 use Symfony\Component\Console\Helper\ProgressBar;
 
 /**

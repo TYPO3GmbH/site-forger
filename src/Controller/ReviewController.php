@@ -12,13 +12,13 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\DTO\Pagination;
-use App\Elastic\GlobalSearch;
-use App\Elastic\ReviewLists;
-use App\Elastic\ReviewListSearch;
-use App\Elastic\StaleIssues;
-use App\Elastic\Users;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewSortEnum;
+use App\People\Users;
+use App\Report\StaleIssues;
+use App\Search\GlobalSearch;
+use App\Search\ReviewLists;
+use App\Search\ReviewListSearch;
 use Elastica\Exception\InvalidException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\InputBag;

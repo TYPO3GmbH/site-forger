@@ -12,10 +12,10 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\DTO\Pagination;
-use App\Elastic\GlobalSearch;
-use App\Elastic\IssueListSearch;
-use App\Elastic\Users;
 use App\Enum\IssueSortEnum;
+use App\People\Users;
+use App\Search\GlobalSearch;
+use App\Search\IssueListSearch;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;

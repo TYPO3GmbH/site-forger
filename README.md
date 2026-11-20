@@ -102,21 +102,21 @@ Other commands:
 ### The project
 
 Forge lists the issues of subprojects with those of a project. The import keeps the issues of the project itself
-(`redmine_project_id`, 27) only (`App\Elastic\ProjectIssues`), so the figures match the project on Forge. Every
+(`redmine_project_id`, 27) only (`App\Import\ProjectIssues`), so the figures match the project on Forge. Every
 Forge import removes issues of other projects from the index, e.g. after an issue was moved. Issues Forge does not
-list any more are asked for in batches of 100 (`App\Service\ForgeIssueList`), those it does not list for the index
+list any more are asked for in batches of 100 (`App\Import\ForgeIssueList`), those it does not list for the index
 then (deleted, private, in another project) are removed.
 
 Forger shows only what Gerrit shows to everyone, the Gerrit imports ask without an account. A refresh of a change
 Gerrit does not show any more (private now, deleted) removes it, and so does a complete `app:import:review --full` for the changes
-Gerrit did not list (`App\Elastic\ProjectChanges`): it asks Gerrit for them again first.
+Gerrit did not list (`App\Import\ProjectChanges`): it asks Gerrit for them again first.
 
 ### How the deltas work
 
 The deltas only read what changed, and only load details for what they do not have yet:
 
 * **Where to start:** the latest `updated_on` in the index, minus an overlap of 10 minutes
-  (`App\Elastic\ImportWatermark`). The index is the state of the import: after an outage, a failed or a
+  (`App\Import\ImportWatermark`). The index is the state of the import: after an outage, a failed or a
   skipped run, the next run catches up on everything changed since. There is no state to keep elsewhere.
 * **Forge:** lists the issues with `updated_on>=<start>`, the oldest first, and skips those the index has
   with the same `updated_on`. Only changed issues are written, and only for those under review the journals
@@ -128,7 +128,7 @@ The deltas only read what changed, and only load details for what they do not ha
   newest would move the start past the older ones: the run takes the oldest window from the start that fits
   instead (a day, halved until it fits, `ImportWatermark::catchUpWindow()`), notes it, and the next runs go on.
 * **Forge, what no list of changes shows:** after its changes, a Forge delta that is up to date compares the
-  number of issues with Forge, in one request (`App\Elastic\IssueReconciliation`): Forge counts the issues of the
+  number of issues with Forge, in one request (`App\Import\IssueReconciliation`): Forge counts the issues of the
   project, not private, as the index holds them. Where the numbers differ the range of numbers is halved, one
   count each, until a part holds a page; it is listed, the issues missing or not up to date are imported, those
   Forge does not list are removed. At most 15 counts per run, the next run goes on. So issues deleted on Forge,
@@ -141,8 +141,8 @@ warning: run the full import once, by hand. The comparison with Forge would fill
 
 ### The users
 
-The index `user` holds the people of Forge and Gerrit, one document per TYPO3 account (`App\Elastic\Users`,
-`App\DTO\User`): the username, the number on Forge (`forge_id`) and on Gerrit (`gerrit_id`), the name, the known
+The index `user` holds the people of Forge and Gerrit, one document per TYPO3 account (`App\People\Users`,
+`App\People\User`): the username, the number on Forge (`forge_id`) and on Gerrit (`gerrit_id`), the name, the known
 emails. Forge and Gerrit both log in with the TYPO3 account: the Forge login and the Gerrit username
 are its username, the id of the document. A person of Forge is `forge:<forge_id>` until Forge told it.
 
@@ -156,7 +156,7 @@ Forge tells more than the number and the name of a user only user by user, one r
 admins only. So the imports of Forge do not wait for the users. The job "Update users" (`app:import:users`)
 runs every five minutes with a lock of its own, so it does not wait for the Forge import. Both share the rate
 limit of Forge, because the limiter keeps its state in the cache. Its name
-says what it keeps, not where from: the source of the users is Forge for now (`App\Service\ForgeUserSync`), and
+says what it keeps, not where from: the source of the users is Forge for now (`App\Import\ForgeUserSync`), and
 may be another one later under the same command:
 
 * **The importer** writes the author and the assignee of every issue it writes to the index `user`, if it lacks
@@ -187,7 +187,7 @@ A full import that ended early is simply started again: what it already wrote is
 
 A document has to be loaded again when its issue or change changed, and when the import takes more or other data
 from Forge or Gerrit than when it wrote the document. Every document stores the version of the import that wrote it,
-in `import_schema`, one version for the issues and one for the reviews (`App\Elastic\ImportSchema`); documents
+in `import_schema`, one version for the issues and one for the reviews (`App\Import\ImportSchema`); documents
 written before the versions count as version 1.
 
 * **Raise the version** of an index when its importer reads more or other data from the source or derives fields

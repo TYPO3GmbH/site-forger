@@ -54,7 +54,7 @@ enum ReviewTypeEnum: string
     /**
      * The type of a change by the tags of its subject, null without one.
      *
-     * @param list<string> $tags like ['!!!', 'FEATURE'], see App\Elastic\ReviewSubject::tags()
+     * @param list<string> $tags like ['!!!', 'FEATURE'], see App\Document\ReviewSubject::tags()
      */
     public static function fromTags(array $tags): ?self
     {

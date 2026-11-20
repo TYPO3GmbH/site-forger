@@ -61,7 +61,7 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     ];
 
     /**
-     * The cache of the avatars, see App\Elastic\Users.
+     * The cache of the avatars, see App\People\Users.
      */
     private const string AVATARS_CACHE_KEY = 'user_avatars';
 

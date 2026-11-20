@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
-use App\Elastic\CommitMessage;
+use App\Document\CommitMessage;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Attribute\AsTwigFilter;
 use Twig\Attribute\AsTwigFunction;

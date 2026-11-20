@@ -13,7 +13,7 @@ namespace App\Controller;
 
 use App\Charts\ChartRegistry;
 use App\Elastic\Indices;
-use App\Elastic\KeyFigures;
+use App\Report\KeyFigures;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;

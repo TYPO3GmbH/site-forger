@@ -13,11 +13,11 @@ namespace App\Command;
 
 namespace App\Command;
 
+use App\CommandRun\CommandRunRecorder;
 use App\Elastic\IndexSetup;
 use App\Http\ApiRequests;
+use App\Import\ForgeUserSync;
 use App\Import\ImportRun;
-use App\Service\CommandRunRecorder;
-use App\Service\ForgeUserSync;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;

@@ -58,6 +58,6 @@ duplicates:
   type: integer
 duplicated_by:
   type: integer
-# The version of the import that wrote the document, see App\Elastic\ImportSchema
+# The version of the import that wrote the document, see App\Import\ImportSchema
 import_schema:
   type: integer

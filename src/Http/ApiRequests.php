@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace App\Http;
 
-use App\Service\CommandRunRecorder;
-use App\Service\JobStopped;
+use App\CommandRun\CommandRunRecorder;
+use App\CommandRun\JobStopped;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\RateLimiter\LimiterInterface;
 

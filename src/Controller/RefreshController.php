@@ -12,9 +12,9 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Http\ApiFailure;
-use App\Service\ChangeRefreshResult;
-use App\Service\ForgeIssueImporter;
-use App\Service\GerritChangeImporter;
+use App\Import\ChangeRefreshResult;
+use App\Import\ForgeIssueImporter;
+use App\Import\GerritChangeImporter;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;

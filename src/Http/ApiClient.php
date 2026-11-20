@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Http;
 
-use App\Service\JobStopped;
+use App\CommandRun\JobStopped;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;

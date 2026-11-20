@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Http;
 
+use App\CommandRun\CommandRunRecorder;
 use App\Http\ApiClient;
 use App\Http\ApiRequests;
-use App\Service\CommandRunRecorder;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;

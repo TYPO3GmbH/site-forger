@@ -13,7 +13,7 @@ namespace App\Controller;
 
 use App\Charts\ChartStyle;
 use App\Charts\Types\Mergeable;
-use App\Elastic\KeyFigures;
+use App\Report\KeyFigures;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;

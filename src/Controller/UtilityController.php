@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Elastic\Backports;
 use App\Elastic\Indices;
 use App\Entity\BackportBlacklistEntry;
+use App\Report\Backports;
 use App\Repository\BackportBlacklistEntryRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

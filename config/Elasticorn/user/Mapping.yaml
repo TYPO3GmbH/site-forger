@@ -1,4 +1,4 @@
-# The people of Forge and Gerrit, see App\Elastic\Users: the issues keep only their number and name.
+# The people of Forge and Gerrit, see App\People\Users: the issues keep only their number and name.
 # A document per TYPO3 account, its id the username, "forge:<forge_id>" until Forge told the username.
 username:
   type: keyword
@@ -15,7 +15,7 @@ fetched_on:
   format: yyyy/MM/dd HH:mm:ss
 gone:
   type: boolean
-# When the person logged in here with the TYPO3 account last, see App\Elastic\Users::recordLogin()
+# When the person logged in here with the TYPO3 account last, see App\People\Users::recordLogin()
 typo3_login_on:
   type: date
   format: yyyy/MM/dd HH:mm:ss

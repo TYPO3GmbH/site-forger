@@ -12,10 +12,10 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\DTO\TrackerFilters;
-use App\Elastic\CategoryOverview;
 use App\Elastic\Indices;
-use App\Elastic\MonthOverview;
 use App\Enum\TrackerEnum;
+use App\Report\CategoryOverview;
+use App\Report\MonthOverview;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

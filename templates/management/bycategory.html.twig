@@ -6,7 +6,7 @@
  # Core team each in a column, the others together in "Other", so every row adds up to its total. Every count leads to
  # its issues in the search. The sums of the columns in the last row.
  # Below the categories the open issues without one, without links: the search has no filter for them.
- # Expects: rows, withoutCategory (or null) and sums (see App\Elastic\CategoryOverview), trackers
+ # Expects: rows, withoutCategory (or null) and sums (see App\Report\CategoryOverview), trackers
  #}
 {% macro count(count, url, title) %}
     {%- if count > 0 and url is null -%}

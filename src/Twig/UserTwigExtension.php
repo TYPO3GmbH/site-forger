@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
-use App\DTO\User;
-use App\Elastic\PeopleFacet;
-use App\Elastic\Users;
+use App\People\User;
+use App\People\Users;
+use App\Search\PeopleFacet;
 use Twig\Attribute\AsTwigFunction;
 use Twig\Markup;
 

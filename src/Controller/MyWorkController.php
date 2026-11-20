@@ -11,14 +11,14 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\DTO\User;
 use App\Elastic\Indices;
-use App\Elastic\Users;
-use App\Elastic\UserWorkQuery;
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
+use App\People\User;
+use App\People\Users;
+use App\Search\UserWorkQuery;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

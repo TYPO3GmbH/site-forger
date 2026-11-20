@@ -59,7 +59,7 @@ files:
 work_in_progress:
   type: boolean
 # The commit message of the current patch set, its text without subject and trailers for the search, and the
-# Forge issues of its trailers "Resolves:" and "Related:", see App\Elastic\CommitMessage. Elasticsearch has no
+# Forge issues of its trailers "Resolves:" and "Related:", see App\Document\CommitMessage. Elasticsearch has no
 # array type, every field takes several values: "resolves", "related", "releases" and "files" are lists.
 commit_message:
   type: text
@@ -69,6 +69,6 @@ resolves:
   type: integer
 related:
   type: integer
-# The version of the import that wrote the document, see App\Elastic\ImportSchema
+# The version of the import that wrote the document, see App\Import\ImportSchema
 import_schema:
   type: integer

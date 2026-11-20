@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller;
 
-use App\Elastic\FacetSelection;
+use App\Search\FacetSelection;
 use PHPUnit\Framework\TestCase;
 
 final class ReviewFilterOrderTest extends TestCase

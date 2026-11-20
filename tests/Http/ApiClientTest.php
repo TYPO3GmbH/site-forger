@@ -11,10 +11,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Http;
 
+use App\CommandRun\CommandRunRecorder;
 use App\Http\ApiClient;
 use App\Http\ApiFailure;
 use App\Http\RetryPolicy;
-use App\Service\CommandRunRecorder;
 use Doctrine\DBAL\Connection;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ConnectException;

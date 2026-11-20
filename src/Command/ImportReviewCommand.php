@@ -11,12 +11,12 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\CommandRun\CommandRunRecorder;
 use App\Elastic\IndexSetup;
 use App\Http\ApiRequests;
+use App\Import\GerritChangeImporter;
 use App\Import\GerritImport;
 use App\Import\ImportRun;
-use App\Service\CommandRunRecorder;
-use App\Service\GerritChangeImporter;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
