@@ -21,7 +21,7 @@ final readonly class RedmineTextileRendererFactory
      * @param bool $strictRedmineBlocks true: bc./pre./notextile./###. stay literal text, as in Redmine.
      *                                  false: PHP-Textile's richer syntax.
      */
-    public function __invoke(bool $strictRedmineBlocks = true, $indentedTextIsCode = true): RedmineTextileRenderer
+    public function __invoke(bool $strictRedmineBlocks = true, bool $indentedTextIsCode = true): RedmineTextileRenderer
     {
         $textile = new TextileParser();
         // Redmine: hard_breaks=true (PHP-Textile's default line wrap) and

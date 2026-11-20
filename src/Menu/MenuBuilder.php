@@ -46,6 +46,8 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
     /**
      * The main menu, by task: what needs a review, the issues, the sprint boards, the tools.
      * Items for a role are only added for users who have it, the admin pages are in the menu on the right.
+     *
+     * @param array<string, mixed> $options
      */
     #[\Override]
     public function mainDefault(array $options): ItemInterface
@@ -129,6 +131,9 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             ->setLabelAttribute('class', 'dropdown-header');
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     #[\Override]
     public function mainProfile(array $options): ItemInterface
     {

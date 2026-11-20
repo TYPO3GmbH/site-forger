@@ -286,6 +286,9 @@ class ReviewController extends AbstractController
         return new Pagination($this->query()->getInt('page', 1));
     }
 
+    /**
+     * @return InputBag<string>
+     */
     private function query(): InputBag
     {
         return $this->requestStack->getCurrentRequest()->query ?? new InputBag();

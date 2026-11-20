@@ -127,6 +127,8 @@ class SearchController extends AbstractController
     }
 
     /**
+     * @return array<string, mixed> the data for the result list
+     *
      * @throws \Exception
      */
     private function findByQuery(string $searchTerms, IssueSortEnum $sort, bool $searchInClosedIssues = false): array
@@ -135,6 +137,10 @@ class SearchController extends AbstractController
     }
 
     /**
+     * @param array<string, mixed> $query
+     *
+     * @return array<string, mixed> the data for the result list
+     *
      * @throws \Exception
      */
     private function doSearch(array $query): array

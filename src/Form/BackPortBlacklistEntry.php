@@ -16,6 +16,9 @@ use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
+/**
+ * @extends AbstractType<\App\Entity\BackportBlacklistEntry>
+ */
 class BackPortBlacklistEntry extends AbstractType
 {
     /**

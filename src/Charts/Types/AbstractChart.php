@@ -35,6 +35,9 @@ abstract class AbstractChart
         return $this->indices->get($this->getDocumentType());
     }
 
+    /**
+     * @param array<string, mixed> $query
+     */
     protected function fetchData(array $query): ResultSet
     {
         $search = $this->getIndex()->createSearch($query);

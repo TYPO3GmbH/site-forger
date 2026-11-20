@@ -16,11 +16,6 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @method BackportBlacklistEntry|null find($id, $lockMode = null, $lockVersion = null)
- * @method BackportBlacklistEntry|null findOneBy(array $criteria, array $orderBy = null)
- * @method BackportBlacklistEntry[]    findAll()
- * @method BackportBlacklistEntry[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
- *
  * @extends ServiceEntityRepository<BackportBlacklistEntry>
  */
 class BackportBlacklistEntryRepository extends ServiceEntityRepository

@@ -421,6 +421,9 @@ final class CommandRunTest extends TestCase
         ];
     }
 
+    /**
+     * @param array<string, mixed> $more
+     */
     private function commandRun(string $start, CommandRunStatusEnum $status, ?string $heartbeat = null, array $more = []): CommandRun
     {
         $run = new \ReflectionClass(CommandRun::class)->newInstanceWithoutConstructor();

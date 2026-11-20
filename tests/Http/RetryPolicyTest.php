@@ -45,6 +45,9 @@ final class RetryPolicyTest extends TestCase
         self::assertSame(60, RetryPolicy::job()->delay(ApiFailure::status('Gerrit', 429, 60), 1));
     }
 
+    /**
+     * @return iterable<string, array{ApiFailure, bool}>
+     */
     public static function failures(): iterable
     {
         yield 'rate limit' => [ApiFailure::status('Forge', 429), true];

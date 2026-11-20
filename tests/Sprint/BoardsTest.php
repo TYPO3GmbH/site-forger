@@ -20,6 +20,9 @@ use PHPUnit\Framework\TestCase;
 
 final class BoardsTest extends TestCase
 {
+    /**
+     * @return iterable<string, array{?IssueStatusEnum, BoardColumnEnum}>
+     */
     public static function statuses(): iterable
     {
         yield 'new' => [IssueStatusEnum::NEW, BoardColumnEnum::OPEN];
@@ -59,6 +62,9 @@ final class BoardsTest extends TestCase
         self::assertSame(0, SprintBoards::progress(BoardColumnEnum::each([]))['total']);
     }
 
+    /**
+     * @return iterable<string, array{array<string, int|string>, string}>
+     */
     public static function changes(): iterable
     {
         $votes = static fn (int $pr, int $pv, int $nr = 0, int $nv = 0, string $mergeable = 'yes'): array => [

@@ -25,6 +25,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * The filters of a sprint board, edited as {@see BoardFilter} and stored as the YAML query of the board.
+ *
+ * @extends AbstractType<BoardFilter>
  */
 class SprintBoardQueryType extends AbstractType
 {

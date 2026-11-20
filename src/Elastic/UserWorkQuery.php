@@ -50,6 +50,8 @@ final readonly class UserWorkQuery
      * The states are counted over all issues of the person, so the hidden closed ones can be offered, too.
      * Hiding the closed issues and the selected state only narrow down the listed issues.
      * They are listed in the given order.
+     *
+     * @return array<string, mixed> the Elasticsearch request
      */
     public function issues(): array
     {
@@ -73,6 +75,8 @@ final readonly class UserWorkQuery
 
     /**
      * Gerrit changes the person is the commit author of, counted and sorted like the issues.
+     *
+     * @return array<string, mixed> the Elasticsearch request
      */
     public function reviews(): array
     {
@@ -99,6 +103,8 @@ final readonly class UserWorkQuery
 
     /**
      * Counts the open issues of the person, without listing them.
+     *
+     * @return array<string, mixed> the Elasticsearch request
      */
     public function openIssuesCount(): array
     {
@@ -107,6 +113,8 @@ final readonly class UserWorkQuery
 
     /**
      * Counts the open Gerrit changes of the person, the ones in progress included, without listing them.
+     *
+     * @return array<string, mixed> the Elasticsearch request
      */
     public function openReviewsCount(): array
     {
@@ -116,6 +124,8 @@ final readonly class UserWorkQuery
     /**
      * @param array<string, mixed> $request a request of issues() or reviews()
      * @param array<string, mixed> $closed  matches the closed documents
+     *
+     * @return array<string, mixed>
      */
     private function openCount(array $request, array $closed): array
     {
@@ -125,6 +135,8 @@ final readonly class UserWorkQuery
     /**
      * @param list<array<string, list<int|string>>> $identityTerms field => values, one of them has to match
      * @param array<string, mixed>|null             $search        the query of the search words, as the search has it
+     *
+     * @return array<string, mixed>
      */
     private function request(array $identityTerms, ?array $search = null): array
     {
@@ -156,8 +168,11 @@ final readonly class UserWorkQuery
     /**
      * Narrows down the listed documents without changing the counts of the aggregations.
      *
+     * @param array<string, mixed>      $request
      * @param array<string, mixed>      $closed   matches the closed documents
      * @param array<string, mixed>|null $selected matches the selected state
+     *
+     * @return array<string, mixed>
      */
     private function withPostFilter(array $request, array $closed, ?array $selected): array
     {

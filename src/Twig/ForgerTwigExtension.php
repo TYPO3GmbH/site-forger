@@ -27,6 +27,9 @@ class ForgerTwigExtension
     ) {
     }
 
+    /**
+     * @param list<array<string, mixed>> $buckets the values of the filter, as its aggregation has them
+     */
     #[AsTwigFunction(name: 'bucketCounter', isSafe: ['html'])]
     public function bucketCounter(string $category, array $buckets): string
     {
@@ -38,11 +41,6 @@ class ForgerTwigExtension
         return '<span class="badge badge-info">' . $activeCount . ' / ' . count($buckets) . '</span>';
     }
 
-    /**
-     * How many values of a filter the request selects, e.g. 2 of "Tracker" for "Bug" and "Task".
-     *
-     * @param list<array<string, mixed>> $buckets the values of the filter, as its aggregation has them
-     */
     /**
      * The filters the link to a tab of the search takes along from the page, see GlobalSearch::tabFilters().
      *
@@ -71,6 +69,11 @@ class ForgerTwigExtension
         return false;
     }
 
+    /**
+     * How many values of a filter the request selects, e.g. 2 of "Tracker" for "Bug" and "Task".
+     *
+     * @param list<array<string, mixed>> $buckets the values of the filter, as its aggregation has them
+     */
     #[AsTwigFunction(name: 'activeFilterCount')]
     public function activeFilterCount(string $category, array $buckets): int
     {

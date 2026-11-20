@@ -111,6 +111,8 @@ class BackportCommand extends Command
     }
 
     /**
+     * @return Result[]
+     *
      * @throws InvalidException
      */
     protected function getPotentialBackports(): array
@@ -211,6 +213,10 @@ class BackportCommand extends Command
     }
 
     /**
+     * @param Result[] $relatedChanges
+     *
+     * @return string|array<string, mixed> the change on the branch of the release, or "missing"
+     *
      * @throws InvalidException
      */
     protected function compareReleaseAndRelatedChanges(string $release, array $relatedChanges): string|array

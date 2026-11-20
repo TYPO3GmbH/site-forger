@@ -70,6 +70,8 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
     }
 
     /**
+     * @param array<string, string> $sortParameter
+     *
      * @return array<string, mixed>
      */
     private function listData(string $query, array $sortParameter = []): array

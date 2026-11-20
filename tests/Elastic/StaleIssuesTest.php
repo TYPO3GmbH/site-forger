@@ -19,6 +19,9 @@ use PHPUnit\Framework\TestCase;
 
 final class StaleIssuesTest extends TestCase
 {
+    /**
+     * @return array<string, mixed>
+     */
     private static function issue(int $id, int ...$linked): array
     {
         return ['id' => $id, 'journals' => array_map(static fn (int $number): array => ['notes' => 'Patch set 1 for branch main has been pushed to the review server. It is available at https://review.typo3.org/c/Packages/TYPO3.CMS/+/' . $number], $linked)];
