@@ -161,6 +161,23 @@ final class SchedulerTest extends TestCase
         unlink($log);
     }
 
+    public function testAForcedJobStartsWithForce(): void
+    {
+        $job = new StartJob('reviewFull', 'Check all Gerrit changes', ['app:import', '--mode=reviewFull'], 'gerrit');
+
+        self::assertSame(['app:import', '--mode=reviewFull'], array_slice(StartJobHandler::commandLine('php', $job, 'log'), 6));
+        self::assertSame(['app:import', '--mode=reviewFull', '--force'], array_slice(StartJobHandler::commandLine('php', $job->forced(), 'log'), 6));
+        // The job stays the same: its queue entry, its lock, its log file
+        self::assertSame([$job->name, $job->command, $job->lock], [$job->forced()->name, $job->forced()->command, $job->forced()->lock]);
+    }
+
+    public function testOnlyTheFullImportsMayBeForced(): void
+    {
+        $scheduled = new ScheduledJobs(new JobSchedule(new ArrayAdapter(), new LockFactory(new InMemoryStore())));
+
+        self::assertSame(['app:import --mode=reviewFull', 'app:import --mode=forgeFull'], array_keys($scheduled->forceable()));
+    }
+
     public function testTheQueuedJobsStartOnceAndThoseNoLongerInTheScheduleAreDropped(): void
     {
         $projectDir = sys_get_temp_dir() . '/forger-queue-' . bin2hex(random_bytes(4));
@@ -302,13 +319,15 @@ final class SchedulerTest extends TestCase
         $run = new \ReflectionClass(CommandRun::class)->newInstanceWithoutConstructor();
         new \ReflectionProperty(CommandRun::class, 'id')->setValue($run, 7);
         new \ReflectionProperty(CommandRun::class, 'job')->setValue($run, 'app:import --mode=reviewFull');
+        new \ReflectionProperty(CommandRun::class, 'forced')->setValue($run, true);
         $pauses = $this->createMock(JobPauseRepository::class);
         $pauses->expects(self::once())->method('pause')->with(JobPause::ALL, 'deployment', 'a deployment');
         $runs = $this->createMock(CommandRunRepository::class);
         $runs->method('findRunning')->willReturn([$run]);
         $runs->expects(self::once())->method('requestStop')->with(7, CommandRunStatusEnum::INTERRUPTED, 'Interrupted: a deployment')->willReturn(true);
         $queue = $this->createMock(QueuedJobRepository::class);
-        $queue->expects(self::once())->method('queue')->with('app:import --mode=reviewFull', 'interrupted, a deployment');
+        // A forced run starts forced again
+        $queue->expects(self::once())->method('queue')->with('app:import --mode=reviewFull', 'interrupted, a deployment', self::anything(), true);
 
         $stopping = $this->control($pauses, $queue, $runs)->pause(null, 'deployment', 'a deployment', new \DateTimeImmutable());
 

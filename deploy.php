@@ -85,6 +85,14 @@ task('forger:jobs_resume', function (): void {
 });
 after('deploy:post_release', 'forger:jobs_resume');
 
+// The worker of the schedule runs as a systemd service on the server (see "The systemd service" in README.md): it ends
+// after the message at hand, systemd starts it again within seconds, in the new release. The running jobs go on.
+desc('Restarts the worker of the schedule with the new release');
+task('forger:worker_restart', function (): void {
+    run('{{bin/php}} {{current_path}}/bin/console messenger:stop-workers --no-interaction');
+});
+after('forger:jobs_resume', 'forger:worker_restart');
+
 // With the release that paused them; the current one is the old release then, it may not know the command
 desc('Resumes the jobs of the schedule after a failed deployment');
 task('forger:jobs_resume_failed', function (): void {

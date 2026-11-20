@@ -295,6 +295,13 @@
                 return input.cloneNode();
             })
         );
+        // Import everything again: offered for the jobs that say what --force does, never checked beforehand
+        const force = dialog.querySelector('.runs-confirm-force');
+        const forceText = form.dataset.runsConfirmForce || '';
+        force.hidden = forceText === '';
+        force.querySelector('input').checked = false;
+        force.querySelector('input').disabled = force.hidden;
+        force.querySelector('.runs-confirm-force-detail').textContent = forceText;
         dialog.runsButton = form.querySelector('button');
         dialog.showModal();
         // The safe choice has the focus, Enter does not start or stop a job by accident

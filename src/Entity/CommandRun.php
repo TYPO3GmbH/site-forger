@@ -50,6 +50,13 @@ class CommandRun
     #[ORM\Column(type: Types::STRING, length: 255)]
     private string $job = '';
 
+    /**
+     * Started with --force: imported everything again, also what did not change. The job stays the same, see
+     * App\Subscriber\CommandRunSubscriber::job().
+     */
+    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
+    private bool $forced = false;
+
     #[ORM\Column(type: Types::STRING, length: 20, enumType: CommandRunStatusEnum::class)]
     private CommandRunStatusEnum $status = CommandRunStatusEnum::RUNNING;
 
@@ -134,6 +141,11 @@ class CommandRun
     public function getJob(): string
     {
         return $this->job;
+    }
+
+    public function isForced(): bool
+    {
+        return $this->forced;
     }
 
     /**

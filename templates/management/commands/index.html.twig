@@ -33,11 +33,15 @@
 {% endmacro %}
 
 {# A job of the schedule to run now, see CommandRunController::queue() #}
+{# A run, or a queued one, that imports everything again #}
+{% macro forced() %}<span class="runs-forced" title="Started with --force: imports everything again, also what did not change">Forced</span>{% endmacro %}
+
 {# A job by what it does, its command below #}
 {% macro job(job, labels) %}<span class="runs-job-label">{{ labels[job] ?? job }}</span><code class="runs-job-command">{{ job }}</code>{% endmacro %}
 
 {# A button that posts a job (or none, for all) to an action of CommandRunController, once confirmed in the dialog below, see command-runs.js #}
-{% macro action(route, label, job, token, title = null, style = null, parameters = {}, confirm = null) %}
+{# force: what --force does, if the dialog may offer it, see JobSchedule::JOBS #}
+{% macro action(route, label, job, token, title = null, style = null, parameters = {}, confirm = null, force = null) %}
     {% set actionIcon = {
         'management_command_runs_queue': 'actions-play',
         'management_command_runs_resume': 'actions-play',
@@ -48,7 +52,8 @@
           data-runs-confirm="{{ confirm ?? (label ~ (job ? ': ' ~ job) ~ '?') }}"
           data-runs-confirm-detail="{{ title }}"
           data-runs-confirm-label="{{ label }}"
-          data-runs-confirm-style="{{ style == 'danger' ? 'danger' : 'primary' }}">
+          data-runs-confirm-style="{{ style == 'danger' ? 'danger' : 'primary' }}"{% if force %}
+          data-runs-confirm-force="{{ force }}"{% endif %}>
         <input type="hidden" name="job" value="{{ job }}">
         <input type="hidden" name="_token" value="{{ csrf_token(token) }}">
         <button type="submit" class="runs-queue-button{{ style ? ' runs-queue-button-' ~ style }}"{% if title %} title="{{ title }}"{% endif %}>{% if actionIcon %}{{ icon(actionIcon) }}{% endif %}<span>{{ label }}</span></button>
@@ -64,7 +69,7 @@
         {% elseif job in state.queuedJobs %}
             <span class="runs-muted runs-nowrap">Queued</span>
         {% elseif not state.pauseAll and not ownPause %}
-            {{ _self.action('management_command_runs_queue', 'Run now', job, token, 'Starts ' ~ job ~ ' within a minute') }}
+            {{ _self.action('management_command_runs_queue', 'Run now', job, token, 'Starts ' ~ job ~ ' within a minute', null, {}, null, state.forceable[job] ?? null) }}
         {% endif %}
         {% if ownPause %}
             {{ _self.action('management_command_runs_resume', 'Resume', job, token, 'Paused ' ~ ownPause.reason) }}
@@ -296,7 +301,7 @@
                                         within a minute
                                     {% endif %}
                                 </td>
-                                <td class="runs-job">{{ runs.job(queuedJob.job, labels) }}</td>
+                                <td class="runs-job">{{ runs.job(queuedJob.job, labels) }}{% if queuedJob.forced %} {{ runs.forced() }}{% endif %}</td>
                                 <td class="runs-muted">{{ queuedJob.queuedBy }}, {{ runs.ago(queuedJob.queuedAt, now) }}</td>
                                 <td class="runs-actions">
                                     {% if pauses[queuedJob.job] is defined %}
@@ -319,7 +324,7 @@
                                 </td>
                                 <td class="runs-job">{{ runs.job(planned.job, labels) }}</td>
                                 <td class="runs-muted">{{ planned.schedule }}</td>
-                                <td class="runs-actions">{{ runs.jobActions(planned.job, {'runningJobs': runningJobs, 'queuedJobs': queuedJobs, 'pauses': pauses, 'pauseAll': pauseAll}, jobsToken) }}</td>
+                                <td class="runs-actions">{{ runs.jobActions(planned.job, {'runningJobs': runningJobs, 'queuedJobs': queuedJobs, 'pauses': pauses, 'pauseAll': pauseAll, 'forceable': forceable}, jobsToken) }}</td>
                             </tr>
                         {% endfor %}
                         </tbody>
@@ -384,7 +389,7 @@
                                 <article data-runs-key="run-{{ run.id }}" class="runs-card runs-card-running">
                                     <header class="runs-card-header">
                                         <span class="runs-job">{{ runs.job(run.job, labels) }}</span>
-                                        {{ runs.status(run, now) }}
+                                        <span class="runs-card-badges">{% if run.forced %}{{ runs.forced() }}{% endif %}{{ runs.status(run, now) }}</span>
                                     </header>
                                     {{ runs.steps(run, steps[run.job] ?? [], now, usualDurations[run.job] ?? null) }}
                                     <dl class="runs-facts runs-facts-running">
@@ -476,7 +481,7 @@
                                         {% if not job %}<td class="runs-job">{{ runs.job(run.job, labels) }}</td>{% endif %}
                                         <td class="runs-nowrap">
                                             {% set state = run.status(now) %}
-                                            {{ runs.status(run, now) }}
+                                            {{ runs.status(run, now) }}{% if run.forced %} {{ runs.forced() }}{% endif %}
                                             {% if state.stoppedOnPurpose %}
                                                 {% set reason = run.messageParts(now).reason %}
                                                 {% if reason %}<span class="runs-muted runs-reason">{{ reason|replace({'Interrupted: ': ''}) }}</span>{% endif %}
@@ -517,6 +522,14 @@
         <form method="post" class="runs-confirm-form">
             <h2 class="runs-confirm-title" id="runs-confirm-title"></h2>
             <p class="runs-confirm-detail" id="runs-confirm-detail"></p>
+            {# Offered for the jobs that say what --force does #}
+            <label class="runs-confirm-force" hidden>
+                <input type="checkbox" class="form-check-input" name="force" value="1">
+                <span>
+                    <span class="runs-confirm-force-label">Import everything again <code>--force</code></span>
+                    <span class="runs-confirm-force-detail"></span>
+                </span>
+            </label>
             <div class="runs-confirm-fields"></div>
             <div class="runs-confirm-buttons">
                 <button type="button" class="runs-queue-button runs-confirm-back" data-runs-confirm-close>Back</button>

@@ -77,7 +77,10 @@ final class CommandRunRecorder
     ) {
     }
 
-    public function start(string $job): void
+    /**
+     * @param bool $forced started with --force, see App\Entity\CommandRun::isForced()
+     */
+    public function start(string $job, bool $forced = false): void
     {
         if (null !== $this->runId) {
             // A command started by another command belongs to the run of the outer one
@@ -100,7 +103,7 @@ final class CommandRunRecorder
         $now = new \DateTimeImmutable();
 
         $job = mb_substr($job, 0, 255);
-        $this->write(function () use ($job, $now): void {
+        $this->write(function () use ($job, $now, $forced): void {
             $this->prune($job, $now);
             $this->connection->insert('command_run', [
                 'job' => $job,
@@ -109,6 +112,7 @@ final class CommandRunRecorder
                 'heartbeat_at' => $now,
                 'documents' => 0,
                 'warnings' => 0,
+                'forced' => $forced ? 1 : 0,
                 'host' => mb_substr((string) gethostname(), 0, 255),
                 'pid' => (int) getmypid(),
             ], [

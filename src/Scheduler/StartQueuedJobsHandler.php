@@ -78,7 +78,8 @@ final readonly class StartQueuedJobsHandler
                 continue;
             }
             $this->logger->info(sprintf('Starting the job "%s" queued by %s', $job->getJob(), $job->getQueuedBy()));
-            ($this->startJob)($jobs[$job->getJob()]['start']);
+            $start = $jobs[$job->getJob()]['start'];
+            ($this->startJob)($job->isForced() ? $start->forced() : $start);
         }
     }
 }

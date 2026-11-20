@@ -182,7 +182,7 @@ runs, like `app:elasticsearch:setup` of a deployment, are recorded but not shown
 next: the jobs queued with **Run now** (the worker of the schedule starts them within a minute, the web request
 does not run a command itself), then the next planned run of every job. Every job of the schedule shows when it
 runs and its next run. A job of the schedule is **overdue** when the run
-planned after its last start did not start within 10 minutes (cron no longer starts the worker), or three planned
+planned after its last start did not start within 10 minutes (the worker of the schedule does not run), or three planned
 runs in a row did not succeed (every run fails). Runs skipped for a lock count as fine for up to 12 hours. This
 holds for the weekly jobs too: a missing Monday run of `reviewFull` shows. A job the schedule does not start (a
 deployment, a run by hand) is never overdue.
@@ -196,7 +196,7 @@ job are deleted when a run starts, the message is cut at 2000 characters.
 What the page cannot show: a run that ends before the console starts (wrong PHP binary, a broken
 `.env.local.php`, the database down) leaves no row. The job then shows as overdue, or does not appear at all.
 
-### Schedule and cron
+### Schedule and worker
 
 When the jobs run is part of the app, in `App\Scheduler\JobSchedule` (Symfony Scheduler):
 
@@ -208,18 +208,67 @@ When the jobs run is part of the app, in `App\Scheduler\JobSchedule` (Symfony Sc
 | `app:import --mode=reviewFull` | Monday 03:17 |
 | `app:import --mode=forgeFull` | Thursday 03:17 |
 
-`bin/console debug:scheduler` lists them with their next run. Cron only starts the worker of the schedule, once a
-minute for less than a minute, with a file in `/etc/cron.d` on the server (not part of this repository):
+`bin/console debug:scheduler` lists them with their next run. The server only runs the worker of the schedule,
+`messenger:consume scheduler_jobs`, as a systemd service. The worker starts a due job as a process of its own and does
+not wait for it: a `reviewFull` running for hours keeps no delta waiting, the locks of the imports keep two runs of
+one kind apart. The schedule remembers what it started (`var/scheduler`, kept by the deployments): a job that fell
+due while no worker ran, e.g. during a restart or a deployment, runs once when the worker starts again. The output
+of a job goes to `var/log/jobs/<job>.lastrun`, that of the worker to the journal.
 
-```cron
-# m  h  dom mon dow user              command
-*    *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console messenger:consume scheduler_jobs --time-limit=55 > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/scheduler.lastrun 2>&1
+#### The systemd service
+
+The service is set up on the server, it is not part of this repository or of the deployment. Both hosts run on the
+same server, under `/srv/vhosts/<vhost>/site/mage` (see `deploy.php`): one template unit serves both, its instance
+is the vhost, whose user runs the worker. `/etc/systemd/system/forger-scheduler@.service`:
+
+```ini
+[Unit]
+Description=Forger: worker of the job schedule of %i
+After=network-online.target
+Wants=network-online.target
+# Never give up restarting, e.g. while the database is down for a while
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=%i
+# Resolved at each start: after a restart the worker runs the current release
+WorkingDirectory=/srv/vhosts/%i/site/mage/current
+# Ends itself after an hour or at 256 MB, and is started again: nothing builds up in a worker that runs for weeks
+ExecStart=/usr/bin/php8.5 bin/console messenger:consume scheduler_jobs --time-limit=3600 --memory-limit=256M --no-interaction
+Restart=always
+RestartSec=5
+# The jobs run as processes of their own (App\Scheduler\StartJobHandler): a restart or stop of the worker, the
+# hourly one too, must not kill a running import. Only the worker itself is stopped.
+KillMode=process
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
 ```
 
-The worker starts a due job as a process of its own and does not wait for it: a `reviewFull` running for hours
-keeps no delta waiting, the locks of the imports keep two runs of one kind apart. The schedule remembers what it
-started (`var/scheduler`, kept by the deployments): a job that fell due while no worker ran, e.g. during a
-deployment, runs once when the next worker starts. The output of a job goes to `var/log/jobs/<job>.lastrun`.
+```sh
+sudo systemctl daemon-reload
+sudo systemctl enable --now forger-scheduler@forger.typo3.com forger-scheduler@stage.forger.typo3.com
+systemctl status 'forger-scheduler@*'
+journalctl -u forger-scheduler@forger.typo3.com -f
+```
+
+The limits: `--time-limit=3600` and `--memory-limit=256M` end the worker after an hour or once it grew past 256 MB,
+after the message at hand; `Restart=always` starts it again after 5 seconds, with the release `current` points to
+then. A minute missed meanwhile runs when it starts. `KillMode=process` matters: systemd counts the jobs the worker
+started as part of the service, and would kill a running `reviewFull` with every restart otherwise.
+
+A worker keeps the code it started with. A deployment ends it once the new release is live and the jobs are resumed
+(`forger:worker_restart` in `deploy.php`, `bin/console messenger:stop-workers` on the server): systemd starts it again
+within seconds, with the new release, the running jobs go on. Without the service nothing restarts it, and a worker
+someone started by hand stops.
+
+The first deployment of the schedule replaces the cron jobs of the imports: comment them out in `/etc/cron.d`
+before, wait until no import runs (the release before knows neither the pause nor the stop of a run), deploy, then
+enable the service; the restart of the deployment finds no worker then, that does no harm. Not before: the release before does not know `scheduler_jobs`, the service would fail and restart
+over and over. Then start a full import of the reviews with **Run now** and *Import everything again* on the command
+runs page (or `app:import --mode=reviewFull --force`), the index gets the fields added with this release.
 
 #### Pause, resume, cancel
 
@@ -231,9 +280,9 @@ bin/console app:jobs:pause [<job>] [--reason=...] [--wait=300]   # all jobs with
 bin/console app:jobs:resume [<job>]
 ```
 
-A paused job does not start, its planned starts wait in the queue. A running job asked to stop stops at its next
-heartbeat (within about 15 seconds; one waiting for an answer of Forge or Gerrit takes until then) and releases its
-lock: paused, it ends as "Interrupted" and is queued, to start again once resumed; cancelled, it ends as
+A paused job does not start, its planned starts wait in the queue. A running job asked to stop stops within seconds,
+also while it waits for a rate limit (it reads every 2 seconds whether it was asked to; one waiting for an answer of
+Forge or Gerrit stops once it has it) and releases its lock: paused, it ends as "Interrupted" and is queued, to start again once resumed; cancelled, it ends as
 "Cancelled" and stays so. Starting again costs little: a delta goes on from the index, a full import skips what it
 has in its current state. `app:jobs:pause` waits for the running jobs to stop, at most `--wait` seconds.
 
@@ -246,19 +295,19 @@ tables and columns, do not rename or drop them in the same deployment.
 
 #### Locally
 
-ddev runs no cron and no worker: locally the schedule starts nothing until you start its worker. The jobs then read
+ddev runs no worker: locally the schedule starts nothing until you start it. The jobs then read
 the real Forge and Gerrit into the local indices, `app:mock-data` brings back the mock documents afterwards.
 
 ```sh
 # The jobs with their next run
 ddev exec bin/console debug:scheduler
-# The worker as cron starts it: starts the due jobs and those queued with "Run now", then stops
+# The worker for a minute: starts the due jobs and those queued with "Run now", then stops
 ddev exec bin/console messenger:consume scheduler_jobs --time-limit=55 -vv
 # Or keep it running in a terminal, until Ctrl+C
 ddev exec bin/console messenger:consume scheduler_jobs -vv
 ```
 
-A worker keeps the code it started with: after a change, stop it and start it again (cron does that every minute).
+A worker keeps the code it started with: after a change, stop it and start it again.
 A job queued with "Run now" starts at the next full minute, unless its lock is taken (a delta of the same source runs or
 is planned for this minute): then it waits in the queue and starts once the lock is free.
 
@@ -270,9 +319,7 @@ deltas run once. `rm -rf var/scheduler` forgets what the schedule started. The t
 
 What happened is on the command runs page. The output of the last run of each job (`*.lastrun`, overwritten
 by every run) is still worth keeping: it is the only trace of a run that fails before the console starts.
-Pitfalls of `/etc/cron.d`: the
-name of the file must not contain a dot (`forger.typo3.com` is ignored, `forger` works), and the last line
-needs a line break. Whether cron starts the jobs at all shows the system log: `grep CRON /var/log/syslog`.
+Whether the worker runs at all shows `systemctl status 'forger-scheduler@*'`, why it does not its journal.
 
 ## Keycloak
 

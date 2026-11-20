@@ -127,6 +127,7 @@ class CommandRunController extends AbstractController
             'running' => $running,
             'usualDurations' => $usualDurations,
             'steps' => $this->scheduledJobs->steps(),
+            'forceable' => $this->scheduledJobs->forceable(),
             'failedRuns' => $failedRuns,
             'job' => $job,
             'problemsOnly' => $problemsOnly,
@@ -152,8 +153,10 @@ class CommandRunController extends AbstractController
             return $this->back($request);
         }
         $label = $this->scheduledJobs->labels()[$job];
-        if ($this->queue->queue($job, sprintf('Run now by %s', $this->user()), new \DateTimeImmutable())) {
-            $this->addFlash('success', sprintf('"%s" is queued and starts within a minute.', $label));
+        // Only the jobs that say what --force does, see JobSchedule::JOBS
+        $forced = $request->getPayload()->getBoolean('force') && isset($this->scheduledJobs->forceable()[$job]);
+        if ($this->queue->queue($job, sprintf('Run now by %s', $this->user()), new \DateTimeImmutable(), $forced)) {
+            $this->addFlash('success', sprintf('"%s" is queued and starts within a minute%s.', $label, $forced ? ', it imports everything again' : ''));
         } else {
             $this->addFlash('info', sprintf('"%s" is queued already.', $label));
         }

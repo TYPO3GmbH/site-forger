@@ -48,8 +48,12 @@ final class CommandRunTest extends TestCase
         $input = new ArrayInput(['--mode' => 'reviewDelta', '--startAt' => '0', '--verbose' => true], $definition);
         self::assertSame('app:import --mode=reviewDelta', CommandRunSubscriber::job('app:import', $input, $definition, ['verbose']));
 
-        $input = new ArrayInput(['--mode' => 'reviewFull', '--startAt' => '500', '--force' => true], $definition);
-        self::assertSame('app:import --force --mode=reviewFull --startAt=500', CommandRunSubscriber::job('app:import', $input, $definition));
+        $input = new ArrayInput(['--mode' => 'reviewFull', '--startAt' => '500'], $definition);
+        self::assertSame('app:import --mode=reviewFull --startAt=500', CommandRunSubscriber::job('app:import', $input, $definition));
+
+        // A forced run is a run of its job, the run says it was forced
+        $input = new ArrayInput(['--mode' => 'reviewFull', '--force' => true], $definition);
+        self::assertSame('app:import --mode=reviewFull', CommandRunSubscriber::job('app:import', $input, $definition));
     }
 
     public function testJobWithoutOptions(): void
