@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Sprint;
 
+use App\Document\Issue;
 use App\Enum\IssueStatusEnum;
 
 /**
@@ -37,12 +38,9 @@ enum BoardColumnEnum: string
         };
     }
 
-    /**
-     * @param array<string, mixed> $issue as the index has it
-     */
-    public static function ofIssue(array $issue): self
+    public static function ofIssue(Issue $issue): self
     {
-        return self::ofStatus(IssueStatusEnum::tryFrom((int) ($issue['status']['id'] ?? 0)));
+        return self::ofStatus(IssueStatusEnum::tryFrom((int) ($issue->status['id'] ?? 0)));
     }
 
     /**

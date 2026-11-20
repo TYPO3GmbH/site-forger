@@ -51,8 +51,8 @@
                             } only %}
                         {% else %}
                             <ul class="row-list row-list-panel">
-                                {% for result in results %}
-                                    <li>{% include '_partials/row/issue.html.twig' with {'issue': result.data, 'detailed': true} only %}</li>
+                                {% for issue in issues %}
+                                    <li>{% include '_partials/row/issue.html.twig' with {'issue': issue, 'detailed': true} only %}</li>
                                 {% endfor %}
                             </ul>
                         {% endif %}

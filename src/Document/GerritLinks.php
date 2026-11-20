@@ -23,14 +23,14 @@ final class GerritLinks
     /**
      * The numbers of the changes, in the order they were first linked.
      *
-     * @param array<string, mixed> $issue the issue as it is indexed
+     * @param list<array<string, mixed>> $journals the journals of an issue, as Forge lists them
      *
      * @return list<int>
      */
-    public static function changeNumbers(array $issue): array
+    public static function inJournals(array $journals): array
     {
         $numbers = [];
-        foreach ($issue['journals'] ?? [] as $journal) {
+        foreach ($journals as $journal) {
             preg_match_all(self::PATTERN, (string) ($journal['notes'] ?? ''), $matches);
             foreach ($matches['number'] as $number) {
                 $numbers[] = (int) $number;

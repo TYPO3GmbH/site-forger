@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Twig;
 
 use App\Document\Change;
+use App\Document\Issue;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\PriorityEnum;
@@ -47,13 +48,11 @@ final class StatusTwigExtension
 
     /**
      * How long ago a Forge issue document of the issue index was last updated, null if it is closed.
-     *
-     * @param array<string, mixed> $issue
      */
     #[AsTwigFunction(name: 'issue_activity')]
-    public function issueActivity(array $issue): ?ActivityEnum
+    public function issueActivity(Issue $issue): ?ActivityEnum
     {
-        return ActivityEnum::fromIssue($issue, new \DateTimeImmutable());
+        return $issue->activity(new \DateTimeImmutable());
     }
 
     /**

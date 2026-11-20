@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Templates;
 
 use App\Document\Change;
+use App\Document\Issue;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Twig\Environment;
 
@@ -161,8 +162,8 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('oldIssues')]
     public function testIssueWithoutNewFields(array $issue): void
     {
-        $card = $this->twig->render('_partials/issue_card.html.twig', ['card' => $issue]);
-        $listed = $this->twig->render('_partials/row/issue.html.twig', ['issue' => $issue, 'detailed' => true]);
+        $card = $this->twig->render('_partials/issue_card.html.twig', ['card' => Issue::fromDocument($issue)]);
+        $listed = $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument($issue), 'detailed' => true]);
 
         foreach ([$card, $listed] as $html) {
             self::assertStringContainsString('Benni Mack', $html);
@@ -174,8 +175,8 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     {
         $this->avatars(['forge:2' => md5('benjamin@example.org')]);
 
-        $card = $this->twig->render('_partials/issue_card.html.twig', ['card' => self::OLD_ISSUE]);
-        $listed = $this->twig->render('_partials/row/issue.html.twig', ['issue' => self::OLD_ISSUE, 'detailed' => true]);
+        $card = $this->twig->render('_partials/issue_card.html.twig', ['card' => Issue::fromDocument(self::OLD_ISSUE)]);
+        $listed = $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument(self::OLD_ISSUE), 'detailed' => true]);
 
         // The assignee has one, the author none: the placeholder
         self::assertSame(2, substr_count($card, 'class="avatar"'));
@@ -189,7 +190,7 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         $issue = self::OLD_ISSUE;
         $issue['assigned_to']['email'] = 'benjamin@example.org';
 
-        $html = $this->twig->render('_partials/issue_card.html.twig', ['card' => $issue]);
+        $html = $this->twig->render('_partials/issue_card.html.twig', ['card' => Issue::fromDocument($issue)]);
 
         // Only the index "user" gives the avatars, the email stays in the document
         self::assertStringNotContainsString(md5('benjamin@example.org'), $html);

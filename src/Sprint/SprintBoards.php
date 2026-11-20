@@ -12,10 +12,12 @@ declare(strict_types=1);
 namespace App\Sprint;
 
 use App\Document\Change;
+use App\Document\Issue;
 use App\Elastic\Indices;
 use App\Entity\SprintBoard;
 use App\Enum\IssueStatusEnum;
 use App\Repository\ChangeRepository;
+use App\Repository\IssueRepository;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -66,7 +68,7 @@ final readonly class SprintBoards
     /**
      * The cards of a board by column. An issue under review shows its Gerrit change, if the index has it.
      *
-     * @return array<string, list<array{issue: array<string, mixed>, change: Change|null}>>
+     * @return array<string, list<array{issue: Issue, change: Change|null}>>
      */
     public function cards(SprintBoard $board): array
     {
@@ -75,8 +77,7 @@ final readonly class SprintBoards
             'query' => Yaml::parse((string) $board->getQuery()),
             'size' => self::MAX_ISSUES,
         ])->search();
-        foreach ($resultSet->getResults() as $result) {
-            $issue = $result->getData();
+        foreach (IssueRepository::fromResultSet($resultSet) as $issue) {
             $column = BoardColumnEnum::ofIssue($issue);
             $change = BoardColumnEnum::REVIEW === $column ? $this->changeOf($issue) : null;
             $cards[$column->value][] = ['issue' => $issue, 'change' => $change];
@@ -88,7 +89,7 @@ final readonly class SprintBoards
     /**
      * The issues a filter of the wizard selects: how many per column, and the latest of them.
      *
-     * @return array{columns: array<string, int>, total: int, issues: list<array<string, mixed>>}
+     * @return array{columns: array<string, int>, total: int, issues: list<array{issue: Issue, column: string}>}
      */
     public function preview(BoardFilter $filter): array
     {
@@ -100,11 +101,10 @@ final readonly class SprintBoards
         ])->search();
         $columns = BoardColumnEnum::each(0);
         $issues = [];
-        foreach ($resultSet->getResults() as $result) {
-            $issue = $result->getSource();
-            $issue['column'] = BoardColumnEnum::ofIssue($issue)->value;
-            ++$columns[$issue['column']];
-            $issues[] = $issue;
+        foreach (IssueRepository::fromResultSet($resultSet) as $issue) {
+            $column = BoardColumnEnum::ofIssue($issue)->value;
+            ++$columns[$column];
+            $issues[] = ['issue' => $issue, 'column' => $column];
         }
 
         return ['columns' => $columns, 'total' => count($issues), 'issues' => array_slice($issues, 0, self::PREVIEW_SIZE)];
@@ -144,13 +144,11 @@ final readonly class SprintBoards
 
     /**
      * The Gerrit change that the journal of the issue links, if the index has it.
-     *
-     * @param array<string, mixed> $issue
      */
-    private function changeOf(array $issue): ?Change
+    private function changeOf(Issue $issue): ?Change
     {
         $notes = '';
-        foreach ((array) ($issue['journals'] ?? []) as $journal) {
+        foreach ($issue->journals as $journal) {
             if (preg_match('|It is available at https?://review\.typo3\.org/|', (string) ($journal['notes'] ?? ''))) {
                 $notes = (string) $journal['notes'];
             }

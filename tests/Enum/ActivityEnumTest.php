@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Enum;
 
 use App\Document\Change;
+use App\Document\Issue;
 use App\Enum\ActivityEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -64,12 +65,12 @@ final class ActivityEnumTest extends TestCase
         $now = new \DateTimeImmutable(self::NOW);
         $old = ['updated_on' => '2026/07/01 00:00:00', 'created_on' => '2020/01/01 00:00:00'];
 
-        self::assertSame(ActivityEnum::STALE, ActivityEnum::fromIssue($old + ['status' => ['id' => 8, 'name' => 'Under Review']], $now));
-        self::assertNull(ActivityEnum::fromIssue($old + ['status' => ['id' => 3, 'name' => 'Resolved']], $now));
+        self::assertSame(ActivityEnum::STALE, Issue::fromDocument($old + ['status' => ['id' => 8, 'name' => 'Under Review']])->activity($now));
+        self::assertNull(Issue::fromDocument($old + ['status' => ['id' => 3, 'name' => 'Resolved']])->activity($now));
         // Without an id the name decides, statuses Forge does not know count as open
-        self::assertNull(ActivityEnum::fromIssue($old + ['status' => ['name' => 'Closed']], $now));
-        self::assertSame(ActivityEnum::STALE, ActivityEnum::fromIssue($old + ['status' => ['name' => 'Something new']], $now));
-        self::assertSame(ActivityEnum::STALE, ActivityEnum::fromIssue($old, $now));
+        self::assertNull(Issue::fromDocument($old + ['status' => ['name' => 'Closed']])->activity($now));
+        self::assertSame(ActivityEnum::STALE, Issue::fromDocument($old + ['status' => ['name' => 'Something new']])->activity($now));
+        self::assertSame(ActivityEnum::STALE, Issue::fromDocument($old)->activity($now));
     }
 
     public function testRangesCoverAllDatesWithoutGaps(): void

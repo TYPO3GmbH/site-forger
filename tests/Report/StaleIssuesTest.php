@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Report;
 
 use App\Document\Change;
+use App\Document\Issue;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewStateEnum;
@@ -20,12 +21,14 @@ use PHPUnit\Framework\TestCase;
 
 final class StaleIssuesTest extends TestCase
 {
-    /**
-     * @return array<string, mixed>
-     */
-    private static function issue(int $id, int ...$linked): array
+    private static function issue(int $id, int ...$linked): Issue
     {
-        return ['id' => $id, 'journals' => array_map(static fn (int $number): array => ['notes' => 'Patch set 1 for branch main has been pushed to the review server. It is available at https://review.typo3.org/c/Packages/TYPO3.CMS/+/' . $number], $linked)];
+        $journals = array_map(static fn (int $number): array => [
+            'notes' => 'Patch set 1 for branch main has been pushed to the review server. '
+                . 'It is available at https://review.typo3.org/c/Packages/TYPO3.CMS/+/' . $number,
+        ], $linked);
+
+        return Issue::fromDocument(['id' => $id, 'journals' => $journals]);
     }
 
     public function testTheIssuesOfTheStagesStaleAndOrphanedThoseUntouchedTheLongestFirst(): void
@@ -59,7 +62,7 @@ final class StaleIssuesTest extends TestCase
         $rows = StaleIssues::withChanges($issues, array_map(Change::fromDocument(...), $changes));
 
         // An open change does not keep an issue out: it lies still all the same
-        self::assertSame([1, 2, 3, 4], array_map(static fn (array $row): int => $row['issue']['id'], $rows));
+        self::assertSame([1, 2, 3, 4], array_map(static fn (array $row): int => $row['issue']->id, $rows));
         self::assertSame([['id' => 81234, 'state' => ReviewStateEnum::READY]], $rows[0]['changes']);
         self::assertSame([['id' => 81235, 'state' => ReviewStateEnum::WORK_IN_PROGRESS]], $rows[1]['changes']);
         self::assertSame(

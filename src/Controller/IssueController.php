@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Document\Issue;
 use App\Document\Relations;
-use App\Elastic\Indices;
-use App\Search\GlobalSearch;
+use App\Repository\IssueRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,7 +27,7 @@ class IssueController extends AbstractController
 {
     public function __construct(
         private readonly Relations $relations,
-        private readonly GlobalSearch $globalSearch,
+        private readonly IssueRepository $issues,
     ) {
     }
 
@@ -57,19 +57,16 @@ class IssueController extends AbstractController
 
         return $this->render('issue/duplicates.html.twig', [
             'issue' => $issue,
-            'results' => $results->getResults(),
+            'results' => IssueRepository::fromResultSet($results),
             'totalResults' => $results->getTotalHits(),
             'searchClosed' => $searchClosed,
         ]);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function issue(int $id): array
+    private function issue(int $id): Issue
     {
         $message = sprintf('Issue #%d is not in Forger. It may be newer than the last import.', $id);
 
-        return $this->globalSearch->document(Indices::ISSUE, $id) ?? throw $this->createNotFoundException($message);
+        return $this->issues->byId($id) ?? throw $this->createNotFoundException($message);
     }
 }

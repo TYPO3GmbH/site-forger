@@ -18,6 +18,7 @@ use App\Enum\IssueSortEnum;
 use App\People\UserDirectory;
 use App\Report\CategoryOverview;
 use App\Report\MonthOverview;
+use App\Repository\IssueRepository;
 use Elastica\Aggregation\Filters;
 use Elastica\Aggregation\Terms;
 use Elastica\Aggregation\TopHits;
@@ -95,7 +96,7 @@ final readonly class IssueListSearch
         }
 
         return $page->withTotal($resultSet->getTotalHits())->viewData() + [
-            'results' => $resultSet->getResults(),
+            'issues' => IssueRepository::fromResultSet($resultSet),
             'maxScore' => $resultSet->getMaxScore(),
             'aggs' => $aggregations,
         ];

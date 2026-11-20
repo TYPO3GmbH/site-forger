@@ -14,6 +14,7 @@ namespace App\Document;
 use App\Elastic\Indices;
 use App\Enum\IssueStatusEnum;
 use App\Repository\ChangeRepository;
+use App\Repository\IssueRepository;
 use Elastica\ResultSet;
 
 /**
@@ -36,6 +37,7 @@ final readonly class Relations
     public function __construct(
         private Indices $indices,
         private ChangeRepository $changes,
+        private IssueRepository $issues,
     ) {
     }
 
@@ -43,14 +45,12 @@ final readonly class Relations
      * The changes whose footer resolves or names the issue, and those its comments link.
      * "unknown" has the numbers the comments link that are not imported.
      *
-     * @param array<string, mixed> $issue
-     *
      * @return array{changes: list<array{change: Change, relation: string}>, unknown: list<int>}
      */
-    public function changesOf(array $issue): array
+    public function changesOf(Issue $issue): array
     {
-        $id = (int) $issue['id'];
-        $numbers = GerritLinks::changeNumbers($issue);
+        $id = $issue->id;
+        $numbers = $issue->changeNumbers();
         $found = $this->changes->search([
             'query' => ['bool' => ['should' => [
                 ['term' => ['resolves' => $id]],
@@ -77,7 +77,7 @@ final readonly class Relations
      * The issues of the footer of a change, in its order: those it resolves first.
      * An issue that is not imported comes as null: it is in another project, or private.
      *
-     * @return list<array{id: int, relation: string, issue: array<string, mixed>|null}>
+     * @return list<array{id: int, relation: string, issue: Issue|null}>
      */
     public function issuesOf(Change $change): array
     {
@@ -91,19 +91,10 @@ final readonly class Relations
                 $relations[(int) $id] ??= $relation;
             }
         }
-        $found = [];
-        if ([] !== $relations) {
-            $results = $this->indices->issues()->search([
-                'query' => ['terms' => ['id' => array_keys($relations)]],
-                'size' => count($relations),
-            ])->getResults();
-            foreach ($results as $result) {
-                $found[(int) $result->getData()['id']] = $result->getData();
-            }
-        }
+        $found = $this->issues->byIds(array_keys($relations));
         $issues = [];
         foreach ($relations as $id => $relation) {
-            $issues[] = ['id' => $id, 'relation' => $relation, 'issue' => $found[$id] ?? null];
+            $issues[] = ['id' => $id, 'relation' => $relation, 'issue' => $found->get($id)];
         }
 
         return $issues;

@@ -13,12 +13,13 @@ namespace App\Report;
 
 use App\Document\Change;
 use App\Document\GerritLinks;
+use App\Document\Issue;
 use App\Elastic\Indices;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewStateEnum;
 use App\Repository\ChangeRepository;
-use Elastica\Result;
+use App\Repository\IssueRepository;
 
 /**
  * The open Forge issues nobody works on: those in the stage "Stale" or "Orphaned" of ActivityEnum, by default the
@@ -54,16 +55,13 @@ final readonly class StaleIssues
     /**
      * A page of the issues, each with its changes, see withChanges().
      *
-     * @return array{issues: list<array<string, mixed>>, total: int}
+     * @return array{issues: list<array{issue: Issue, changes: list<array{id: int, state: ReviewStateEnum|null}>}>, total: int}
      */
     public function page(int $page, int $perPage, IssueSortEnum $sort): array
     {
         $request = self::issuesRequest($page, $perPage, $sort);
         $resultSet = $this->indices->issues()->createSearch($request)->search();
-        $issues = array_map(
-            static fn (Result $result): array => $result->getData(),
-            $resultSet->getResults(),
-        );
+        $issues = array_values(IssueRepository::fromResultSet($resultSet)->toArray());
         $changesRequest = self::changesRequest($issues);
         $changes = null === $changesRequest ? [] : $this->changes->search($changesRequest)->toArray();
 
@@ -96,7 +94,7 @@ final readonly class StaleIssues
     /**
      * The search request of every change that belongs to one of the issues, in one go, null for no issue.
      *
-     * @param list<array<string, mixed>> $issues
+     * @param list<Issue> $issues
      *
      * @return array<string, mixed>|null
      */
@@ -105,12 +103,12 @@ final readonly class StaleIssues
         if ([] === $issues) {
             return null;
         }
-        $issueIds = array_map(static fn (array $issue): int => (int) $issue['id'], $issues);
+        $issueIds = array_map(static fn (Issue $issue): int => $issue->id, $issues);
         $should = [
             ['terms' => ['resolves' => $issueIds]],
             ['terms' => ['related' => $issueIds]],
         ];
-        $numbers = array_values(array_unique(array_merge(...array_map(GerritLinks::changeNumbers(...), $issues))));
+        $numbers = array_values(array_unique(array_merge(...array_map(static fn (Issue $issue): array => $issue->changeNumbers(), $issues))));
         if ([] !== $numbers) {
             $should[] = ['terms' => ['id' => $numbers]];
         }
@@ -127,10 +125,10 @@ final readonly class StaleIssues
      * The issues, each with its changes in the order of their numbers. The state of a change is null when Forger does
      * not have it.
      *
-     * @param list<array<string, mixed>> $issues
-     * @param list<Change>               $changes the changes of changesRequest()
+     * @param list<Issue>  $issues
+     * @param list<Change> $changes the changes of changesRequest()
      *
-     * @return list<array{issue: array<string, mixed>, changes: list<array{id: int, state: ReviewStateEnum|null}>}>
+     * @return list<array{issue: Issue, changes: list<array{id: int, state: ReviewStateEnum|null}>}>
      */
     public static function withChanges(array $issues, array $changes): array
     {
@@ -145,8 +143,8 @@ final readonly class StaleIssues
 
         $rows = [];
         foreach ($issues as $issue) {
-            $own = $byIssue[(int) $issue['id']] ?? [];
-            foreach (GerritLinks::changeNumbers($issue) as $number) {
+            $own = $byIssue[$issue->id] ?? [];
+            foreach ($issue->changeNumbers() as $number) {
                 $own[$number] = $byNumber[$number] ?? null;
             }
             ksort($own);

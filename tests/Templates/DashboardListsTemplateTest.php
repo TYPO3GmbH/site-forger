@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Templates;
 
 use App\Document\Change;
+use App\Document\Issue;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Twig\Environment;
 
@@ -55,7 +56,7 @@ final class DashboardListsTemplateTest extends KernelTestCase
 
     public function testNewIssues(): void
     {
-        $html = $this->twig->render('dashboard/_new_issues.html.twig', ['issues' => ['documents' => [self::ISSUE], 'total' => 1]]);
+        $html = $this->twig->render('dashboard/_new_issues.html.twig', ['issues' => ['documents' => [Issue::fromDocument(self::ISSUE)], 'total' => 1]]);
 
         self::assertStringContainsString('href="/issue/91089"', $html);
         self::assertStringContainsString('Something is broken', $html);
@@ -75,7 +76,7 @@ final class DashboardListsTemplateTest extends KernelTestCase
             'category' => ['id' => 1, 'name' => 'Backend'],
             'typo3_version' => '13',
         ];
-        $html = $this->twig->render('dashboard/_new_issues.html.twig', ['issues' => ['documents' => [$issue], 'total' => 1]]);
+        $html = $this->twig->render('dashboard/_new_issues.html.twig', ['issues' => ['documents' => [Issue::fromDocument($issue)], 'total' => 1]]);
 
         // The priority is not of interest in a list, the page of the issue has it
         self::assertStringNotContainsString('Must have', $html);

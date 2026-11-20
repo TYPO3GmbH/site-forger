@@ -19,13 +19,14 @@
         </tr>
         </thead>
         <tbody>
-        {% for issue in issues %}
+        {% for row in issues %}
+            {% set issue = row.issue %}
             <tr>
                 <td>{# A new tab, the wizard keeps its settings #}
                 <a href="{{ issue_path(issue.id) }}" target="issue{{ issue.id }}">#{{ issue.id }} {{ issue.subject|default('') }}</a></td>
                 <td>{{ issue.tracker.name|default('') }}</td>
                 <td>{{ issue.status.name|default('') }}</td>
-                <td>{{ issue.column }}</td>
+                <td>{{ row.column }}</td>
             </tr>
         {% endfor %}
         </tbody>

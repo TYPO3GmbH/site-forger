@@ -12,15 +12,17 @@ declare(strict_types=1);
 namespace App\Report;
 
 use App\Document\Change;
+use App\Document\Issue;
 use App\Elastic\Indices;
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStatusEnum;
 use App\Repository\ChangeRepository;
+use App\Repository\IssueRepository;
 use App\Search\IssueSearch;
 use App\Search\ReviewLists;
 use Elastica\Index;
-use Elastica\Result;
+use Elastica\ResultSet;
 
 /**
  * The numbers and short lists of the dashboard and of the quick stats.
@@ -84,15 +86,16 @@ final readonly class KeyFigures
     /**
      * The open issues created last, as the search sorts them by "Newest".
      *
-     * @return array{documents: list<array<string, mixed>>, total: int}
+     * @return array{documents: list<Issue>, total: int}
      */
     public function newIssues(): array
     {
-        return $this->latest(
-            $this->indices->issues(),
-            IssueSearch::query(''),
-            IssueSortEnum::NEWEST->sort(),
-        );
+        $resultSet = $this->latest($this->indices->issues(), IssueSearch::query(''), IssueSortEnum::NEWEST->sort());
+
+        return [
+            'documents' => array_values(IssueRepository::fromResultSet($resultSet)->toArray()),
+            'total' => $resultSet->getTotalHits(),
+        ];
     }
 
     /**
@@ -102,12 +105,8 @@ final readonly class KeyFigures
      */
     public function readyToMerge(): array
     {
-        $resultSet = $this->indices->reviews()->createSearch([
-            'query' => (array) ReviewLists::query(ReviewLists::READY_TO_MERGE),
-            'sort' => [['updated_on' => 'desc']],
-            'size' => self::LIST_SIZE,
-            'track_total_hits' => true,
-        ])->search();
+        $query = (array) ReviewLists::query(ReviewLists::READY_TO_MERGE);
+        $resultSet = $this->latest($this->indices->reviews(), $query, [['updated_on' => 'desc']]);
 
         return [
             'documents' => array_values(ChangeRepository::fromResultSet($resultSet)->toArray()),
@@ -116,27 +115,19 @@ final readonly class KeyFigures
     }
 
     /**
+     * The first documents of a list, and how many the list has.
+     *
      * @param array<string, mixed>       $query
      * @param list<array<string, mixed>> $sort
-     *
-     * @return array{documents: list<array<string, mixed>>, total: int}
      */
-    private function latest(Index $index, array $query, array $sort): array
+    private function latest(Index $index, array $query, array $sort): ResultSet
     {
-        $resultSet = $index->createSearch([
+        return $index->createSearch([
             'query' => $query,
             'sort' => $sort,
             'size' => self::LIST_SIZE,
             'track_total_hits' => true,
         ])->search();
-
-        return [
-            'documents' => array_map(
-                static fn (Result $result): array => $result->getData(),
-                $resultSet->getResults(),
-            ),
-            'total' => $resultSet->getTotalHits(),
-        ];
     }
 
     /**

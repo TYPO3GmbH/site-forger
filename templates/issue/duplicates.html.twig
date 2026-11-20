@@ -26,8 +26,8 @@
                 </header>
                 {% if results is not empty %}
                     <ul class="overview-list-items">
-                        {% for result in results %}
-                            <li>{% include '_partials/row/issue.html.twig' with {'issue': result.data} only %}</li>
+                        {% for duplicate in results %}
+                            <li>{% include '_partials/row/issue.html.twig' with {'issue': duplicate} only %}</li>
                         {% endfor %}
                     </ul>
                 {% else %}

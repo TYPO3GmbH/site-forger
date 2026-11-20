@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Document;
 
-use App\Document\GerritLinks;
+use App\Document\Issue;
 use PHPUnit\Framework\TestCase;
 
 final class GerritLinksTest extends TestCase
@@ -25,11 +25,11 @@ final class GerritLinksTest extends TestCase
             ['notes' => 'No link here'],
         ]];
 
-        self::assertSame([81234, 81240], GerritLinks::changeNumbers($issue));
+        self::assertSame([81234, 81240], Issue::fromDocument($issue)->changeNumbers());
     }
 
     public function testIssuesWithoutJournalsLinkNoChange(): void
     {
-        self::assertSame([], GerritLinks::changeNumbers(['id' => 91089]));
+        self::assertSame([], Issue::fromDocument(['id' => 91089])->changeNumbers());
     }
 }

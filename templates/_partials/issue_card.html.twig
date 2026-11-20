@@ -20,8 +20,8 @@
                 {% if card.category.name is defined %}
                     <span class="badge badge-light">{{ card.category.name }}</span>
                 {% endif %}
-                {% if card.typo3_version is defined %}
-                    <span class="badge badge-primary">TYPO3 CMS {{ card.typo3_version }}</span>
+                {% if card.typo3Version is not null %}
+                    <span class="badge badge-primary">TYPO3 CMS {{ card.typo3Version }}</span>
                 {% endif %}
                 {% if issue.score is defined %}
                     <span class="badge badge-secondary">Score: {{ issue.score }}</span>
@@ -36,7 +36,7 @@
         </div>
 
         {% set issueData = {} %}
-        {% for customfield in card.custom_fields %}
+        {% for customfield in card.customFields %}
             {% if customfield.name is defined and customfield.value is defined%}
                 {% if customfield.value == 'easy' %}
                     {% set complexityValue = customfield.value %}
@@ -76,7 +76,7 @@
         <div class="issue-meta">
             <div class="issue-meta-group">
                 {{ user.meta(card.author ?? null, 'Author', 'issue-meta-author') }}
-                {{ user.meta(card.assigned_to ?? null, 'Assigned to', 'issue-meta-assignee') }}
+                {{ user.meta(card.assignedTo ?? null, 'Assigned to', 'issue-meta-assignee') }}
             </div>
             <div class="issue-meta-group issue-meta-group-stacked">
                 <div class="issue-meta-item issue-meta-created">
@@ -85,7 +85,7 @@
                     </span>
                     <span class="issue-meta-item-body">
                         <span class="issue-meta-item-label">Created</span>
-                        <span class="issue-meta-item-value">{{ relativetime(to_datetime(card.created_on)) }}</span>
+                        <span class="issue-meta-item-value">{{ relativetime(to_datetime(card.createdOn)) }}</span>
                     </span>
                 </div>
                 <div class="issue-meta-item issue-meta-updated">
@@ -94,7 +94,7 @@
                     </span>
                     <span class="issue-meta-item-body">
                         <span class="issue-meta-item-label">Updated</span>
-                        <span class="issue-meta-item-value">{{ relativetime(to_datetime(card.updated_on)) }}</span>
+                        <span class="issue-meta-item-value">{{ relativetime(to_datetime(card.updatedOn)) }}</span>
                     </span>
                 </div>
             </div>

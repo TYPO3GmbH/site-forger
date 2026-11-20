@@ -235,25 +235,6 @@ enum ActivityEnum: string
     }
 
     /**
-     * The stage of an issue document of the issue index, null if the issue is closed or has no date.
-     * Statuses Forge does not know count as open.
-     *
-     * @param array<string, mixed> $issue
-     */
-    public static function fromIssue(array $issue, \DateTimeInterface $now): ?self
-    {
-        $status = isset($issue['status']['id'])
-            ? IssueStatusEnum::tryFrom((int) $issue['status']['id'])
-            : IssueStatusEnum::tryFromLabel((string) ($issue['status']['name'] ?? ''));
-        if (null !== $status && $status->isClosed()) {
-            return null;
-        }
-        $lastActivity = self::lastActivity($issue);
-
-        return null === $lastActivity ? null : self::fromDate($lastActivity, $now);
-    }
-
-    /**
      * When a change or issue document was last updated, else created.
      *
      * @param array<string, mixed> $document

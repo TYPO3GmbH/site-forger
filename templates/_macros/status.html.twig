@@ -82,7 +82,7 @@
 {% macro issueActivity(issue) %}
     {# Only when it lies still, see ActivityEnum::isNoteworthy() #}
     {% set stage = issue_activity(issue) %}
-    {% if stage and stage.isNoteworthy %}{{ _self.activityPill(stage, issue.updated_on ?? null, issue.created_on ?? null) }}{% endif %}
+    {% if stage and stage.isNoteworthy %}{{ _self.activityPill(stage, issue.updatedOn, issue.createdOn) }}{% endif %}
 {% endmacro %}
 
 {% macro activityPill(stage, updatedOn, createdOn) %}

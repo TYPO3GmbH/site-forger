@@ -28,8 +28,8 @@
                         <h1 class="detail-title"><span class="detail-number">#{{ issue.id }}</span>{{ issue.subject }}</h1>
                         <p class="detail-meta">
                             {{ user.inline(issue.author ?? null, url: detail.issueSearch('author', user_key(issue.author ?? null)), title: 'Issues by them', role: 'Author') }}
-                            <span title="{{ issue.created_on }}">{{ relativetime(to_datetime(issue.created_on)) }}</span>
-                            <span title="{{ issue.updated_on }}">updated {{ relativetime(to_datetime(issue.updated_on)) }}</span>
+                            <span title="{{ issue.createdOn }}">{{ relativetime(to_datetime(issue.createdOn)) }}</span>
+                            <span title="{{ issue.updatedOn }}">updated {{ relativetime(to_datetime(issue.updatedOn)) }}</span>
                         </p>
                     </div>
                     <div class="detail-actions">
@@ -98,13 +98,13 @@
                     <aside class="detail-aside" aria-label="Details">
                         <dl class="detail-facts">
                             {# Each value leads to the open issues with it, as the filter of the search shows them. Not the project: Forger has only TYPO3 Core #}
-                            {{ detail.person('Assigned to', issue.assigned_to ?? null, detail.issueSearch('assigned_to', user_key(issue.assigned_to ?? null)), 'Issues assigned to them') }}
+                            {{ detail.person('Assigned to', issue.assignedTo ?? null, detail.issueSearch('assigned_to', user_key(issue.assignedTo ?? null)), 'Issues assigned to them') }}
                             {{ detail.person('Author', issue.author ?? null, detail.issueSearch('author', user_key(issue.author ?? null)), 'Issues by them') }}
                             {{ detail.fact('Priority', issue.priority.name ?? null, detail.issueSearch('priority', issue.priority.name ?? ''), 'Issues with this priority') }}
                             {{ detail.fact('Category', issue.category.name ?? null, detail.issueSearch('category', issue.category.name ?? ''), 'Issues in this category') }}
-                            {{ detail.fact('Target version', issue.fixed_version.name ?? null, detail.issueSearch('target_version', issue.fixed_version.name ?? ''), 'Issues for this version') }}
-                            {{ detail.fact('TYPO3 version', issue.typo3_version ?? null, detail.issueSearch('typo3_version', issue.typo3_version ?? ''), 'Issues for this TYPO3 version') }}
-                            {{ detail.fact('PHP version', issue.php_version ?? null, detail.issueSearch('php_version', issue.php_version ?? ''), 'Issues for this PHP version') }}
+                            {{ detail.fact('Target version', issue.fixedVersion.name ?? null, detail.issueSearch('target_version', issue.fixedVersion.name ?? ''), 'Issues for this version') }}
+                            {{ detail.fact('TYPO3 version', issue.typo3Version ?? null, detail.issueSearch('typo3_version', issue.typo3Version ?? ''), 'Issues for this TYPO3 version') }}
+                            {{ detail.fact('PHP version', issue.phpVersion ?? null, detail.issueSearch('php_version', issue.phpVersion ?? ''), 'Issues for this PHP version') }}
                             {{ detail.fact('Complexity', issue.complexity ?? null) }}
                             {% if (issue.tags ?? []) is not empty %}
                                 <div class="detail-fact">
