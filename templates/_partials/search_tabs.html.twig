@@ -1,0 +1,21 @@
+{#
+ # The tabs of the search: Gerrit changes and issues, with how many each finds, see App\Elastic\GlobalSearch.
+ # The tabs of My Work (.view-tabs): changes blue, issues orange, each with its icon.
+ # Switching keeps the search words and "searchClosed". The filters and the order belong to one tab only.
+ # Expects: active ('changes' or 'issues'), tabs, query, searchClosed (optional)
+ #}
+{% set parameters = {'query': query}|merge((searchClosed ?? null) ? {'searchClosed': '1'} : {}) %}
+{# In the order of the main menu: Reviews, then Issues #}
+{% set items = {
+    'changes': {'label': 'Reviews', 'route': 'search_changes', 'icon': 'actions-code-pull-request', 'title': 'Gerrit changes found'},
+    'issues': {'label': 'Issues', 'route': 'search_search', 'icon': 'actions-list', 'title': 'Issues found'},
+} %}
+<nav class="view-tabs search-tabs" aria-label="What to search">
+    {% for key, tab in items %}
+        <a class="view-tab is-{{ key }}{{ key == active ? ' is-active' }}" href="{{ path(tab.route, parameters) }}"{% if key == active %} aria-current="page"{% endif %}>
+            {{ icon(tab.icon) }}
+            <span>{{ tab.label }}</span>
+            <span class="view-tab-count" title="{{ tab.title }}">{{ tabs[key] }}</span>
+        </a>
+    {% endfor %}
+</nav>

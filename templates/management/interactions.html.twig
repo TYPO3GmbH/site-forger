@@ -1,6 +1,8 @@
 {% extends 'base.html.twig' %}
+{# Over the whole width, as its content: the breadcrumb and the title too, see base.html.twig #}
+{% set wide = true %}
 {% block title %}Core team interactions{% endblock %}
-{% block headline %}Core team interactions{% endblock %}
+{% block page_title %}Core team interactions{% endblock %}
 {% block body %}
 
     <div class="content-section content-section-small">

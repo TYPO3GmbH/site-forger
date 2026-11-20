@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Elastic\CommitMessage;
 use App\Elastic\ElasticUtility;
 use App\Elastic\ReviewSubject;
 use App\Enum\ReviewVoteEnum;
@@ -293,6 +294,7 @@ final class GerritChangeImporter
             }
 
             $reviewTags = ReviewSubject::tags($change['subject']);
+            $commitMessage = (string) ($change['revisions'][$change['current_revision']]['commit']['message'] ?? '');
 
             $out[$change['_number']] = [
                 'id' => $change['_number'],
@@ -324,6 +326,9 @@ final class GerritChangeImporter
                 'ownerEmail' => $authorEmail ?? 'Unknown',
                 'files' => $filesInPatchset,
                 'work_in_progress' => ReviewSubject::isWorkInProgress($reviewTags) || ($change['work_in_progress'] ?? false),
+                'commit_message' => $commitMessage,
+                'resolves' => CommitMessage::issues($commitMessage, CommitMessage::RESOLVES),
+                'related' => CommitMessage::issues($commitMessage, CommitMessage::RELATED),
             ];
         }
 

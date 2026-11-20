@@ -1,4 +1,5 @@
 // Status pills, see templates/_macros/status.html.twig
+// Every text color reaches a contrast of 4.5:1 on its background at least.
 
 .status-pill {
     --status-color: #495057;
@@ -34,16 +35,18 @@
 .status-pill-needs-feedback { --status-color: #7e22ce; --status-background: #f4eaff; }
 .status-pill-on-hold,
 .status-pill-postponed { --status-color: #5c6670; --status-background: #eef0f2; }
-.status-pill-resolved { --status-color: #15803d; --status-background: #e5f6eb; }
+.status-pill-resolved { --status-color: #166534; --status-background: #e5f6eb; }
 .status-pill-closed { --status-color: #343a40; --status-background: #e4e7ea; }
 .status-pill-rejected { --status-color: #6c757d; --status-background: #f1f3f5; }
 
 // Gerrit
 .status-pill-ready { --status-color: #1d4ed8; --status-background: #e7efff; }
 .status-pill-wip { --status-color: #a15c07; --status-background: #fff3dc; }
-.status-pill-merged { --status-color: #15803d; --status-background: #e5f6eb; }
+.status-pill-merged { --status-color: #166534; --status-background: #e5f6eb; }
 .status-pill-abandoned { --status-color: #6c757d; --status-background: #f1f3f5; }
 .status-pill-conflict { --status-color: #b42318; --status-background: #fdecea; }
+// A version without a backport in Gerrit, see templates/utility/backport.html.twig
+.status-pill-backport-missing { --status-color: #b42318; --status-background: #fdecea; }
 
 // Votes of Gerrit labels, see App\Enum\ReviewVoteEnum: the +2 and -2 of mergers filled, +1 and -1 tinted
 .status-pill-vote {
@@ -55,8 +58,29 @@
     }
 }
 
+// Size of Gerrit changes, see App\Enum\ReviewSizeEnum: the bigger, the warmer
+.status-pill-size::before {
+    display: none;
+}
+
+.status-pill-size-easy { --status-color: #166534; --status-background: #e5f6eb; }
+.status-pill-size-normal { --status-color: #1d4ed8; --status-background: #e7efff; }
+.status-pill-size-hard { --status-color: #8a4b00; --status-background: #fff3dc; }
+.status-pill-size-expert { --status-color: #9a3412; --status-background: #ffe4d1; }
+// From Nightmare on filled, so the big ones stand out
+.status-pill-size-nightmare { --status-color: #fff; --status-background: #b42318; }
+.status-pill-size-impossible { --status-color: #fff; --status-background: #1f2328; }
+
+// Both votes of a change side by side, see the macro "votes" in templates/_macros/status.html.twig
+.status-votes {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    gap: .25rem;
+    align-items: center;
+}
+
 .status-pill-vote-approved { --status-color: #fff; --status-background: #15803d; }
-.status-pill-vote-recommended { --status-color: #15803d; --status-background: #e5f6eb; }
+.status-pill-vote-recommended { --status-color: #166534; --status-background: #e5f6eb; }
 .status-pill-vote-none { --status-color: #5c6670; --status-background: #eef0f2; }
 .status-pill-vote-disliked { --status-color: #b42318; --status-background: #fdecea; }
 .status-pill-vote-rejected { --status-color: #fff; --status-background: #b42318; }
@@ -73,21 +97,21 @@
     }
 }
 
-.status-pill-activity-fresh { --status-color: #15803d; --status-background: #e5f6eb; }
+.status-pill-activity-fresh { --status-color: #166534; --status-background: #e5f6eb; }
 .status-pill-activity-quiet { --status-color: #1d4ed8; --status-background: #e7efff; }
 .status-pill-activity-stale { --status-color: #a15c07; --status-background: #fff3dc; }
 .status-pill-activity-orphaned { --status-color: #b42318; --status-background: #fdecea; }
 
 // Command runs
 .status-pill-run-running { --status-color: #1d4ed8; --status-background: #e7efff; }
-.status-pill-run-success { --status-color: #15803d; --status-background: #e5f6eb; }
+.status-pill-run-success { --status-color: #166534; --status-background: #e5f6eb; }
 .status-pill-run-warning { --status-color: #a15c07; --status-background: #fff3dc; }
 .status-pill-run-locked { --status-color: #5c6670; --status-background: #eef0f2; }
 .status-pill-run-failed,
 .status-pill-run-aborted { --status-color: #b42318; --status-background: #fdecea; }
 
 // Checks of the system page
-.status-pill-check-ok { --status-color: #15803d; --status-background: #e5f6eb; }
+.status-pill-check-ok { --status-color: #166534; --status-background: #e5f6eb; }
 .status-pill-check-attention { --status-color: #a15c07; --status-background: #fff3dc; }
 .status-pill-check-problem { --status-color: #b42318; --status-background: #fdecea; }
 .status-pill-check-unknown { --status-color: #5c6670; --status-background: #eef0f2; }

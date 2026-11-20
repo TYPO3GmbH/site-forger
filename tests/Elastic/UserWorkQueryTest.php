@@ -11,9 +11,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Elastic;
 
+use App\Elastic\IssueSearch;
+use App\Elastic\ReviewSearch;
 use App\Elastic\UserWorkQuery;
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
+use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
 use PHPUnit\Framework\TestCase;
 
@@ -37,12 +40,14 @@ final class UserWorkQueryTest extends TestCase
         self::assertSame([['updated_on' => 'desc']], $request['sort']);
     }
 
-    public function testIssuesInTheGivenOrderChangesByTheirLastUpdate(): void
+    public function testIssuesAndChangesEachInTheirGivenOrder(): void
     {
-        $query = new UserWorkQuery('jane@example.org', 'Jane Doe', issueSort: IssueSortEnum::NEWEST);
+        $query = new UserWorkQuery('jane@example.org', 'Jane Doe', issueSort: IssueSortEnum::NEWEST, reviewSort: ReviewSortEnum::OLDEST);
 
         self::assertSame([['created_on' => 'desc']], $query->issues()['sort']);
-        self::assertSame(['updated_on' => 'desc'], $query->reviews()['sort']);
+        self::assertSame([['created_on' => 'asc']], $query->reviews()['sort']);
+        // Without an order the recently updated first
+        self::assertSame(ReviewSortEnum::UPDATED->sort(), (new UserWorkQuery('jane@example.org', 'Jane Doe'))->reviews()['sort']);
     }
 
     public function testClosedIssuesAreHiddenButCounted(): void
@@ -91,12 +96,11 @@ final class UserWorkQueryTest extends TestCase
         self::assertSame(['bool' => ['filter' => [['term' => ['status.name' => 'In Progress']]]]], $request['post_filter']);
     }
 
-    public function testReviewsCountEachStateAndConflictsAndFilterWorkInProgress(): void
+    public function testReviewsCountEachStateAndFilterWorkInProgress(): void
     {
         $request = (new UserWorkQuery('jane@example.org', 'Jane Doe', true, reviewState: ReviewStateEnum::WORK_IN_PROGRESS))->reviews();
 
         self::assertSame(['ready', 'wip', 'merged', 'abandoned'], array_keys($request['aggs']['status']['filters']['filters']));
-        self::assertArrayHasKey('conflicts', $request['aggs']);
         self::assertSame(
             ['bool' => ['filter' => [['bool' => ['filter' => [['term' => ['reviewstatus' => 'NEW']], ['term' => ['work_in_progress' => true]]]]]]]],
             $request['post_filter']
@@ -116,6 +120,20 @@ final class UserWorkQueryTest extends TestCase
             [['terms' => ['reviewstatus' => ['MERGED', 'ABANDONED']]]],
             $query->openReviewsCount()['query']['bool']['must_not']
         );
+    }
+
+    public function testSearchWordsNarrowDownTheWorkOfThePerson(): void
+    {
+        $query = new UserWorkQuery('jane@example.org', 'Jane Doe', searchTerms: 'cache');
+        $reviews = $query->reviews()['query']['bool'];
+        $issues = $query->issues()['query']['bool'];
+
+        // The person as a filter, the words as the search has them
+        self::assertSame((new UserWorkQuery('jane@example.org', 'Jane Doe'))->reviews()['query'], $reviews['filter'][0]);
+        self::assertSame([ReviewSearch::query('cache')], $reviews['must']);
+        self::assertSame([IssueSearch::query('cache', true)], $issues['must']);
+        // Without words the person only
+        self::assertArrayNotHasKey('filter', (new UserWorkQuery('jane@example.org', 'Jane Doe', searchTerms: ' '))->issues()['query']['bool']);
     }
 
     public function testEmptyIdentityMatchesNothing(): void

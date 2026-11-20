@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Elastic\Backports;
+use App\Elastic\ElasticUtility;
 use App\Entity\BackportBlacklistEntry;
 use App\Repository\BackportBlacklistEntryRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -30,26 +32,48 @@ class UtilityController extends AbstractController
     ) {
     }
 
+    /**
+     * The overview of the tools: the items of the menu "Tools", see MenuBuilder and templates/utility/index.html.twig.
+     */
+    #[Route(path: '', name: 'index')]
+    public function index(): Response
+    {
+        return $this->render('utility/index.html.twig');
+    }
+
+    /**
+     * The changes merged into main whose backports are missing or wait for their review, from var/backports.json,
+     * which app:backport writes; the excluded ones left out. See Backports.
+     */
     #[Route(path: '/backport', name: 'backport')]
     public function backport(): Response
     {
-        $viewData = [];
-        $viewData['backports'] = [];
-        $viewData['sum'] = 0;
+        $backports = [];
         $finalFilePath = $this->parameters->get('kernel.project_dir') . '/var/backports.json';
         if (is_file($finalFilePath)) {
-            $backports = json_decode(file_get_contents($finalFilePath), true, 512, JSON_THROW_ON_ERROR);
-            $viewData['backports'] = $backports;
-            foreach ($viewData['backports'] as $key => $value) {
-                $blacklist = $this->backportBlacklistEntryRepository->findOneBy(['changeId' => $key]);
-                if (null !== $blacklist) {
-                    unset($viewData['backports'][$key]);
-                }
+            $backports = (array) json_decode((string) file_get_contents($finalFilePath), true, 512, JSON_THROW_ON_ERROR);
+        }
+        foreach (array_keys($backports) as $changeId) {
+            if (null !== $this->backportBlacklistEntryRepository->findOneBy(['changeId' => $changeId])) {
+                unset($backports[$changeId]);
             }
-            $viewData['sum'] = is_countable($backports) ? count($backports) : 0;
+        }
+        $changes = [];
+        $numbers = Backports::mainNumbers($backports);
+        if ([] !== $numbers) {
+            $results = ElasticUtility::getIndexByName('review')->createSearch([
+                'query' => ['terms' => ['id' => $numbers]],
+                'size' => count($numbers),
+            ])->search()->getResults();
+            foreach ($results as $result) {
+                $changes[(int) $result->getData()['id']] = $result->getData();
+            }
         }
 
-        return $this->render('utility/backport.html.twig', $viewData);
+        return $this->render('utility/backport.html.twig', [
+            'rows' => Backports::rows($backports, $changes),
+            'fileExists' => is_file($finalFilePath),
+        ]);
     }
 
     #[Route(path: '/backport/create', name: 'backport_create')]

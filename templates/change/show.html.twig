@@ -1,0 +1,171 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ change.id }} {{ change.subject }}{% endblock %}
+{% block breadcrumb %}
+    {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+    {{ breadcrumb.trail([{'label': 'Reviews', 'url': path('search_changes')}, {'label': 'Change ' ~ change.id}]) }}
+{% endblock %}
+{% block body %}
+    {% import '_macros/status.html.twig' as status %}
+    {% import '_macros/refresh.html.twig' as refresh %}
+    {% import '_macros/detail.html.twig' as detail %}
+    {% set tags = change.reviewtags ?? [] %}
+    {# A closed change finds itself: the links to the search of the changes find the closed ones, too #}
+    {% set closed = review_state(change).isClosed %}
+    {# As a file tree: on every level the folders first, see PathTwigExtension #}
+    {% set files = (change.files ?? [])|sort_paths %}
+    {# How an issue belongs to the change: the footer of its commit message #}
+    {% set relations = {'Resolves': 'Resolved by this change', 'Related': 'Related to this change'} %}
+
+    <div class="content-section content-section-small">
+        <div class="container">
+            <article class="overview detail">
+                {% if (change.mergeable ?? 'yes') == 'no' and (change.reviewstatus ?? 'NEW') == 'NEW' %}
+                    <p class="detail-notice detail-notice-danger" role="status">
+                        <strong>Merge conflict</strong>
+                        <span>Gerrit cannot merge this change. It needs a rebase onto {{ change.branch ?? 'its branch' }}.</span>
+                    </p>
+                {% endif %}
+                <header class="detail-header">
+                    <div class="detail-header-main">
+                        <div class="detail-tags">
+                            <span class="detail-kind kind-change">{{ icon('actions-code-pull-request') }}Review</span>
+                            {% if change.branch is defined %}
+                                <span class="tag-label{{ change.branch != 'main' ? ' is-backport' }}" title="Branch">{{ change.branch }}</span>
+                            {% endif %}
+                            {{ status.review(change) }}
+                            {{ status.activity(change) }}
+                            {% if '!!!' in tags %}
+                                <span class="status-pill status-pill-conflict" title="Breaking change">Breaking</span>
+                            {% endif %}
+                        </div>
+                        <h1 class="detail-title"><span class="detail-number">{{ change.id }}</span>{{ change.subject }}</h1>
+                        <p class="detail-meta">
+                            {% if change.owner is defined %}<span>by <strong>{{ change.owner }}</strong></span>{% endif %}
+                            {{ status.votes(change) }}
+                            {{ status.size(change) }}
+                            {% if change.insertions is defined and change.deletions is defined %}
+                                <span class="overview-list-size" title="Lines added and removed"><span class="is-added">+{{ change.insertions }}</span> <span class="is-removed">&minus;{{ change.deletions }}</span></span>
+                            {% endif %}
+                            <span title="{{ change.updated_on }}">updated {{ relativetime(to_datetime(change.updated_on)) }}</span>
+                        </p>
+                    </div>
+                    <div class="detail-actions">
+                        <a class="btn btn-sm btn-default" href="{{ gerrit_change_url(change.id) }}" target="gerrit{{ change.id }}">{{ icon('actions-window-open') }} Open in Gerrit</a>
+                        {{ refresh.change(change.id) }}
+                    </div>
+                </header>
+
+                <div class="detail-body">
+                    <div class="detail-main">
+                        <section class="detail-section" aria-labelledby="message-title">
+                            <h2 id="message-title" class="detail-section-title">Commit message</h2>
+                            {% if message is not empty %}
+                                {# A long text collapsed by the expander of the template bundle, the footer below it always #}
+                                {% set parts = commit_message_parts(message) %}
+                                {% set imported = issues|filter(item => item.issue is not null)|map(item => item.id) %}
+                                {% if parts.text is not empty %}
+                                    <div class="detail-message-text">
+                                        {% expand %}<pre class="detail-message">{{ parts.text|link_footer_issues(imported) }}</pre>{% endexpand %}
+                                    </div>
+                                {% endif %}
+                                {% if parts.footer is not empty %}
+                                    <pre class="detail-message detail-message-footer">{{ parts.footer|link_footer_issues(imported) }}</pre>
+                                {% endif %}
+                            {% else %}
+                                <p class="detail-empty">Imported before Forger kept the commit messages, the next import adds it.</p>
+                            {% endif %}
+                        </section>
+
+                        {% if issues is not empty %}
+                            <section class="detail-section" aria-labelledby="issues-title">
+                                <h2 id="issues-title" class="detail-section-title">Issues <span class="detail-count">{{ issues|length }}</span></h2>
+                                <ul class="row-list">
+                                    {% for item in issues %}
+                                        <li>
+                                            {% if item.issue is not null %}
+                                                {% include '_partials/row/issue.html.twig' with {'issue': item.issue, 'relation': relations[item.relation] ?? item.relation} only %}
+                                            {% else %}
+                                                {# Not in Forger: another project, or a private issue #}
+                                                <a class="overview-list-item" href="{{ forge_issue_url(item.id) }}" target="issue{{ item.id }}">
+                                                    <span class="overview-list-item-main">
+                                                        <span class="overview-list-item-title"><span class="overview-list-item-id">{{ item.id }}</span>Not in Forger, open it in Forge</span>
+                                                        <span class="overview-list-item-meta"><span class="overview-list-relation">{{ relations[item.relation] ?? item.relation }}</span></span>
+                                                    </span>
+                                                </a>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </section>
+                        {% endif %}
+
+                        <section class="detail-section" aria-labelledby="files-title">
+                            <h2 id="files-title" class="detail-section-title">Files <span class="detail-count">{{ change.affected_files ?? files|length }}</span></h2>
+                            {% if files is not empty %}
+                                {# The first ones, the rest on a click: a big change has hundreds #}
+                                {% set shown = 20 %}
+                                <div class="row-list detail-files">
+                                    <ul>
+                                        {% for file in files|slice(0, shown) %}
+                                            <li>{{ _self.file(file, closed) }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% if files|length > shown %}
+                                        {% set more = files|length - shown %}
+                                        <details class="detail-files-more">
+                                            <summary>Show {{ more }} more {{ more == 1 ? 'file' : 'files' }}</summary>
+                                            <ul>
+                                                {% for file in files|slice(shown) %}
+                                                    <li>{{ _self.file(file, closed) }}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </details>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <p class="detail-empty">No files imported.</p>
+                            {% endif %}
+                        </section>
+                    </div>
+
+                    <aside class="detail-aside" aria-label="Details">
+                        <dl class="detail-facts">
+                            {{ detail.person('Owner', change.owner ?? null, change.ownerEmail ?? null, detail.changeSearch('owner', change.owner ?? '', closed), 'Changes by them') }}
+                            {% if (change.topic ?? 'no topic') != 'no topic' %}
+                                <div class="detail-fact">
+                                    <dt>Topic</dt>
+                                    <dd><a href="{{ path('search_changes', {'query': change.topic}|merge(closed ? {'searchClosed': '1'} : {})) }}" title="Changes with this topic">{{ change.topic }}</a></dd>
+                                </div>
+                            {% endif %}
+                            {{ detail.links('Target releases', change.releases ?? [], 'releases', 'Changes for this release', closed) }}
+                            {% if tags is not empty %}
+                                <div class="detail-fact">
+                                    <dt>Tags</dt>
+                                    <dd class="detail-tags">{{ status.reviewTags(change, true, closed) }}</dd>
+                                </div>
+                            {% endif %}
+                            {{ detail.fact('Patch sets', change.patchsets ?? null, detail.changeSearch('patchsets', change.patchsets ?? '', closed), 'Changes with as many patch sets') }}
+                            {{ detail.date('Created', change.created_on ?? null) }}
+                            {% if (change.change_id ?? '') is not empty %}
+                                <div class="detail-fact">
+                                    <dt>Change-Id</dt>
+                                    <dd><code class="detail-code">{{ change.change_id }}</code></dd>
+                                </div>
+                            {% endif %}
+                        </dl>
+                    </aside>
+                </div>
+            </article>
+        </div>
+    </div>
+
+{% endblock %}
+
+{#
+ # A file in one line: the folder cut with an ellipsis when it is too long, the name always whole. It leads to the
+ # changes touching it, with the filter "File"; from a closed change the closed ones, too.
+ #}
+{% macro file(path, closed = false) %}
+    {%- set name = path|split('/')|last -%}
+    <a href="{{ path('search_changes', {'filters': {'file': {'path': path}}}|merge(closed ? {'searchClosed': '1'} : {})) }}" title="{{ path }}: the changes touching this file"><span class="detail-file-folder">{{ path|slice(0, path|length - name|length) }}</span><span class="detail-file-name">{{ name }}</span></a>
+{%- endmacro %}

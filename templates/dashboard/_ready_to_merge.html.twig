@@ -14,24 +14,7 @@
         <ul class="overview-list-items">
             {% for change in changes.documents %}
                 <li>
-                    {% set releases = (change.releases ?? [])|filter(release => release != change.branch and release != 'omitted') %}
-                    <a class="overview-list-item" href="https://review.typo3.org/c/Packages/TYPO3.CMS/+/{{ change.id }}/" target="gerrit{{ change.id }}" title="{{ change.subject }}">
-                        <span class="mywork-tag{{ change.branch != 'main' ? ' is-backport' }}" title="Branch">{{ change.branch }}</span>
-                        <span class="overview-list-item-main">
-                            <span class="overview-list-item-title"><span class="overview-list-item-id">{{ change.id }}</span>{{ change.subject }}</span>
-                            <span class="overview-list-item-meta">
-                                {% if change.owner is defined %}<span>by {{ change.owner }}</span>{% endif %}
-                                {{ status.vote(change, 'review') }}
-                                {{ status.vote(change, 'verification') }}
-                                {% if releases is not empty %}<span title="Target releases">→ {{ releases|join(', ') }}</span>{% endif %}
-                                {% if change.topic is defined and change.topic != 'no topic' %}<span title="Topic">{{ change.topic }}</span>{% endif %}
-                                {% if change.insertions is defined and change.deletions is defined %}
-                                    <span class="overview-list-size" title="Lines added and removed"><span class="is-added">+{{ change.insertions }}</span> <span class="is-removed">&minus;{{ change.deletions }}</span></span>
-                                {% endif %}
-                            </span>
-                        </span>
-                        <time class="overview-list-item-date" datetime="{{ to_datetime(change.updated_on)|date('c') }}" title="Updated {{ change.updated_on }}">{{ relativetime(to_datetime(change.updated_on)) }}</time>
-                    </a>
+                    {% include '_partials/row/change.html.twig' with {'change': change} only %}
                 </li>
             {% endfor %}
         </ul>

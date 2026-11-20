@@ -13,17 +13,20 @@ namespace App\Controller;
 
 use App\Elastic\ElasticUtility;
 use App\Elastic\FacetSelection;
+use App\Elastic\GlobalSearch;
+use App\Elastic\MonthOverview;
 use App\Elastic\PersonSuggestion;
 use App\Elastic\ReviewLists;
+use App\Elastic\StaleIssues;
 use App\Enum\ActivityEnum;
-use App\Enum\IssueStatusEnum;
-use App\Enum\ReviewStatusEnum;
+use App\Enum\IssueSortEnum;
+use App\Enum\ReviewSizeEnum;
+use App\Enum\ReviewSortEnum;
 use Elastica\Exception\InvalidException;
 use Elastica\Query\BoolQuery;
 use Elastica\Query\Range;
 use Elastica\Query\Simple;
 use Elastica\Query\Term;
-use Elastica\ResultSet;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -33,16 +36,9 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class ReviewController extends AbstractController
 {
-    private const array QUERY_SORTING = [
-        'updated_on' => 'desc',
-        'insertions' => 'asc',
-        'deletions' => 'asc',
-        'patchsets' => 'desc',
-    ];
     private int $perPage = 25;
     private int $currentPage = 1;
     private ?int $totalHits = null;
-    private string $dateInterval = 'month';
 
     public function __construct(
         private readonly RequestStack $requestStack,
@@ -53,102 +49,86 @@ class ReviewController extends AbstractController
     #[Route(path: '/gerrit/status', name: 'gerrit_index')]
     public function status(): Response
     {
-        $fullRequest = [
-            'query' => ReviewLists::query(ReviewLists::READY),
-            'sort' => static::QUERY_SORTING,
-            'size' => $this->perPage,
-            'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $this->queryAggregations(),
-        ];
-        $viewData = $this->search($fullRequest);
-        $viewData['routeName'] = 'gerrit_index';
-        $viewData['headline'] = 'Ready for review';
-
-        return $this->render('review/generic_review_view.html.twig', $viewData);
+        return $this->listView(ReviewLists::READY, 'Ready for review', $this->queryAggregations());
     }
 
     #[Route(path: '/gerrit/merge-ready', name: 'gerrit_hasverifications')]
     public function hasVerifications(): Response
     {
-        $fullRequest = [
-            'query' => ReviewLists::query(ReviewLists::REVIEWED_AND_VERIFIED),
-            'sort' => static::QUERY_SORTING,
-            'size' => $this->perPage,
-            'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $this->queryAggregations(),
-        ];
-        $viewData = $this->search($fullRequest);
-        $viewData['routeName'] = 'gerrit_hasverifications';
-        $viewData['headline'] = 'Reviewed and verified';
-
-        return $this->render('review/generic_review_view.html.twig', $viewData);
+        return $this->listView(ReviewLists::REVIEWED_AND_VERIFIED, 'Reviewed and verified', $this->queryAggregations());
     }
 
     #[Route(path: '/gerrit/misses-verification', name: 'gerrit_missesverifications')]
     public function missesVerifications(): Response
     {
-        $fullRequest = [
-            'query' => ReviewLists::query(ReviewLists::NEEDS_VERIFICATION),
-            'sort' => static::QUERY_SORTING,
-            'size' => $this->perPage,
-            'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $this->queryAggregations(),
-        ];
-        $viewData = $this->search($fullRequest);
-        $viewData['routeName'] = 'gerrit_missesverifications';
-        $viewData['headline'] = 'Needs verification';
-
-        return $this->render('review/generic_review_view.html.twig', $viewData);
+        return $this->listView(ReviewLists::NEEDS_VERIFICATION, 'Needs verification', $this->queryAggregations());
     }
 
     #[Route(path: '/gerrit/misses-review', name: 'gerrit_missesreview')]
     public function missesReview(): Response
     {
-        $fullRequest = [
-            'query' => ReviewLists::query(ReviewLists::NEEDS_REVIEW),
-            'sort' => static::QUERY_SORTING,
-            'size' => $this->perPage,
-            'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $this->queryAggregations(),
-        ];
-        $viewData = $this->search($fullRequest);
-        $viewData['routeName'] = 'gerrit_missesreview';
-        $viewData['headline'] = 'Needs review';
-
-        return $this->render('review/generic_review_view.html.twig', $viewData);
+        return $this->listView(ReviewLists::NEEDS_REVIEW, 'Needs review', $this->queryAggregations());
     }
 
     #[Route(path: '/gerrit/rebase', name: 'gerrit_rebase')]
     public function rebase(): Response
     {
-        $aggs = $this->queryAggregations();
-        unset($aggs['Mergeable'], $aggs['Patchsets'], $aggs['Releases'], $aggs['Topic']);
-        $fullRequest = [
-            'query' => ReviewLists::query(ReviewLists::NEEDS_REBASE),
-            'sort' => static::QUERY_SORTING,
-            'size' => $this->perPage,
-            'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $aggs,
-        ];
-        $viewData = $this->search($fullRequest);
-        $viewData['routeName'] = 'gerrit_rebase';
-        $viewData['headline'] = 'Needs rebase';
+        return $this->listView(ReviewLists::NEEDS_REBASE, 'Needs rebase', $this->queryAggregations(without: ['Mergeable', 'Patchsets', 'Releases', 'Topic']));
+    }
 
-        return $this->render('review/generic_review_view.html.twig', $viewData);
+    #[Route(path: '/gerrit/negative-vote-cleanup', name: 'gerrit_negative_vote_cleanup')]
+    public function negativeVoteCleanup(): Response
+    {
+        return $this->listView(ReviewLists::NEGATIVE_VOTES, 'Negative votes', $this->queryAggregations(without: ['Mergeable', 'Patchsets', 'Affected Files', 'Topic', 'Owner']));
+    }
+
+    /**
+     * The oldest work in progress first: it is the one most likely to be forgotten.
+     */
+    #[Route(path: '/gerrit/wip', name: 'gerrit_wip')]
+    public function wip(): Response
+    {
+        return $this->listView(ReviewLists::WORK_IN_PROGRESS, 'Work in progress', $this->queryAggregations(without: ['Patchsets', 'Affected Files']), ReviewSortEnum::LEAST_UPDATED);
+    }
+
+    #[Route(path: '/gerrit/core-team-merge', name: 'gerrit_coreteam_merge')]
+    public function coreTeamActionRequired(): Response
+    {
+        return $this->listView(ReviewLists::READY_TO_MERGE, 'Ready to merge', $this->queryAggregations(without: ['Mergeable', 'Patchsets', 'Affected Files']));
+    }
+
+    /**
+     * The changes the search words find, the tab "Reviews" of the search. Merged and abandoned ones with "searchClosed".
+     */
+    #[Route(path: '/search/changes', name: 'search_changes')]
+    public function searchChanges(): Response
+    {
+        $searchTerms = $this->query()->getString('query');
+        $searchClosed = '1' === $this->query()->getString('searchClosed');
+        $viewData = $this->listData(
+            ReviewLists::query(ReviewLists::SEARCH, $searchClosed, $searchTerms),
+            ReviewLists::SEARCH,
+            $this->queryAggregations(),
+            ReviewSortEnum::UPDATED,
+            '' !== trim($searchTerms),
+        );
+        $viewData['tabs'] = GlobalSearch::tabs($searchTerms, $searchClosed);
+        $viewData['exactMatches'] = GlobalSearch::exactMatches($searchTerms);
+
+        return $this->render('search/changes.html.twig', $viewData);
     }
 
     /**
      * Owners of the changes in the list "list" whose name contains "term", for the search in the "Owner" filter.
-     * Names, numbers and avatars only, no email addresses. "Find by file" also passes "query" and "searchClosed".
+     * Names, numbers and avatars only, no email addresses. The lists also pass their search words "query", the search
+     * also "searchClosed".
      */
     #[Route(path: '/gerrit/owners', name: 'gerrit_owners', methods: ['GET'])]
     public function owners(): JsonResponse
     {
-        $listQuery = ReviewLists::query(
-            $this->query()->getString('list'),
-            $this->query()->getString('query'),
-            '1' === $this->query()->getString('searchClosed')
-        );
+        $list = $this->query()->getString('list');
+        $query = $this->query()->getString('query');
+        $listQuery = ReviewLists::query($list, '1' === $this->query()->getString('searchClosed'), $query);
         if (null === $listQuery) {
             return new JsonResponse('Unknown list', Response::HTTP_BAD_REQUEST);
         }
@@ -161,141 +141,109 @@ class ReviewController extends AbstractController
         return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), 'ownerEmail'));
     }
 
+    /**
+     * "Find by file" of before: the filter "File" of the search of the changes finds them now.
+     */
     #[Route(path: '/gerrit/files', name: 'gerrit_files')]
     public function getFiles(): Response
     {
-        $viewData = [];
-        $viewData['routeName'] = 'gerrit_files';
-        $viewData['searchRouteName'] = 'gerrit_files';
-        $viewData['searchPlaceholder'] = 'full relative path in GIT repo';
-        $viewData['results'] = [];
-        if ($this->query()->has('query')) {
-            $searchClosed = false;
-            if ('1' === $this->query()->getString('searchClosed')) {
-                $searchClosed = true;
-            }
-            $fullRequest = [
-                'query' => ReviewLists::query(ReviewLists::FILES, $this->query()->getString('query'), $searchClosed),
-                'sort' => static::QUERY_SORTING,
-                'size' => $this->perPage,
-                'from' => $this->currentPage * $this->perPage - $this->perPage,
-                'aggregations' => $this->queryAggregations(),
-            ];
-            $viewData = $this->search($fullRequest);
-            $viewData['routeName'] = 'gerrit_files';
-            if ($searchClosed) {
-                $viewData['searchClosed'] = '1';
-            }
-            $viewData['query'] = htmlspecialchars($this->query()->getString('query'));
+        $file = trim($this->query()->getString('query'));
+        $parameters = '' === $file ? [] : ['filters' => ['file' => ['path' => $file]]];
+        if ('1' === $this->query()->getString('searchClosed')) {
+            $parameters['searchClosed'] = '1';
         }
 
-        return $this->render('review/files.html.twig', $viewData);
-    }
-
-    #[Route(path: '/gerrit/negative-vote-cleanup', name: 'gerrit_negative_vote_cleanup')]
-    public function negativeVoteCleanup(): Response
-    {
-        $aggregations = $this->queryAggregations();
-        unset(
-            $aggregations['Mergeable'],
-            $aggregations['Patchsets'],
-            $aggregations['Affected Files'],
-            $aggregations['Topic'],
-            $aggregations['Owner']
-        );
-        $fullRequest = [
-            'query' => ReviewLists::query(ReviewLists::NEGATIVE_VOTES),
-            'sort' => static::QUERY_SORTING,
-            'size' => $this->perPage,
-            'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $aggregations,
-        ];
-        $viewData = $this->search($fullRequest);
-        $viewData['routeName'] = 'gerrit_negative_vote_cleanup';
-        $viewData['headline'] = 'Negative votes';
-
-        return $this->render('review/generic_review_view.html.twig', $viewData);
-    }
-
-    #[Route(path: '/gerrit/wip', name: 'gerrit_wip')]
-    public function wip(): Response
-    {
-        $aggregations = $this->queryAggregations();
-        unset(
-            $aggregations['Patchsets'],
-            $aggregations['Affected Files']
-        );
-        $fullRequest = [
-            'query' => ReviewLists::query(ReviewLists::WORK_IN_PROGRESS),
-            'sort' => [
-                'updated_on' => 'asc',
-                'insertions' => 'asc',
-                'deletions' => 'asc',
-                'patchsets' => 'desc',
-            ],
-            'size' => $this->perPage,
-            'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $aggregations,
-        ];
-        $viewData = $this->search($fullRequest);
-        $viewData['routeName'] = 'gerrit_wip';
-        $viewData['headline'] = 'Work in progress';
-
-        return $this->render('review/generic_review_view.html.twig', $viewData);
-    }
-
-    #[Route(path: '/gerrit/core-team-merge', name: 'gerrit_coreteam_merge')]
-    public function coreTeamActionRequired(): Response
-    {
-        $aggregations = $this->queryAggregations();
-        unset(
-            $aggregations['Mergeable'],
-            $aggregations['Patchsets'],
-            $aggregations['Affected Files']
-        );
-        $fullRequest = [
-            'query' => ReviewLists::query(ReviewLists::READY_TO_MERGE),
-            'sort' => static::QUERY_SORTING,
-            'size' => $this->perPage,
-            'from' => $this->currentPage * $this->perPage - $this->perPage,
-            'aggregations' => $aggregations,
-        ];
-        $viewData = $this->search($fullRequest);
-        $viewData['routeName'] = 'gerrit_coreteam_merge';
-        $viewData['headline'] = 'Ready to merge';
-
-        return $this->render('review/generic_review_view.html.twig', $viewData);
+        return $this->redirectToRoute('search_changes', $parameters, Response::HTTP_MOVED_PERMANENTLY);
     }
 
     #[Route(path: '/gerrit/stale-issues', name: 'gerrit_stale_issues')]
     public function staleIssues(): Response
     {
-        $viewData = [];
-        $re = '|.*https:\/\/review\.typo3\.org\/(?>(c\/)?)(?>Packages\/TYPO3\.CMS\/\+\/)?(?<reviewId>[\d]{2,6})|';
-        $staleIssues = [];
+        $sort = IssueSortEnum::fromRequest($this->query()->getString('sort'), false, StaleIssues::DEFAULT_SORT);
+        $resultSet = ElasticUtility::getIndexByName('issue')->createSearch(StaleIssues::issuesRequest($this->currentPage, $this->perPage, $sort))->search();
+        $issues = array_map(static fn ($result): array => $result->getData(), $resultSet->getResults());
+        $changesRequest = StaleIssues::changesRequest($issues);
+        $changes = null === $changesRequest ? [] : array_map(
+            static fn ($result): array => $result->getData(),
+            ElasticUtility::getIndexByName('review')->createSearch($changesRequest)->search()->getResults(),
+        );
+        $this->totalHits = $resultSet->getTotalHits();
+        $from = ($this->currentPage - 1) * $this->perPage;
 
-        $resultSet = $this->getUnderReviewIssues();
-        foreach ($resultSet->getResults() as $result) {
-            $reviewIds = [];
-            foreach ($result->getData()['journals'] as $journal) {
-                if (isset($journal['notes'])) {
-                    preg_match_all($re, (string) $journal['notes'], $matches);
-                    $id = $matches['reviewId'][0] ?? null;
-                    if (null !== $id && '' !== $id) {
-                        $reviewIds[] = $id;
-                    }
-                }
-            }
-            $reviewIds = array_unique($reviewIds);
-            $resultSet = $this->getOpenReviewsByIds($reviewIds);
-            if (!$resultSet->count()) {
-                $staleIssues[] = $result->getData();
-            }
+        return $this->render('review/stale_issues.html.twig', [
+            'issues' => StaleIssues::withChanges($issues, $changes),
+            'stages' => StaleIssues::STAGES,
+            'totalResults' => $this->totalHits,
+            'startingAtItem' => $from + 1,
+            'endingAtItem' => $from + count($issues),
+            'pagesToLinkTo' => $this->getPages(),
+            'currentPage' => $this->currentPage,
+            'sort' => $sort,
+            'sortOptions' => IssueSortEnum::options(false),
+            // Links leave out the default
+            'sortParameter' => StaleIssues::DEFAULT_SORT === $sort ? [] : ['sort' => $sort->value],
+        ]);
+    }
+
+    /**
+     * A review list: the changes of the list, narrowed down by the search words "query".
+     *
+     * @param array<string, mixed> $aggregations
+     */
+    private function listView(string $list, string $headline, array $aggregations, ReviewSortEnum $listDefault = ReviewSortEnum::UPDATED): Response
+    {
+        $searchTerms = $this->query()->getString('query');
+        $viewData = $this->listData(
+            ReviewLists::query($list, false, $searchTerms),
+            $list,
+            $aggregations,
+            $listDefault,
+            '' !== trim($searchTerms),
+        );
+        $viewData['headline'] = $headline;
+        $viewData['listSearch'] = true;
+
+        return $this->render('review/generic_review_view.html.twig', $viewData);
+    }
+
+    /**
+     * The page of the list with its filters and order.
+     *
+     * @param array<string, mixed>|null $listQuery
+     * @param array<string, mixed>      $aggregations
+     * @param bool                      $withRelevance whether search words rank the changes
+     *
+     * @return array<string, mixed>
+     *
+     * @throws InvalidException
+     */
+    private function listData(?array $listQuery, string $routeName, array $aggregations, ReviewSortEnum $listDefault = ReviewSortEnum::UPDATED, bool $withRelevance = false): array
+    {
+        $sort = ReviewSortEnum::fromRequest($this->query()->getString('sort'), $withRelevance, $listDefault);
+        $fullRequest = [
+            'query' => $listQuery,
+            'sort' => $sort->sort(),
+            'size' => $this->perPage,
+            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'aggregations' => $aggregations,
+        ];
+        $viewData = $this->search($fullRequest);
+        $viewData['routeName'] = $routeName;
+        $viewData['sort'] = $sort;
+        $viewData['sortOptions'] = ReviewSortEnum::options($withRelevance);
+        // Links leave out the default, so changed search words keep their own default
+        $viewData['sortParameter'] = $sort === ReviewSortEnum::default($withRelevance, $listDefault) ? [] : ['sort' => $sort->value];
+        // What the pages, the filters and the sort field send again
+        $searchClosed = '1' === $this->query()->getString('searchClosed');
+        $viewData['listParameters'] = array_filter(
+            ['query' => $viewData['query'], 'searchClosed' => $searchClosed ? '1' : ''],
+            static fn (string $value): bool => '' !== $value,
+        );
+        if ($searchClosed) {
+            $viewData['searchClosed'] = '1';
         }
-        $viewData['issues'] = $staleIssues;
-        $viewData['routeName'] = 'gerrit_stale_issues';
 
-        return $this->render('review/stale_issues.html.twig', $viewData);
+        return $viewData;
     }
 
     /**
@@ -336,14 +284,34 @@ class ReviewController extends AbstractController
         $viewData['next'] = $this->currentPage < ceil($this->totalHits / $this->perPage) ? $this->currentPage + 1 : 0;
         $viewData['totalResults'] = $this->totalHits;
         $viewData['startingAtItem'] = ($this->currentPage * $this->perPage) - ($this->perPage - 1);
-        $viewData['aggregations'] = FacetSelection::merge($resultSet->getAggregations(), 'Owner');
+        // Elasticsearch answers in an order of its own, the filters stand in the order they were asked for
+        $viewData['aggregations'] = self::inOrderOf(
+            FacetSelection::merge($resultSet->getAggregations(), 'Owner'),
+            array_keys($fullRequest['aggregations'])
+        );
         if (isset($viewData['aggregations']['Activity'])) {
             $viewData['aggregations']['Activity'] = ActivityEnum::buckets($viewData['aggregations']['Activity']);
+        }
+        if (isset($viewData['aggregations']['Size'])) {
+            $viewData['aggregations']['Size'] = ReviewSizeEnum::buckets($viewData['aggregations']['Size']);
         }
         $viewData['filters'] = $this->query()->all('filters');
         $viewData['query'] = $this->query()->getString('query');
 
         return $viewData;
+    }
+
+    /**
+     * The aggregations in the given order of their titles, those not in it after them.
+     *
+     * @param array<string, mixed> $aggregations
+     * @param list<string>         $titles
+     *
+     * @return array<string, mixed>
+     */
+    public static function inOrderOf(array $aggregations, array $titles): array
+    {
+        return array_replace(array_intersect_key(array_flip($titles), $aggregations), $aggregations);
     }
 
     private function query(): InputBag
@@ -364,6 +332,23 @@ class ReviewController extends AbstractController
         $filters = new BoolQuery();
 
         foreach ($this->query()->all('filters') as $key => $filterValue) {
+            if ('file' === $key) {
+                // A path typed in, not values to tick
+                $file = ReviewLists::fileQuery(is_array($filterValue) ? (string) ($filterValue['path'] ?? '') : '');
+                if (null !== $file) {
+                    $filters->addMust(new Simple($file));
+                }
+                continue;
+            }
+            if ('updated' === $key) {
+                // The days of the last update, from the datepicker, not values to tick
+                $days = is_array($filterValue) ? MonthOverview::days($filterValue) : ['from' => null, 'to' => null];
+                $range = MonthOverview::rangeQuery($days['from'], $days['to'], 'updated_on');
+                if (null !== $range) {
+                    $filters->addMust(new Simple($range));
+                }
+                continue;
+            }
             $filterPart = new BoolQuery();
             $filterCatCount = 0;
             foreach ($filterValue as $term => $enabled) {
@@ -376,7 +361,14 @@ class ReviewController extends AbstractController
                         }
                         // Only open changes have a stage, also when closed ones are searched
                         $filter = new Simple($stage->changeQuery());
+                    } elseif ('size' === $key) {
+                        $size = ReviewSizeEnum::tryFromLabel($term);
+                        if (null === $size) {
+                            continue;
+                        }
+                        $filter = new Simple($size->changeQuery());
                     } elseif ('updated_on' === $key) {
+                        // A month of the filter "Updated on" ticked before the datepicker, in links shared then
                         $filter = new Range();
                         $startDate = new \DateTime('@' . (int) ($term / 1000));
                         $endDate = new \DateTime('@' . (int) ($term / 1000))->modify('+1 month -1 second');
@@ -417,9 +409,27 @@ class ReviewController extends AbstractController
         return $filters;
     }
 
-    protected function queryAggregations(): array
+    /**
+     * The filters of the lists.
+     *
+     * @param list<string> $without the filters a list leaves out, because all of its changes have the same value
+     *
+     * @return array<string, mixed>
+     */
+    protected function queryAggregations(array $without = []): array
+    {
+        return array_diff_key($this->allAggregations(), array_flip($without));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function allAggregations(): array
     {
         return [
+            // First: how long the review takes is what reviewers pick by.
+            // Added and removed lines together, see ReviewSizeEnum, filtered as "filters[size][...]"
+            'Size' => ReviewSizeEnum::changeAggregation(),
             'Releases' => [
                 'terms' => [
                     'field' => 'releases',
@@ -458,13 +468,6 @@ class ReviewController extends AbstractController
                 ],
             ],
             'Activity' => ActivityEnum::changeAggregation(),
-            'Updated on' => [
-                'date_histogram' => [
-                    'field' => 'updated_on',
-                    'interval' => $this->dateInterval,
-                    'format' => 'MMMM yyyy',
-                ],
-            ],
         ];
     }
 
@@ -500,85 +503,5 @@ class ReviewController extends AbstractController
         }
 
         return $out;
-    }
-
-    protected function getOpenReviewsByIds(array $ids): ResultSet
-    {
-        $filter = [];
-        foreach ($ids as $reviewId) {
-            $filter[] = [
-                'term' => [
-                    'id' => $reviewId,
-                ],
-            ];
-        }
-        $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'must_not' => [
-                        [
-                            'terms' => [
-                                'reviewstatus' => ReviewStatusEnum::closedValues(),
-                            ],
-                        ],
-                    ],
-                    'should' => $filter,
-                ],
-            ],
-            'sort' => [
-                'updated_on' => 'asc',
-                'insertions' => 'asc',
-                'deletions' => 'asc',
-                'patchsets' => 'desc',
-            ],
-            'size' => $this->perPage,
-            'from' => $this->currentPage * $this->perPage - $this->perPage,
-        ];
-        $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
-
-        return $query->search();
-    }
-
-    /**
-     * @throws InvalidException
-     */
-    protected function getUnderReviewIssues(): ResultSet
-    {
-        $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        [
-                            'term' => [
-                                'status.id' => IssueStatusEnum::UNDER_REVIEW->value,
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-            // Issues have no insertions, deletions or patch sets: sorting on them makes Elasticsearch reject the query
-            'sort' => [
-                'updated_on' => 'asc',
-            ],
-            'size' => 1000,
-            'from' => 0,
-            'aggregations' => [
-                'Releases' => [
-                    'terms' => [
-                        'field' => 'releases',
-                    ],
-                ],
-                'Updated on' => [
-                    'date_histogram' => [
-                        'field' => 'updated_on',
-                        'interval' => $this->dateInterval,
-                        'format' => 'MMMM yyyy',
-                    ],
-                ],
-            ],
-        ];
-        $query = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
-
-        return $query->search();
     }
 }

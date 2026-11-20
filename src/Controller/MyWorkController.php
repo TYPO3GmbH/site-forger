@@ -15,6 +15,7 @@ use App\Elastic\ElasticUtility;
 use App\Elastic\UserWorkQuery;
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
+use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -50,7 +51,10 @@ class MyWorkController extends AbstractController
         $reviewState = ReviewStateEnum::tryFrom($request->query->getString('review'));
         // A closed state can only be found among all changes
         $includeClosed = 'all' === $request->query->getString('state') || (bool) $reviewState?->isClosed();
-        $query = $this->query($includeClosed, reviewState: $reviewState);
+        $searchTerms = trim($request->query->getString('query'));
+        // Only search words rank the changes, so only then they can be sorted by relevance
+        $sort = ReviewSortEnum::fromRequest($request->query->getString('sort'), '' !== $searchTerms);
+        $query = $this->query($includeClosed, $searchTerms, reviewState: $reviewState, reviewSort: $sort);
         $reviews = ElasticUtility::getIndexByName('review')->createSearch($query->reviews())->search();
 
         $counts = [];
@@ -66,20 +70,18 @@ class MyWorkController extends AbstractController
         ));
 
         return $this->render('my/changes.html.twig', [
-            ...$this->viewData($query, 'changes', $includeClosed),
+            ...$this->viewData($query, 'changes', $includeClosed, $searchTerms),
             'openChanges' => array_sum(array_diff_key($counts, array_flip($closedStates))),
-            'groups' => $this->group(
-                array_map(static fn ($result): array => $result->getData(), $reviews->getResults()),
-                static fn (array $change): string => ReviewStateEnum::fromChange($change)->value,
-                self::reviewStateOrder(),
-            ),
+            'changes' => array_map(static fn ($result): array => $result->getData(), $reviews->getResults()),
             'shown' => count($reviews->getResults()),
             'total' => $reviews->getTotalHits(),
             'selected' => $reviewState?->value,
             'labels' => array_combine(self::reviewStateOrder(), array_map(static fn (ReviewStateEnum $state): string => $state->label(), ReviewStateEnum::cases())),
             'counts' => $counts,
             'closedStates' => $closedStates,
-            'conflictCount' => (int) ($reviews->getAggregation('conflicts')['doc_count'] ?? 0),
+            'sort' => $sort,
+            'sortOptions' => ReviewSortEnum::options('' !== $searchTerms),
+            'isDefaultSort' => ReviewSortEnum::default('' !== $searchTerms) === $sort,
         ]);
     }
 
@@ -91,9 +93,10 @@ class MyWorkController extends AbstractController
         $issueStatus = false === $statusId ? null : IssueStatusEnum::tryFrom($statusId);
         // A closed state can only be found among all issues
         $includeClosed = 'all' === $request->query->getString('state') || (bool) $issueStatus?->isClosed();
-        // No search words rank the issues, so they cannot be sorted by relevance
-        $sort = IssueSortEnum::fromRequest($request->query->getString('sort'), false);
-        $query = $this->query($includeClosed, issueStatus: $issueStatus, issueSort: $sort);
+        $searchTerms = trim($request->query->getString('query'));
+        // Only search words rank the issues, so only then they can be sorted by relevance
+        $sort = IssueSortEnum::fromRequest($request->query->getString('sort'), '' !== $searchTerms);
+        $query = $this->query($includeClosed, $searchTerms, issueStatus: $issueStatus, issueSort: $sort);
         $issues = ElasticUtility::getIndexByName('issue')->createSearch($query->issues())->search();
 
         $counts = [];
@@ -104,13 +107,9 @@ class MyWorkController extends AbstractController
         $counts = $this->sortByOrder($counts, self::issueStatusOrder());
 
         return $this->render('my/issues.html.twig', [
-            ...$this->viewData($query, 'issues', $includeClosed),
+            ...$this->viewData($query, 'issues', $includeClosed, $searchTerms),
             'openIssues' => array_sum(array_diff_key($counts, array_flip(IssueStatusEnum::closedLabels()))),
-            'groups' => $this->group(
-                array_map(static fn ($result): array => $result->getData(), $issues->getResults()),
-                static fn (array $issue): string => (string) ($issue['status']['name'] ?? ''),
-                self::issueStatusOrder(),
-            ),
+            'issues' => array_map(static fn ($result): array => $result->getData(), $issues->getResults()),
             'shown' => count($issues->getResults()),
             'total' => $issues->getTotalHits(),
             'selected' => $issueStatus?->label(),
@@ -120,12 +119,12 @@ class MyWorkController extends AbstractController
             'counts' => $counts,
             'closedStates' => IssueStatusEnum::closedLabels(),
             'sort' => $sort,
-            'sortOptions' => IssueSortEnum::options(false),
-            'isDefaultSort' => IssueSortEnum::default(false) === $sort,
+            'sortOptions' => IssueSortEnum::options('' !== $searchTerms),
+            'isDefaultSort' => IssueSortEnum::default('' !== $searchTerms) === $sort,
         ]);
     }
 
-    private function query(bool $includeClosed, ?IssueStatusEnum $issueStatus = null, ?ReviewStateEnum $reviewState = null, IssueSortEnum $issueSort = IssueSortEnum::UPDATED): UserWorkQuery
+    private function query(bool $includeClosed, string $searchTerms, ?IssueStatusEnum $issueStatus = null, ?ReviewStateEnum $reviewState = null, IssueSortEnum $issueSort = IssueSortEnum::UPDATED, ReviewSortEnum $reviewSort = ReviewSortEnum::UPDATED): UserWorkQuery
     {
         $user = $this->getUser();
 
@@ -136,15 +135,18 @@ class MyWorkController extends AbstractController
             issueStatus: $issueStatus,
             reviewState: $reviewState,
             issueSort: $issueSort,
+            reviewSort: $reviewSort,
+            searchTerms: $searchTerms,
         );
     }
 
     /**
-     * What both views show: who the work is found for, and the open count of the other view for its tab.
+     * What both views show: who the work is found for, the search words, and the open count of the other view for its
+     * tab, for the same words.
      *
      * @return array<string, mixed>
      */
-    private function viewData(UserWorkQuery $query, string $view, bool $includeClosed): array
+    private function viewData(UserWorkQuery $query, string $view, bool $includeClosed, string $searchTerms): array
     {
         $user = $this->getUser();
         $data = [
@@ -152,6 +154,7 @@ class MyWorkController extends AbstractController
             'email' => $user instanceof KeyCloakUser ? (string) $user->getEmail() : '',
             'name' => $user instanceof KeyCloakUser ? (string) $user->getDisplayName() : '',
             'includeClosed' => $includeClosed,
+            'query' => $searchTerms,
         ];
         if ('changes' === $view) {
             $data['openIssues'] = ElasticUtility::getIndexByName('issue')->count($query->openIssuesCount());
@@ -176,25 +179,6 @@ class MyWorkController extends AbstractController
     private static function issueStatusOrder(): array
     {
         return array_map(static fn (IssueStatusEnum $state): string => $state->label(), IssueStatusEnum::cases());
-    }
-
-    /**
-     * Groups the documents by state, the groups in the given order and unknown states last.
-     *
-     * @param list<array<string, mixed>>             $documents
-     * @param callable(array<string, mixed>): string $stateOf
-     * @param list<string>                           $order
-     *
-     * @return array<string, list<array<string, mixed>>>
-     */
-    private function group(array $documents, callable $stateOf, array $order): array
-    {
-        $groups = [];
-        foreach ($documents as $document) {
-            $groups[$stateOf($document)][] = $document;
-        }
-
-        return $this->sortByOrder($groups, $order);
     }
 
     /**

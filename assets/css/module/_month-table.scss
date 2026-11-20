@@ -1,0 +1,64 @@
+// "Issues by month", see templates/management/index.html.twig: the table of _count-table.scss, a row per year and
+// a column per month, shaded like a heatmap.
+
+.month-trackers {
+    // The chips of _chips.scss
+    margin-bottom: 1.25rem;
+}
+
+.month-table {
+    th,
+    td {
+        padding-right: .75rem;
+        padding-left: .75rem;
+    }
+
+    tbody th {
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+// The darker, the more open issues were created in the month; dark text on the light shades, white on the dark ones,
+// 4.5:1 at least
+.month-shade-1 { background: #fef3ea; }
+.month-shade-2 { background: #fde0c7; }
+.month-shade-3 { background: #fbbf8c; }
+.month-shade-4 { background: #f08a3e; }
+
+.month-shade-5 {
+    background: #b54708;
+
+    a {
+        color: #fff;
+    }
+}
+
+.count-table tbody td.is-count[class*="month-shade-"]:has(> a) > a:hover,
+.count-table tbody td.is-count[class*="month-shade-"]:has(> a) > a:focus-visible {
+    background: rgba(0, 0, 0, .08);
+}
+
+.month-legend {
+    display: flex;
+    gap: .25rem;
+    align-items: center;
+    justify-content: flex-end;
+    margin: .75rem 0 0;
+    color: #4b5563;
+    font-size: .8125rem;
+}
+
+.month-legend-step {
+    display: inline-block;
+    width: 1.5rem;
+    height: .75rem;
+    border-radius: .2rem;
+
+    &:first-of-type {
+        margin-left: .25rem;
+    }
+
+    &:last-of-type {
+        margin-right: .25rem;
+    }
+}

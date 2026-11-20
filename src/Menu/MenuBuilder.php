@@ -54,11 +54,17 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         $menu->addChild('index', ['label' => 'Dashboard', 'route' => 'dashboard_index']);
         if ($this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
             $myWork = $menu->addChild('my_work', ['label' => 'My Work', 'route' => 'my_changes']);
-            $this->addLink($myWork, 'my_changes', 'My changes', 'my_changes', 'actions-code-pull-request');
+            $this->addLink($myWork, 'my_changes', 'My reviews', 'my_changes', 'actions-code-pull-request');
             $this->addLink($myWork, 'my_issues', 'My issues', 'my_issues', 'actions-list');
+            // The tabs of My Work say where the page is
+            foreach ($myWork->getChildren() as $child) {
+                $child->setExtra('breadcrumb', false);
+            }
         }
 
-        $reviews = $menu->addChild('gerrit', ['label' => 'Reviews', 'route' => 'gerrit_index']);
+        // A click on "Reviews" or "Issues" opens their search, all open ones without search words: the entry page,
+        // so their dropdowns have no "Search" of their own
+        $reviews = $menu->addChild('gerrit', ['label' => 'Reviews', 'route' => 'search_changes']);
         $this->addHeader($reviews, 'Overview');
         $this->addLink($reviews, 'gerrit_status', 'Ready for review', 'gerrit_index', 'actions-code-pull-request');
         $this->addLink($reviews, 'gerrit_wip', 'Work in progress', 'gerrit_wip', 'actions-code-pull-request-draft');
@@ -69,14 +75,12 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         $this->addLink($reviews, 'gerrit_negative_vote_cleanup', 'Negative votes', 'gerrit_negative_vote_cleanup', 'actions-minus-circle');
         $this->addLink($reviews, 'gerrit_hasverifications', 'Reviewed and verified', 'gerrit_hasverifications', 'actions-check-badge');
         $this->addLink($reviews, 'gerrit_coreteam_merge', 'Ready to merge', 'gerrit_coreteam_merge', 'actions-code-merge');
-        $this->addHeader($reviews, 'Tools');
-        $this->addLink($reviews, 'gerrit_files', 'Find by file', 'gerrit_files', 'actions-file-search');
 
+        // The most important first: where work waits, then the overviews
         $issues = $menu->addChild('issues', ['label' => 'Issues', 'route' => 'search_search']);
-        $this->addLink($issues, 'issues_search', 'Search', 'search_search', 'actions-search');
-        $this->addLink($issues, 'management-by-year', 'By month', 'management_index', 'actions-calendar');
-        $this->addLink($issues, 'management-by-category', 'By category', 'management_bycategory', 'actions-tag');
         $this->addLink($issues, 'gerrit_stale_issues', 'Stale issues', 'gerrit_stale_issues', 'actions-clock');
+        $this->addLink($issues, 'management-by-category', 'By category', 'management_bycategory', 'actions-tag');
+        $this->addLink($issues, 'management-by-year', 'By month', 'management_index', 'actions-calendar');
 
         $sprints = $menu->addChild('sprint', ['label' => 'Sprints', 'route' => 'sprint_overview']);
         $this->addLink($sprints, 'sprint_overview', 'Overview', 'sprint_overview', 'actions-viewmode-layout');
@@ -91,26 +95,28 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             $this->addLink($sprints, 'sprintcategory_index', 'Categories', 'sprintcategory_index', 'actions-category');
         }
 
-        $tools = $menu->addChild('utility', ['label' => 'Tools', 'uri' => '#']);
-        $this->addLink($tools, 'utility_backports', 'Backports', 'utilities_backport', 'actions-code-compare');
+        // A click on "Tools" opens their overview, its tiles are the items below with their description
+        $tools = $menu->addChild('utility', ['label' => 'Tools', 'route' => 'utilities_index']);
+        $this->addLink($tools, 'utility_backports', 'Backports', 'utilities_backport', 'actions-code-compare', description: 'Merged into main within a year, with a version in "Releases:" that has no backport yet.');
         if ($this->authorizationChecker->isGranted('ROLE_CORE_COMPONENT')) {
-            $this->addLink($tools, 'utility_backport_list', 'Backport exclusions', 'utilities_backport_index', 'actions-ban');
+            $this->addLink($tools, 'utility_backport_list', 'Backport exclusions', 'utilities_backport_index', 'actions-ban', description: 'The changes the backports leave out, and why.');
         }
-        $this->addLink($tools, 'utility_rst', 'ReST helper', 'utilities_rst', 'actions-file-text');
+        $this->addLink($tools, 'utility_rst', 'ReST helper', 'utilities_rst', 'actions-file-text', description: 'Writes the changelog file of a breaking change, deprecation or feature.');
 
         return $menu;
     }
 
     /**
      * @param array<string, string> $routeParameters
+     * @param string|null           $description     a line about the page, for the tiles of an overview like the tools
      */
-    private function addLink(ItemInterface $parent, string $name, string $label, string $route, string $icon, array $routeParameters = []): void
+    private function addLink(ItemInterface $parent, string $name, string $label, string $route, string $icon, array $routeParameters = [], ?string $description = null): void
     {
         $parent->addChild($name, [
             'label' => $label,
             'route' => $route,
             'routeParameters' => $routeParameters,
-            'extras' => ['icon' => $icon],
+            'extras' => array_filter(['icon' => $icon, 'description' => $description]),
         ]);
     }
 

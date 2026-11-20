@@ -13,6 +13,7 @@ namespace App\Elastic;
 
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
+use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
 use App\Enum\ReviewStatusEnum;
 
@@ -32,6 +33,8 @@ final readonly class UserWorkQuery
         private ?IssueStatusEnum $issueStatus = null,
         private ?ReviewStateEnum $reviewState = null,
         private IssueSortEnum $issueSort = IssueSortEnum::UPDATED,
+        private ReviewSortEnum $reviewSort = ReviewSortEnum::UPDATED,
+        private string $searchTerms = '',
     ) {
     }
 
@@ -40,7 +43,7 @@ final readonly class UserWorkQuery
      *
      * The states are counted over all issues of the person, so the hidden closed ones can be offered, too.
      * Hiding the closed issues and the selected state only narrow down the listed issues.
-     * They are listed in the given order, the Gerrit changes always by their last update.
+     * They are listed in the given order.
      */
     public function issues(): array
     {
@@ -48,7 +51,7 @@ final readonly class UserWorkQuery
             ['author.email' => $this->emails()],
             ['author.name' => $this->names()],
             ['assigned_to.name.keyword' => $this->names()],
-        ]);
+        ], '' === trim($this->searchTerms) ? null : IssueSearch::query($this->searchTerms, true));
         $request['sort'] = $this->issueSort->sort();
         $request['aggs'] = [
             'status' => ['terms' => ['field' => 'status.name', 'size' => 20]],
@@ -62,25 +65,21 @@ final readonly class UserWorkQuery
     }
 
     /**
-     * Gerrit changes the person is the commit author of, counted like the issues.
+     * Gerrit changes the person is the commit author of, counted and sorted like the issues.
      */
     public function reviews(): array
     {
         $request = $this->request([
             ['ownerEmail' => $this->emails()],
             ['owner' => $this->names()],
-        ]);
+        ], ReviewSearch::query($this->searchTerms));
+        $request['sort'] = $this->reviewSort->sort();
         $states = [];
         foreach (ReviewStateEnum::cases() as $state) {
             $states[$state->value] = $state->query();
         }
         $request['aggs'] = [
             'status' => ['filters' => ['filters' => $states]],
-            // Open changes that need a rebase, counted apart: they are ready for review or work in progress, too
-            'conflicts' => ['filter' => ['bool' => ['filter' => [
-                ['term' => ['reviewstatus' => ReviewStatusEnum::NEW->value]],
-                ['term' => ['mergeable' => 'no']],
-            ]]]],
         ];
 
         return $this->withPostFilter(
@@ -117,8 +116,9 @@ final readonly class UserWorkQuery
 
     /**
      * @param list<array<string, list<string>>> $identityTerms field => values, one of them has to match
+     * @param array<string, mixed>|null         $search        the query of the search words, as the search has it
      */
-    private function request(array $identityTerms): array
+    private function request(array $identityTerms, ?array $search = null): array
     {
         $should = [];
         foreach ($identityTerms as $term) {
@@ -131,9 +131,14 @@ final readonly class UserWorkQuery
             // Without email and name nothing can belong to the person
             ? ['must_not' => [['match_all' => new \stdClass()]]]
             : ['should' => $should, 'minimum_should_match' => 1];
+        $query = ['bool' => $bool];
+        if (null !== $search) {
+            // The words narrow down the work of the person, the counts of the states included
+            $query = ['bool' => ['filter' => [$query], 'must' => [$search]]];
+        }
 
         return [
-            'query' => ['bool' => $bool],
+            'query' => $query,
             'sort' => ['updated_on' => 'desc'],
             'size' => $this->size,
             'track_total_hits' => true,

@@ -14,6 +14,7 @@ import './js/chart-table.js';
 import './js/header-search.js';
 import './js/command-runs.js';
 import './js/person-search.js';
+import './js/date-range.js';
 
 import ace from 'ace-builds/src-noconflict/ace.js';
 import 'ace-builds/src-noconflict/mode-yaml.js';

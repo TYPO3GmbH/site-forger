@@ -11,13 +11,15 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Elastic\CategoryOverview;
 use App\Elastic\ElasticUtility;
 use App\Elastic\FacetSelection;
+use App\Elastic\GlobalSearch;
 use App\Elastic\IssueSearch;
+use App\Elastic\MonthOverview;
 use App\Elastic\PersonSuggestion;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
-use App\Enum\IssueStatusEnum;
 use Elastica\Aggregation\Filters;
 use Elastica\Aggregation\Terms;
 use Elastica\Query;
@@ -61,33 +63,17 @@ class SearchController extends AbstractController
         $query = (string) $request->query->get('query');
         $this->filters = $request->query->all('filters');
 
-        $viewData = [];
-        $searchClosed = false;
-        if (1 === $request->query->getInt('searchClosed')) {
-            $searchClosed = true;
-        }
-        $results = [];
-        if ($this->checkIfQueryIsIssue($query)) {
-            $issue = $this->findIssue($query);
-            if (array_key_exists('error', $issue)) {
-                $viewData['ErrorMessage'] = $issue['error'];
-            } else {
-                $results = $this->findDupes($issue['id'], $searchClosed);
-                $viewData['mode'] = 'dupes';
-                $viewData['issue'] = ['_source' => $issue];
-            }
-        } else {
-            // Without search words all issues score the same, so they are not sorted by relevance
-            $withRelevance = '' !== trim($query);
-            $sort = IssueSortEnum::fromRequest($request->query->getString('sort'), $withRelevance);
-            $results = $this->findByQuery($query, $sort, $searchClosed);
-            $viewData['mode'] = 'query';
-            $viewData['sort'] = $sort;
-            $viewData['sortOptions'] = IssueSortEnum::options($withRelevance);
-            // Links leave out the default, so a changed search keeps its own default
-            $viewData['sortParameter'] = $sort === IssueSortEnum::default($withRelevance) ? [] : ['sort' => $sort->value];
-        }
-        $viewData += $results;
+        $searchClosed = 1 === $request->query->getInt('searchClosed');
+        // Without search words all issues score the same, so they are not sorted by relevance
+        $withRelevance = '' !== trim($query);
+        $sort = IssueSortEnum::fromRequest($request->query->getString('sort'), $withRelevance);
+        $viewData = $this->findByQuery($query, $sort, $searchClosed);
+        $viewData['sort'] = $sort;
+        $viewData['sortOptions'] = IssueSortEnum::options($withRelevance);
+        // Links leave out the default, so a changed search keeps its own default
+        $viewData['sortParameter'] = $sort === IssueSortEnum::default($withRelevance) ? [] : ['sort' => $sort->value];
+        $viewData['tabs'] = GlobalSearch::tabs($query, $searchClosed);
+        $viewData['exactMatches'] = GlobalSearch::exactMatches($query);
         $viewData['query'] = $query;
         if ($searchClosed) {
             $viewData['searchClosed'] = '1';
@@ -122,71 +108,6 @@ class SearchController extends AbstractController
         $resultSet = ElasticUtility::getIndexByName('issue')->search($search);
 
         return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), $emailField));
-    }
-
-    private function checkIfQueryIsIssue(string $query): bool
-    {
-        $result = false;
-        $pattern = '/^\d{4,6}$/';
-        preg_match($pattern, $query, $matches);
-        if (count($matches) > 0) {
-            $result = true;
-        }
-
-        return $result;
-    }
-
-    /**
-     * @throws \Exception
-     */
-    private function findDupes(int $issueId, bool $searchInClosedIssues = false): array
-    {
-        $query = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        [
-                            'more_like_this' => [
-                                'fields' => [
-                                    'subject',
-                                    'description',
-                                ],
-                                'like' => $issueId,
-                                'min_term_freq' => 2,
-                                'max_query_terms' => 25,
-                                'minimum_should_match' => '50%',
-                            ],
-                        ],
-                    ],
-                    'must_not' => [
-                        [
-                            'terms' => [
-                                'status.name' => IssueStatusEnum::closedLabels(),
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-        ];
-        if ($searchInClosedIssues) {
-            unset($query['query']['bool']['must_not']);
-        }
-
-        return $this->doSearch($query);
-    }
-
-    private function findIssue(int|string $issueId): array|string
-    {
-        $forger = ElasticUtility::getIndexByName('issue');
-        try {
-            return $forger->getDocument($issueId)->getData();
-        } catch (\Exception) {
-            $data = [
-                'error' => 'Issue #' . $issueId . ' was not found.',
-            ];
-        }
-
-        return $data;
     }
 
     /**
@@ -252,6 +173,15 @@ class SearchController extends AbstractController
         $filters = new Query\BoolQuery();
 
         foreach ($this->filters as $key => $filterValue) {
+            if ('created' === $key) {
+                // A range of months, not values to tick
+                $days = is_array($filterValue) ? MonthOverview::days($filterValue) : ['from' => null, 'to' => null];
+                $range = MonthOverview::rangeQuery($days['from'], $days['to']);
+                if (null !== $range) {
+                    $filters->addMust(new Query\Simple($range));
+                }
+                continue;
+            }
             $key = $this->mapFilterNames($key);
             $filterCatCount = 0;
             $filterPart = new Query\BoolQuery();
@@ -265,6 +195,11 @@ class SearchController extends AbstractController
                         }
                         // Only open issues have a stage, also when closed ones are searched
                         $filterPart->addShould(new Query\Simple($stage->issueQuery()));
+                        ++$filterCatCount;
+                        continue;
+                    }
+                    if ('category' === $key && CategoryOverview::WITHOUT === $term) {
+                        $filterPart->addShould(new Query\Simple(CategoryOverview::withoutCategoryQuery()));
                         ++$filterCatCount;
                         continue;
                     }
@@ -306,6 +241,8 @@ class SearchController extends AbstractController
     {
         $catAggregation = new Terms('Category');
         $catAggregation->setField('category.name');
+        // The issues without category as a value of their own, as the row of "Issues by category"
+        $catAggregation->setParam('missing', CategoryOverview::WITHOUT);
         $catAggregation->setSize(100);
         $catAggregation->setOrder('_term', 'ASC');
         $elasticaQuery->addAggregation($catAggregation);
@@ -346,6 +283,7 @@ class SearchController extends AbstractController
             $activity->addFilter(new Query\Simple($filter), $label);
         }
         $elasticaQuery->addAggregation($activity);
+
     }
 
     /**

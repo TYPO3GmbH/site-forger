@@ -1,0 +1,39 @@
+// Trail above the content, see templates/_macros/breadcrumb.html.twig and the block "breadcrumb" in base.html.twig.
+// It sits right above the first section of the page and takes the place of its top spacing.
+
+.breadcrumb-bar {
+    padding-top: 1.25rem;
+
+    // The messages may stand between them
+    ~ .page-main-content > .content-section:first-child {
+        padding-top: 1rem;
+    }
+
+    // Below the content as much gray as above it: the space above the breadcrumb, the breadcrumb and the space below it
+    ~ .page-main-content > .content-section:last-child {
+        padding-bottom: 3.5rem;
+    }
+}
+
+.breadcrumb-nav .breadcrumb {
+    --bs-breadcrumb-margin-bottom: 0;
+    --bs-breadcrumb-divider: '\203A'; // "›", escaped: the stylesheet is served without a charset
+    font-size: .875rem;
+
+    a {
+        // On the gray of the page, where #6b7280 is too light
+        color: #4b5563;
+        text-decoration: none;
+
+        &:hover,
+        &:focus-visible {
+            color: #000;
+            text-decoration: underline;
+        }
+    }
+
+    .breadcrumb-item.active {
+        color: #000;
+        font-weight: 600;
+    }
+}

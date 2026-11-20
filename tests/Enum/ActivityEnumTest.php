@@ -134,4 +134,12 @@ final class ActivityEnumTest extends TestCase
         }
         self::assertNull(ActivityEnum::tryFromLabel('fresh'));
     }
+
+    public function testOnlyStagesOfDocumentsLyingStillAreNoteworthy(): void
+    {
+        self::assertFalse(ActivityEnum::FRESH->isNoteworthy());
+        self::assertTrue(ActivityEnum::QUIET->isNoteworthy());
+        self::assertTrue(ActivityEnum::STALE->isNoteworthy());
+        self::assertTrue(ActivityEnum::ORPHANED->isNoteworthy());
+    }
 }

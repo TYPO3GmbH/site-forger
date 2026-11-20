@@ -1,0 +1,25 @@
+{#
+ # The issue and the change with the number searched for, above the results of both tabs of the search.
+ # Expects: exactMatches, see App\Elastic\GlobalSearch::exactMatches()
+ #}
+{% import '_macros/status.html.twig' as status %}
+{% if exactMatches.issue is not null or exactMatches.change is not null %}
+    <section class="exact-matches" aria-label="Exact matches">
+        {% if exactMatches.issue is not null %}
+            {% set issue = exactMatches.issue %}
+            <a class="exact-match kind-issue" href="{{ issue_path(issue.id) }}">
+                <span class="exact-match-kind">{{ icon('actions-list') }}Issue</span>
+                <span class="exact-match-title">#{{ issue.id }} {{ issue.subject }}</span>
+                {{ status.issue(issue.status.name ?? null) }}
+            </a>
+        {% endif %}
+        {% if exactMatches.change is not null %}
+            {% set change = exactMatches.change %}
+            <a class="exact-match kind-change" href="{{ change_path(change.id) }}">
+                <span class="exact-match-kind">{{ icon('actions-code-pull-request') }}Review</span>
+                <span class="exact-match-title">{{ change.id }} {{ change.subject }}</span>
+                {{ status.review(change) }}
+            </a>
+        {% endif %}
+    </section>
+{% endif %}

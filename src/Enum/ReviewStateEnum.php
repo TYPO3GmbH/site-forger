@@ -53,6 +53,15 @@ enum ReviewStateEnum: string
         };
     }
 
+    /**
+     * Whether a row of a list names the state: not when it is ready for review, as most open changes are and the
+     * lists of open changes all are. The detail page and the cards name every state.
+     */
+    public function isNoteworthy(): bool
+    {
+        return self::READY !== $this;
+    }
+
     public function isClosed(): bool
     {
         return $this->status()->isClosed();

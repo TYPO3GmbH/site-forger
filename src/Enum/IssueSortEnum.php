@@ -75,20 +75,23 @@ enum IssueSortEnum: string
 
     /**
      * The order of a URL value. An unknown value, or relevance where it is not offered, gives the default:
-     * relevance for search words, the most recently updated issues first otherwise.
+     * relevance for search words, the order of the list otherwise.
      */
-    public static function fromRequest(string $value, bool $withRelevance): self
+    public static function fromRequest(string $value, bool $withRelevance, self $listDefault = self::UPDATED): self
     {
         $sort = self::tryFrom($value);
         if (null === $sort || !in_array($sort, self::options($withRelevance), true)) {
-            return self::default($withRelevance);
+            return self::default($withRelevance, $listDefault);
         }
 
         return $sort;
     }
 
-    public static function default(bool $withRelevance): self
+    /**
+     * Relevance for search words, else the order of the list: most lists show the recently updated issues first.
+     */
+    public static function default(bool $withRelevance, self $listDefault = self::UPDATED): self
     {
-        return $withRelevance ? self::RELEVANCE : self::UPDATED;
+        return $withRelevance ? self::RELEVANCE : $listDefault;
     }
 }

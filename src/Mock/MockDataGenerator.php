@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Mock;
 
+use App\Elastic\CommitMessage;
 use App\Elastic\ReviewSubject;
 use App\Enum\IssueStatusEnum;
 use App\Enum\PriorityEnum;
@@ -352,10 +353,16 @@ final readonly class MockDataGenerator
         $updated = $this->age($index);
         $patchSets = 1 + $index % 12;
         $files = array_slice(self::FILES, 0, 1 + $index % count(self::FILES));
+        // A change resolves a mock issue, every third one names another as related
+        $issues = count(IssueStatusEnum::cases()) * count($this->people);
+        $resolves = [self::ID_OFFSET + 1 + ($index * 7) % $issues];
+        $related = 0 === $index % 3 ? [self::ID_OFFSET + 1 + ($index * 7 + 1) % $issues] : [];
+        $changeId = 'I' . substr(hash('sha1', 'mock-change-' . $id), 0, 40);
+        $commitMessage = $this->commitMessage($subject, $resolves, $related, $releases, $changeId);
 
         return [
             'id' => $id,
-            'change_id' => 'I' . substr(hash('sha1', 'mock-change-' . $id), 0, 40),
+            'change_id' => $changeId,
             'reviewstatus' => $status,
             'subject' => $subject,
             'branch' => $this->pick(self::BRANCHES, $index),
@@ -382,7 +389,38 @@ final readonly class MockDataGenerator
             'ownerEmail' => $person['email'],
             'files' => $files,
             'work_in_progress' => $workInProgress || ReviewSubject::isWorkInProgress($reviewTags),
+            'commit_message' => $commitMessage,
+            'resolves' => CommitMessage::issues($commitMessage, CommitMessage::RESOLVES),
+            'related' => CommitMessage::issues($commitMessage, CommitMessage::RELATED),
         ];
+    }
+
+    /**
+     * A commit message as TYPO3 Core writes them: the subject, a body, the footers.
+     *
+     * @param list<int> $resolves
+     * @param list<int> $related
+     */
+    private function commitMessage(string $subject, array $resolves, array $related, ?string $releases, string $changeId): string
+    {
+        $footer = [];
+        foreach ($resolves as $issue) {
+            $footer[] = 'Resolves: #' . $issue;
+        }
+        foreach ($related as $issue) {
+            $footer[] = 'Related: #' . $issue;
+        }
+        if (null !== $releases) {
+            $footer[] = 'Releases: ' . $releases;
+        }
+        $footer[] = 'Change-Id: ' . $changeId;
+
+        return $subject . "\n\n"
+            . "The page module showed the default language for translated pages,\n"
+            . "because the language field was read before the overlay was applied.\n\n"
+            . "The overlay is applied first now, so the record of the selected\n"
+            . "language is shown.\n\n"
+            . implode("\n", $footer);
     }
 
     /**

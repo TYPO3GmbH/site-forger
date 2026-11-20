@@ -1,6 +1,6 @@
 {#
  # Load a single issue or change from Forge or Gerrit again, for the admins only, see RefreshController.
- # The button sits in the top right corner of the card, see assets/css/module/_refresh.scss, and sends the
+ # The button is on the detail pages of issues and changes, among the actions of their header, and sends the
  # form of templates/_partials/refresh_form.html.twig to its own action.
  #}
 
@@ -14,10 +14,9 @@
 
 {% macro button(action, label, title) %}
     {% if is_granted('ROLE_ADMIN') %}
-        <span class="refresh-action">
-            <button type="submit" form="refresh-form" formaction="{{ action }}" formmethod="post" class="refresh-action-button" title="{{ title }}" aria-label="{{ label }}">
-                {{ icon('actions-refresh') }}
-            </button>
-        </span>
+        <button type="submit" form="refresh-form" formaction="{{ action }}" formmethod="post" class="btn btn-sm btn-default refresh-action-button" aria-label="{{ label }}">
+            {{ icon('actions-refresh') }}
+            <span>{{ title }}</span>
+        </button>
     {% endif %}
 {% endmacro %}

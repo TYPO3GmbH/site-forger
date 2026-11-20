@@ -1,23 +1,18 @@
 {% extends 'base.html.twig' %}
-{% import '_macros/status.html.twig' as status %}
 {% block title %}Help{% endblock %}
-{% block headline %}Help{% endblock %}
+{% block page_title %}Help{% endblock %}
 
 {#
  # A tile linking to a page of Forger.
  #}
 {% macro tile(route, icon, title, description) %}
-    <a class="help-tile" href="{{ path(route) }}">
-        <span class="help-tile-icon">{{ icon(icon) }}</span>
-        <span class="help-tile-body">
-            <span class="help-tile-title">{{ title }}</span>
-            <span class="help-tile-text">{{ description|raw }}</span>
-        </span>
-    </a>
+    {% import '_macros/tiles.html.twig' as tiles %}
+    {{ tiles.tile(path(route), icon, title, description) }}
 {% endmacro %}
 
 {% block body %}
     {% import _self as help %}
+    {% import '_macros/status.html.twig' as status %}
 
     {% set sections = [
         {id: 'data', icon: 'actions-database', title: 'Where the data comes from'},
@@ -120,10 +115,11 @@
                         <h2>Reviews</h2>
                     </header>
                     <p>
-                        The lists show open changes, the ones updated last first. Work in progress only appears in its own list and in "Find by file".
+                        The lists show open changes, the ones updated last first. Each list can be sorted and searched by subject, commit message, number, Change-Id, topic and owner.
+                        Work in progress only appears in its own list and in the search. The filter "File" finds the changes that touch a file, by its path, or any file of a folder.
                         Votes count when a person gave them, not the CI bot.
                     </p>
-                    <div class="help-tiles">
+                    <div class="link-tiles">
                         {{ help.tile('gerrit_index', 'actions-code-pull-request', 'Ready for review', 'Every open change that is not work in progress.') }}
                         {{ help.tile('gerrit_wip', 'actions-code-pull-request-draft', 'Work in progress', 'Marked as work in progress in Gerrit or with [WIP] or [POC] in the subject, the oldest first.') }}
                         {{ help.tile('gerrit_missesreview', 'actions-comment', 'Needs review', 'Verified, but no positive code review yet.') }}
@@ -132,7 +128,27 @@
                         {{ help.tile('gerrit_negative_vote_cleanup', 'actions-minus-circle', 'Negative votes', 'At least one negative review or verification.') }}
                         {{ help.tile('gerrit_hasverifications', 'actions-check-badge', 'Reviewed and verified', 'A positive review and verification, whatever else they have.') }}
                         {{ help.tile('gerrit_coreteam_merge', 'actions-code-merge', 'Ready to merge', 'Reviewed and verified, no negative vote, no conflict.') }}
-                        {{ help.tile('gerrit_files', 'actions-file-search', 'Find by file', 'Changes touching a file, by its full path in the repository.') }}
+                        {{ help.tile('search_changes', 'actions-search', 'Search', 'Words find open changes, also work in progress. The subject leads to a page with the commit message, the issues and the files of a change.') }}
+                    </div>
+                    <p id="change-sizes">
+                        The size of a change tells how long its review takes, like the difficulty of a game: the lines it adds and removes together, as Gerrit counts them.
+                        The filter "Size" of the lists shows the changes of one or more sizes, "Smallest first" in their sort field puts the quick reviews on top.
+                    </p>
+                    <div class="help-stages help-stages-sizes">
+                        {% for size in enum_cases('App\\Enum\\ReviewSizeEnum') %}
+                            <div class="help-stage">
+                                {{ status.sizePill(size, size.description) }}
+                                <span class="help-stage-range">
+                                    {% if size.maximum is null %}
+                                        over {{ size.minimum - 1 }} lines
+                                    {% elseif size.minimum == 0 %}
+                                        up to {{ size.maximum }} lines
+                                    {% else %}
+                                        {{ size.minimum }}–{{ size.maximum }} lines
+                                    {% endif %}
+                                </span>
+                            </div>
+                        {% endfor %}
                     </div>
                 </section>
 
@@ -142,15 +158,15 @@
                         <span class="help-section-icon">{{ icon('actions-list') }}</span>
                         <h2>Issues</h2>
                     </header>
-                    <div class="help-tiles">
-                        {{ help.tile('search_search', 'actions-search', 'Search', 'Words find open issues, an issue number finds its possible duplicates.') }}
-                        {{ help.tile('management_index', 'actions-calendar', 'By month', 'Open issues by the month of their last update, per status.') }}
-                        {{ help.tile('management_bycategory', 'actions-tag', 'By category', 'Open issues per category and tracker.') }}
-                        <div id="stale-issues" class="help-tile-anchor">
-                            {{ help.tile('gerrit_stale_issues', 'actions-clock', 'Stale issues', '"Under Review", but none of the Gerrit links in the comments leads to an open change.') }}
+                    <div class="link-tiles">
+                        {{ help.tile('search_search', 'actions-search', 'Search', 'Words find open issues and reviews, each in a tab. A number shows the issue and the change with it, and finds the changes that resolve the issue. The page of an issue shows its changes and finds its possible duplicates.') }}
+                        <div id="stale-issues" class="link-tile-anchor">
+                            {{ help.tile('gerrit_stale_issues', 'actions-clock', 'Stale issues', 'Open issues without activity for 60 days or more, the stages "Stale" and "Orphaned". Each says which changes it has, linked in the comments or resolving or naming the issue in their commit message.') }}
                         </div>
+                        {{ help.tile('management_bycategory', 'actions-tag', 'By category', 'Open issues per category and tracker, the categories with the most first.') }}
+                        {{ help.tile('management_index', 'actions-calendar', 'By month', 'Open issues by the month they were created: how old the open issues are.') }}
                     </div>
-                    <p class="help-muted">Tick "Closed Tickets" in the search to include resolved, closed and rejected issues.</p>
+                    <p class="help-muted">Tick "Include closed" in the search to include resolved, closed and rejected issues, or merged and abandoned changes. Admins refresh an issue or a change from its page.</p>
                 </section>
 
                 {# Dashboard #}
@@ -179,7 +195,7 @@
                     </header>
                     <p>
                         Log in with your TYPO3 account to see your changes and the issues you reported or are assigned to.
-                        Forger finds them by the email address and the name of your account. Finished ones are hidden until you ask for them.
+                        Forger finds them by the email address and the name of your account. Closed ones are hidden until you choose "Include closed".
                     </p>
                 </section>
 
@@ -189,12 +205,12 @@
                         <span class="help-section-icon">{{ icon('actions-line-columns') }}</span>
                         <h2>Sprints</h2>
                     </header>
-                    <div class="help-tiles">
-                        <div class="help-tile help-tile-static">
-                            <span class="help-tile-icon">{{ icon('actions-viewmode-tiles') }}</span>
-                            <span class="help-tile-body">
-                                <span class="help-tile-title">Sprint boards</span>
-                                <span class="help-tile-text">Selected issues in the columns Blocked, Open, WIP, Review and Done. The Core team creates them.</span>
+                    <div class="link-tiles">
+                        <div class="link-tile link-tile-static">
+                            <span class="link-tile-icon">{{ icon('actions-viewmode-tiles') }}</span>
+                            <span class="link-tile-body">
+                                <span class="link-tile-title">Sprint boards</span>
+                                <span class="link-tile-text">Selected issues in the columns Blocked, Open, WIP, Review and Done. The Core team creates them.</span>
                             </span>
                         </div>
                         {{ help.tile('sprint_reviews', 'actions-line-columns', 'Review board', 'Open bugfixes, features or tasks, grouped by what they lack.') }}
@@ -207,7 +223,7 @@
                         <span class="help-section-icon">{{ icon('actions-briefcase') }}</span>
                         <h2>Tools</h2>
                     </header>
-                    <div class="help-tiles">
+                    <div class="link-tiles">
                         {{ help.tile('utilities_backport', 'actions-code-compare', 'Backports', 'Merged into main within a year, with a version in "Releases:" that has no backport yet.') }}
                         {{ help.tile('utilities_rst', 'actions-file-text', 'ReST helper', 'Writes the changelog file of a breaking change, deprecation or feature.') }}
                     </div>

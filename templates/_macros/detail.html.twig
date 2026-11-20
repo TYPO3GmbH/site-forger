@@ -1,0 +1,59 @@
+{#
+ # The facts in the sidebar of the detail pages of issues and changes: the label above the value.
+ # Facts without a value are left out, also those with "-", which the import stores for none. With a url, the value leads to the others with it, like the issues of a
+ # category; a title says so on hover.
+ #}
+
+{% macro fact(label, value, url = null, title = null) %}
+    {% if value is not empty and value != '-' %}
+        <div class="detail-fact">
+            <dt>{{ label }}</dt>
+            {% set text = value is iterable ? value|join(', ') : value %}
+            <dd>{% if url %}<a href="{{ url }}"{% if title %} title="{{ title }}"{% endif %}>{{ text }}</a>{% else %}{{ text }}{% endif %}</dd>
+        </div>
+    {% endif %}
+{% endmacro %}
+
+{% macro person(label, name, email, url = null, title = null) %}
+    {% if name is not empty %}
+        <div class="detail-fact">
+            <dt>{{ label }}</dt>
+            <dd class="detail-person">
+                {% if '@' in (email ?? '') %}
+                    <span class="review-owner-avatar">{{ avatar(email, 48) }}</span>
+                {% endif %}
+                {% if url %}<a href="{{ url }}"{% if title %} title="{{ title }}"{% endif %}>{{ name }}</a>{% else %}{{ name }}{% endif %}
+            </dd>
+        </div>
+    {% endif %}
+{% endmacro %}
+
+{# The issue search with one filter set, as its checkbox sets it: filters[<filter>][<value>]=true #}
+{% macro issueSearch(filter, value) %}{{ path('search_search', {'filters': {(filter): {(value|filterKey): 'true'}}}) }}{% endmacro %}
+
+{#
+ # The search of the changes with one filter set, as its checkbox sets it: filters[<filter>][<value>]=true. From a
+ # merged or abandoned change (closed) it finds the closed ones, too, so the change is among them.
+ #}
+{% macro changeSearch(filter, value, closed = false) %}{{ path('search_changes', {'filters': {(filter): {(value|filterKey): 'true'}}}|merge(closed ? {'searchClosed': '1'} : {})) }}{% endmacro %}
+
+{# A fact of several values of a filter of the changes, each a link of its own to the changes with it #}
+{% macro links(label, values, filter, title, closed = false) %}
+    {% set values = (values is iterable ? values : [values])|filter(value => value is not empty and value != '-') %}
+    {% if values is not empty %}
+        <div class="detail-fact">
+            <dt>{{ label }}</dt>
+            <dd>{% for value in values %}<a href="{{ _self.changeSearch(filter, value, closed) }}" title="{{ title }}">{{ value }}</a>{{ not loop.last ? ', ' }}{% endfor %}</dd>
+        </div>
+    {% endif %}
+{% endmacro %}
+
+{# A date of the index ("2026/11/19 10:00:00"): how long ago, the date itself on hover #}
+{% macro date(label, value) %}
+    {% if value is not empty %}
+        <div class="detail-fact">
+            <dt>{{ label }}</dt>
+            <dd title="{{ value }}">{{ relativetime(to_datetime(value)) }}</dd>
+        </div>
+    {% endif %}
+{% endmacro %}

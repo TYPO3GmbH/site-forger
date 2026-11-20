@@ -49,7 +49,7 @@ class RefreshController extends AbstractController
             }
         }
 
-        return $this->back($request, 'search_search', ['query' => (string) $id]);
+        return $this->back($request, 'issue_show', ['id' => $id]);
     }
 
     #[Route(path: '/change/{number}/refresh', name: 'change_refresh', requirements: ['number' => '\d+'], methods: ['POST'])]
@@ -64,7 +64,7 @@ class RefreshController extends AbstractController
             }
         }
 
-        return $this->back($request, 'gerrit_index');
+        return $this->back($request, 'change_show', ['number' => $number]);
     }
 
     private function isTokenValid(Request $request): bool

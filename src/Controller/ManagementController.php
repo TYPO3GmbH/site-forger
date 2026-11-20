@@ -12,7 +12,9 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\DTO\TrackerFilters;
+use App\Elastic\CategoryOverview;
 use App\Elastic\ElasticUtility;
+use App\Elastic\MonthOverview;
 use App\Enum\IssueStatusEnum;
 use App\Enum\TrackerEnum;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -73,7 +75,6 @@ class ManagementController extends AbstractController
         $viewData['routeName'] = 'management_index';
         $trackerFilters = new TrackerFilters($request);
         $viewData['trackerFilters'] = $trackerFilters;
-        $out = [];
         $fullRequest = [
             'query' => [
                 'bool' => [
@@ -97,14 +98,14 @@ class ManagementController extends AbstractController
             'aggregations' => [
                 'year' => [
                     'date_histogram' => [
-                        'field' => 'updated_on',
-                        'interval' => 'year',
+                        'field' => MonthOverview::FIELD,
+                        'calendar_interval' => 'year',
                     ],
                     'aggregations' => [
                         'month' => [
                             'date_histogram' => [
-                                'field' => 'updated_on',
-                                'interval' => 'month',
+                                'field' => MonthOverview::FIELD,
+                                'calendar_interval' => 'month',
                             ],
                             'aggregations' => [
                                 'status' => [
@@ -116,44 +117,37 @@ class ManagementController extends AbstractController
                         ],
                     ],
                 ],
+                // The trackers of the counted issues, so a cell finds them in the search with the left out ones left out
+                'tracker' => ['terms' => ['field' => 'tracker.name', 'size' => 20]],
             ],
         ];
         foreach ($trackerFilters->excluded as $tracker) {
             $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = $tracker->label();
         }
-        $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
-        $resultSet = $search->search();
-        foreach ($resultSet->getAggregations() as $aggregation) {
-            foreach ($aggregation['buckets'] as $bucket) {
-                $dateParts = explode('/', (string) $bucket['key_as_string']);
-                $yearName = $dateParts[0];
-                // prefill array with 12 index, for 12 month
-                $months = array_fill(0, 12, []);
-                foreach ($bucket['month']['buckets'] as $month) {
-                    $dateParts = explode('/', (string) $month['key_as_string']);
-                    $monthName = $dateParts[1];
-                    $stati = [];
-                    foreach ($month['status']['buckets'] as $status) {
-                        $stati[] = [
-                            'name' => $status['key'],
-                            'total' => $status['doc_count'],
-                        ];
-                    }
-                    $monthIndex = (int) $monthName - 1;
-                    $months[$monthIndex] = [
-                        'month' => $monthName,
-                        'total' => $month['doc_count'],
-                        'stati' => $stati,
-                    ];
-                }
-                $out[] = [
-                    'year' => $yearName,
-                    'total' => $bucket['doc_count'],
-                    'months' => $months,
-                ];
-            }
-        }
-        $viewData['aggs'] = $out;
+        $resultSet = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest)->search();
+        $rows = MonthOverview::rows($resultSet->getAggregations()['year']['buckets'] ?? []);
+        $viewData['rows'] = $rows;
+        $viewData['maximum'] = MonthOverview::maximum($rows);
+        $viewData['total'] = array_sum(array_column($rows, 'total'));
+        // Nothing left out: no filter of the trackers in the search, the issues of every tracker count
+        $viewData['trackerFilter'] = [] === $trackerFilters->excluded ? [] : array_fill_keys(array_map(
+            static fn (array $bucket): string => str_replace(' ', '_', (string) $bucket['key']),
+            $resultSet->getAggregations()['tracker']['buckets'] ?? [],
+        ), 'true');
+        // Tracker => the parameters of the page with it left out or taken in again, for the chips
+        $viewData['trackers'] = array_map(
+            static fn (TrackerEnum $tracker): array => [
+                'tracker' => $tracker,
+                'included' => !$trackerFilters->isExcluded($tracker),
+                'toggle' => ['trackerFilters' => array_fill_keys(array_map(
+                    static fn (TrackerEnum $excluded): string => $excluded->severity(),
+                    $trackerFilters->isExcluded($tracker)
+                        ? array_values(array_filter($trackerFilters->excluded, static fn (TrackerEnum $excluded): bool => $excluded !== $tracker))
+                        : [...$trackerFilters->excluded, $tracker],
+                ), 'true')],
+            ],
+            CategoryOverview::TRACKERS,
+        );
 
         return $this->render('management/index.html.twig', $viewData);
     }
@@ -161,61 +155,18 @@ class ManagementController extends AbstractController
     #[Route(path: '/management/bycategory', name: 'management_bycategory')]
     public function byCategory(): Response
     {
-        $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'must_not' => [
-                        [
-                            'terms' => [
-                                'status.name' => IssueStatusEnum::closedLabels(),
-                            ],
-                        ],
-                        [
-                            'terms' => [
-                                'project.id' => [
-                                    '78',
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-            'size' => 0,
-            'aggregations' => [
-                'category' => [
-                    'terms' => [
-                        'field' => 'category.name',
-                        'size' => 1000,
-                    ],
-                    'aggregations' => [
-                        'tracker' => [
-                            'terms' => [
-                                'field' => 'tracker.name',
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-        ];
-        $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
-        $resultSet = $search->search();
+        $resultSet = ElasticUtility::getIndexByName('issue')->createSearch(CategoryOverview::request())->search();
         $aggregations = $resultSet->getAggregations();
-        $viewData = [];
-        foreach ($aggregations['category']['buckets'] as $category) {
-            // The columns of the overview: other trackers would add cells without a column
-            $viewData[$category['key']] = array_fill_keys(
-                array_map(static fn (TrackerEnum $tracker): string => $tracker->label(), [TrackerEnum::BUG, TrackerEnum::FEATURE, TrackerEnum::TASK, TrackerEnum::STORY, TrackerEnum::EPIC]),
-                0,
-            );
-            foreach ($category['tracker']['buckets'] as $tracker) {
-                if (array_key_exists($tracker['key'], $viewData[$category['key']])) {
-                    $viewData[$category['key']][$tracker['key']] = $tracker['doc_count'];
-                }
-            }
-            ksort($viewData);
-        }
+        $rows = CategoryOverview::rows($aggregations['category']['buckets'] ?? []);
+        $withoutCategory = CategoryOverview::withoutCategory($aggregations['without_category'] ?? null);
 
-        return $this->render('management/bycategory.html.twig', ['data' => $viewData]);
+        return $this->render('management/bycategory.html.twig', [
+            'rows' => $rows,
+            'withoutCategory' => $withoutCategory,
+            // Of every open issue, those without category, too
+            'sums' => CategoryOverview::sums([...$rows, ...(null === $withoutCategory ? [] : [$withoutCategory])]),
+            'trackers' => CategoryOverview::TRACKERS,
+        ]);
     }
 
     #[Route(path: '/management/interactions', name: 'management_interactions')]

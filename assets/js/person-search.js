@@ -145,8 +145,8 @@
         function load(term) {
             const url = new URL(container.dataset.url, window.location.href);
             url.searchParams.set('term', term);
-            // The search words, and "Find by file", narrow the list with these. The filters do not change the numbers
-            // of a filter
+            // The search words narrow the list with these. The filters, also "File", do not change the numbers of a
+            // filter
             ['query', 'searchClosed'].forEach(function (parameter) {
                 const value = new URLSearchParams(window.location.search).get(parameter);
                 if (value !== null) {

@@ -21,7 +21,8 @@
         <tbody>
         {% for issue in issues %}
             <tr>
-                <td><a href="https://forge.typo3.org/issues/{{ issue.id }}" target="issue{{ issue.id }}">#{{ issue.id }} {{ issue.subject|default('') }}</a></td>
+                <td>{# A new tab, the wizard keeps its settings #}
+                <a href="{{ issue_path(issue.id) }}" target="issue{{ issue.id }}">#{{ issue.id }} {{ issue.subject|default('') }}</a></td>
                 <td>{{ issue.tracker.name|default('') }}</td>
                 <td>{{ issue.status.name|default('') }}</td>
                 <td>{{ issue.column }}</td>

@@ -1,0 +1,13 @@
+{#
+ # A tile that leads to a page: its icon, its title and a line about it. Tiles stand in a <div class="link-tiles">.
+ # See assets/css/module/_link-tiles.scss.
+ #}
+{% macro tile(url, icon, title, description) %}
+    <a class="link-tile" href="{{ url }}">
+        <span class="link-tile-icon">{{ icon(icon) }}</span>
+        <span class="link-tile-body">
+            <span class="link-tile-title">{{ title }}</span>
+            <span class="link-tile-text">{{ description|raw }}</span>
+        </span>
+    </a>
+{% endmacro %}

@@ -1,6 +1,10 @@
 {% extends 'base.html.twig' %}
 {% block title %}Delete Sprint Boards{% endblock %}
-{% block headline %}Sprint Boards{% endblock %}
+{% block page_title %}Sprint Boards{% endblock %}
+{% block breadcrumb %}
+    {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+    {{ breadcrumb.trail([{'label': 'Sprints', 'url': path('sprint_overview')}, {'label': 'Sprint boards', 'url': path('sprint_list')}, {'label': 'Delete ' ~ sprint.name}]) }}
+{% endblock %}
 {% block body %}
 
     <div class="content-section">

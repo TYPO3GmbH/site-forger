@@ -1,38 +1,82 @@
+{#
+ # A list of Gerrit changes with its filters, pages and sort field, see ReviewController::listData().
+ # listParameters are what the list keeps besides the filters and the order: its search words and "searchClosed".
+ # With listSearch the list has a field for search words of its own.
+ #}
+{% import '_macros/sort.html.twig' as sorting %}
+{% import '_macros/search.html.twig' as search %}
+{% set listSearch = listSearch ?? false %}
+{% set listArguments = listParameters|merge({'filters': filters})|merge(sortParameter) %}
 <div class="section">
     {% if results is defined %}
         <div class="section-filter">
-            {% include '_partials/aggregations.html.twig' with {
-                'facetScope': 'changes',
-                'aggregations': aggregations,
-                'query': query,
-                'personSearch': {
-                    'Owner': {'filter': 'owner', 'url': path('gerrit_owners', {'list': routeName}), 'label': 'Find an owner'},
-                },
-            } only %}
+            <form action="{{ path(routeName) }}" method="get">
+                {% for name, value in listParameters|merge(sortParameter) %}
+                    {{ sorting.hidden(name, value) }}
+                {% endfor %}
+                {% include '_partials/aggregations.html.twig' with {
+                    'facetScope': 'changes',
+                    'aggregations': aggregations,
+                    'textFilters': {'file': {'title': 'File', 'value': filters.file ?? {}, 'placeholder': 'A path, or a folder'}},
+                    'dateFilters': {'updated': {'title': 'Updated', 'value': filters.updated ?? {}}},
+                    'query': query,
+                    'personSearch': {
+                        'Owner': {'filter': 'owner', 'url': path('gerrit_owners', {'list': routeName}|merge(listParameters)), 'label': 'Find an owner'},
+                    },
+                } only %}
+            </form>
         </div>
         <div class="section-main">
-            {% include '_partials/pagination.html.twig' with {
-                'pages': pagesToLinkTo,
-                'current': currentPage,
-                'routeName': routeName,
-                'resultsTotal': totalResults,
-                'resultsFrom': startingAtItem,
-                'resultsTo': endingAtItem,
-                'arguments': {'query': query, 'filters': filters}
-            } only %}
-            {% for result in results %}
-                {% include '_partials/review.html.twig' with {'review': result.hit} only %}
-            {% endfor %}
-            {% include '_partials/pagination.html.twig' with {
-                'pages': pagesToLinkTo,
-                'current': currentPage,
-                'routeName': routeName,
-                'resultsTotal': totalResults,
-                'resultsFrom': startingAtItem,
-                'resultsTo': endingAtItem,
-                'arguments': {'query': query, 'filters': filters}
-            } only %}
+            {# Above the list only the count, the pages stand below it #}
+            {% set pagination %}
+                {% include '_partials/pagination.html.twig' with {
+                    'resultsTotal': totalResults,
+                    'resultsFrom': startingAtItem,
+                    'resultsTo': endingAtItem,
+                } only %}
+            {% endset %}
+            {% set sortField = sorting.select(path(routeName), sort, sortOptions, listParameters|merge({'filters': filters}), 'review-sort') %}
+            {% if listSearch %}
+                {# A list of its own: its search field beside the order, the count below #}
+                <div class="list-toolbar">
+                    {# New search words keep the filters and the order #}
+                    {{ search.field(path(routeName), query, {
+                        'id': 'list-search-' ~ routeName,
+                        'small': true,
+                        'label': 'Search in this list',
+                        'placeholder': 'Subject, number, Change-Id, topic or owner',
+                        'title': 'Search in this list',
+                        'hidden': {'filters': filters}|merge(sortParameter),
+                    }) }}
+                    {{ sortField }}
+                </div>
+                {% if results is not empty %}{{ pagination }}{% endif %}
+            {% else %}
+                {# As the issues of the search: the count first, the order at the end, in one line #}
+                <div class="results-toolbar">
+                    {% if results is not empty %}{{ pagination }}{% endif %}
+                    {{ sortField }}
+                </div>
+            {% endif %}
+            {% if results is empty %}
+                {% include '_partials/alert.html.twig' with {
+                    'message': query is not empty ? 'No change in this list matches "' ~ query ~ '".' : 'This list is empty.',
+                    'style': 'info'
+                } only %}
+            {% else %}
+                <ul class="row-list row-list-panel">
+                    {% for result in results %}
+                        <li>{% include '_partials/row/change.html.twig' with {'change': result.data, 'detailed': true} only %}</li>
+                    {% endfor %}
+                </ul>
+                {# The pages only below the list, the count stands above it #}
+                {% include '_partials/pagination.html.twig' with {
+                    'pages': pagesToLinkTo,
+                    'current': currentPage,
+                    'routeName': routeName,
+                    'arguments': listArguments
+                } only %}
+            {% endif %}
         </div>
     {% endif %}
 </div>
-

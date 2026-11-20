@@ -1,54 +1,9 @@
 {#
- # Gerrit changes as a list, grouped by state.
- # Expects: groups (state => list of change documents), labels (state => heading)
+ # Gerrit changes as a list, in the rows of the review lists and the search. Each row names its state.
+ # Expects: changes (list of change documents)
  #}
-{% import '_macros/status.html.twig' as status %}
-<div class="mywork-list">
-    {% for state, changes in groups %}
-        <div class="mywork-group">
-            <h3 class="mywork-group-title">{{ labels[state] ?? state }} <span>{{ changes|length }}</span></h3>
-            <ul>
-                {% for change in changes %}
-                    <li>
-                        <a class="mywork-item" href="https://review.typo3.org/c/Packages/TYPO3.CMS/+/{{ change.id }}/" target="gerrit{{ change.id }}">
-                            <span class="mywork-item-status">
-                                {{ status.review(change) }}
-                                {% if change.reviewstatus == 'NEW' and change.mergeable == 'no' %}
-                                    <span class="status-pill status-pill-conflict">Merge conflict</span>
-                                {% endif %}
-                                {{ status.activity(change) }}
-                            </span>
-                            <span class="mywork-item-main">
-                                <span class="mywork-item-title"><span class="mywork-item-id">{{ change.id }}</span>{{ change.subject }}</span>
-                                <span class="mywork-item-meta">
-                                    <span class="mywork-tag{{ change.branch != 'main' ? ' is-backport' }}" title="Branch">{{ change.branch }}</span>
-                                    {% set releases = change.releases|filter(release => release != change.branch and release != 'omitted') %}
-                                    {% if releases is not empty %}
-                                        <span title="Target releases">→ {{ releases|join(', ') }}</span>
-                                    {% endif %}
-                                    {% if change.topic is defined and change.topic != 'no topic' %}
-                                        <span title="Topic">{{ change.topic }}</span>
-                                    {% endif %}
-                                    <span>{{ change.patchsets }} patch {{ change.patchsets == 1 ? 'set' : 'sets' }}</span>
-                                </span>
-                            </span>
-                            <span class="mywork-item-side">
-                                <span class="mywork-votes">
-                                    <span class="mywork-vote" title="Code review: {{ change.positive_reviews }} positive, {{ change.negative_reviews }} negative">
-                                        CR
-                                        {% if change.negative_reviews %}<b class="is-negative">&minus;{{ change.negative_reviews }}</b>{% elseif change.positive_reviews %}<b class="is-positive">+{{ change.positive_reviews }}</b>{% else %}<b>0</b>{% endif %}
-                                    </span>
-                                    <span class="mywork-vote" title="Verified: {{ change.positive_verifications }} positive, {{ change.negative_verifications }} negative">
-                                        V
-                                        {% if change.negative_verifications %}<b class="is-negative">&minus;{{ change.negative_verifications }}</b>{% elseif change.positive_verifications %}<b class="is-positive">+{{ change.positive_verifications }}</b>{% else %}<b>0</b>{% endif %}
-                                    </span>
-                                </span>
-                                <time class="mywork-item-date" datetime="{{ to_datetime(change.updated_on)|date('c') }}" title="Updated {{ change.updated_on }}">{{ relativetime(to_datetime(change.updated_on)) }}</time>
-                            </span>
-                        </a>
-                    </li>
-                {% endfor %}
-            </ul>
-        </div>
+<ul class="mywork-list">
+    {% for change in changes %}
+        <li>{% include '_partials/row/change.html.twig' with {'change': change, 'detailed': true} only %}</li>
     {% endfor %}
-</div>
+</ul>

@@ -1,30 +1,23 @@
 {% extends 'my/_layout.html.twig' %}
-{% import 'my/_layout.html.twig' as my %}
-{% block title %}My changes{% endblock %}
-{% block intro %}Your Gerrit changes.{% endblock %}
+{% block title %}My reviews{% endblock %}
 
 {% block view %}
+    {% import 'my/_layout.html.twig' as my %}
+    {% import '_macros/sort.html.twig' as sorting %}
     {% set hidden = includeClosed ? 0 : counts|filter((count, state) => state in closedStates)|reduce((sum, count) => sum + count, 0) %}
-    {% set baseParams = (includeClosed ? {'state': 'all'} : {})|merge(selected is not null ? {'review': selected} : {}) %}
-
-    <div class="mywork-stats">
-        {% for stat in [
-            {'label': labels.ready, 'count': counts.ready ?? 0, 'href': path('my_changes', baseParams|merge({'review': 'ready'})), 'tone': review_state({'reviewstatus': 'NEW'}).severity},
-            {'label': labels.wip, 'count': counts.wip ?? 0, 'href': path('my_changes', baseParams|merge({'review': 'wip'})), 'tone': review_state({'reviewstatus': 'NEW', 'work_in_progress': true}).severity},
-            {'label': 'Merge conflicts', 'count': conflictCount, 'href': path('my_changes', baseParams|filter((v, k) => k != 'review')), 'tone': 'conflict'},
-        ] %}
-            <a href="{{ stat.href }}" class="mywork-stat status-pill-{{ stat.tone }}{{ stat.count == 0 ? ' is-empty' }}">
-                <span class="mywork-stat-count">{{ stat.count }}</span>
-                <span class="mywork-stat-label">{{ stat.label }}</span>
-            </a>
-        {% endfor %}
-    </div>
+    {% set baseParams = (query is not empty ? {'query': query} : {})|merge(includeClosed ? {'state': 'all'} : {})|merge(selected is not null ? {'review': selected} : {}) %}
+    {# The links keep the order, the sort field sends the other parameters #}
+    {% set filterParams = baseParams %}
+    {% set baseParams = baseParams|merge(isDefaultSort ? {} : {'sort': sort.value}) %}
 
     <section class="mywork-section" aria-labelledby="changes-title">
         <header class="mywork-section-header">
-            <h2 id="changes-title">Gerrit changes <span class="mywork-section-count">{{ total }}</span></h2>
+            {# The tab names the list #}
+            <h2 id="changes-title" class="sr-only">Reviews</h2>
+            {{ my.search('my_changes', query, baseParams, 'Subject, number, Change-Id or topic', includeClosed, 'Also merged and abandoned reviews') }}
+            {{ sorting.select(path('my_changes'), sort, sortOptions, filterParams, 'my-changes-sort') }}
             {% if counts is not empty %}
-                <nav class="mywork-chips" aria-label="Change status">
+                <nav class="chips" aria-label="Change status">
                     {{ my.chip('All', counts|reduce((sum, count) => sum + count, 0) - hidden, path('my_changes', baseParams|filter((v, k) => k != 'review')), selected is null, false) }}
                     {% for state, count in counts %}
                         {{ my.chip(labels[state], count, path('my_changes', baseParams|merge({'review': state})), selected == state, state in closedStates and not includeClosed) }}
@@ -33,23 +26,26 @@
             {% endif %}
         </header>
 
-        {% if groups is empty %}
+        {% if changes is empty %}
             <div class="mywork-empty">
-                {% if selected is not null %}
-                    No Gerrit changes are {{ labels[selected]|lower }}.
+                {% if query is not empty %}
+                    None of your {{ includeClosed ? '' : 'open ' }}reviews{{ selected is not null ? ' that are ' ~ labels[selected]|lower }} matches “{{ query }}”.
+                {% elseif selected is not null %}
+                    No reviews are {{ labels[selected]|lower }}.
                 {% else %}
-                    {{ includeClosed ? 'You have no Gerrit changes.' : 'You have no open Gerrit changes.' }}
+                    {{ includeClosed ? 'You have no reviews.' : 'You have no open reviews.' }}
+                    <p class="mywork-empty-hint">Forger looks for the Gerrit changes owned by <strong>{{ email }}</strong> or <strong>{{ name }}</strong>.</p>
                 {% endif %}
             </div>
         {% else %}
-            {% include 'my/_review_rows.html.twig' with {'groups': groups, 'labels': labels} only %}
+            {% include 'my/_review_rows.html.twig' with {'changes': changes} only %}
             {% if total > shown %}
-                <p class="mywork-note">Showing the {{ shown }} most recently updated of {{ total }} changes.</p>
+                <p class="mywork-note">Showing the first {{ shown }} of {{ total }} reviews, sorted by {{ sort.label|lower }}.</p>
             {% endif %}
         {% endif %}
         {% if hidden > 0 and selected is null %}
             <p class="mywork-note">
-                {{ hidden }} merged or abandoned {{ hidden == 1 ? 'change is' : 'changes are' }} hidden.
+                {{ hidden }} merged or abandoned {{ hidden == 1 ? 'review is' : 'reviews are' }} hidden.
                 <a href="{{ path('my_changes', baseParams|merge({'state': 'all'})) }}">Show</a>
             </p>
         {% endif %}

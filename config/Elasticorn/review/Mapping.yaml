@@ -54,3 +54,10 @@ files:
   type: keyword
 work_in_progress:
   type: boolean
+# The commit message of the current patch set, and the Forge issues of its footers "Resolves:" and "Related:"
+commit_message:
+  type: text
+resolves:
+  type: integer
+related:
+  type: integer

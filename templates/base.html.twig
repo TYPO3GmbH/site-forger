@@ -5,6 +5,45 @@
     {% include '_partials/header_search.html.twig' %}
 {% endblock %}
 
+{#
+ # Above the content and the messages: the trail of the block "breadcrumb" of a page, else the one of its item in the
+ # menu, see App\Menu\Breadcrumb and _macros/breadcrumb.html.twig. Below it the block "page_title" of a page as its
+ # title on the gray of the page, see _page-intro.scss, on its right the buttons of the block "page_actions", below it the line about the page of the block "page_summary". Pages do not use the block "headline": the template bundle
+ # shows it in an orange band.
+ #}
+{% block header %}
+    {# A page over the whole width ("wide") has its breadcrumb and its title there, too, else they would stand in from its content #}
+    {% set container = (wide ?? false) ? 'container-fluid' : 'container' %}
+    {% if block('breadcrumb') is defined %}
+        <div class="breadcrumb-bar">
+            <div class="{{ container }}">{{ block('breadcrumb') }}</div>
+        </div>
+    {% else %}
+        {% set trail = menu_breadcrumb() %}
+        {% if trail is not empty %}
+            {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+            <div class="breadcrumb-bar">
+                <div class="{{ container }}">{{ breadcrumb.trail(trail) }}</div>
+            </div>
+        {% endif %}
+    {% endif %}
+    {% if block('page_title') is defined %}
+        <div class="page-intro-bar">
+            <div class="{{ container }}">
+                <header class="page-intro">
+                    <h1 class="page-intro-title">{{ block('page_title') }}</h1>
+                    {% if block('page_actions') is defined %}
+                        <div class="page-intro-actions">{{ block('page_actions') }}</div>
+                    {% endif %}
+                    {% if block('page_summary') is defined %}
+                        <p class="page-intro-summary">{{ block('page_summary') }}</p>
+                    {% endif %}
+                </header>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}
+
 {% block javascripts %}
     {% include '_partials/refresh_form.html.twig' %}
     <script type="application/javascript" src="https://app.usercentrics.eu/latest/main.js" id="{{ usercentrics_id }}"></script>

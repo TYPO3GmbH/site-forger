@@ -1,13 +1,11 @@
 {% extends 'base.html.twig' %}
 {% block title %}{{ headline }}{% endblock %}
-{% block headline %}{{ headline }}{% endblock %}
+{% block page_title %}{{ headline }}{% endblock %}
 {% block body %}
 
     <div class="content-section content-section-small">
         <div class="container">
-            <form action="{{ path(routeName) }}" method="get">
-                {% include '_partials/review_view.html.twig' %}
-            </form>
+            {% include '_partials/review_view.html.twig' %}
         </div>
     </div>
 

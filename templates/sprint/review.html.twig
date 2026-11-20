@@ -1,4 +1,6 @@
 {% extends 'base.html.twig' %}
+{# Over the whole width, as its content: the breadcrumb and the title too, see base.html.twig #}
+{% set wide = true %}
 {% block title %}Review board{% endblock %}
 {% block body %}
 
@@ -39,7 +41,7 @@
                     </div>
                     <div class="board-column-content">
                         {% for card in cardList %}
-                            {% include '_partials/review_card.html.twig' with {'card':card, 'mode': ''} %}
+                            {% include '_partials/review_card.html.twig' with {'card': card} %}
                         {% endfor %}
                     </div>
                 </div>

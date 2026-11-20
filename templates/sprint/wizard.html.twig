@@ -1,7 +1,11 @@
 {% extends 'base.html.twig' %}
 {% import '_macros/buttons.html.twig' as buttons %}
 {% block title %}Sprint Boards{% endblock %}
-{% block headline %}Sprint Boards{% endblock %}
+{% block page_title %}Sprint Boards{% endblock %}
+{% block breadcrumb %}
+    {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+    {{ breadcrumb.trail([{'label': 'Sprints', 'url': path('sprint_overview')}, {'label': 'Sprint boards', 'url': path('sprint_list')}, {'label': sprint.id is null ? 'New sprint board' : 'Edit ' ~ sprint.name}]) }}
+{% endblock %}
 {% block body %}
 
     {% set steps = ['Board', 'Issues', 'Check and save'] %}

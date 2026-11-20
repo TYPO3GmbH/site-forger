@@ -1,0 +1,124 @@
+// A table of counts: the open issues per category and tracker of "Issues by category"
+// (templates/management/bycategory.html.twig), and per month of "Issues by month", see _month-table.scss. White on
+// the gray of the page like the panels of the lists, the counts centered in one column each, the whole cell a quiet
+// link that shows as one on hover.
+
+// Wide enough for every column, else it scrolls within itself
+.count-table-frame {
+    overflow-x: auto;
+    border: 1px solid #e6e8eb;
+    border-radius: .75rem;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .05);
+}
+
+.count-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .9375rem;
+
+    th,
+    td {
+        padding: .75rem 1.25rem;
+        border-bottom: 1px solid #f0f1f3;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    thead th {
+        border-bottom-color: #e6e8eb;
+        color: #4b5563;
+        font-size: .8125rem;
+        font-weight: 600;
+        letter-spacing: .03em;
+        text-transform: uppercase;
+    }
+
+    tbody th {
+        font-weight: 600;
+        white-space: normal;
+    }
+
+    tbody tr:hover {
+        background: #f9fafb;
+    }
+
+    // Short counts in wide cells: centered below the head of their column, the same width for every digit
+    .is-count {
+        width: 1%;
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+    }
+
+    // A count leads to its issues: the whole cell is the link, so it is easy to hit
+    tbody td.is-count:has(> a) {
+        padding: 0;
+
+        > a {
+            display: block;
+            padding: .75rem 1.25rem;
+            transition: background-color .12s;
+
+            &:hover,
+            &:focus-visible {
+                background: #fdf0e6;
+            }
+        }
+    }
+
+    // The total stands apart from the trackers
+    .is-total {
+        border-left: 1px solid #e6e8eb;
+        font-weight: 700;
+    }
+
+    a {
+        color: #0b0b0b;
+        text-decoration: none;
+
+        &:hover,
+        &:focus-visible {
+            text-decoration: underline;
+            text-decoration-color: var(--bs-primary, #ed6d05);
+            text-decoration-thickness: 2px;
+            text-underline-offset: 3px;
+        }
+    }
+
+    // The issues without category: below the categories, in gray and italic, as they have no category of their own
+    .is-without th,
+    .is-without th a {
+        color: #4b5563;
+        font-style: italic;
+        font-weight: 400;
+    }
+
+    tfoot th,
+    tfoot td {
+        border-top: 1px solid #e6e8eb;
+        border-bottom: 0;
+        background: #f9fafb;
+        font-weight: 700;
+    }
+}
+
+.count-table-none {
+    color: #c4c9d0;
+}
+
+// The color of the tracker, as the border of its tags, see .tag-label in _tags.scss
+.tracker-dot {
+    display: inline-block;
+    width: .5rem;
+    height: .5rem;
+    margin-right: .4rem;
+    border-radius: 50%;
+    vertical-align: .05em;
+
+    &.is-bug { background: #cc3d33; }
+    &.is-feature { background: #6eb34d; }
+    &.is-task { background: #268bd9; }
+    &.is-story { background: #e6c000; }
+    &.is-epic { background: #5d4db3; }
+    &.is-other { background: #c4c9d0; }
+}

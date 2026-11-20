@@ -357,6 +357,7 @@ class SprintController extends AbstractController
             'boardInfo' => $boardInfo,
             'progress' => $progress,
             'category' => $category,
+            'categoryName' => (string) $sprintCategory->getName(),
             'sprintId' => $activeSprintId,
         ]);
     }

@@ -47,6 +47,15 @@ enum ActivityEnum: string
     }
 
     /**
+     * Whether a document shows its stage: only when it lies still. That a document is fresh is the normal case and
+     * would be noise in every row; the filter and the help still name it.
+     */
+    public function isNoteworthy(): bool
+    {
+        return self::FRESH !== $this;
+    }
+
+    /**
      * The key of the stage for styling: "status-pill-<severity>".
      */
     public function severity(): string

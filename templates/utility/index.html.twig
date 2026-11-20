@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+{% block title %}Tools{% endblock %}
+{% block page_title %}Tools{% endblock %}
+{#
+ # The overview of the tools: a tile per item of the menu "Tools", with its icon and description, see MenuBuilder.
+ # So the page shows the tools the menu shows, also those only some may use.
+ #}
+{% block body %}
+    {% import '_macros/tiles.html.twig' as tiles %}
+    {% set tools = knp_menu_get('main-default', ['utility']) %}
+    <div class="content-section content-section-small">
+        <div class="container">
+            <div class="link-tiles">
+                {% for tool in tools.children %}
+                    {{ tiles.tile(tool.uri, tool.extra('icon'), tool.label, tool.extra('description', '')) }}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

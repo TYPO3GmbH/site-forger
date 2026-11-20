@@ -36,6 +36,10 @@ final class IssueSortEnumTest extends TestCase
     {
         self::assertSame(IssueSortEnum::NEWEST, IssueSortEnum::fromRequest('newest', true));
         self::assertSame(IssueSortEnum::LEAST_UPDATED, IssueSortEnum::fromRequest('least-updated', false));
+        // A list with an order of its own, search words still rank by relevance
+        self::assertSame(IssueSortEnum::LEAST_UPDATED, IssueSortEnum::fromRequest('nonsense', false, IssueSortEnum::LEAST_UPDATED));
+        self::assertSame(IssueSortEnum::NEWEST, IssueSortEnum::fromRequest('newest', false, IssueSortEnum::LEAST_UPDATED));
+        self::assertSame(IssueSortEnum::RELEVANCE, IssueSortEnum::default(true, IssueSortEnum::LEAST_UPDATED));
     }
 
     public function testLabelsAreUnique(): void

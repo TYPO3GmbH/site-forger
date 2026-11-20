@@ -1,50 +1,29 @@
-{% import '_macros/buttons.html.twig' as buttons %}
+{#
+ # A Gerrit change as a card, on the sprint boards and the review board.
+ # Expects: card, a document of the review index
+ #}
 {% import '_macros/status.html.twig' as status %}
-{% import '_macros/refresh.html.twig' as refresh %}
-{% if card is not defined or card is null %}
-
-    {% include '_partials/alert.html.twig' with {message: 'Review is missing.', style: 'danger'} %}
-
-{% else %}
+{% if card is defined and card is not null %}
 
     {% set reviewTags = card.reviewtags ?? [] %}
-    {% set reviewTypeClass = 'default' %}
-    {% if 'FEATURE' in reviewTags %}
-        {% set reviewTypeClass = 'feature' %}
-    {% elseif 'TASK' in reviewTags %}
-        {% set reviewTypeClass = 'task' %}
-    {% elseif 'BUGFIX' in reviewTags %}
-        {% set reviewTypeClass = 'bugfix' %}
-    {% endif %}
+    {# The color of the type comes from ReviewTypeEnum #}
+    {% set reviewTypeClass = review_type(card).severity ?? 'default' %}
     <div class="review review-card review-type-{{ reviewTypeClass }}">
         {% if card.mergeable is defined and card.mergeable == 'no' and (card.reviewstatus ?? 'NEW') == 'NEW' %}
             <div class="review-note review-note-danger">Merge conflict</div>
         {% endif %}
-        {% if mode == 'backport' %}
-            {% if not card.reviewstatus %}
-                <div class="review-note review-note-warning">Backport missing</div>
-            {% elseif card.reviewstatus == 'MERGED' %}
-                <div class="review-note review-note-success">Merged</div>
-            {% elseif card.reviewstatus == 'ABANDONED' %}
-                <div class="review-note review-note-info">Abandoned</div>
-            {% endif %}
-        {% endif %}
         <div class="review-header">
-            {% if mode != 'backport' %}
-                {{ refresh.change(card.id) }}
-            {% endif %}
             <div class="review-issue">
                 #{{card.id}}
             </div>
             <div class="review-title">
-                <a href="https://review.typo3.org/c/Packages/TYPO3.CMS/+/{{ card.id }}/" target="gerrit{}{{ card.id }}">{{card.subject}}</a>
+                <a href="{{ change_path(card.id) }}">{{card.subject}}</a>
             </div>
-            {% if mode != 'backport' %}
-                <div class="review-status">
-                    {{ status.review(card) }}
-                    {{ status.activity(card) }}
-                </div>
-            {% endif %}
+            <div class="review-status">
+                {{ status.review(card) }}
+                {{ status.activity(card) }}
+                {{ status.size(card) }}
+            </div>
             {% if '!!!' in reviewTags %}
                 <div class="review-breaking">
                     <span class="badge badge-danger" title="Breaking change">!!!</span>
@@ -79,38 +58,9 @@
                 <span class="review-data-item-value">{{ card.patchsets }}</span>
             </div>
             <div class="review-data-item">
-                <span class="review-data-item-label">Reviews</span>
-                <span class="review-data-item-value">
-                    {% if card.positive_reviews %}
-                        <span class="badge badge-success">{{card.positive_reviews}}</span>
-                    {% endif %}
-                    {% if card.negative_reviews %}
-                        <span class="badge badge-danger">{{card.negative_reviews}}</span>
-                    {% endif %}
-                </span>
-            </div>
-            <div class="review-data-item">
-                <span class="review-data-item-label">Verifies</span>
-                <span class="review-data-item-value">
-                    {% if card.positive_verifications %}
-                        <span class="badge badge-success">{{card.positive_verifications}}</span>
-                    {% endif %}
-                    {% if card.negative_verifications %}
-                        <span class="badge badge-danger">{{card.negative_verifications}}</span>
-                    {% endif %}
-                </span>
+                <span class="review-data-item-label">Votes</span>
+                <span class="review-data-item-value">{{ status.votes(card) }}</span>
             </div>
         </div>
-        {% if mode == 'backport' and is_granted('ROLE_CORE_COMPONENT') %}
-            <div class="review-actions">
-                {{ buttons.link(
-                    path('utilities_backport_create', {'changeId': card.change_id}),
-                    'Exclude from backports',
-                    'danger btn-sm',
-                    'actions-delete'
-                ) }}
-            </div>
-        {% endif %}
     </div>
-
 {% endif %}

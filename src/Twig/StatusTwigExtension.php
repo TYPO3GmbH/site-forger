@@ -14,7 +14,9 @@ namespace App\Twig;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\PriorityEnum;
+use App\Enum\ReviewSizeEnum;
 use App\Enum\ReviewStateEnum;
+use App\Enum\ReviewTypeEnum;
 use App\Enum\ReviewVoteEnum;
 use App\Enum\TrackerEnum;
 use Twig\Attribute\AsTwigFunction;
@@ -46,6 +48,28 @@ final class StatusTwigExtension
     public function reviewState(array $change): ReviewStateEnum
     {
         return ReviewStateEnum::fromChange($change);
+    }
+
+    /**
+     * How big a Gerrit change document of the review index is, null if it has no lines.
+     *
+     * @param array<string, mixed> $change
+     */
+    #[AsTwigFunction(name: 'review_size')]
+    public function reviewSize(array $change): ?ReviewSizeEnum
+    {
+        return ReviewSizeEnum::fromChange($change);
+    }
+
+    /**
+     * The type of a Gerrit change document of the review index, null if its subject names none.
+     *
+     * @param array<string, mixed> $change
+     */
+    #[AsTwigFunction(name: 'review_type')]
+    public function reviewType(array $change): ?ReviewTypeEnum
+    {
+        return ReviewTypeEnum::fromTags($change['reviewtags'] ?? []);
     }
 
     /**

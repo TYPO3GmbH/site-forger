@@ -1,0 +1,121 @@
+{% extends 'base.html.twig' %}
+{% block title %}#{{ issue.id }} {{ issue.subject }}{% endblock %}
+{% block breadcrumb %}
+    {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+    {{ breadcrumb.trail([{'label': 'Issues', 'url': path('search_search')}, {'label': '#' ~ issue.id}]) }}
+{% endblock %}
+{% block body %}
+    {% import '_macros/status.html.twig' as status %}
+    {% import '_macros/refresh.html.twig' as refresh %}
+    {% import '_macros/detail.html.twig' as detail %}
+    {% set tracker = issue_tracker(issue.tracker.name ?? null) %}
+    {% set comments = (issue.journals ?? [])|filter(journal => (journal.notes ?? '') is not empty) %}
+    {# How a change belongs to the issue: its commit message resolves or names it, or a comment links it #}
+    {% set relations = {'Resolves': 'Resolves this issue', 'Related': 'Related to this issue', 'Linked': 'Linked in a comment'} %}
+
+    <div class="content-section content-section-small">
+        <div class="container">
+            <article class="overview detail">
+                <header class="detail-header">
+                    <div class="detail-header-main">
+                        <div class="detail-tags">
+                            <span class="detail-kind kind-issue">{{ icon('actions-list') }}Issue</span>
+                            <span class="tag-label tag-label-{{ tracker.severity ?? 'default' }}">{{ tracker.label ?? issue.tracker.name ?? 'Issue' }}</span>
+                            {{ status.issue(issue.status.name ?? null) }}
+                            {{ status.issueActivity(issue) }}
+                        </div>
+                        <h1 class="detail-title"><span class="detail-number">#{{ issue.id }}</span>{{ issue.subject }}</h1>
+                        <p class="detail-meta">
+                            {% if issue.author.name is defined %}<span>Reported by <strong>{{ issue.author.name }}</strong></span>{% endif %}
+                            <span title="{{ issue.created_on }}">{{ relativetime(to_datetime(issue.created_on)) }}</span>
+                            <span title="{{ issue.updated_on }}">updated {{ relativetime(to_datetime(issue.updated_on)) }}</span>
+                        </p>
+                    </div>
+                    <div class="detail-actions">
+                        <a class="btn btn-sm btn-default" href="{{ forge_issue_url(issue.id) }}" target="issue{{ issue.id }}">{{ icon('actions-window-open') }} Open in Forge</a>
+                        <a class="btn btn-sm btn-default" href="{{ path('issue_duplicates', {'id': issue.id}) }}">{{ icon('actions-duplicates') }} Possible duplicates</a>
+                        {{ refresh.issue(issue.id) }}
+                    </div>
+                </header>
+
+                <div class="detail-body">
+                    <div class="detail-main">
+                        <section class="detail-section" aria-labelledby="description-title">
+                            <h2 id="description-title" class="detail-section-title">Description</h2>
+                            {% if (issue.description ?? '') is not empty %}
+                                <div class="detail-text">{{ issue.description|forgeMarkdown }}</div>
+                            {% else %}
+                                <p class="detail-empty">No description.</p>
+                            {% endif %}
+                        </section>
+
+                        <section class="detail-section" aria-labelledby="changes-title">
+                            <h2 id="changes-title" class="detail-section-title">Reviews <span class="detail-count">{{ changes|length + unknownChanges|length }}</span></h2>
+                            {% if changes is not empty %}
+                                <ul class="row-list">
+                                    {% for change in changes %}
+                                        <li>{% include '_partials/row/change.html.twig' with {'change': change.change, 'relation': relations[change.relation] ?? change.relation} only %}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                            {% if unknownChanges is not empty %}
+                                <p class="detail-empty">
+                                    Linked, but not in Forger:
+                                    {% for number in unknownChanges %}
+                                        <a href="{{ gerrit_change_url(number) }}" target="gerrit{{ number }}">Change {{ number }}</a>{{ not loop.last ? ', ' }}
+                                    {% endfor %}
+                                </p>
+                            {% endif %}
+                            {% if changes is empty and unknownChanges is empty %}
+                                <p class="detail-empty">
+                                    No change resolves or names this issue in its commit message, and no comment links one.
+                                </p>
+                            {% endif %}
+                        </section>
+
+                        {% if comments is not empty %}
+                            <section class="detail-section" aria-labelledby="comments-title">
+                                <h2 id="comments-title" class="detail-section-title">Comments <span class="detail-count">{{ comments|length }}</span></h2>
+                                <ol class="detail-journal">
+                                    {% for journal in comments %}
+                                        <li class="detail-journal-entry">
+                                            <div class="detail-journal-meta">
+                                                <strong>{{ journal.user.name ?? 'Unknown' }}</strong>
+                                                {% if journal.created_on is defined %}
+                                                    {# Forge's own format, the import keeps it in the journals #}
+                                                    <span>{{ relativetime(date(journal.created_on)) }}</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="detail-text">{{ journal.notes|forgeMarkdown }}</div>
+                                        </li>
+                                    {% endfor %}
+                                </ol>
+                            </section>
+                        {% endif %}
+                    </div>
+
+                    <aside class="detail-aside" aria-label="Details">
+                        <dl class="detail-facts">
+                            {# Each value leads to the open issues with it, as the filter of the search shows them. Not the project: Forger has only TYPO3 Core #}
+                            {{ detail.person('Assigned to', issue.assigned_to.name ?? null, issue.assigned_to.email ?? null, detail.issueSearch('assigned_to', issue.assigned_to.name ?? ''), 'Issues assigned to them') }}
+                            {{ detail.person('Author', issue.author.name ?? null, issue.author.email ?? null, detail.issueSearch('author', issue.author.name ?? ''), 'Issues by them') }}
+                            {{ detail.fact('Priority', issue.priority.name ?? null, detail.issueSearch('priority', issue.priority.name ?? ''), 'Issues with this priority') }}
+                            {{ detail.fact('Category', issue.category.name ?? null, detail.issueSearch('category', issue.category.name ?? ''), 'Issues in this category') }}
+                            {{ detail.fact('Target version', issue.fixed_version.name ?? null, detail.issueSearch('target_version', issue.fixed_version.name ?? ''), 'Issues for this version') }}
+                            {{ detail.fact('TYPO3 version', issue.typo3_version ?? null, detail.issueSearch('typo3_version', issue.typo3_version ?? ''), 'Issues for this TYPO3 version') }}
+                            {{ detail.fact('PHP version', issue.php_version ?? null, detail.issueSearch('php_version', issue.php_version ?? ''), 'Issues for this PHP version') }}
+                            {{ detail.fact('Complexity', issue.complexity ?? null) }}
+                            {% if (issue.tags ?? []) is not empty %}
+                                <div class="detail-fact">
+                                    <dt>Tags</dt>
+                                    <dd class="detail-tags">{% for tag in issue.tags %}<a class="tag-label" href="{{ detail.issueSearch('tags', tag) }}" title="Issues with this tag">{{ tag }}</a>{% endfor %}</dd>
+                                </div>
+                            {% endif %}
+                        </dl>
+                    </aside>
+                </div>
+            </article>
+        </div>
+    </div>
+
+{% endblock %}

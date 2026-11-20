@@ -29,17 +29,35 @@ final class ReviewLists
     public const string NEGATIVE_VOTES = 'gerrit_negative_vote_cleanup';
     public const string WORK_IN_PROGRESS = 'gerrit_wip';
     public const string READY_TO_MERGE = 'gerrit_coreteam_merge';
-    public const string FILES = 'gerrit_files';
+    /**
+     * The changes of the search, also work in progress, and also merged and abandoned ones if asked for.
+     */
+    public const string SEARCH = 'search_changes';
 
     /**
      * The query of the list, null for a name that is no list.
      *
-     * @param string $file          the file the changes touch, for the list "Find by file" only
-     * @param bool   $includeClosed whether "Find by file" finds merged and abandoned changes, too
+     * @param bool   $includeClosed whether the search finds merged and abandoned changes, too
+     * @param string $searchTerms   words that narrow down the list, see ReviewSearch
      *
      * @return array<string, mixed>|null
      */
-    public static function query(string $list, string $file = '', bool $includeClosed = false): ?array
+    public static function query(string $list, bool $includeClosed = false, string $searchTerms = ''): ?array
+    {
+        $listQuery = self::listQuery($list, $includeClosed);
+        $search = ReviewSearch::query($searchTerms);
+        if (null === $listQuery || null === $search) {
+            return $listQuery;
+        }
+
+        // Not added to the list's own clauses: next to a "must" its "should" would no longer be required
+        return ['bool' => ['must' => [$listQuery, $search]]];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private static function listQuery(string $list, bool $includeClosed): ?array
     {
         $closed = ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]];
         $workInProgress = ['term' => ['work_in_progress' => true]];
@@ -82,12 +100,29 @@ final class ReviewLists
                 ],
                 mustNot: [...$open, self::range('negative_reviews', 'gte'), self::range('negative_verifications', 'gte')]
             ),
-            self::FILES => self::bool(
-                must: [['terms' => ['files' => [htmlspecialchars($file)]]]],
-                mustNot: $includeClosed ? [] : [$closed]
-            ),
+            self::SEARCH => $includeClosed ? ['match_all' => new \stdClass()] : self::bool(mustNot: [$closed]),
             default => null,
         };
+    }
+
+    /**
+     * The changes that touch a file, or a file in a folder: the filter "File" of the review lists and of the search.
+     * The path as in the repository, like "typo3/sysext/core/Classes/Cache/CacheManager.php", a "/" around it counts
+     * for nothing. Null for no path.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function fileQuery(string $path): ?array
+    {
+        $path = trim(trim($path), '/');
+        if ('' === $path) {
+            return null;
+        }
+
+        return ['bool' => [
+            'should' => [['term' => ['files' => $path]], ['prefix' => ['files' => $path . '/']]],
+            'minimum_should_match' => 1,
+        ]];
     }
 
     /**

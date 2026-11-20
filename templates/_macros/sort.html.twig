@@ -1,15 +1,15 @@
 {#
- # The sort field of an issue list, the orders come from IssueSortEnum.
+ # The sort field of an issue or review list, the orders come from IssueSortEnum or ReviewSortEnum.
  # It sends the parameters of the list again, so sorting keeps the search words and filters, and starts on page 1.
  #}
 
-{% macro select(action, sort, options, parameters, id = 'issue-sort') %}
-    <form class="issue-sort" action="{{ action }}" method="get">
+{% macro select(action, sort, options, parameters, id = 'list-sort') %}
+    <form class="list-sort" action="{{ action }}" method="get">
         {% for name, value in parameters %}
             {{ _self.hidden(name, value) }}
         {% endfor %}
-        <label class="issue-sort-label" for="{{ id }}">Sort by</label>
-        <select id="{{ id }}" name="sort" class="form-select form-select-sm issue-sort-select" onchange="this.form.submit()">
+        <label class="list-sort-label" for="{{ id }}">Sort by</label>
+        <select id="{{ id }}" name="sort" class="form-select form-select-sm list-sort-select" onchange="this.form.submit()">
             {% for option in options %}
                 <option value="{{ option.value }}"{{ option == sort ? ' selected' }}>{{ option.label }}</option>
             {% endfor %}

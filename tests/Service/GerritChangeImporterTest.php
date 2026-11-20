@@ -111,6 +111,38 @@ final class GerritChangeImporterTest extends TestCase
         self::assertSame($this->requests[0]['request']->getUri()->getQuery(), $this->requests[2]['request']->getUri()->getQuery());
     }
 
+    public function testTheDocumentKeepsTheCommitMessageAndTheIssuesOfItsFooter(): void
+    {
+        $message = "[BUGFIX] Show the translated record\n\nThe overlay first.\n\nResolves: #105123\nRelated: #104000\nReleases: main, 13.4\nChange-Id: I0123";
+        $change = [
+            '_number' => 81234,
+            'change_id' => 'I0123',
+            'status' => 'NEW',
+            'subject' => '[BUGFIX] Show the translated record',
+            'branch' => 'master',
+            'mergeable' => true,
+            'insertions' => 12,
+            'deletions' => 3,
+            'created' => '2026-11-01 10:00:00.000000000',
+            'updated' => '2026-11-02 10:00:00.000000000',
+            'labels' => [],
+            'messages' => [],
+            'current_revision' => 'abc',
+            'revisions' => ['abc' => [
+                '_number' => 2,
+                'files' => ['typo3/sysext/core/Classes/Cache.php' => []],
+                'commit' => ['message' => $message, 'author' => ['name' => 'Benni Mack', 'email' => 'benni@example.org']],
+            ]],
+        ];
+
+        $document = $this->importer([])->documents([$change])[81234];
+
+        self::assertSame($message, $document['commit_message']);
+        self::assertSame([105123], $document['resolves']);
+        self::assertSame([104000], $document['related']);
+        self::assertSame(['main', '13.4'], $document['releases']);
+    }
+
     /**
      * @param list<Response> $responses
      */

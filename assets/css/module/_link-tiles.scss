@@ -1,0 +1,60 @@
+// Tiles that lead to the pages of a part of Forger, each with its icon and a line about it: on the help and on the
+// overview of the tools, see templates/_macros/tiles.html.twig. A tile that is no link (.link-tile-static) does not
+// move on hover.
+
+.link-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: .75rem;
+}
+
+.link-tile {
+    display: flex;
+    gap: .75rem;
+    height: 100%;
+    padding: .9rem 1rem;
+    border: 1px solid #e6e8eb;
+    border-radius: .6rem;
+    background: #fff;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color .15s, box-shadow .15s, transform .15s;
+
+    &:is(a):hover,
+    &:is(a):focus-visible {
+        transform: translateY(-1px);
+        border-color: #eb6834;
+        box-shadow: 0 4px 12px rgba(16, 24, 40, .08);
+        color: inherit;
+
+        .link-tile-title {
+            color: #eb6834;
+        }
+    }
+}
+
+.link-tile-icon {
+    flex: none;
+    color: #eb6834;
+    padding-top: .1rem;
+}
+
+.link-tile-body {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+}
+
+.link-tile-title {
+    font-weight: 700;
+}
+
+.link-tile-text {
+    color: #6b7280;
+    font-size: .875rem;
+    line-height: 1.45;
+}
+
+.link-tile-anchor {
+    scroll-margin-top: 1.5rem;
+}
