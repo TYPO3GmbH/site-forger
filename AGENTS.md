@@ -11,6 +11,7 @@ Rules for everyone who works on this repository, people and coding agents.
 - Write code that is easy to read: clear names, small methods, simple control flow.
 - Add a comment only when the code cannot say it: a reason, a constraint of an external system, a non-obvious decision. Do not repeat in a comment what the code already says.
 - Keep lines of code at 120 characters or less. Break a long call, array or condition over several lines instead.
+- When a call with several arguments gets long, put each argument on its own line. Do this in all code you change.
 
 ## Commits
 - Keep commit messages short and factual. Describe only what the commit changes.
