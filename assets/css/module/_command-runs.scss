@@ -1123,77 +1123,11 @@ a.runs-job {
     }
 }
 
-// A run, or a queued one, started with --force, see the macro "forced"
-.runs-forced {
-    display: inline-flex;
-    align-items: center;
-    padding: .1em .55em;
-    border: 1px solid #f3c98b;
-    border-radius: 999px;
-    background: #fff7ea;
-    color: #8a4b06;
-    font-size: .6875rem;
-    font-weight: 600;
-    line-height: 1.4;
-    white-space: nowrap;
-    vertical-align: middle;
-}
-
 .runs-card-badges {
     display: inline-flex;
     flex-shrink: 0;
     gap: .4rem;
     align-items: center;
-}
-
-// The option to import everything again, in the dialog of "Run now"
-.runs-confirm-force {
-    display: flex;
-    gap: .6rem;
-    align-items: flex-start;
-    margin: 1rem 0 0;
-    padding: .65rem .75rem;
-    border: 1px solid var(--runs-border, #e6e8eb);
-    border-radius: .5rem;
-    cursor: pointer;
-    font-size: .875rem;
-
-    &[hidden] {
-        display: none;
-    }
-
-    &:has(input:checked) {
-        border-color: #f3c98b;
-        background: #fff7ea;
-    }
-
-    // The checkbox of the app (Bootstrap), in line with the first line of the label
-    .form-check-input {
-        flex-shrink: 0;
-        float: none;
-        width: 1.125rem;
-        height: 1.125rem;
-        margin: .05rem 0 0;
-        cursor: pointer;
-    }
-
-    code {
-        margin-left: .25rem;
-        color: #6b7280;
-        font-size: .75rem;
-    }
-}
-
-.runs-confirm-force-label {
-    display: block;
-    font-weight: 600;
-}
-
-.runs-confirm-force-detail {
-    display: block;
-    margin-top: .15rem;
-    color: #6b7280;
-    font-size: .8125rem;
 }
 
 // The log of a run, like a log file, see the macro "log"

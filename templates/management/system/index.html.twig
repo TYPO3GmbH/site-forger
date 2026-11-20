@@ -32,6 +32,8 @@
         'missing': 'No index has this alias, app:elasticsearch:setup creates it',
     } %}
     {% set waiting = pending|filter(check => check.result.value != 'ok') %}
+    {% set outdated = 0 %}
+    {% for check in waiting %}{% set outdated = outdated + check.matches %}{% endfor %}
 
     <div class="content-section content-section-small runs system">
         <div class="container">
@@ -39,8 +41,8 @@
             <div class="runs-intro">
                 <p>
                     What Forger runs on and whether its data is complete. The page only reads, it changes nothing.
-                    Documents imported before a change of the import get the new data with a full import with <code>--force</code>:
-                    without it, the import skips what did not change in Forge or Gerrit.
+                    Documents an older version of the import wrote get the newer data by themselves: the deltas load
+                    some of them again in every run.
                 </p>
             </div>
 
@@ -57,14 +59,9 @@
                     <span class="runs-notice-icon" aria-hidden="true">!</span>
                     <div class="runs-notice-body">
                         <p class="runs-notice-title">
-                            {{ waiting|length }} {{ waiting|length == 1 ? 'change of the import waits' : 'changes of the import wait' }} for a full import
-                            <span class="runs-muted">Everything works, some documents show without the new data.</span>
+                            {{ outdated|number_format(0, '.', ',') }} {{ outdated == 1 ? 'document' : 'documents' }} of an older import
+                            <span class="runs-muted">Everything works, they show without the newer data until the deltas load them again.</span>
                         </p>
-                        <ul class="runs-notice-list">
-                            {% for command in waiting|map(check => check.command)|reduce((unique, command) => command in unique ? unique : unique|merge([command]), []) %}
-                                <li><code>bin/console {{ command }}</code></li>
-                            {% endfor %}
-                        </ul>
                     </div>
                 </section>
             {% endif %}
@@ -86,9 +83,9 @@
                     <span class="runs-stat-note">{{ system.result(elasticsearch.healthResult) }}{% if elasticsearch.reachable %} {{ elasticsearch.nodes }} {{ elasticsearch.nodes == 1 ? 'node' : 'nodes' }}{% endif %}</span>
                 </div>
                 <div class="runs-stat">
-                    <span class="runs-stat-label">Waiting for an import</span>
-                    <span class="runs-stat-value runs-numeric{{ waiting is not empty ? ' runs-tone-warning' }}">{{ waiting|length }}</span>
-                    <span class="runs-stat-note">Changes of the import that not all documents have</span>
+                    <span class="runs-stat-label">Of an older import</span>
+                    <span class="runs-stat-value runs-numeric{{ outdated > 0 ? ' runs-tone-warning' }}">{{ outdated|number_format(0, '.', ',') }}</span>
+                    <span class="runs-stat-note">Documents the deltas load again</span>
                 </div>
             </div>
 
@@ -144,7 +141,7 @@
                 </section>
 
                 <section class="runs-section">
-                    <h2 class="runs-heading">Waiting for a full import</h2>
+                    <h2 class="runs-heading">Versions of the import</h2>
                     <div class="system-checks">
                         {% for check in pending %}
                             <article class="runs-card">
@@ -153,18 +150,10 @@
                                     {{ system.result(check.result) }}
                                 </header>
                                 <p class="system-check-count">
-                                    {% if check.kind == constant('App\\Elastic\\PendingImport::MATCHES_WAIT') %}
-                                        <strong class="runs-numeric">{{ check.matches|number_format(0, '.', ',') }}</strong>
-                                        of {{ check.documents|number_format(0, '.', ',') }} {{ check.index == 'issue' ? 'issues' : 'changes' }} wait
-                                    {% else %}
-                                        <strong class="runs-numeric">{{ check.matches|number_format(0, '.', ',') }}</strong>
-                                        of {{ check.documents|number_format(0, '.', ',') }} {{ check.index == 'issue' ? 'issues' : 'changes' }} have it
-                                    {% endif %}
+                                    <strong class="runs-numeric">{{ check.matches|number_format(0, '.', ',') }}</strong>
+                                    of {{ check.documents|number_format(0, '.', ',') }} {{ check.index == 'issue' ? 'issues' : 'changes' }} older than version {{ check.version }}
                                 </p>
                                 <p class="runs-muted system-check-description">{{ check.description }}</p>
-                                {% if check.result.value != 'ok' %}
-                                    <p class="system-check-command"><code>bin/console {{ check.command }}</code></p>
-                                {% endif %}
                             </article>
                         {% endfor %}
                     </div>

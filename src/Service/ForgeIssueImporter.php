@@ -12,11 +12,19 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Elastic\ElasticUtility;
+use App\Elastic\ImportSchema;
 use App\Elastic\ProjectIssues;
 use App\Enum\IssueStatusEnum;
 use Elastica\Document;
+use Redmine\Api;
+use Redmine\Api\AbstractApi;
+use Redmine\Api\Issue;
+use Redmine\Api\User;
 use Redmine\Client\Client;
 use Redmine\Exception\UnexpectedResponseException;
+use Redmine\Http\HttpClient;
+use Redmine\Http\Request;
+use Redmine\Http\Response;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 
@@ -61,24 +69,58 @@ final class ForgeIssueImporter
     }
 
     /**
-     * Calls the Forge API, an answer with an error status is thrown with the status as code.
+     * Sends a request to Forge, waiting and trying again on a rate limit as call() does. An answer with an error
+     * status is thrown with the status as code.
      *
      * @throws \RuntimeException
      */
-    public function call(callable $callback, int $attempt = 0): mixed
+    public function request(Request $request, int $attempt = 0): Response
     {
+        if (!$this->forgeClient instanceof HttpClient) {
+            throw new \LogicException(sprintf('The client of Forge (%s) sends no requests of its own.', $this->forgeClient::class));
+        }
+        $response = $this->forgeClient->request($request);
+        $status = $response->getStatusCode();
+        if (429 === $status && null !== $this->rateLimitHandler && $attempt < $this->rateLimitRetries) {
+            ++$attempt;
+            ($this->rateLimitHandler)($attempt);
+
+            return $this->request($request, $attempt);
+        }
+        if ($status >= 400) {
+            throw new \RuntimeException(sprintf('Forge responded with status %d', $status), $status);
+        }
+
+        return $response;
+    }
+
+    /**
+     * Calls an API of Forge ("issue", "user", ...) with the callback, an answer with an error status is thrown with
+     * the status as code. The status comes from the last response of that API.
+     *
+     * @template T
+     *
+     * @param \Closure(Api): T $callback
+     *
+     * @return T
+     *
+     * @throws \RuntimeException
+     */
+    public function call(string $api, \Closure $callback, int $attempt = 0): mixed
+    {
+        $instance = $this->forgeClient->getApi($api);
         try {
-            $result = $callback();
-            $status = $this->forgeClient->getLastResponseStatusCode();
+            $result = $callback($instance);
+            $status = $instance instanceof AbstractApi ? $instance->getLastResponse()->getStatusCode() : 0;
         } catch (UnexpectedResponseException $e) {
             $result = null;
-            $status = $e->getResponse()->getStatusCode();
+            $status = $e->getResponse()?->getStatusCode() ?? 0;
         }
         if (429 === $status && null !== $this->rateLimitHandler && $attempt < $this->rateLimitRetries) {
             ++$attempt;
             ($this->rateLimitHandler)($attempt);
 
-            return $this->call($callback, $attempt);
+            return $this->call($api, $callback, $attempt);
         }
         if ($status >= 400) {
             throw new \RuntimeException(sprintf('Forge responded with status %d', $status), $status);
@@ -96,7 +138,7 @@ final class ForgeIssueImporter
     public function refresh(int $id): IssueRefreshResult
     {
         try {
-            $answer = $this->call(fn () => $this->forgeClient->getApi('issue')->show($id));
+            $answer = $this->call('issue', static fn (Issue $issues): mixed => $issues->show($id, ['include' => ['relations']]));
         } catch (\RuntimeException $e) {
             // Deleted on Forge, or not visible to the import any more
             if (in_array($e->getCode(), [403, 404], true)) {
@@ -127,7 +169,7 @@ final class ForgeIssueImporter
     public function import(array $issue, bool $refresh = false): void
     {
         if (isset($issue['status']['id']) && IssueStatusEnum::UNDER_REVIEW === IssueStatusEnum::tryFrom((int) $issue['status']['id'])) {
-            $issueWithJournals = $this->call(fn () => $this->forgeClient->getApi('issue')->show($issue['id'], ['include' => ['journals']]));
+            $issueWithJournals = $this->call('issue', static fn (Issue $issues): mixed => $issues->show((int) $issue['id'], ['include' => ['journals', 'relations']]));
             if (!is_array($issueWithJournals) || !isset($issueWithJournals['issue'])) {
                 // Forge answered without the issue, it keeps its previous state in the index
                 throw new \RuntimeException(sprintf('Loading the journals failed, Forge answered: %s', mb_substr(is_string($issueWithJournals) ? trim($issueWithJournals) : get_debug_type($issueWithJournals), 0, 200)));
@@ -146,7 +188,7 @@ final class ForgeIssueImporter
 
     /**
      * The document of the issue index for an issue as Forge sends it: the custom fields as fields of their own,
-     * the dates in the format of the index.
+     * the dates in the format of the index. Raise ImportSchema::ISSUE when it takes more or other data.
      *
      * @param array<string, mixed> $issue
      *
@@ -180,9 +222,24 @@ final class ForgeIssueImporter
                 default:
             }
         }
+        // "duplicates" relations of Forge, from both sides: "issue_id" duplicates "issue_to_id". Kept as the numbers
+        // of the other issues, the other relations are not needed
+        $issue['duplicates'] = [];
+        $issue['duplicated_by'] = [];
+        foreach ($issue['relations'] ?? [] as $relation) {
+            if ('duplicates' !== ($relation['relation_type'] ?? null)) {
+                continue;
+            }
+            if ((int) ($relation['issue_id'] ?? 0) === (int) $issue['id']) {
+                $issue['duplicates'][] = (int) $relation['issue_to_id'];
+            } else {
+                $issue['duplicated_by'][] = (int) $relation['issue_id'];
+            }
+        }
         $issue['updated_on'] = self::indexDate((string) $issue['updated_on']);
         $issue['created_on'] = self::indexDate((string) $issue['created_on']);
-        unset($issue['start_date'], $issue['due_date']);
+        unset($issue['start_date'], $issue['due_date'], $issue['relations']);
+        $issue[ImportSchema::FIELD] = ImportSchema::ISSUE;
 
         return $issue;
     }
@@ -227,7 +284,7 @@ final class ForgeIssueImporter
             $this->userCache[$userId] = $this->cache->get('forge_user_mail_' . (int) $userId, function (ItemInterface $item) use ($userId): string {
                 $item->expiresAfter(self::USER_CACHE_LIFETIME);
                 try {
-                    $userRecord = $this->call(fn () => $this->forgeClient->getApi('user')->show($userId));
+                    $userRecord = $this->call('user', static fn (User $users): mixed => $users->show((int) $userId));
                 } catch (\RuntimeException $e) {
                     // E.g. a deleted or locked user (404, 403): the issue is imported without the email
                     if (429 === $e->getCode()) {

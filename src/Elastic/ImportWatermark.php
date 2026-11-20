@@ -43,11 +43,12 @@ final class ImportWatermark
     /**
      * The "updated_on" stored for the documents, in the format of the index ("Y/m/d H:i:s"), so a delta
      * skips what it already has: the overlap and repeated runs then cost no further requests or writes.
+     * A document an older version of the import wrote counts as missing, it is loaded again, see ImportSchema.
      *
      * @param 'issue'|'review' $index
      * @param list<int|string> $ids
      *
-     * @return array<string, string> keyed by id, documents not in the index are missing
+     * @return array<string, string> keyed by id, documents not in the index or of an older import are missing
      */
     public function storedUpdates(string $index, array $ids): array
     {
@@ -58,12 +59,12 @@ final class ImportWatermark
             '_mget',
             Request::POST,
             ['ids' => array_values(array_map('strval', $ids))],
-            ['_source' => 'updated_on'],
+            ['_source' => 'updated_on,' . ImportSchema::FIELD],
         )->getData();
 
         $stored = [];
         foreach ($response['docs'] ?? [] as $doc) {
-            if (($doc['found'] ?? false) && isset($doc['_source']['updated_on'])) {
+            if (($doc['found'] ?? false) && isset($doc['_source']['updated_on']) && ImportSchema::isCurrent($index, $doc['_source'][ImportSchema::FIELD] ?? null)) {
                 $stored[(string) $doc['_id']] = (string) $doc['_source']['updated_on'];
             }
         }
@@ -110,5 +111,32 @@ final class ImportWatermark
     public static function gerritOperator(\DateTimeImmutable $since): string
     {
         return 'after:"' . $since->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s') . ' +0000"';
+    }
+
+    /**
+     * The end of the oldest window from the start whose changes fit in a run, for a delta that has to catch up:
+     * the window is halved until they fit, down to the shortest one, which is taken anyway.
+     *
+     * @param \Closure(\DateTimeImmutable): bool $fits lists the changes until the end, whether they fit in a run
+     */
+    public static function catchUpWindow(\DateTimeImmutable $since, int $window, int $shortest, \Closure $fits): \DateTimeImmutable
+    {
+        do {
+            $until = $since->modify(sprintf('+%d seconds', $window));
+            if ($fits($until)) {
+                break;
+            }
+            $window = intdiv($window, 2);
+        } while ($window >= $shortest);
+
+        return $until;
+    }
+
+    /**
+     * The Gerrit search operator for the end of a window, e.g. 'before:"2026-11-20 15:00:00 +0000"'.
+     */
+    public static function gerritBefore(\DateTimeImmutable $until): string
+    {
+        return 'before:"' . $until->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s') . ' +0000"';
     }
 }

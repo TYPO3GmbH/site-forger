@@ -78,8 +78,6 @@ services:
   App\Command\ImportCommand:
     class: App\Command\ImportCommand
     public: true
-    arguments:
-      $forgeClient: '@redmine.client.forge'
 
   App\Service\ForgeIssueImporter:
     arguments:

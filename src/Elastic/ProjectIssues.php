@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Elastic;
 
 use Elastica\Query;
+use Elastica\Result;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
@@ -88,6 +89,44 @@ final readonly class ProjectIssues
                 yield (string) $result->getId();
             }
         }
+    }
+
+    /**
+     * How many issues the index has, with a number in the range if one is given, see ImportCommand::reconcileForgeIssues().
+     */
+    public function count(?int $from = null, ?int $to = null): int
+    {
+        return ElasticUtility::getIndexByName('issue')->count(new Query(['query' => self::range($from, $to)]));
+    }
+
+    /**
+     * The highest number of an issue in the index, 0 if it has none.
+     */
+    public function highestId(): int
+    {
+        $result = ElasticUtility::getIndexByName('issue')->search(new Query(['size' => 0, 'aggs' => ['highest' => ['max' => ['field' => 'id']]]]));
+
+        return (int) ($result->getAggregation('highest')['value'] ?? 0);
+    }
+
+    /**
+     * The numbers of the issues in the index in the range, at most 1000: the ranges compared with Forge hold a page.
+     *
+     * @return list<int>
+     */
+    public function idsBetween(int $from, int $to): array
+    {
+        $results = ElasticUtility::getIndexByName('issue')->search(new Query(['query' => self::range($from, $to), '_source' => false, 'size' => 1000]));
+
+        return array_map(static fn (Result $result): int => (int) $result->getId(), $results->getResults());
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function range(?int $from, ?int $to): array
+    {
+        return null === $from || null === $to ? ['match_all' => new \stdClass()] : ['range' => ['id' => ['gte' => $from, 'lte' => $to]]];
     }
 
     /**

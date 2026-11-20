@@ -136,11 +136,10 @@ class SystemController extends AbstractController
         foreach (PendingImport::checks() as $check) {
             $index = ElasticUtility::getIndexByName($check['index']);
             $matches = $index->count(['query' => $check['query']]);
-            $documents = $index->count();
             $pending[] = $check + [
                 'matches' => $matches,
-                'documents' => $documents,
-                'result' => PendingImport::result($check['kind'], $matches, $documents),
+                'documents' => $index->count(),
+                'result' => PendingImport::result($matches),
             ];
         }
 

@@ -75,12 +75,14 @@ Prefix the commands with `ddev exec` in the dev environment.
 
 | Mode | Reads | Meant for |
 |---|---|---|
-| `forgeFull [--force]` | Every Forge issue of the TYPO3 Core project | An empty index, a weekly safety net |
+| `forgeFull` | Every Forge issue of the TYPO3 Core project | An empty index, by hand |
 | `forgeDelta` | The Forge issues changed since the last import | The schedule, every 5 minutes |
-| `reviewFull [--force]` | Every Gerrit change of `Packages/TYPO3.CMS` | An empty index, a weekly safety net |
+| `reviewFull` | Every Gerrit change of `Packages/TYPO3.CMS` | An empty index, by hand |
 | `reviewDelta` | The Gerrit changes updated since the last import | The schedule, every 5 minutes |
 
-An unknown mode ends with an error. `--startAt=<n>` lets a full import begin at the n-th issue or change.
+An unknown mode ends with an error. `--startAt=<n>` lets a full import begin at the n-th issue or change. The full
+imports are no jobs of the schedule: the deltas keep the index complete on their own, see
+[How the deltas work](#how-the-deltas-work).
 
 Other commands:
 
@@ -92,8 +94,9 @@ Other commands:
 
 Forge lists the issues of subprojects with those of a project. The import keeps the issues of the project itself
 (`redmine_project_id`, 27) only (`App\Elastic\ProjectIssues`), so the figures match the project on Forge. Every
-Forge import removes issues of other projects from the index, e.g. after an issue was moved; after a complete
-`forgeFull` the issues Forge did not list any more are checked one by one and removed if they are gone.
+Forge import removes issues of other projects from the index, e.g. after an issue was moved. Issues Forge does not
+list any more are asked for in batches of 100 (`App\Service\ForgeIssueList`), those it does not list for the index
+then (deleted, private, in another project) are removed.
 
 Forger shows only what Gerrit shows to everyone, the Gerrit imports ask without an account. A refresh of a change
 Gerrit does not show any more (private now, deleted) removes it, and so does a complete `reviewFull` for the changes
@@ -113,22 +116,44 @@ The deltas only read what changed, and only load details for what they do not ha
   the details (votes, the current patch set with its files and commit) are loaded only for the changes the index does not have in this
   state. Gerrit lists the newest first, so the changes are written once all of them are loaded: a run that
   fails half way leaves the index as it was, and the next run tries again. Beyond 3000 updated changes the
-  older ones are missing until the next `reviewFull`, the run reports a warning.
+  newest would move the start past the older ones: the run takes the oldest window from the start that fits
+  instead (a day, halved until it fits, `ImportWatermark::catchUpWindow()`), notes it, and the next runs go on.
+* **Forge, what no list of changes shows:** after its changes, a `forgeDelta` that is up to date compares the
+  number of issues with Forge, in one request (`App\Elastic\IssueReconciliation`): Forge counts the issues of the
+  project, not private, as the index holds them. Where the numbers differ the range of numbers is halved, one
+  count each, until a part holds a page; it is listed, the issues missing or not up to date are imported, those
+  Forge does not list are removed. At most 15 counts per run, the next run goes on. So issues deleted on Forge,
+  private now, or never imported get in line without a full import.
 * **Authors:** the emails of Forge users are cached for a day.
 
 On an empty index `forgeDelta` and `reviewDelta` import the latest 100 issues or changes and report a
-warning: run the full import once.
+warning: run the full import once, by hand. The comparison with Forge would fill it too, but a page at a time.
 
 ### How the full imports work
 
 `forgeFull` and `reviewFull` list every issue or change, but load and write only those the index does not have
-in their current state (missing, or another `updated_on`), the same comparison as the deltas: Forge lists the
-issues newest first, Gerrit is asked in two steps like the delta, and the changes are written batch by batch.
-So a full import costs little more than the listing, and it is the safety net for whatever the deltas missed.
+in their current state (missing, another `updated_on`, or written by an older version of the import), the same
+comparison as the deltas: Forge lists the issues newest first, Gerrit is asked in two steps like the delta, and the changes are written batch by batch.
+So a full import costs little more than the listing.
 A full import that ended early is simply started again: what it already wrote is skipped.
 
-`--force` imports every issue or change, also the up-to-date ones. It is needed after a change of what the
-import stores (a new field, another mapping), as an unchanged issue would keep its old document otherwise.
+### Versions of the import
+
+A document has to be loaded again when its issue or change changed, and when the import takes more or other data
+from Forge or Gerrit than when it wrote the document. Every document stores the version of the import that wrote it,
+in `import_schema`, one version for the issues and one for the reviews (`App\Elastic\ImportSchema`); documents
+written before the versions count as version 1.
+
+* **Raise the version** of an index when its importer reads more or other data from the source or derives fields
+  differently (`ForgeIssueImporter::document()`, `GerritChangeImporter::documents()`), and note at the constant
+  what it brings.
+  A change of the mapping alone needs no new version: `app:elasticsearch:setup` copies the documents over.
+* **The deltas load them again over time:** after its changes, each `forgeDelta` and `reviewDelta` loads up to 300
+  documents of an older version again, those changed last first, and asks the source only for them (Forge by
+  `issue_id`, Gerrit by `change:`). Three or twelve requests every five minutes: all of them in about a day, with
+  no load peak. Those the source does not show any more are removed, so they are not chosen again in every run.
+  The runs page notes how many are left.
+* **Any import that meets one** loads it again, too: a document of an older version counts as changed.
 
 ### Catching up, e.g. over night
 
@@ -189,8 +214,7 @@ next: the jobs queued with **Run now** (the worker of the schedule starts them w
 does not run a command itself), then the next planned run of every job. Every job of the schedule shows when it
 runs and its next run. A job of the schedule is **overdue** when the run
 planned after its last start did not start within 10 minutes (the worker of the schedule does not run), or three planned
-runs in a row did not succeed (every run fails). Runs skipped for a lock count as fine for up to 12 hours. This
-holds for the weekly jobs too: a missing Monday run of `reviewFull` shows. A job the schedule does not start (a
+runs in a row did not succeed (every run fails). Runs skipped for a lock count as fine for up to 12 hours. A job the schedule does not start (a
 deployment, a run by hand) is never overdue.
 
 Rate limits are retried: Forge and Gerrit answer 429 now and then. Forge is retried up to six times with a
@@ -211,13 +235,10 @@ When the jobs run is part of the app, in `App\Scheduler\JobSchedule` (Symfony Sc
 | `app:import --mode=forgeDelta` | every 5 minutes |
 | `app:import --mode=reviewDelta` | every 5 minutes |
 | `app:backports` | every 5 minutes |
-| `app:import --mode=reviewFull` | Monday 03:17 |
-| `app:import --mode=forgeFull` | Thursday 03:17 |
 
 `bin/console debug:scheduler` lists them with their next run. The server only runs the worker of the schedule,
 `messenger:consume scheduler_jobs`, as a systemd service. The worker starts a due job as a process of its own and does
-not wait for it: a `reviewFull` running for hours keeps no delta waiting, the locks of the imports keep two runs of
-one kind apart. The schedule remembers what it started (`var/scheduler`, kept by the deployments): a job that fell
+not wait for it: a long run keeps no other job waiting, the locks of the imports keep two runs of one kind apart. The schedule remembers what it started (`var/scheduler`, kept by the deployments): a job that fell
 due while no worker ran, e.g. during a restart or a deployment, runs once when the worker starts again. The output
 of a job goes to `var/log/jobs/<job>.lastrun`, that of the worker to the journal.
 
@@ -263,7 +284,7 @@ journalctl -u forger-scheduler@forger.typo3.com -f
 The limits: `--time-limit=3600` and `--memory-limit=256M` end the worker after an hour or once it grew past 256 MB,
 after the message at hand; `Restart=always` starts it again after 5 seconds, with the release `current` points to
 then. A minute missed meanwhile runs when it starts. `KillMode=process` matters: systemd counts the jobs the worker
-started as part of the service, and would kill a running `reviewFull` with every restart otherwise.
+started as part of the service, and would kill a running import with every restart otherwise.
 
 A worker keeps the code it started with. A deployment ends it once the new release is live and the jobs are resumed
 (`forger:worker_restart` in `deploy.php`, `bin/console messenger:stop-workers` on the server): systemd starts it again
@@ -273,8 +294,8 @@ someone started by hand stops.
 The first deployment of the schedule replaces the cron jobs of the imports: comment them out in `/etc/cron.d`
 before, wait until no import runs (the release before knows neither the pause nor the stop of a run), deploy, then
 enable the service; the restart of the deployment finds no worker then, that does no harm. Not before: the release before does not know `scheduler_jobs`, the service would fail and restart
-over and over. Then start a full import of the reviews with **Run now** and *Import everything again* on the command
-runs page (or `app:import --mode=reviewFull --force`), the index gets the fields added with this release.
+over and over. The changes imported before get the fields added with this release by themselves, see
+[Versions of the import](#versions-of-the-import).
 
 #### Pause, resume, cancel
 

@@ -114,8 +114,6 @@ final class SchedulerTest extends TestCase
             'forgeDelta' => ['every 5 minutes', ['app:import', '--mode=forgeDelta']],
             'reviewDelta' => ['every 5 minutes', ['app:import', '--mode=reviewDelta']],
             'backports' => ['every 5 minutes', ['app:backports']],
-            'reviewFull' => ['every Monday at 03:17', ['app:import', '--mode=reviewFull']],
-            'forgeFull' => ['every Thursday at 03:17', ['app:import', '--mode=forgeFull']],
             StartQueuedJobs::class => 'every 1 minute',
         ], $jobs);
         self::assertTrue($schedule->shouldProcessOnlyLastMissedRun());
@@ -128,10 +126,10 @@ final class SchedulerTest extends TestCase
         $triggers = (new ScheduledJobs(new JobSchedule(new ArrayAdapter(), new LockFactory(new InMemoryStore()))))->triggers();
 
         self::assertSame(
-            ['app:import --mode=forgeDelta', 'app:import --mode=reviewDelta', 'app:backports', 'app:import --mode=reviewFull', 'app:import --mode=forgeFull'],
+            ['app:import --mode=forgeDelta', 'app:import --mode=reviewDelta', 'app:backports'],
             array_keys($triggers),
         );
-        self::assertSame('every Monday at 03:17', (string) $triggers['app:import --mode=reviewFull']);
+        self::assertSame('every 5 minutes', (string) $triggers['app:import --mode=reviewDelta']);
     }
 
     public function testEveryJobSaysWhatItDoes(): void
@@ -140,8 +138,6 @@ final class SchedulerTest extends TestCase
             'app:import --mode=forgeDelta' => 'Update Forge issues',
             'app:import --mode=reviewDelta' => 'Update Gerrit changes',
             'app:backports' => 'Find missing backports',
-            'app:import --mode=reviewFull' => 'Check all Gerrit changes',
-            'app:import --mode=forgeFull' => 'Check all Forge issues',
         ], (new ScheduledJobs(new JobSchedule(new ArrayAdapter(), new LockFactory(new InMemoryStore()))))->labels());
     }
 
@@ -197,21 +193,11 @@ final class SchedulerTest extends TestCase
         unlink($log);
     }
 
-    public function testAForcedJobStartsWithForce(): void
+    public function testAJobStartsWithItsCommand(): void
     {
         $job = new StartJob('reviewFull', 'Check all Gerrit changes', ['app:import', '--mode=reviewFull'], 'gerrit');
 
         self::assertSame(['app:import', '--mode=reviewFull'], array_slice(StartJobHandler::commandLine('php', $job, 'log'), 6));
-        self::assertSame(['app:import', '--mode=reviewFull', '--force'], array_slice(StartJobHandler::commandLine('php', $job->forced(), 'log'), 6));
-        // The job stays the same: its queue entry, its lock, its log file
-        self::assertSame([$job->name, $job->command, $job->lock], [$job->forced()->name, $job->forced()->command, $job->forced()->lock]);
-    }
-
-    public function testOnlyTheFullImportsMayBeForced(): void
-    {
-        $scheduled = new ScheduledJobs(new JobSchedule(new ArrayAdapter(), new LockFactory(new InMemoryStore())));
-
-        self::assertSame(['app:import --mode=reviewFull', 'app:import --mode=forgeFull'], array_keys($scheduled->forceable()));
     }
 
     public function testTheQueuedJobsStartOnceAndThoseNoLongerInTheScheduleAreDropped(): void
@@ -270,23 +256,23 @@ final class SchedulerTest extends TestCase
     {
         $store = new InMemoryStore();
         $queue = $this->createMock(QueuedJobRepository::class);
-        $queue->method('findQueued')->willReturn([new QueuedJob('app:import --mode=reviewFull', 'dev-admin', new \DateTimeImmutable())]);
+        $queue->method('findQueued')->willReturn([new QueuedJob('app:import --mode=reviewDelta', 'dev-admin', new \DateTimeImmutable())]);
         $queue->expects(self::never())->method('claim');
         $handler = $this->queueHandler($queue, new StartJobHandler(sys_get_temp_dir(), $queue, $this->noPauses(), new JobLocks(new LockFactory(new InMemoryStore())), new NullLogger()), new JobLocks(new LockFactory($store)));
 
-        // reviewDelta is planned for 15:05 and takes the lock of Gerrit as reviewFull does: reviewFull waits
+        // reviewDelta is planned for 15:05 itself: the queued one waits
         $handler->start(new \DateTimeImmutable('today 15:05:00'));
-        // A delta still runs a minute later, it holds the lock
-        $delta = (new LockFactory($store))->createLock(ImportCommand::LOCK_GERRIT);
-        $delta->acquire();
+        // A full import started on the console still runs a minute later, it holds the lock of Gerrit
+        $full = (new LockFactory($store))->createLock(ImportCommand::LOCK_GERRIT);
+        $full->acquire();
         $handler->start(new \DateTimeImmutable('today 15:06:00'));
-        $delta->release();
+        $full->release();
     }
 
     public function testAQueuedJobStartsOnceItsLockIsFree(): void
     {
         $queue = $this->createMock(QueuedJobRepository::class);
-        $queue->method('findQueued')->willReturn([new QueuedJob('app:import --mode=reviewFull', 'dev-admin', new \DateTimeImmutable())]);
+        $queue->method('findQueued')->willReturn([new QueuedJob('app:import --mode=reviewDelta', 'dev-admin', new \DateTimeImmutable())]);
         $queue->expects(self::once())->method('claim')->willReturn(false);
 
         $this->queueHandler($queue, new StartJobHandler(sys_get_temp_dir(), $queue, $this->noPauses(), new JobLocks(new LockFactory(new InMemoryStore())), new NullLogger()))->start(new \DateTimeImmutable('today 15:06:00'));
@@ -329,7 +315,7 @@ final class SchedulerTest extends TestCase
 
     public function testAJobWhoseLockIsTakenIsQueuedInsteadOfStarted(): void
     {
-        // forgeFull runs: the planned forgeDelta waits for it, instead of "Skipped, locked" every five minutes
+        // A full import started on the console runs: the planned forgeDelta waits for it, instead of "Skipped, locked" every five minutes
         $store = new InMemoryStore();
         $full = (new LockFactory($store))->createLock(ImportCommand::LOCK_FORGE);
         $full->acquire();
@@ -355,15 +341,13 @@ final class SchedulerTest extends TestCase
         $run = new \ReflectionClass(CommandRun::class)->newInstanceWithoutConstructor();
         new \ReflectionProperty(CommandRun::class, 'id')->setValue($run, 7);
         new \ReflectionProperty(CommandRun::class, 'job')->setValue($run, 'app:import --mode=reviewFull');
-        new \ReflectionProperty(CommandRun::class, 'forced')->setValue($run, true);
         $pauses = $this->createMock(JobPauseRepository::class);
         $pauses->expects(self::once())->method('pause')->with(JobPause::ALL, 'deployment', 'a deployment');
         $runs = $this->createMock(CommandRunRepository::class);
         $runs->method('findRunning')->willReturn([$run]);
         $runs->expects(self::once())->method('requestStop')->with(7, CommandRunStatusEnum::INTERRUPTED, 'Interrupted: a deployment')->willReturn(true);
         $queue = $this->createMock(QueuedJobRepository::class);
-        // A forced run starts forced again
-        $queue->expects(self::once())->method('queue')->with('app:import --mode=reviewFull', 'interrupted, a deployment', self::anything(), true);
+        $queue->expects(self::once())->method('queue')->with('app:import --mode=reviewFull', 'interrupted, a deployment', self::anything());
 
         $stopping = $this->control($pauses, $queue, $runs)->pause(null, 'deployment', 'a deployment', new \DateTimeImmutable());
 

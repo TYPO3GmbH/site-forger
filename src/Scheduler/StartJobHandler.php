@@ -55,13 +55,13 @@ final readonly class StartJobHandler
         $pauses = $this->pauses->findPauses();
         $pause = $pauses[JobPause::ALL] ?? $pauses[$command] ?? null;
         if (null !== $pause) {
-            $this->queue->queue($command, sprintf('planned, %s', $pause->isAll() ? 'all jobs are paused' : 'the job is paused'), new \DateTimeImmutable(), $job->forced);
+            $this->queue->queue($command, sprintf('planned, %s', $pause->isAll() ? 'all jobs are paused' : 'the job is paused'), new \DateTimeImmutable());
             $this->logger->info(sprintf('Queued the job "%s", it is paused: %s', $job->name, $pause->getReason()));
 
             return;
         }
         if (null !== $job->lock && !$this->locks->isFree($job->lock)) {
-            $this->queue->queue($command, sprintf('planned, waits for the lock of %s', ucfirst($job->lock)), new \DateTimeImmutable(), $job->forced);
+            $this->queue->queue($command, sprintf('planned, waits for the lock of %s', ucfirst($job->lock)), new \DateTimeImmutable());
             $this->logger->info(sprintf('Queued the job "%s", its lock "%s" is taken', $job->name, $job->lock));
 
             return;
@@ -76,7 +76,7 @@ final readonly class StartJobHandler
             throw new \RuntimeException(sprintf('The job "%s" could not be started', $job->name));
         }
         $this->queue->dequeue($command);
-        $this->logger->info(sprintf('Started the job "%s": %s%s', $job->name, implode(' ', $job->command), $job->forced ? ' --force' : ''));
+        $this->logger->info(sprintf('Started the job "%s": %s', $job->name, implode(' ', $job->command)));
     }
 
     /**
@@ -97,6 +97,6 @@ final readonly class StartJobHandler
      */
     public static function commandLine(string $php, StartJob $job, string $logFile): array
     {
-        return ['bash', '-c', self::CLOSE_INHERITED_FILES . 'nohup "$@" > "$0" 2>&1 < /dev/null &', $logFile, $php, 'bin/console', ...$job->command, ...($job->forced ? ['--force'] : [])];
+        return ['bash', '-c', self::CLOSE_INHERITED_FILES . 'nohup "$@" > "$0" 2>&1 < /dev/null &', $logFile, $php, 'bin/console', ...$job->command];
     }
 }

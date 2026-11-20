@@ -71,23 +71,6 @@ final readonly class ScheduledJobs
     }
 
     /**
-     * What --force does, for the jobs "Run now" may start with it, see JobSchedule::JOBS.
-     *
-     * @return array<string, string>
-     */
-    public function forceable(): array
-    {
-        $force = [];
-        foreach (JobSchedule::JOBS as $job) {
-            if (isset($job['force'])) {
-                $force[implode(' ', $job['command'])] = $job['force'];
-            }
-        }
-
-        return $force;
-    }
-
-    /**
      * When each job runs, in the order of the schedule.
      *
      * @return array<string, TriggerInterface>

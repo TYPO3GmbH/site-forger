@@ -17,7 +17,12 @@ use App\Service\ForgeIssueImporter;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
+use Redmine\Api\Issue;
 use Redmine\Client\Client;
+use Redmine\Http\HttpClient;
+use Redmine\Http\HttpFactory;
+use Redmine\Http\Request;
+use Redmine\Http\Response;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 final class ForgeIssueImporterTest extends TestCase
@@ -61,16 +66,42 @@ final class ForgeIssueImporterTest extends TestCase
         self::assertArrayNotHasKey('isregression', $document);
     }
 
+    public function testDocumentHasTheDuplicatesFromBothSidesOfTheRelations(): void
+    {
+        $document = ForgeIssueImporter::document([
+            'id' => 91089,
+            'created_on' => '2026-11-01T10:00:00Z',
+            'updated_on' => '2026-11-01T10:00:00Z',
+            'relations' => [
+                ['id' => 1, 'issue_id' => 91089, 'issue_to_id' => 80001, 'relation_type' => 'duplicates', 'delay' => null],
+                ['id' => 2, 'issue_id' => 91200, 'issue_to_id' => 91089, 'relation_type' => 'duplicates', 'delay' => null],
+                ['id' => 3, 'issue_id' => 91089, 'issue_to_id' => 80002, 'relation_type' => 'relates', 'delay' => null],
+            ],
+        ]);
+
+        self::assertSame([80001], $document['duplicates']);
+        self::assertSame([91200], $document['duplicated_by']);
+        self::assertArrayNotHasKey('relations', $document);
+    }
+
+    public function testDocumentWithoutRelationsHasNoDuplicates(): void
+    {
+        $document = ForgeIssueImporter::document(['id' => 1, 'created_on' => '2026-11-01T10:00:00Z', 'updated_on' => '2026-11-01T10:00:00Z']);
+
+        self::assertSame([], $document['duplicates']);
+        self::assertSame([], $document['duplicated_by']);
+    }
+
     public function testRateLimitIsAnErrorAtOnceWithoutAHandler(): void
     {
         $calls = 0;
         $importer = $this->importer([429]);
 
         try {
-            $importer->call(static function () use (&$calls): array {
+            $importer->call('issue', static function (Issue $issues) use (&$calls): mixed {
                 ++$calls;
 
-                return [];
+                return $issues->show(91089);
             });
             self::fail('A rate limit is an error');
         } catch (\RuntimeException $e) {
@@ -87,7 +118,7 @@ final class ForgeIssueImporterTest extends TestCase
             $attempts[] = $attempt;
         }, 6);
 
-        self::assertSame(['issue' => []], $importer->call(static fn (): array => ['issue' => []]));
+        self::assertSame(['issue' => ['id' => 91089]], $importer->call('issue', static fn (Issue $issues): mixed => $issues->show(91089)));
         self::assertSame([1, 2], $attempts);
     }
 
@@ -98,7 +129,7 @@ final class ForgeIssueImporterTest extends TestCase
         }, 2);
 
         $this->expectExceptionCode(429);
-        $importer->call(static fn (): array => []);
+        $importer->call('issue', static fn (Issue $issues): mixed => $issues->show(91089));
     }
 
     public function testErrorsOfForgeOtherThanGoneAreThrownByRefresh(): void
@@ -115,9 +146,22 @@ final class ForgeIssueImporterTest extends TestCase
      */
     private function importer(array $statuses): ForgeIssueImporter
     {
+        // Forge answers each request with the next status, the issue with a success
+        $http = new class($statuses) implements HttpClient {
+            /** @param list<int> $statuses */
+            public function __construct(private array $statuses)
+            {
+            }
+
+            public function request(Request $request): Response
+            {
+                $status = array_shift($this->statuses) ?? 200;
+
+                return HttpFactory::makeResponse($status, 'application/json', $status < 400 ? '{"issue":{"id":91089}}' : '');
+            }
+        };
         $client = $this->createStub(Client::class);
-        $client->method('getLastResponseStatusCode')->willReturnOnConsecutiveCalls(...$statuses);
-        $client->method('getApi')->willReturn($this->createStub(\Redmine\Api\Issue::class));
+        $client->method('getApi')->willReturn(Issue::fromHttpClient($http));
 
         return new ForgeIssueImporter(
             $client,

@@ -26,11 +26,6 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 final readonly class CommandRunSubscriber implements EventSubscriberInterface
 {
     private const string PREFIX = 'app:';
-    /**
-     * Options that change how a job does its work, not which job it is: a run with them is a run of the job, see
-     * App\Entity\CommandRun::isForced().
-     */
-    private const array SAME_JOB_OPTIONS = ['force'];
 
     public function __construct(
         private CommandRunRecorder $recorder,
@@ -53,9 +48,7 @@ final readonly class CommandRunSubscriber implements EventSubscriberInterface
             return;
         }
         $applicationOptions = array_keys($command->getApplication()?->getDefinition()->getOptions() ?? []);
-        $input = $event->getInput();
-        $forced = $input->hasOption('force') && true === $input->getOption('force');
-        $this->recorder->start(self::job((string) $command->getName(), $input, $command->getDefinition(), $applicationOptions), $forced);
+        $this->recorder->start(self::job((string) $command->getName(), $event->getInput(), $command->getDefinition(), $applicationOptions));
     }
 
     public function onError(ConsoleErrorEvent $event): void
@@ -70,7 +63,7 @@ final readonly class CommandRunSubscriber implements EventSubscriberInterface
 
     /**
      * The command with the arguments and options that differ from their defaults, e.g. "app:import --mode=reviewDelta".
-     * Options of the console itself (--env, --verbose, ...) and --force are left out, they don't make it another job.
+     * Options of the console itself (--env, --verbose, ...) are left out, they don't make it another job.
      *
      * @param list<string> $applicationOptions
      */
@@ -86,7 +79,7 @@ final readonly class CommandRunSubscriber implements EventSubscriberInterface
         $options = $input->getOptions();
         ksort($options);
         foreach ($options as $option => $value) {
-            if (in_array($option, $applicationOptions, true) || in_array($option, self::SAME_JOB_OPTIONS, true) || null === $value || false === $value || [] === $value) {
+            if (in_array($option, $applicationOptions, true) || null === $value || false === $value || [] === $value) {
                 continue;
             }
             $default = $definition->hasOption($option) ? $definition->getOption($option)->getDefault() : null;

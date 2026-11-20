@@ -65,3 +65,6 @@ resolves:
   type: integer
 related:
   type: integer
+# The version of the import that wrote the document, see App\Elastic\ImportSchema
+import_schema:
+  type: integer

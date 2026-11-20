@@ -53,3 +53,11 @@ isregression:
   type: boolean
 tags:
   type: keyword
+# The issues this one duplicates and those that duplicate it, from the relations of Forge
+duplicates:
+  type: integer
+duplicated_by:
+  type: integer
+# The version of the import that wrote the document, see App\Elastic\ImportSchema
+import_schema:
+  type: integer

@@ -13,6 +13,7 @@ namespace App\Service;
 
 use App\Elastic\CommitMessage;
 use App\Elastic\ElasticUtility;
+use App\Elastic\ImportSchema;
 use App\Elastic\ProjectChanges;
 use App\Elastic\ReviewSubject;
 use App\Enum\ReviewVoteEnum;
@@ -184,6 +185,7 @@ final class GerritChangeImporter
 
     /**
      * The documents of the review index for changes as Gerrit sends them with DETAIL_OPTIONS, by their number.
+     * Raise ImportSchema::REVIEW when they take more or other data.
      *
      * @param list<array<string, mixed>> $changes
      * @param (\Closure(): void)|null    $onChange called before each change, for the progress of the import
@@ -239,6 +241,7 @@ final class GerritChangeImporter
                 'files' => $filesInPatchset,
                 'work_in_progress' => ReviewSubject::isWorkInProgress($reviewTags) || ($change['work_in_progress'] ?? false),
                 'commit_message' => $commitMessage,
+                ImportSchema::FIELD => ImportSchema::REVIEW,
             ] + CommitMessage::fields($commitMessage);
         }
 

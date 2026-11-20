@@ -41,7 +41,6 @@ final class CommandRunTest extends TestCase
         $definition = new InputDefinition([
             new InputOption('mode', null, InputOption::VALUE_REQUIRED),
             new InputOption('startAt', null, InputOption::VALUE_OPTIONAL, '', 0),
-            new InputOption('force', null, InputOption::VALUE_NONE),
             new InputOption('verbose', 'v', InputOption::VALUE_NONE),
         ]);
 
@@ -50,10 +49,6 @@ final class CommandRunTest extends TestCase
 
         $input = new ArrayInput(['--mode' => 'reviewFull', '--startAt' => '500'], $definition);
         self::assertSame('app:import --mode=reviewFull --startAt=500', CommandRunSubscriber::job('app:import', $input, $definition));
-
-        // A forced run is a run of its job, the run says it was forced
-        $input = new ArrayInput(['--mode' => 'reviewFull', '--force' => true], $definition);
-        self::assertSame('app:import --mode=reviewFull', CommandRunSubscriber::job('app:import', $input, $definition));
     }
 
     public function testJobWithoutOptions(): void
