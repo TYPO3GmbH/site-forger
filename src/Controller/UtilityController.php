@@ -62,7 +62,7 @@ class UtilityController extends AbstractController
         $changes = [];
         $numbers = Backports::mainNumbers($backports);
         if ([] !== $numbers) {
-            $results = $this->indices->get('review')->createSearch([
+            $results = $this->indices->reviews()->createSearch([
                 'query' => ['terms' => ['id' => $numbers]],
                 'size' => count($numbers),
             ])->search()->getResults();

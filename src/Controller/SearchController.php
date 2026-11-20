@@ -121,7 +121,7 @@ class SearchController extends AbstractController
         if (null === $search) {
             return new JsonResponse([]);
         }
-        $resultSet = $this->indices->get('issue')->search($search);
+        $resultSet = $this->indices->issues()->search($search);
 
         return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), $title, fn (array $user): ?string => $this->users->avatarOfUser($user, PersonSuggestion::AVATAR_SIZE), $this->users->keyOf(...)));
     }
@@ -150,7 +150,7 @@ class SearchController extends AbstractController
             $query['post_filter'] = $usedFilters;
         }
 
-        $search = $this->indices->get('issue')->createSearch($query);
+        $search = $this->indices->issues()->createSearch($query);
         $search->getQuery()->setSize($this->page->perPage);
         $search->getQuery()->setFrom($this->page->from());
 

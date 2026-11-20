@@ -41,7 +41,7 @@ class TruncateTypeCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $type = $input->getArgument('type');
 
-        if ('review' === $type || 'issue' === $type) {
+        if (Indices::REVIEW === $type || Indices::ISSUE === $type) {
             $typeToWorkOn = $this->indices->get($type);
             $query = new MatchAll();
             $typeToWorkOn->deleteByQuery($query);

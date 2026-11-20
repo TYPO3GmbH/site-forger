@@ -29,8 +29,6 @@ use Symfony\Contracts\Cache\ItemInterface;
  */
 class Users
 {
-    public const string INDEX = 'user';
-
     /**
      * The avatars by "forge:<number>" and "gerrit:<number>", cached for the pages: a page shows dozens of them.
      */
@@ -222,7 +220,7 @@ class Users
             return [];
         }
         $users = [];
-        $results = $this->indices->get(self::INDEX)->search(['query' => ['ids' => ['values' => $ids]], 'size' => count($ids)])->getResults();
+        $results = $this->indices->users()->search(['query' => ['ids' => ['values' => $ids]], 'size' => count($ids)])->getResults();
         foreach ($results as $result) {
             $users[(string) $result->getId()] = User::fromDocument($result->getSource());
         }
@@ -241,7 +239,7 @@ class Users
         if (!str_contains($email, '@')) {
             return [];
         }
-        $results = $this->indices->get(self::INDEX)->search(['query' => ['term' => ['email' => $email]], 'size' => 10])->getResults();
+        $results = $this->indices->users()->search(['query' => ['term' => ['email' => $email]], 'size' => 10])->getResults();
 
         return array_map(static fn (Result $result): User => User::fromDocument($result->getSource()), $results);
     }
@@ -384,7 +382,7 @@ class Users
      */
     public function statistics(): array
     {
-        $result = $this->indices->get(self::INDEX)->search([
+        $result = $this->indices->users()->search([
             'size' => 0,
             'track_total_hits' => true,
             'query' => ['exists' => ['field' => 'forge_id']],
@@ -427,7 +425,7 @@ class Users
         if ([] === $users && [] === $replaced) {
             return;
         }
-        $index = $this->indices->get(self::INDEX);
+        $index = $this->indices->users();
         if ([] !== $users) {
             $index->addDocuments(array_map(static fn (User $user): Document => new Document($user->id(), $user->toDocument()), $users));
         }
@@ -477,7 +475,7 @@ class Users
      */
     private function scroll(array $query): \Generator
     {
-        $search = $this->indices->get(self::INDEX)->createSearch(new Query(['size' => 1000, 'query' => $query]));
+        $search = $this->indices->users()->createSearch(new Query(['size' => 1000, 'query' => $query]));
         foreach ($search->scroll('1m') as $resultSet) {
             foreach ($resultSet->getResults() as $result) {
                 yield User::fromDocument($result->getSource());

@@ -49,7 +49,7 @@ class IssueController extends AbstractController
         $issue = $this->issue($id);
         $numbers = GerritLinks::changeNumbers($issue);
         // The changes whose footer resolves or names the issue, and those its comments link
-        $results = $this->indices->get('review')->search([
+        $results = $this->indices->reviews()->search([
             'query' => ['bool' => ['should' => [
                 ['term' => ['resolves' => $id]],
                 ['term' => ['related' => $id]],
@@ -98,7 +98,7 @@ class IssueController extends AbstractController
         if (!$searchClosed) {
             $bool['must_not'] = [['terms' => ['status.name' => IssueStatusEnum::closedLabels()]]];
         }
-        $results = $this->indices->get('issue')->search(['query' => ['bool' => $bool], 'size' => self::DUPLICATES]);
+        $results = $this->indices->issues()->search(['query' => ['bool' => $bool], 'size' => self::DUPLICATES]);
 
         return $this->render('issue/duplicates.html.twig', [
             'issue' => $issue,
@@ -113,7 +113,7 @@ class IssueController extends AbstractController
      */
     private function issue(int $id): array
     {
-        return $this->globalSearch->document('issue', $id)
+        return $this->globalSearch->document(Indices::ISSUE, $id)
             ?? throw $this->createNotFoundException(sprintf('Issue #%d is not in Forger. It may be newer than the last import.', $id));
     }
 }

@@ -36,7 +36,7 @@ final readonly class SprintBoards
      */
     public function counts(string $query): array
     {
-        $resultSet = $this->indices->get('issue')->createSearch([
+        $resultSet = $this->indices->issues()->createSearch([
             'query' => Yaml::parse($query),
             'size' => 0,
             'aggregations' => ['status' => ['terms' => ['field' => 'status.id']]],
@@ -68,7 +68,7 @@ final readonly class SprintBoards
     public function cards(SprintBoard $board): array
     {
         $cards = BoardColumnEnum::each([]);
-        $resultSet = $this->indices->get('issue')->createSearch([
+        $resultSet = $this->indices->issues()->createSearch([
             'query' => Yaml::parse((string) $board->getQuery()),
             'size' => self::MAX_ISSUES,
         ])->search();
@@ -88,7 +88,7 @@ final readonly class SprintBoards
      */
     public function preview(BoardFilter $filter): array
     {
-        $resultSet = $this->indices->get('issue')->createSearch([
+        $resultSet = $this->indices->issues()->createSearch([
             'query' => $filter->toQuery(),
             'size' => self::MAX_ISSUES,
             '_source' => ['id', 'subject', 'status', 'tracker'],
@@ -157,7 +157,7 @@ final readonly class SprintBoards
             return null;
         }
         try {
-            $change = $this->indices->get('review')->getDocument($matches['number'])->getData();
+            $change = $this->indices->reviews()->getDocument($matches['number'])->getData();
         } catch (\Exception) {
             return null;
         }

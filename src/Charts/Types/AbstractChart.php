@@ -62,7 +62,7 @@ abstract class AbstractChart
      */
     protected function closed(): array
     {
-        return 'review' === $this->getDocumentType()
+        return Indices::REVIEW === $this->getDocumentType()
             ? ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]]
             : ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]];
     }

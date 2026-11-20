@@ -49,7 +49,7 @@ class ConstrainsYamlValidator extends ConstraintValidator
                 'size' => 10000,
             ];
 
-            $search = $this->indices->get('issue')->createSearch($fullRequest);
+            $search = $this->indices->issues()->createSearch($fullRequest);
             $search->search();
         } catch (InvalidException|ResponseException) {
             $this->context->buildViolation('Your query did not yield any results. Is it correct?')->addViolation();

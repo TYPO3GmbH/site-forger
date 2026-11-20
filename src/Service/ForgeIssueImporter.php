@@ -139,7 +139,7 @@ final class ForgeIssueImporter
         // The author and the assignee the index "user" lacks, empty: "Update users" fills them
         $this->users->ensure(array_values(array_filter([User::fromIssue($issue['author'] ?? []), User::fromIssue($issue['assigned_to'] ?? [])])));
         $document = self::document($issue);
-        $index = $this->indices->get('issue');
+        $index = $this->indices->issues();
         $index->addDocument(new Document((string) $document['id'], $document));
         if ($refresh) {
             $index->refresh();

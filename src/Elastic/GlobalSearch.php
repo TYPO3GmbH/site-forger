@@ -82,8 +82,8 @@ final readonly class GlobalSearch
         };
 
         return [
-            self::ISSUES => $counted[self::ISSUES] ?? $count('issue', IssueSearch::query($searchTerms, $includeClosed), $people[self::ISSUES] ?? null),
-            self::CHANGES => $counted[self::CHANGES] ?? $count('review', (array) ReviewLists::query(ReviewLists::SEARCH, $includeClosed, $searchTerms), $people[self::CHANGES] ?? null),
+            self::ISSUES => $counted[self::ISSUES] ?? $count(Indices::ISSUE, IssueSearch::query($searchTerms, $includeClosed), $people[self::ISSUES] ?? null),
+            self::CHANGES => $counted[self::CHANGES] ?? $count(Indices::REVIEW, (array) ReviewLists::query(ReviewLists::SEARCH, $includeClosed, $searchTerms), $people[self::CHANGES] ?? null),
         ];
     }
 
@@ -119,7 +119,7 @@ final readonly class GlobalSearch
             return ['issue' => null, 'change' => null];
         }
 
-        return ['issue' => $this->document('issue', $number), 'change' => $this->document('review', $number)];
+        return ['issue' => $this->document(Indices::ISSUE, $number), 'change' => $this->document(Indices::REVIEW, $number)];
     }
 
     /**

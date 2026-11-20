@@ -238,7 +238,7 @@ final readonly class ForgeUserSync
     private function peopleOfIssues(): array
     {
         $people = [];
-        $index = $this->indices->get('issue');
+        $index = $this->indices->issues();
         foreach (self::PEOPLE_FIELDS as $field) {
             $after = null;
             do {

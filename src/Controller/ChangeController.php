@@ -32,7 +32,7 @@ class ChangeController extends AbstractController
     #[Route(path: '/change/{number}', name: 'change_show', requirements: ['number' => '\d+'], methods: ['GET'])]
     public function show(int $number): Response
     {
-        $change = $this->globalSearch->document('review', $number)
+        $change = $this->globalSearch->document(Indices::REVIEW, $number)
             ?? throw $this->createNotFoundException(sprintf('Change %d is not in Forger. It may be newer than the last import.', $number));
 
         // The issues of the footer, in its order: those it resolves first
@@ -44,7 +44,7 @@ class ChangeController extends AbstractController
         }
         $found = [];
         if ([] !== $relations) {
-            $results = $this->indices->get('issue')->search([
+            $results = $this->indices->issues()->search([
                 'query' => ['terms' => ['id' => array_keys($relations)]],
                 'size' => count($relations),
             ])->getResults();

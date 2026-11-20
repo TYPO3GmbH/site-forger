@@ -19,6 +19,9 @@ use Elastica\Index;
  */
 final readonly class Indices
 {
+    public const string ISSUE = 'issue';
+    public const string REVIEW = 'review';
+    public const string USER = 'user';
     private const string LANGUAGE = 'english';
 
     public function __construct(
@@ -29,6 +32,21 @@ final readonly class Indices
     public function get(string $type): Index
     {
         return $this->client->getIndex($type . '_' . self::LANGUAGE);
+    }
+
+    public function issues(): Index
+    {
+        return $this->get(self::ISSUE);
+    }
+
+    public function reviews(): Index
+    {
+        return $this->get(self::REVIEW);
+    }
+
+    public function users(): Index
+    {
+        return $this->get(self::USER);
     }
 
     public function client(): Client

@@ -63,7 +63,7 @@ final readonly class ProjectIssues
      */
     public function removeOtherProjects(): int
     {
-        $response = $this->indices->get('issue')->deleteByQuery(new Query(['query' => ['bool' => [
+        $response = $this->indices->issues()->deleteByQuery(new Query(['query' => ['bool' => [
             'should' => [
                 ['bool' => ['must_not' => [['term' => ['project.id' => $this->projectId]]]]],
                 ['term' => ['is_private' => true]],
@@ -81,7 +81,7 @@ final readonly class ProjectIssues
      */
     public function indexedIds(): \Generator
     {
-        $search = $this->indices->get('issue')->createSearch(new Query(new MatchAll())->setSource(false)->setSize(1000));
+        $search = $this->indices->issues()->createSearch(new Query(new MatchAll())->setSource(false)->setSize(1000));
         foreach ($search->scroll('2m') as $resultSet) {
             foreach ($resultSet as $result) {
                 yield (string) $result->getId();
@@ -94,7 +94,7 @@ final readonly class ProjectIssues
      */
     public function count(?int $from = null, ?int $to = null): int
     {
-        return $this->indices->get('issue')->count(new Query(['query' => self::range($from, $to)]));
+        return $this->indices->issues()->count(new Query(['query' => self::range($from, $to)]));
     }
 
     /**
@@ -102,7 +102,7 @@ final readonly class ProjectIssues
      */
     public function highestId(): int
     {
-        $result = $this->indices->get('issue')->search(new Query(['size' => 0, 'aggs' => ['highest' => ['max' => ['field' => 'id']]]]));
+        $result = $this->indices->issues()->search(new Query(['size' => 0, 'aggs' => ['highest' => ['max' => ['field' => 'id']]]]));
 
         return (int) ($result->getAggregation('highest')['value'] ?? 0);
     }
@@ -114,7 +114,7 @@ final readonly class ProjectIssues
      */
     public function idsBetween(int $from, int $to): array
     {
-        $results = $this->indices->get('issue')->search(new Query(['query' => self::range($from, $to), '_source' => false, 'size' => 1000]));
+        $results = $this->indices->issues()->search(new Query(['query' => self::range($from, $to), '_source' => false, 'size' => 1000]));
 
         return array_map(static fn (Result $result): int => (int) $result->getId(), $results->getResults());
     }
@@ -137,7 +137,7 @@ final readonly class ProjectIssues
         if ([] === $ids) {
             return 0;
         }
-        $response = $this->indices->get('issue')->deleteByQuery(
+        $response = $this->indices->issues()->deleteByQuery(
             new Query(['query' => ['ids' => ['values' => array_map('strval', $ids)]]]),
             ['refresh' => 'true', 'conflicts' => 'proceed'],
         )->getData();

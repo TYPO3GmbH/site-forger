@@ -128,11 +128,11 @@ final class GerritChangeImporter
         // The owners the index "user" lacks, complete: Gerrit told all of them with the change
         $this->users->ensureGerrit(array_values(array_filter(array_map(self::owner(...), array_values($documents)))));
         foreach (array_chunk(array_values($documents), self::BULK_SIZE) as $chunk) {
-            $this->indices->get('review')->addDocuments(array_map(static fn (array $document): Document => new Document((string) $document['id'], $document), $chunk));
+            $this->indices->reviews()->addDocuments(array_map(static fn (array $document): Document => new Document((string) $document['id'], $document), $chunk));
             $this->recorder->document(count($chunk));
         }
         if ($refresh && [] !== $documents) {
-            $this->indices->get('review')->refresh();
+            $this->indices->reviews()->refresh();
         }
     }
 

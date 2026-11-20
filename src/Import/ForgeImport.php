@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Import;
 
 use App\Elastic\ImportWatermark;
+use App\Elastic\Indices;
 use App\Elastic\IssueReconciliation;
 use App\Elastic\ProjectIssues;
 use App\Service\CommandRunRecorder;
@@ -104,7 +105,7 @@ final readonly class ForgeImport
      */
     private function importChanged(ImportRun $run): bool
     {
-        $since = $this->watermark->since('issue');
+        $since = $this->watermark->since(Indices::ISSUE);
         if (null === $since) {
             $this->recorder->note('The issue index is empty: this run imported the latest issues only. "app:import:forge --full" fills it.');
             $this->importIssues($run, $this->forgeIssues->page(0)['issues'] ?? [], self::STEP_LATEST, null, false);

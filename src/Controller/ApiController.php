@@ -61,7 +61,7 @@ class ApiController extends AbstractController
     #[Route(path: '/quick_stats', name: 'quick_stats')]
     public function quickStats(): JsonResponse
     {
-        $index = $this->indices->get('issue');
+        $index = $this->indices->issues();
         $openIssuesQuery = [
             'query' => [
                 'bool' => [
@@ -85,7 +85,7 @@ class ApiController extends AbstractController
             ],
             'size' => 0,
         ];
-        $index = $this->indices->get('review');
+        $index = $this->indices->reviews();
         $openReviews = $index->search($openReviewsQuery)->getTotalHits();
 
         return new JsonResponse([

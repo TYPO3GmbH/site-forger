@@ -35,7 +35,7 @@ readonly class ProjectChanges
      */
     public function indexedNumbers(): \Generator
     {
-        $search = $this->indices->get('review')->createSearch(new Query(new MatchAll())->setSource(false)->setSize(1000));
+        $search = $this->indices->reviews()->createSearch(new Query(new MatchAll())->setSource(false)->setSize(1000));
         foreach ($search->scroll('2m') as $resultSet) {
             foreach ($resultSet as $result) {
                 yield (int) $result->getId();
@@ -48,7 +48,7 @@ readonly class ProjectChanges
      */
     public function count(): int
     {
-        return $this->indices->get('review')->count();
+        return $this->indices->reviews()->count();
     }
 
     /**
@@ -63,7 +63,7 @@ readonly class ProjectChanges
         if ([] === $numbers) {
             return 0;
         }
-        $response = $this->indices->get('review')->deleteByQuery(
+        $response = $this->indices->reviews()->deleteByQuery(
             new Query(['query' => ['ids' => ['values' => array_map('strval', $numbers)]]]),
             ['refresh' => 'true', 'conflicts' => 'proceed'],
         )->getData();

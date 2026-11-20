@@ -137,7 +137,7 @@ class ReviewController extends AbstractController
         if (null === $request) {
             return new JsonResponse([]);
         }
-        $resultSet = $this->indices->get('review')->search($request);
+        $resultSet = $this->indices->reviews()->search($request);
 
         return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), 'Owner', fn (array $user): ?string => $this->users->avatarOfUser($user, PersonSuggestion::AVATAR_SIZE), $this->users->keyOf(...)));
     }
@@ -162,12 +162,12 @@ class ReviewController extends AbstractController
     {
         $sort = IssueSortEnum::fromRequest($this->query()->getString('sort'), false, StaleIssues::DEFAULT_SORT);
         $page = $this->page();
-        $resultSet = $this->indices->get('issue')->createSearch(StaleIssues::issuesRequest($page->page, $page->perPage, $sort))->search();
+        $resultSet = $this->indices->issues()->createSearch(StaleIssues::issuesRequest($page->page, $page->perPage, $sort))->search();
         $issues = array_map(static fn ($result): array => $result->getData(), $resultSet->getResults());
         $changesRequest = StaleIssues::changesRequest($issues);
         $changes = null === $changesRequest ? [] : array_map(
             static fn ($result): array => $result->getData(),
-            $this->indices->get('review')->createSearch($changesRequest)->search()->getResults(),
+            $this->indices->reviews()->createSearch($changesRequest)->search()->getResults(),
         );
 
         return $this->render('review/stale_issues.html.twig', $page->withTotal($resultSet->getTotalHits())->viewData() + [
@@ -259,7 +259,7 @@ class ReviewController extends AbstractController
         // Selected owners show in the filter, also when they are not among those with the most changes
         $owners = PeopleFacet::selection('Owner', FacetSelection::keys($filters, 'owner'), $this->users);
         $request['aggregations'] = FacetSelection::withSelected($request['aggregations'] ?? [], 'Owner', array_keys($owners));
-        $resultSet = $this->indices->get('review')->createSearch($request)->search();
+        $resultSet = $this->indices->reviews()->createSearch($request)->search();
 
         $aggregations = FacetSelection::inOrderOf(FacetSelection::merge($resultSet->getAggregations(), 'Owner'), array_keys($request['aggregations']));
         // The owners by their keys, as their checkboxes send them

@@ -38,7 +38,7 @@ final readonly class ReviewBoards
             return [];
         }
         $cards = array_fill_keys(self::GROUPS, []);
-        $resultSet = $this->indices->get('review')->createSearch([
+        $resultSet = $this->indices->reviews()->createSearch([
             'query' => self::query($type),
             'size' => self::MAX_CHANGES,
             'sort' => [['updated_on' => ['order' => 'asc']]],
@@ -58,7 +58,7 @@ final readonly class ReviewBoards
     {
         $menu = [];
         foreach (self::TYPES as $type => $name) {
-            $count = $this->indices->get('review')->createSearch(['query' => self::query($type), 'size' => 0])->search()->getTotalHits();
+            $count = $this->indices->reviews()->createSearch(['query' => self::query($type), 'size' => 0])->search()->getTotalHits();
             $menu[] = ['id' => $type, 'count' => $count, 'name' => $name, 'active' => $type === $active];
         }
 

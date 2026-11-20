@@ -48,7 +48,7 @@ class IssueFilterChoices
         foreach ($fields as $field) {
             $aggregations[$field] = ['terms' => ['field' => $field, 'size' => self::MAX_VALUES]];
         }
-        $resultSet = $this->indices->get('issue')
+        $resultSet = $this->indices->issues()
             ->createSearch(['size' => 0, 'aggregations' => $aggregations])
             ->search();
 

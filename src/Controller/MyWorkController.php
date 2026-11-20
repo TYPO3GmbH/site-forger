@@ -63,7 +63,7 @@ class MyWorkController extends AbstractController
         // Only search words rank the changes, so only then they can be sorted by relevance
         $sort = ReviewSortEnum::fromRequest($request->query->getString('sort'), '' !== $searchTerms);
         $query = $this->query($includeClosed, $searchTerms, reviewState: $reviewState, reviewSort: $sort);
-        $reviews = $this->indices->get('review')->createSearch($query->reviews())->search();
+        $reviews = $this->indices->reviews()->createSearch($query->reviews())->search();
 
         $counts = [];
         foreach ($reviews->getAggregation('status')['buckets'] ?? [] as $state => $bucket) {
@@ -105,7 +105,7 @@ class MyWorkController extends AbstractController
         // Only search words rank the issues, so only then they can be sorted by relevance
         $sort = IssueSortEnum::fromRequest($request->query->getString('sort'), '' !== $searchTerms);
         $query = $this->query($includeClosed, $searchTerms, issueStatus: $issueStatus, issueSort: $sort);
-        $issues = $this->indices->get('issue')->createSearch($query->issues())->search();
+        $issues = $this->indices->issues()->createSearch($query->issues())->search();
 
         $counts = [];
         foreach ($issues->getAggregation('status')['buckets'] ?? [] as $bucket) {
@@ -169,9 +169,9 @@ class MyWorkController extends AbstractController
             'query' => $searchTerms,
         ];
         if ('changes' === $view) {
-            $data['openIssues'] = $this->indices->get('issue')->count($query->openIssuesCount());
+            $data['openIssues'] = $this->indices->issues()->count($query->openIssuesCount());
         } else {
-            $data['openChanges'] = $this->indices->get('review')->count($query->openReviewsCount());
+            $data['openChanges'] = $this->indices->reviews()->count($query->openReviewsCount());
         }
 
         return $data;

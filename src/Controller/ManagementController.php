@@ -85,7 +85,7 @@ class ManagementController extends AbstractController
         foreach ($trackerFilters->excluded as $tracker) {
             $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = $tracker->label();
         }
-        $resultSet = $this->indices->get('issue')->createSearch($fullRequest)->search();
+        $resultSet = $this->indices->issues()->createSearch($fullRequest)->search();
         $rows = MonthOverview::rows($resultSet->getAggregations()['year']['buckets'] ?? []);
         $viewData['rows'] = $rows;
         $viewData['maximum'] = MonthOverview::maximum($rows);
@@ -116,7 +116,7 @@ class ManagementController extends AbstractController
     #[Route(path: '/management/bycategory', name: 'management_bycategory')]
     public function byCategory(): Response
     {
-        $resultSet = $this->indices->get('issue')->createSearch(CategoryOverview::request())->search();
+        $resultSet = $this->indices->issues()->createSearch(CategoryOverview::request())->search();
         $aggregations = $resultSet->getAggregations();
         $rows = CategoryOverview::rows($aggregations['category']['buckets'] ?? []);
         $withoutCategory = CategoryOverview::withoutCategory($aggregations['without_category'] ?? null);

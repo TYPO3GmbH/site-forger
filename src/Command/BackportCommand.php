@@ -181,7 +181,7 @@ class BackportCommand extends Command
             ],
             'size' => 5000,
         ];
-        $query = $this->indices->get('review')->createSearch($fullRequest);
+        $query = $this->indices->reviews()->createSearch($fullRequest);
 
         return $query->search()->getResults();
     }
@@ -207,7 +207,7 @@ class BackportCommand extends Command
             ],
             'size' => 50,
         ];
-        $query = $this->indices->get('review')->createSearch($fullRequest);
+        $query = $this->indices->reviews()->createSearch($fullRequest);
 
         return $query->search()->getResults();
     }

@@ -48,7 +48,7 @@ final class ImportSchema
      */
     public static function current(string $index): int
     {
-        return 'issue' === $index ? self::ISSUE : self::REVIEW;
+        return Indices::ISSUE === $index ? self::ISSUE : self::REVIEW;
     }
 
     /**

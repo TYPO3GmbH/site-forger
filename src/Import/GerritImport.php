@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Import;
 
 use App\Elastic\ImportWatermark;
+use App\Elastic\Indices;
 use App\Elastic\ProjectChanges;
 use App\Service\CommandRunRecorder;
 use App\Service\GerritChangeImporter;
@@ -85,7 +86,7 @@ final readonly class GerritImport
      */
     public function delta(ImportRun $run): void
     {
-        $since = $this->watermark->since('review');
+        $since = $this->watermark->since(Indices::REVIEW);
         if (null === $since) {
             $this->recorder->note('The review index is empty: this run imported the latest changes only. "app:import:review --full" fills it.');
             $this->changeImporter->writeAll($this->documents($run, GerritChangeImporter::PROJECT, self::LATEST_COUNT, $run->progressBar(), self::STEP_LATEST));
