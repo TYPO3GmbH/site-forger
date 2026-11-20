@@ -18,7 +18,6 @@ use App\Enum\IssueStatusEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
 use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\ReadableCollection;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -54,13 +53,13 @@ final readonly class SprintBoards
     }
 
     /**
-     * The cards of a board by column. An issue under review shows its Gerrit change, if the index has it.
+     * The columns of a board, in their order. An issue under review shows its Gerrit change, if the index has it.
      *
-     * @return array<string, ReadableCollection<int, Card>> by column
+     * @return list<BoardColumn>
      */
     public function cards(SprintBoard $board): array
     {
-        $cards = BoardColumnEnum::each([]);
+        $cards = [];
         $found = $this->issues->search([
             'query' => Yaml::parse((string) $board->getQuery()),
             'size' => self::MAX_ISSUES,
@@ -68,10 +67,17 @@ final readonly class SprintBoards
         foreach ($found as $issue) {
             $column = BoardColumnEnum::ofIssue($issue);
             $change = BoardColumnEnum::REVIEW === $column ? $this->changeOf($issue) : null;
-            $cards[$column->value][] = new Card($issue, $column, $change);
+            $cards[$column->name][] = new Card($issue, $column, $change);
         }
 
-        return array_map(static fn (array $column): ArrayCollection => new ArrayCollection($column), $cards);
+        return array_map(
+            static fn (BoardColumnEnum $column): BoardColumn => new BoardColumn(
+                $column,
+                count($cards[$column->name] ?? []),
+                new ArrayCollection($cards[$column->name] ?? []),
+            ),
+            BoardColumnEnum::cases(),
+        );
     }
 
     /**
@@ -85,13 +91,17 @@ final readonly class SprintBoards
             '_source' => ['id', 'subject', 'status', 'tracker'],
             'sort' => [['updated_on' => ['order' => 'desc']]],
         ]);
-        $columns = BoardColumnEnum::each(0);
+        $counts = [];
         $cards = [];
         foreach ($found as $issue) {
             $column = BoardColumnEnum::ofIssue($issue);
-            ++$columns[$column->value];
+            $counts[$column->name] = ($counts[$column->name] ?? 0) + 1;
             $cards[] = new Card($issue, $column);
         }
+        $columns = array_map(
+            static fn (BoardColumnEnum $column): BoardColumn => new BoardColumn($column, $counts[$column->name] ?? 0),
+            BoardColumnEnum::cases(),
+        );
 
         return new BoardPreview(
             $columns,
@@ -101,20 +111,20 @@ final readonly class SprintBoards
     }
 
     /**
-     * @param array<string, int> $counts how many cards each column has
+     * @param list<BoardColumn> $columns
      *
      * @return array{sections: array<string, array{classes: string, value: float, label: string}>, total: int}
      */
-    public static function progress(array $counts): array
+    public static function progress(array $columns): array
     {
-        $total = array_sum($counts);
+        $total = array_sum(array_map(static fn (BoardColumn $column): int => $column->count, $columns));
         $sections = [];
-        foreach ($counts as $column => $count) {
-            $key = strtolower($column);
+        foreach ($columns as $column) {
+            $key = strtolower($column->column->label());
             $sections[$key] = [
-                'classes' => BoardColumnEnum::WIP->value === $column ? 'wip active progress-bar-striped' : $key,
-                'value' => $total > 0 ? $count * 100 / $total : 0.0,
-                'label' => $column,
+                'classes' => BoardColumnEnum::WIP === $column->column ? 'wip active progress-bar-striped' : $key,
+                'value' => $total > 0 ? $column->count * 100 / $total : 0.0,
+                'label' => $column->column->label(),
             ];
         }
 

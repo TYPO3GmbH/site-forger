@@ -274,7 +274,7 @@ class SprintController extends AbstractController
             'menu' => $this->menu($boards, $activeId),
             'cards' => $cards,
             'boardInfo' => $active?->getName() ?? [],
-            'progress' => null === $active ? [] : SprintBoards::progress(array_map(count(...), $cards)),
+            'progress' => null === $active ? [] : SprintBoards::progress($cards),
             'category' => $category,
             'categoryName' => (string) $sprintCategory->getName(),
             'sprintId' => $activeId,

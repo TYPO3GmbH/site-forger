@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Templates;
 
 use App\Document\Issue;
+use App\Sprint\BoardColumn;
 use App\Sprint\BoardColumnEnum;
 use App\Sprint\Card;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -40,7 +41,7 @@ final class SprintWizardPreviewTemplateTest extends KernelTestCase
         $html = $this->twig->render('sprint/_wizard_preview.html.twig', [
             'hasFilter' => true,
             'total' => 1,
-            'columns' => ['Review' => 1],
+            'columns' => [new BoardColumn(BoardColumnEnum::REVIEW, 1)],
             'issues' => new ArrayCollection([new Card($issue, BoardColumnEnum::REVIEW)]),
         ]);
 

@@ -15,16 +15,29 @@ use App\Document\Issue;
 use App\Enum\IssueStatusEnum;
 
 /**
- * The columns of a sprint board, in their order. The value is the name the board shows and the suffix of the
- * class "status-<value>".
+ * The columns of a sprint board, in their order.
  */
-enum BoardColumnEnum: string
+enum BoardColumnEnum
 {
-    case BLOCKED = 'BLOCKED';
-    case OPEN = 'Open';
-    case WIP = 'WIP';
-    case REVIEW = 'Review';
-    case DONE = 'Done';
+    case BLOCKED;
+    case OPEN;
+    case WIP;
+    case REVIEW;
+    case DONE;
+
+    /**
+     * The name the board shows, also the suffix of the class "status-<label>".
+     */
+    public function label(): string
+    {
+        return match ($this) {
+            self::BLOCKED => 'BLOCKED',
+            self::OPEN => 'Open',
+            self::WIP => 'WIP',
+            self::REVIEW => 'Review',
+            self::DONE => 'Done',
+        };
+    }
 
     public static function ofStatus(?IssueStatusEnum $status): self
     {
@@ -41,17 +54,5 @@ enum BoardColumnEnum: string
     public static function ofIssue(Issue $issue): self
     {
         return self::ofStatus(IssueStatusEnum::tryFrom((int) ($issue->status['id'] ?? 0)));
-    }
-
-    /**
-     * @template T
-     *
-     * @param T $value
-     *
-     * @return array<string, T> by the value of each column, in the order of the board
-     */
-    public static function each(mixed $value): array
-    {
-        return array_fill_keys(array_column(self::cases(), 'value'), $value);
     }
 }

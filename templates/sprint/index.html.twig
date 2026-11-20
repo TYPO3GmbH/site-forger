@@ -69,13 +69,13 @@
     {% if cards|length > 0 %}
         <div class="board">
             <div class="board-container">
-                {% for columnName, cardList in cards %}
+                {% for boardColumn in cards %}
                     <div class="board-column">
                         <div class="board-column-header">
-                            <h3 class="board-colum-header-headline status-{{ columnName }}"><strong>{{ cardList|length }}</strong> {{ columnName }}</h3>
+                            <h3 class="board-colum-header-headline status-{{ boardColumn.column.label }}"><strong>{{ boardColumn.count }}</strong> {{ boardColumn.column.label }}</h3>
                         </div>
                         <div class="board-column-content">
-                            {% for card in cardList %}
+                            {% for card in boardColumn.cards %}
                                 {% if card.change %}
                                     {% include '_partials/review_card.html.twig' with {'card': card.change} only %}
                                 {% else %}

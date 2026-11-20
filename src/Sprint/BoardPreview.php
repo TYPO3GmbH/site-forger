@@ -19,7 +19,7 @@ use Doctrine\Common\Collections\ReadableCollection;
 final readonly class BoardPreview
 {
     /**
-     * @param array<string, int>            $columns how many issues each column has
+     * @param list<BoardColumn>             $columns how many issues each column has
      * @param int                           $total   all issues of the board
      * @param ReadableCollection<int, Card> $cards   the issues updated last
      */

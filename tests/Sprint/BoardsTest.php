@@ -13,6 +13,7 @@ namespace App\Tests\Sprint;
 
 use App\Document\Change;
 use App\Enum\IssueStatusEnum;
+use App\Sprint\BoardColumn;
 use App\Sprint\BoardColumnEnum;
 use App\Sprint\ReviewBoards;
 use App\Sprint\SprintBoards;
@@ -45,12 +46,19 @@ final class BoardsTest extends TestCase
 
     public function testTheColumnsAreInTheOrderOfTheBoard(): void
     {
-        self::assertSame(['BLOCKED', 'Open', 'WIP', 'Review', 'Done'], array_keys(BoardColumnEnum::each([])));
+        self::assertSame(
+            ['BLOCKED', 'Open', 'WIP', 'Review', 'Done'],
+            array_map(static fn (BoardColumnEnum $column): string => $column->label(), BoardColumnEnum::cases()),
+        );
     }
 
     public function testTheProgressHasAShareForEachColumn(): void
     {
-        $progress = SprintBoards::progress(['Open' => 3, 'WIP' => 1, 'Done' => 0]);
+        $progress = SprintBoards::progress([
+            new BoardColumn(BoardColumnEnum::OPEN, 3),
+            new BoardColumn(BoardColumnEnum::WIP, 1),
+            new BoardColumn(BoardColumnEnum::DONE, 0),
+        ]);
 
         self::assertSame(4, $progress['total']);
         self::assertEqualsWithDelta(75.0, $progress['sections']['open']['value'], 0.001);
@@ -60,7 +68,11 @@ final class BoardsTest extends TestCase
 
     public function testAnEmptyBoardHasNoProgress(): void
     {
-        self::assertSame(0, SprintBoards::progress(BoardColumnEnum::each(0))['total']);
+        $empty = array_map(
+            static fn (BoardColumnEnum $column): BoardColumn => new BoardColumn($column, 0),
+            BoardColumnEnum::cases(),
+        );
+        self::assertSame(0, SprintBoards::progress($empty)['total']);
     }
 
     /**
