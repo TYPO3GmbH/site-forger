@@ -50,6 +50,28 @@ final readonly class ForgeIssueList
     }
 
     /**
+     * A page of all issues of the project, the newest first. With a filter of "updated_on" the oldest come first.
+     *
+     * @param string|null $updatedOn see ImportWatermark::redmineFilter()
+     *
+     * @return array<string, mixed>
+     *
+     * @throws ApiFailure
+     */
+    public function page(int $offset, ?string $updatedOn = null): array
+    {
+        return $this->forge->object('/issues.json', [
+            'limit' => self::PAGE_SIZE,
+            'offset' => $offset,
+            'project_id' => $this->projectId,
+            'status_id' => '*',
+            'sort' => null === $updatedOn ? 'updated_on:desc' : 'updated_on',
+            'include' => 'relations',
+            'updated_on' => $updatedOn,
+        ], 'a list of issues');
+    }
+
+    /**
      * The issues with a number in the range, at most PAGE_SIZE, the lowest numbers first.
      *
      * @return list<array<string, mixed>>

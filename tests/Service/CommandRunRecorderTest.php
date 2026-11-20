@@ -26,7 +26,7 @@ final class CommandRunRecorderTest extends TestCase
     public function testARunAskedToStopStopsAtItsHeartbeatAsAsked(): void
     {
         $recorder = $this->recorder(['stop_status' => 'interrupted', 'stop_reason' => 'Interrupted: a deployment']);
-        $recorder->start('app:import --mode=reviewFull');
+        $recorder->start('app:import:review --full');
 
         try {
             // A new phase writes a heartbeat at once
@@ -48,7 +48,7 @@ final class CommandRunRecorderTest extends TestCase
     public function testAWaitForARateLimitStopsWithinSecondsWhenTheRunIsAskedToStop(): void
     {
         $recorder = $this->recorder(['stop_status' => 'cancelled', 'stop_reason' => 'Cancelled by dev-admin']);
-        $recorder->start('app:import --mode=forgeFull');
+        $recorder->start('app:import:forge --full');
         $slept = 0;
 
         try {
@@ -66,7 +66,7 @@ final class CommandRunRecorderTest extends TestCase
     public function testANoteIsInTheLogAndLeavesTheStatusAsItIs(): void
     {
         $recorder = $this->recorder(['stop_status' => null, 'stop_reason' => null]);
-        $recorder->start('app:import --mode=forgeDelta');
+        $recorder->start('app:import:forge');
 
         $recorder->progress('Import the issues changed since the last run', 0, 2000);
         $recorder->note('Catching up: 17,809 issues changed since 8 Jun 2022, more than a run imports.');
@@ -84,7 +84,7 @@ final class CommandRunRecorderTest extends TestCase
     public function testASkippedItemIsAWarningWithItsItemAndItsException(): void
     {
         $recorder = $this->recorder(['stop_status' => null, 'stop_reason' => null], '/srv/forger');
-        $recorder->start('app:import --mode=forgeFull');
+        $recorder->start('app:import:forge --full');
 
         $recorder->skipped('issue', '98765', new \RuntimeException('Timeout after 30 s', 0, new \LogicException('cURL error 28')));
         $recorder->finish(0);
@@ -104,7 +104,7 @@ final class CommandRunRecorderTest extends TestCase
     public function testTheErrorThatEndsARunIsInTheLogWithItsStackTrace(): void
     {
         $recorder = $this->recorder(['stop_status' => null, 'stop_reason' => null]);
-        $recorder->start('app:import --mode=reviewFull');
+        $recorder->start('app:import:review --full');
 
         $exception = new \RuntimeException('no such index [review_english]');
         $recorder->fail(\RuntimeException::class . ': no such index [review_english]', $exception);
@@ -118,7 +118,7 @@ final class CommandRunRecorderTest extends TestCase
     public function testARunNotAskedToStopGoesOn(): void
     {
         $recorder = $this->recorder(['stop_status' => null, 'stop_reason' => null]);
-        $recorder->start('app:import --mode=forgeDelta');
+        $recorder->start('app:import:forge');
 
         $recorder->progress('Importing changed Forge issues', 1, 10);
         $recorder->finish(0);
@@ -129,7 +129,7 @@ final class CommandRunRecorderTest extends TestCase
     public function testAWaitForARateLimitIsANoteOnTheStepNotAStepOfItsOwn(): void
     {
         $recorder = $this->recorder(['stop_status' => null, 'stop_reason' => null]);
-        $recorder->start('app:import --mode=forgeFull');
+        $recorder->start('app:import:forge --full');
 
         $recorder->progress('Going through all Forge issues', 100, 1000);
         $start = array_last($this->updates)['phase_started_at'];
@@ -150,7 +150,7 @@ final class CommandRunRecorderTest extends TestCase
     public function testEachStepIsRecordedWithHowFarItGotAndWhenItEnded(): void
     {
         $recorder = $this->recorder(['stop_status' => null, 'stop_reason' => null]);
-        $recorder->start('app:import --mode=reviewFull');
+        $recorder->start('app:import:review --full');
 
         $recorder->progress('Listing Gerrit changes', 500, null);
         $recorder->progress('Listing Gerrit changes', 59000, null);

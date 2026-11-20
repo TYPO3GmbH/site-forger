@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Elastic;
 
 use Elastica\Request;
+use Elastica\Result;
 
 /**
  * What a delta import needs from the index: where to start, the latest "updated_on" minus an overlap,
@@ -38,6 +39,29 @@ final class ImportWatermark
         $latest = $result->getAggregation('latest')['value'] ?? null;
 
         return null === $latest ? null : self::fromLatest((int) ($latest / 1000));
+    }
+
+    /**
+     * The next documents an older version of the import wrote, the ones changed last first, see ImportSchema.
+     *
+     * @param 'issue'|'review' $index
+     *
+     * @return array{ids: list<int>, total: int}
+     */
+    public function outdated(string $index, int $limit): array
+    {
+        $results = ElasticUtility::getIndexByName($index)->search([
+            'query' => ImportSchema::outdated($index),
+            'sort' => [['updated_on' => 'desc']],
+            '_source' => false,
+            'size' => $limit,
+            'track_total_hits' => true,
+        ]);
+
+        return [
+            'ids' => array_map(static fn (Result $result): int => (int) $result->getId(), $results->getResults()),
+            'total' => $results->getTotalHits(),
+        ];
     }
 
     /**

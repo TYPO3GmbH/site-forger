@@ -14,7 +14,7 @@ namespace App\Elastic;
 /**
  * Finds where the issues of the index differ from those of Forge by their numbers alone: a range with as many
  * issues on both sides is taken as alike, one that differs is halved until its parts are small enough to list
- * them, see ImportCommand. Each half costs one count at Forge, the other half is the rest of the range.
+ * them, see ForgeImport. Each half costs one count at Forge, the other half is the rest of the range.
  *
  * Two differences that make up for each other in a range, one issue missing and one too many, go unnoticed; the
  * delta and the versions of the import cover what changes.

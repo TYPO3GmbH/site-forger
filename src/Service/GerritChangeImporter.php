@@ -46,6 +46,11 @@ final class GerritChangeImporter
      */
     private const int BULK_SIZE = 500;
 
+    /**
+     * Changes per request with their details.
+     */
+    public const int DETAIL_BATCH = 25;
+
     public function __construct(
         private readonly ApiClient $gerrit,
         private readonly CommandRunRecorder $recorder,
@@ -55,56 +60,78 @@ final class GerritChangeImporter
     }
 
     /**
-     * Loads a change of the project from Gerrit again and writes it to the index, as the import does. A change
-     * Gerrit does not show (any more), private now, deleted or in another project, is removed from the index.
-     *
-     * @throws ApiFailure Gerrit could not be asked, the index keeps the change as it is
+     * @throws ApiFailure the index keeps the change as it is
      */
     public function refresh(int $number): ChangeRefreshResult
     {
-        $changes = $this->find(self::PROJECT . ' change:' . $number, 1);
-        if ([] === $changes) {
-            return $this->projectChanges->remove([$number]) > 0 ? ChangeRefreshResult::REMOVED : ChangeRefreshResult::NOT_FOUND;
+        $result = $this->update([$number], refresh: true);
+        if ($result['updated'] > 0) {
+            return ChangeRefreshResult::UPDATED;
         }
-        $documents = $this->documents($changes);
-        if (!isset($documents[$number])) {
-            return ChangeRefreshResult::NOT_FOUND;
-        }
-        $this->write($documents[$number], refresh: true);
 
-        return ChangeRefreshResult::UPDATED;
+        return $result['removed'] > 0 ? ChangeRefreshResult::REMOVED : ChangeRefreshResult::NOT_FOUND;
     }
 
     /**
-     * Writes the document of a change to the review index.
+     * Loads the changes from Gerrit and writes them. Changes that Gerrit does not show for the project any more are
+     * removed: private, deleted, or in another project.
      *
-     * @param array<string, mixed> $document see documents()
-     * @param bool                 $refresh  whether the index shows the change right away, for the page that asked
+     * @param list<int>               $numbers
+     * @param (\Closure(): void)|null $afterChange called after each change Gerrit shows
+     * @param bool                    $refresh     the index shows the changes right away
+     *
+     * @return array{updated: int, removed: int}
+     *
+     * @throws ApiFailure
      */
-    public function write(array $document, bool $refresh = false): void
+    public function update(array $numbers, ?\Closure $afterChange = null, bool $refresh = false): array
     {
-        $this->users->ensureGerrit(array_filter([self::owner($document)]));
-        $index = ElasticUtility::getIndexByName('review');
-        $index->addDocument(new Document((string) $document['id'], $document));
-        if ($refresh) {
-            $index->refresh();
+        $updated = 0;
+        $removed = 0;
+        foreach (array_chunk($numbers, self::DETAIL_BATCH) as $batch) {
+            $documents = $this->documents($this->find(self::PROJECT . ' (' . self::changes($batch) . ')', count($batch)), $afterChange);
+            $this->writeAll($documents, $refresh);
+            $updated += count($documents);
+            $removed += $this->remove(array_values(array_diff($batch, array_keys($documents))));
         }
-        $this->recorder->document();
+
+        return ['updated' => $updated, 'removed' => $removed];
     }
 
     /**
-     * Writes the documents of changes to the review index in bulk requests, as the import does: one request for
-     * each change took longer than asking Gerrit for them.
+     * @param list<int> $numbers
+     *
+     * @return int the number of removed changes
+     */
+    public function remove(array $numbers): int
+    {
+        return [] === $numbers ? 0 : $this->projectChanges->remove($numbers);
+    }
+
+    /**
+     * @param array<int|string> $numbers
+     */
+    public static function changes(array $numbers): string
+    {
+        return implode(' OR ', array_map(static fn (int|string $number): string => 'change:' . $number, $numbers));
+    }
+
+    /**
+     * Writes in bulk requests: one request for each change took longer than loading it from Gerrit.
      *
      * @param array<array<string, mixed>> $documents see documents()
+     * @param bool                        $refresh   the index shows the changes right away
      */
-    public function writeAll(array $documents): void
+    public function writeAll(array $documents, bool $refresh = false): void
     {
         // The owners the index "user" lacks, complete: Gerrit told all of them with the change
         $this->users->ensureGerrit(array_values(array_filter(array_map(self::owner(...), array_values($documents)))));
         foreach (array_chunk(array_values($documents), self::BULK_SIZE) as $chunk) {
             ElasticUtility::getIndexByName('review')->addDocuments(array_map(static fn (array $document): Document => new Document((string) $document['id'], $document), $chunk));
             $this->recorder->document(count($chunk));
+        }
+        if ($refresh && [] !== $documents) {
+            ElasticUtility::getIndexByName('review')->refresh();
         }
     }
 

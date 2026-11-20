@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Http;
 
+use App\Service\JobStopped;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
@@ -42,6 +43,7 @@ final readonly class ApiClient
      * @param array<string, scalar|list<scalar>|null> $query see query()
      *
      * @throws ApiFailure
+     * @throws JobStopped when the job is stopped while it waits for a retry
      */
     public function get(string $path, array $query = []): mixed
     {
@@ -58,6 +60,7 @@ final readonly class ApiClient
      * @return array<string, mixed>
      *
      * @throws ApiFailure
+     * @throws JobStopped
      */
     public function object(string $path, array $query, string $expected): array
     {

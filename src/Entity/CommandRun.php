@@ -45,7 +45,7 @@ class CommandRun
     private ?int $id = null;
 
     /**
-     * The command name and its options, e.g. "app:import --mode=reviewDelta", runs of the same job share it.
+     * The command name and its options, e.g. "app:import:review --full", runs of the same job share it.
      */
     #[ORM\Column(type: Types::STRING, length: 255)]
     private string $job = '';

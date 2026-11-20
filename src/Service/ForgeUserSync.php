@@ -86,26 +86,75 @@ final readonly class ForgeUserSync
     public function fetchDue(int $limit, \DateTimeImmutable $now): array
     {
         $due = self::due($this->users->all(), $now, $limit);
+
+        return $this->updateUsers($due, $now, fn (int $done) => $this->recorder->progress(self::STEP, $done, count($due)));
+    }
+
+    /**
+     * Loads the users from Forge and writes them. A user that Forge does not know any more is marked as gone.
+     *
+     * @param list<int> $forgeIds
+     *
+     * @return array{updated: int, gone: int, stopped: string|null} why it stopped early, if it did
+     */
+    public function update(array $forgeIds, \DateTimeImmutable $now): array
+    {
+        $known = $this->users->all();
+        $users = array_map(static fn (int $forgeId): User => $known[$forgeId] ?? new User($forgeId, ''), $forgeIds);
+
+        return $this->updateUsers($users, $now);
+    }
+
+    /**
+     * @param list<int> $forgeIds
+     *
+     * @return int the number of removed users
+     */
+    public function remove(array $forgeIds): int
+    {
+        $known = $this->users->all();
+        $ids = [];
+        foreach ($forgeIds as $forgeId) {
+            if (isset($known[$forgeId])) {
+                $ids[] = $known[$forgeId]->id();
+            }
+        }
+        $this->users->remove($ids);
+
+        return count($ids);
+    }
+
+    /**
+     * Stops at the first failure of Forge other than an unknown user. The users before it are written.
+     *
+     * @param list<User>                 $users
+     * @param (\Closure(int): void)|null $afterUser gets the number of users done
+     *
+     * @return array{updated: int, gone: int, stopped: string|null}
+     */
+    private function updateUsers(array $users, \DateTimeImmutable $now, ?\Closure $afterUser = null): array
+    {
         $written = [];
         $replaced = [];
         $gone = 0;
         $stopped = null;
         try {
-            foreach ($due as $position => $user) {
+            foreach ($users as $position => $user) {
                 try {
-                    $written[] = $user->updatedBy(User::fromForge($this->fetch($user->forgeId), $now));
+                    $written[] = $user->updatedBy(User::fromForge($this->fetch((int) $user->forgeId), $now));
                     $replaced[] = $user->id();
                 } catch (ApiFailure $e) {
                     if (!$e->isNotFound()) {
-                        // The next run tries again
                         $stopped = $e->getMessage();
                         break;
                     }
-                    // Deleted or locked, or a group: Forge has no user for a group that is assigned
+                    // Deleted, locked, or a group: Forge has no user for an assigned group
                     $written[] = $user->asGone($now);
                     ++$gone;
                 }
-                $this->recorder->progress(self::STEP, $position + 1, count($due));
+                if (null !== $afterUser) {
+                    $afterUser($position + 1);
+                }
             }
         } finally {
             $this->users->write($this->withGerrit($written), $replaced);

@@ -11,22 +11,24 @@ declare(strict_types=1);
 
 namespace App\Tests\CommandRun;
 
-use App\Command\ImportCommand;
 use App\DTO\CommandJobOverview;
 use App\DTO\CommandRunStep;
 use App\Entity\CommandRun;
 use App\Enum\CommandRunStatusEnum;
+use App\Import\ForgeImport;
+use App\Import\GerritImport;
 use App\Scheduler\WeeklyTrigger;
 use App\Subscriber\CommandRunSubscriber;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputDefinition;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Scheduler\Trigger\PeriodicalTrigger;
 
 final class CommandRunTest extends TestCase
 {
-    private const array GERRIT_FULL = [ImportCommand::STEP_GERRIT_FULL_LIST, ImportCommand::STEP_GERRIT_FULL_LOAD, ImportCommand::STEP_GERRIT_VANISHED];
+    private const array GERRIT_FULL = [GerritImport::STEP_FULL_LIST, GerritImport::STEP_FULL_LOAD, GerritImport::STEP_VANISHED];
 
     private \DateTimeImmutable $now;
 
@@ -37,18 +39,22 @@ final class CommandRunTest extends TestCase
 
     public function testJobNamesTheOptionsThatDifferFromTheirDefaults(): void
     {
-        // The options of app:import
+        // The arguments and options of app:import:review
         $definition = new InputDefinition([
-            new InputOption('mode', null, InputOption::VALUE_REQUIRED),
-            new InputOption('startAt', null, InputOption::VALUE_OPTIONAL, '', 0),
+            new InputArgument('changes', InputArgument::IS_ARRAY | InputArgument::OPTIONAL),
+            new InputOption('full', null, InputOption::VALUE_NONE),
+            new InputOption('start-at', null, InputOption::VALUE_REQUIRED, '', '0'),
             new InputOption('verbose', 'v', InputOption::VALUE_NONE),
         ]);
 
-        $input = new ArrayInput(['--mode' => 'reviewDelta', '--startAt' => '0', '--verbose' => true], $definition);
-        self::assertSame('app:import --mode=reviewDelta', CommandRunSubscriber::job('app:import', $input, $definition, ['verbose']));
+        $input = new ArrayInput(['--start-at' => '0', '--verbose' => true], $definition);
+        self::assertSame('app:import:review', CommandRunSubscriber::job('app:import:review', $input, $definition, ['verbose']));
 
-        $input = new ArrayInput(['--mode' => 'reviewFull', '--startAt' => '500'], $definition);
-        self::assertSame('app:import --mode=reviewFull --startAt=500', CommandRunSubscriber::job('app:import', $input, $definition));
+        $input = new ArrayInput(['--full' => true, '--start-at' => '500'], $definition);
+        self::assertSame('app:import:review --full --start-at=500', CommandRunSubscriber::job('app:import:review', $input, $definition));
+
+        $input = new ArrayInput(['changes' => ['95026', '95027']], $definition);
+        self::assertSame('app:import:review 95026 95027', CommandRunSubscriber::job('app:import:review', $input, $definition));
     }
 
     public function testJobWithoutOptions(): void
@@ -157,8 +163,8 @@ final class CommandRunTest extends TestCase
     {
         $run = $this->commandRun('-10 minutes', CommandRunStatusEnum::RUNNING, heartbeat: '-5 seconds', more: [
             'steps' => [
-                $this->step(ImportCommand::STEP_GERRIT_FULL_LIST, '-10 minutes', '-6 minutes', 59000),
-                $this->step(ImportCommand::STEP_GERRIT_FULL_LOAD, '-6 minutes', null, 1200, 4000, 'Gerrit responded with 429, waiting 30 s (attempt 1 of 4)'),
+                $this->step(GerritImport::STEP_FULL_LIST, '-10 minutes', '-6 minutes', 59000),
+                $this->step(GerritImport::STEP_FULL_LOAD, '-6 minutes', null, 1200, 4000, 'Gerrit responded with 429, waiting 30 s (attempt 1 of 4)'),
             ],
         ]);
 
@@ -175,7 +181,7 @@ final class CommandRunTest extends TestCase
     public function testARunThatEndedEarlySkippedTheStepsItDidNotGetTo(): void
     {
         $run = $this->commandRun('-10 minutes', CommandRunStatusEnum::FAILED, more: [
-            'steps' => [$this->step(ImportCommand::STEP_GERRIT_FULL_LIST, '-10 minutes', '-9 minutes', 3000)],
+            'steps' => [$this->step(GerritImport::STEP_FULL_LIST, '-10 minutes', '-9 minutes', 3000)],
         ]);
 
         $states = array_map(static fn (CommandRunStep $step): string => $step->state, $run->steps(self::GERRIT_FULL, $this->now));
@@ -187,19 +193,19 @@ final class CommandRunTest extends TestCase
     {
         // forgeDelta into an empty index imports the latest issues instead of the changed ones
         $run = $this->commandRun('-2 minutes', CommandRunStatusEnum::WARNING, more: [
-            'steps' => [$this->step(ImportCommand::STEP_FORGE_LATEST, '-2 minutes', '-1 minute', 100)],
+            'steps' => [$this->step(ForgeImport::STEP_LATEST, '-2 minutes', '-1 minute', 100)],
         ]);
 
-        $steps = $run->steps([ImportCommand::STEP_FORGE_DELTA], $this->now);
+        $steps = $run->steps([ForgeImport::STEP_DELTA], $this->now);
 
-        self::assertSame([ImportCommand::STEP_FORGE_LATEST], array_map(static fn (CommandRunStep $step): string => $step->name, $steps));
+        self::assertSame([ForgeImport::STEP_LATEST], array_map(static fn (CommandRunStep $step): string => $step->name, $steps));
         self::assertSame(CommandRunStep::DONE, $steps[0]->state);
     }
 
     public function testARunFromBeforeTheStepsShowsItsLastPhase(): void
     {
         $run = $this->commandRun('-3 minutes', CommandRunStatusEnum::RUNNING, heartbeat: '-5 seconds', more: [
-            'phase' => ImportCommand::STEP_GERRIT_FULL_LIST,
+            'phase' => GerritImport::STEP_FULL_LIST,
             'phaseStartedAt' => $this->now->modify('-3 minutes'),
             'progressCurrent' => 31500,
         ]);
@@ -231,14 +237,14 @@ final class CommandRunTest extends TestCase
         // The latest changes into an empty index, a step reviewDelta does not declare, after its listing
         $run = $this->commandRun('-2 minutes', CommandRunStatusEnum::RUNNING, heartbeat: '-5 seconds', more: [
             'steps' => [
-                $this->step(ImportCommand::STEP_GERRIT_DELTA_LIST, '-2 minutes', '-1 minute', 30),
-                $this->step(ImportCommand::STEP_GERRIT_LATEST, '-1 minute', null, 10, 100),
+                $this->step(GerritImport::STEP_DELTA_LIST, '-2 minutes', '-1 minute', 30),
+                $this->step(GerritImport::STEP_LATEST, '-1 minute', null, 10, 100),
             ],
         ]);
 
-        $steps = $run->steps([ImportCommand::STEP_GERRIT_DELTA_LIST, ImportCommand::STEP_GERRIT_DELTA_LOAD], $this->now);
+        $steps = $run->steps([GerritImport::STEP_DELTA_LIST, GerritImport::STEP_DELTA_LOAD], $this->now);
 
-        self::assertSame([ImportCommand::STEP_GERRIT_DELTA_LIST, ImportCommand::STEP_GERRIT_LATEST, ImportCommand::STEP_GERRIT_DELTA_LOAD], array_map(static fn (CommandRunStep $step): string => $step->name, $steps));
+        self::assertSame([GerritImport::STEP_DELTA_LIST, GerritImport::STEP_LATEST, GerritImport::STEP_DELTA_LOAD], array_map(static fn (CommandRunStep $step): string => $step->name, $steps));
         self::assertSame([CommandRunStep::DONE, CommandRunStep::CURRENT, CommandRunStep::UPCOMING], array_map(static fn (CommandRunStep $step): string => $step->state, $steps));
     }
 
@@ -328,7 +334,7 @@ final class CommandRunTest extends TestCase
     {
         // reviewFull, queued with "Run now" for the first time, runs for hours: no success yet, but at work
         $trigger = new WeeklyTrigger('monday', '03:17');
-        $overview = new CommandJobOverview('app:import --mode=reviewFull', [
+        $overview = new CommandJobOverview('app:import:review --full', [
             $this->commandRun('-1 minute', CommandRunStatusEnum::RUNNING, heartbeat: '-10 seconds'),
             $this->commandRun('-5 minutes', CommandRunStatusEnum::LOCKED),
         ], $this->now, $trigger);
@@ -341,7 +347,7 @@ final class CommandRunTest extends TestCase
     {
         // Only skipped for the lock so far, the first run this Thursday: the planned runs are to come
         $trigger = new WeeklyTrigger('monday', '03:17');
-        $overview = new CommandJobOverview('app:import --mode=reviewFull', [$this->commandRun('-5 minutes', CommandRunStatusEnum::LOCKED)], $this->now, $trigger);
+        $overview = new CommandJobOverview('app:import:review --full', [$this->commandRun('-5 minutes', CommandRunStatusEnum::LOCKED)], $this->now, $trigger);
 
         self::assertFalse($overview->overdue);
         // Failing since its first run, for longer than three planned runs: overdue
@@ -355,8 +361,8 @@ final class CommandRunTest extends TestCase
         $runs = [$this->commandRun('-1 hour', CommandRunStatusEnum::SUCCESS), $this->commandRun('-1 hour -5 minutes', CommandRunStatusEnum::SUCCESS)];
         $trigger = new PeriodicalTrigger('5 minutes', new \DateTimeImmutable('2026-11-19 00:00'));
 
-        self::assertTrue(new CommandJobOverview('app:import --mode=forgeDelta', $runs, $this->now, $trigger)->overdue);
-        self::assertFalse(new CommandJobOverview('app:import --mode=forgeDelta', $runs, $this->now, $trigger, blockedBy: 'app:import --mode=forgeFull')->overdue);
+        self::assertTrue(new CommandJobOverview('app:import:forge', $runs, $this->now, $trigger)->overdue);
+        self::assertFalse(new CommandJobOverview('app:import:forge', $runs, $this->now, $trigger, blockedBy: 'app:import:forge --full')->overdue);
     }
 
     public function testInterruptedAndCancelledRunsAreNoFailures(): void
@@ -372,9 +378,9 @@ final class CommandRunTest extends TestCase
     {
         $trigger = new WeeklyTrigger('monday', '03:17');
         // 2026-11-19 is a Thursday: the run of Monday is there, the next one is to come
-        $fine = new CommandJobOverview('app:import --mode=reviewFull', [$this->commandRun('2026-11-16 03:17', CommandRunStatusEnum::SUCCESS)], $this->now, $trigger);
+        $fine = new CommandJobOverview('app:import:review --full', [$this->commandRun('2026-11-16 03:17', CommandRunStatusEnum::SUCCESS)], $this->now, $trigger);
         // The run of Monday is missing
-        $missing = new CommandJobOverview('app:import --mode=reviewFull', [$this->commandRun('2026-11-09 03:17', CommandRunStatusEnum::SUCCESS)], $this->now, $trigger);
+        $missing = new CommandJobOverview('app:import:review --full', [$this->commandRun('2026-11-09 03:17', CommandRunStatusEnum::SUCCESS)], $this->now, $trigger);
 
         self::assertFalse($fine->overdue);
         self::assertSame('Mon 23 03:17', $fine->nextRun?->format('D d H:i'));
@@ -392,7 +398,7 @@ final class CommandRunTest extends TestCase
             $runs[] = $this->commandRun($start, $statuses[$position] ?? CommandRunStatusEnum::SUCCESS);
         }
 
-        return new CommandJobOverview('app:import --mode=reviewDelta', $runs, $this->now, new PeriodicalTrigger('5 minutes', new \DateTimeImmutable('2026-11-19 00:00')));
+        return new CommandJobOverview('app:import:review', $runs, $this->now, new PeriodicalTrigger('5 minutes', new \DateTimeImmutable('2026-11-19 00:00')));
     }
 
     /**
@@ -419,7 +425,7 @@ final class CommandRunTest extends TestCase
     {
         $run = new \ReflectionClass(CommandRun::class)->newInstanceWithoutConstructor();
         $values = [
-            'job' => 'app:import --mode=reviewDelta',
+            'job' => 'app:import:review',
             'status' => $status,
             'startedAt' => $this->now->modify($start),
             'heartbeatAt' => $this->now->modify($heartbeat ?? $start),

@@ -100,7 +100,7 @@ final class GerritChangeImporterTest extends TestCase
 
         self::assertSame(ChangeRefreshResult::NOT_FOUND, $importer->refresh(95026));
         parse_str($this->requests[0]['request']->getUri()->getQuery(), $query);
-        self::assertSame('project:Packages/TYPO3.CMS change:95026', $query['q']);
+        self::assertSame('project:Packages/TYPO3.CMS (change:95026)', $query['q']);
     }
 
     public function testTheQueryOfARetryIsTheSame(): void
@@ -119,7 +119,7 @@ final class GerritChangeImporterTest extends TestCase
         $importer->refresh(81234);
 
         parse_str(str_replace('o=', 'o[]=', $this->requests[0]['request']->getUri()->getQuery()), $query);
-        // The same details as the full import and the delta, see ImportCommand::reviewBlock()
+        // The same details as the full import and the delta, see GerritImport
         self::assertSame(GerritChangeImporter::DETAIL_OPTIONS, $query['o']);
         // Only the current patch set
         self::assertNotContains('ALL_REVISIONS', GerritChangeImporter::DETAIL_OPTIONS);

@@ -30,6 +30,7 @@ final class ForgeIssueImporter
 {
     public function __construct(
         private readonly ApiClient $forge,
+        private readonly ForgeIssueList $forgeIssues,
         private readonly Users $users,
         private readonly ProjectIssues $projectIssues,
         private readonly CommandRunRecorder $recorder,
@@ -37,28 +38,85 @@ final class ForgeIssueImporter
     }
 
     /**
-     * Loads an issue from Forge again and writes it to the index. An issue that is gone from Forge, private
-     * or in another project now is removed from the index.
-     *
-     * @throws ApiFailure Forge could not be asked, the index keeps the issue as it is
+     * @throws ApiFailure the index keeps the issue as it is
      */
     public function refresh(int $id): IssueRefreshResult
     {
-        try {
-            $issue = $this->issue($id, 'relations');
-        } catch (ApiFailure $e) {
-            // Deleted on Forge, or not visible to the import any more
-            if ($e->isNotFound()) {
-                return $this->projectIssues->remove([$id]) > 0 ? IssueRefreshResult::REMOVED : IssueRefreshResult::NOT_FOUND;
-            }
-            throw $e;
+        $result = $this->update([$id], refresh: true);
+        if ($result['updated'] > 0) {
+            return IssueRefreshResult::UPDATED;
         }
-        if (!$this->projectIssues->belongsToProject($issue)) {
-            return $this->projectIssues->remove([$id]) > 0 ? IssueRefreshResult::REMOVED : IssueRefreshResult::NOT_FOUND;
-        }
-        $this->import($issue, refresh: true);
 
-        return IssueRefreshResult::UPDATED;
+        return $result['removed'] > 0 ? IssueRefreshResult::REMOVED : IssueRefreshResult::NOT_FOUND;
+    }
+
+    /**
+     * Loads the issues from Forge and writes them. Issues that Forge does not list for the index any more are
+     * removed: deleted, private, or in another project.
+     *
+     * @param list<int>                                               $ids
+     * @param (\Closure(): void)|null                                 $afterIssue called after each listed issue
+     * @param (\Closure(array<string, mixed>, \Exception): void)|null $onFailure  handles an issue that could not be
+     *                                                                            written, instead of throwing
+     * @param bool                                                    $refresh    the index shows the issues right away
+     *
+     * @return array{updated: int, removed: int}
+     *
+     * @throws ApiFailure
+     */
+    public function update(array $ids, ?\Closure $afterIssue = null, ?\Closure $onFailure = null, bool $refresh = false): array
+    {
+        $updated = 0;
+        $removed = 0;
+        foreach (array_chunk($ids, ForgeIssueList::PAGE_SIZE) as $chunk) {
+            $issues = $this->forgeIssues->byIds($chunk);
+            foreach ($issues as $issue) {
+                $updated += $this->tryImport($issue, $onFailure, $refresh);
+                if (null !== $afterIssue) {
+                    $afterIssue();
+                }
+            }
+            $listed = array_map(static fn (array $issue): int => (int) $issue['id'], $issues);
+            $removed += $this->remove(array_values(array_diff($chunk, $listed)));
+        }
+
+        return ['updated' => $updated, 'removed' => $removed];
+    }
+
+    /**
+     * @param list<int> $ids
+     *
+     * @return int the number of removed issues
+     */
+    public function remove(array $ids): int
+    {
+        return [] === $ids ? 0 : $this->projectIssues->remove($ids);
+    }
+
+    /**
+     * @param array<string, mixed>                                    $issue
+     * @param (\Closure(array<string, mixed>, \Exception): void)|null $onFailure
+     *
+     * @return int 1 if the issue was written
+     */
+    public function tryImport(array $issue, ?\Closure $onFailure, bool $refresh = false): int
+    {
+        if (null === $onFailure) {
+            $this->import($issue, $refresh);
+
+            return 1;
+        }
+        try {
+            $this->import($issue, $refresh);
+
+            return 1;
+        } catch (JobStopped $stopped) {
+            throw $stopped;
+        } catch (\Exception $e) {
+            $onFailure($issue, $e);
+
+            return 0;
+        }
     }
 
     /**
@@ -69,6 +127,7 @@ final class ForgeIssueImporter
      * @param bool                 $refresh whether the index shows the issue right away, for the page that asked
      *
      * @throws ApiFailure Forge could not be asked, the issue keeps its previous state in the index
+     * @throws JobStopped
      */
     public function import(array $issue, bool $refresh = false): void
     {

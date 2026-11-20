@@ -16,7 +16,7 @@ use Symfony\Component\Scheduler\Trigger\TriggerInterface;
 
 /**
  * The jobs of the schedule as the scheduler sees them, for the command runs page: read from the schedule itself,
- * like debug:scheduler does, by the job as its runs are recorded ("app:import --mode=forgeDelta").
+ * like debug:scheduler does, by the job as its runs are recorded ("app:import:forge").
  */
 final readonly class ScheduledJobs
 {

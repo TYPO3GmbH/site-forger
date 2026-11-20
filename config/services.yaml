@@ -92,9 +92,6 @@ services:
     resource: '../src/Controller'
     tags: ['controller.service_arguments']
 
-  App\Command\ImportCommand:
-    class: App\Command\ImportCommand
-    public: true
 
   # The state of the schedule (App\Scheduler\JobSchedule): in var/scheduler, which the deployments keep,
   # unlike var/cache

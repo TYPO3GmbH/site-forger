@@ -55,7 +55,7 @@ final class JobsResumeCommand extends Command
 
     protected function configure(): void
     {
-        $this->addArgument('job', InputArgument::OPTIONAL, 'The job, like "forgeDelta" or "app:import --mode=forgeDelta"; all jobs without');
+        $this->addArgument('job', InputArgument::OPTIONAL, 'The job, like "forgeDelta" or "app:import:forge"; all jobs without');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

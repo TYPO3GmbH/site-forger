@@ -11,11 +11,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Scheduler;
 
-use App\Command\ImportCommand;
 use App\Entity\CommandRun;
 use App\Entity\JobPause;
 use App\Entity\QueuedJob;
 use App\Enum\CommandRunStatusEnum;
+use App\Import\ForgeImport;
+use App\Import\GerritImport;
 use App\Repository\CommandRunRepository;
 use App\Repository\JobPauseRepository;
 use App\Repository\QueuedJobRepository;
@@ -111,8 +112,8 @@ final class SchedulerTest extends TestCase
         }
 
         self::assertSame([
-            'forgeDelta' => ['every 5 minutes', ['app:import', '--mode=forgeDelta']],
-            'reviewDelta' => ['every 5 minutes', ['app:import', '--mode=reviewDelta']],
+            'forgeDelta' => ['every 5 minutes', ['app:import:forge']],
+            'reviewDelta' => ['every 5 minutes', ['app:import:review']],
             'users' => ['every 5 minutes', ['app:import:users']],
             'backports' => ['every 5 minutes', ['app:backports']],
             StartQueuedJobs::class => 'every 1 minute',
@@ -127,17 +128,17 @@ final class SchedulerTest extends TestCase
         $triggers = (new ScheduledJobs(new JobSchedule(new ArrayAdapter(), new LockFactory(new InMemoryStore()))))->triggers();
 
         self::assertSame(
-            ['app:import --mode=forgeDelta', 'app:import --mode=reviewDelta', 'app:import:users', 'app:backports'],
+            ['app:import:forge', 'app:import:review', 'app:import:users', 'app:backports'],
             array_keys($triggers),
         );
-        self::assertSame('every 5 minutes', (string) $triggers['app:import --mode=reviewDelta']);
+        self::assertSame('every 5 minutes', (string) $triggers['app:import:review']);
     }
 
     public function testEveryJobSaysWhatItDoes(): void
     {
         self::assertSame([
-            'app:import --mode=forgeDelta' => 'Update Forge issues',
-            'app:import --mode=reviewDelta' => 'Update Gerrit changes',
+            'app:import:forge' => 'Update Forge issues',
+            'app:import:review' => 'Update Gerrit changes',
             'app:import:users' => 'Update users',
             'app:backports' => 'Find missing backports',
         ], (new ScheduledJobs(new JobSchedule(new ArrayAdapter(), new LockFactory(new InMemoryStore()))))->labels());
@@ -197,9 +198,9 @@ final class SchedulerTest extends TestCase
 
     public function testAJobStartsWithItsCommand(): void
     {
-        $job = new StartJob('reviewFull', 'Check all Gerrit changes', ['app:import', '--mode=reviewFull'], 'gerrit');
+        $job = new StartJob('reviewFull', 'Check all Gerrit changes', ['app:import:review', '--full'], 'gerrit');
 
-        self::assertSame(['app:import', '--mode=reviewFull'], array_slice(StartJobHandler::commandLine('php', $job, 'log'), 6));
+        self::assertSame(['app:import:review', '--full'], array_slice(StartJobHandler::commandLine('php', $job, 'log'), 6));
     }
 
     public function testTheQueuedJobsStartOnceAndThoseNoLongerInTheScheduleAreDropped(): void
@@ -208,7 +209,7 @@ final class SchedulerTest extends TestCase
         mkdir($projectDir);
         $backports = new QueuedJob('app:backports', 'dev-admin', new \DateTimeImmutable());
         $gone = new QueuedJob('app:import --mode=githubDelta', 'dev-admin', new \DateTimeImmutable());
-        $taken = new QueuedJob('app:import --mode=forgeDelta', 'dev-admin', new \DateTimeImmutable());
+        $taken = new QueuedJob('app:import:forge', 'dev-admin', new \DateTimeImmutable());
         $queue = $this->createMock(QueuedJobRepository::class);
         $queue->method('findQueued')->willReturn([$backports, $gone, $taken]);
         // Another worker took forgeDelta already
@@ -247,7 +248,7 @@ final class SchedulerTest extends TestCase
     public function testAJobPlannedForThisMinuteStaysQueuedForItsPlannedStart(): void
     {
         $queue = $this->createMock(QueuedJobRepository::class);
-        $queue->method('findQueued')->willReturn([new QueuedJob('app:import --mode=forgeDelta', 'dev-admin', new \DateTimeImmutable())]);
+        $queue->method('findQueued')->willReturn([new QueuedJob('app:import:forge', 'dev-admin', new \DateTimeImmutable())]);
         // The planned run at 15:00 starts it and takes it from the queue, see StartJobHandler
         $queue->expects(self::never())->method('claim');
 
@@ -258,14 +259,14 @@ final class SchedulerTest extends TestCase
     {
         $store = new InMemoryStore();
         $queue = $this->createMock(QueuedJobRepository::class);
-        $queue->method('findQueued')->willReturn([new QueuedJob('app:import --mode=reviewDelta', 'dev-admin', new \DateTimeImmutable())]);
+        $queue->method('findQueued')->willReturn([new QueuedJob('app:import:review', 'dev-admin', new \DateTimeImmutable())]);
         $queue->expects(self::never())->method('claim');
         $handler = $this->queueHandler($queue, new StartJobHandler(sys_get_temp_dir(), $queue, $this->noPauses(), new JobLocks(new LockFactory(new InMemoryStore())), new NullLogger()), new JobLocks(new LockFactory($store)));
 
         // reviewDelta is planned for 15:05 itself: the queued one waits
         $handler->start(new \DateTimeImmutable('today 15:05:00'));
         // A full import started on the console still runs a minute later, it holds the lock of Gerrit
-        $full = (new LockFactory($store))->createLock(ImportCommand::LOCK_GERRIT);
+        $full = (new LockFactory($store))->createLock(GerritImport::LOCK);
         $full->acquire();
         $handler->start(new \DateTimeImmutable('today 15:06:00'));
         $full->release();
@@ -274,7 +275,7 @@ final class SchedulerTest extends TestCase
     public function testAQueuedJobStartsOnceItsLockIsFree(): void
     {
         $queue = $this->createMock(QueuedJobRepository::class);
-        $queue->method('findQueued')->willReturn([new QueuedJob('app:import --mode=reviewDelta', 'dev-admin', new \DateTimeImmutable())]);
+        $queue->method('findQueued')->willReturn([new QueuedJob('app:import:review', 'dev-admin', new \DateTimeImmutable())]);
         $queue->expects(self::once())->method('claim')->willReturn(false);
 
         $this->queueHandler($queue, new StartJobHandler(sys_get_temp_dir(), $queue, $this->noPauses(), new JobLocks(new LockFactory(new InMemoryStore())), new NullLogger()))->start(new \DateTimeImmutable('today 15:06:00'));
@@ -309,22 +310,22 @@ final class SchedulerTest extends TestCase
     public function testAPausedJobIsQueuedInsteadOfStarted(): void
     {
         $queue = $this->createMock(QueuedJobRepository::class);
-        $queue->expects(self::once())->method('queue')->with('app:import --mode=forgeDelta', self::stringContains('paused'));
+        $queue->expects(self::once())->method('queue')->with('app:import:forge', self::stringContains('paused'));
         $queue->expects(self::never())->method('dequeue');
 
-        (new StartJobHandler('/nonexistent', $queue, $this->pausesOf(JobPause::ALL), new JobLocks(new LockFactory(new InMemoryStore())), new NullLogger()))(new StartJob('forgeDelta', 'Update Forge issues', ['app:import', '--mode=forgeDelta'], ImportCommand::LOCK_FORGE));
+        (new StartJobHandler('/nonexistent', $queue, $this->pausesOf(JobPause::ALL), new JobLocks(new LockFactory(new InMemoryStore())), new NullLogger()))(new StartJob('forgeDelta', 'Update Forge issues', ['app:import:forge'], ForgeImport::LOCK));
     }
 
     public function testAJobWhoseLockIsTakenIsQueuedInsteadOfStarted(): void
     {
         // A full import started on the console runs: the planned forgeDelta waits for it, instead of "Skipped, locked" every five minutes
         $store = new InMemoryStore();
-        $full = (new LockFactory($store))->createLock(ImportCommand::LOCK_FORGE);
+        $full = (new LockFactory($store))->createLock(ForgeImport::LOCK);
         $full->acquire();
         $queue = $this->createMock(QueuedJobRepository::class);
-        $queue->expects(self::once())->method('queue')->with('app:import --mode=forgeDelta', self::stringContains('lock'));
+        $queue->expects(self::once())->method('queue')->with('app:import:forge', self::stringContains('lock'));
 
-        (new StartJobHandler('/nonexistent', $queue, $this->noPauses(), new JobLocks(new LockFactory($store)), new NullLogger()))(new StartJob('forgeDelta', 'Update Forge issues', ['app:import', '--mode=forgeDelta'], ImportCommand::LOCK_FORGE));
+        (new StartJobHandler('/nonexistent', $queue, $this->noPauses(), new JobLocks(new LockFactory($store)), new NullLogger()))(new StartJob('forgeDelta', 'Update Forge issues', ['app:import:forge'], ForgeImport::LOCK));
         $full->release();
     }
 
@@ -342,14 +343,14 @@ final class SchedulerTest extends TestCase
     {
         $run = new \ReflectionClass(CommandRun::class)->newInstanceWithoutConstructor();
         new \ReflectionProperty(CommandRun::class, 'id')->setValue($run, 7);
-        new \ReflectionProperty(CommandRun::class, 'job')->setValue($run, 'app:import --mode=reviewFull');
+        new \ReflectionProperty(CommandRun::class, 'job')->setValue($run, 'app:import:review --full');
         $pauses = $this->createMock(JobPauseRepository::class);
         $pauses->expects(self::once())->method('pause')->with(JobPause::ALL, 'deployment', 'a deployment');
         $runs = $this->createMock(CommandRunRepository::class);
         $runs->method('findRunning')->willReturn([$run]);
         $runs->expects(self::once())->method('requestStop')->with(7, CommandRunStatusEnum::INTERRUPTED, 'Interrupted: a deployment')->willReturn(true);
         $queue = $this->createMock(QueuedJobRepository::class);
-        $queue->expects(self::once())->method('queue')->with('app:import --mode=reviewFull', 'interrupted, a deployment', self::anything());
+        $queue->expects(self::once())->method('queue')->with('app:import:review --full', 'interrupted, a deployment', self::anything());
 
         $stopping = $this->control($pauses, $queue, $runs)->pause(null, 'deployment', 'a deployment', new \DateTimeImmutable());
 
@@ -369,9 +370,9 @@ final class SchedulerTest extends TestCase
         $all = new JobPause(JobPause::ALL, 'deployment', 'a deployment', new \DateTimeImmutable());
         $own = new JobPause('app:backports', 'dev-admin', 'test', new \DateTimeImmutable());
 
-        self::assertSame($all, $control->pauseOf('app:import --mode=forgeDelta', [JobPause::ALL => $all]));
+        self::assertSame($all, $control->pauseOf('app:import:forge', [JobPause::ALL => $all]));
         self::assertSame($own, $control->pauseOf('app:backports', ['app:backports' => $own]));
-        self::assertNull($control->pauseOf('app:import --mode=forgeDelta', ['app:backports' => $own]));
+        self::assertNull($control->pauseOf('app:import:forge', ['app:backports' => $own]));
     }
 
     public function testTheWaitEndsOnceTheRunsStopped(): void

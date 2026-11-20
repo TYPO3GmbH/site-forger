@@ -16,6 +16,7 @@ use App\Elastic\Users;
 use App\Http\ApiFailure;
 use App\Service\CommandRunRecorder;
 use App\Service\ForgeIssueImporter;
+use App\Service\ForgeIssueList;
 use App\Tests\Http\MockApi;
 use Doctrine\DBAL\Connection;
 use GuzzleHttp\Psr7\Response;
@@ -100,9 +101,9 @@ final class ForgeIssueImporterTest extends TestCase
         $importer->refresh(91089);
     }
 
-    public function testAnAnswerWithoutTheIssueIsAFailure(): void
+    public function testAnAnswerWithoutAListOfIssuesIsAFailure(): void
     {
-        $this->expectExceptionMessage('Forge answered without the issue: {"errors":[]}');
+        $this->expectExceptionMessage('Forge answered without a list of issues: {"errors":[]}');
         $this->importer([new Response(200, [], '{"errors":[]}')])->refresh(91089);
     }
 
@@ -113,8 +114,11 @@ final class ForgeIssueImporterTest extends TestCase
     {
         $recorder = new CommandRunRecorder($this->createStub(Connection::class), new NullLogger());
 
+        $forge = new MockApi($responses, $recorder)->client;
+
         return new ForgeIssueImporter(
-            new MockApi($responses, $recorder)->client,
+            $forge,
+            new ForgeIssueList($forge, 27),
             new Users(new ArrayAdapter(), new NullLogger()),
             new ProjectIssues(27),
             $recorder,

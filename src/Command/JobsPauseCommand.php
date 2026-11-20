@@ -38,7 +38,7 @@ final class JobsPauseCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addArgument('job', InputArgument::OPTIONAL, 'The job, like "forgeDelta" or "app:import --mode=forgeDelta"; all jobs without')
+            ->addArgument('job', InputArgument::OPTIONAL, 'The job, like "forgeDelta" or "app:import:forge"; all jobs without')
             ->addOption('reason', null, InputOption::VALUE_REQUIRED, 'Why, shown on the command runs page', 'Paused on the console')
             ->addOption('wait', null, InputOption::VALUE_REQUIRED, 'Seconds to wait at most for the running jobs to stop', '300');
     }

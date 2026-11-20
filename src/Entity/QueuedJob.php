@@ -30,7 +30,7 @@ class QueuedJob
     private ?int $id = null;
 
     public function __construct(
-        /** The job as its runs are recorded, like "app:import --mode=forgeDelta" */
+        /** The job as its runs are recorded, like "app:import:forge" */
         #[ORM\Column(type: Types::STRING, length: 255)]
         private string $job,
         /** Who or what queued it, as the page shows it: "Run now by dev-admin", "interrupted, a deployment" */

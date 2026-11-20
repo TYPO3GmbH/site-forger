@@ -62,7 +62,7 @@ final readonly class CommandRunSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * The command with the arguments and options that differ from their defaults, e.g. "app:import --mode=reviewDelta".
+     * The command with the arguments and options that differ from their defaults, e.g. "app:import:review --full".
      * Options of the console itself (--env, --verbose, ...) are left out, they don't make it another job.
      *
      * @param list<string> $applicationOptions

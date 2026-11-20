@@ -89,7 +89,7 @@ final readonly class ProjectIssues
     }
 
     /**
-     * How many issues the index has, with a number in the range if one is given, see ImportCommand::reconcileForgeIssues().
+     * How many issues the index has, with a number in the range if one is given, see ForgeImport::reconcile().
      */
     public function count(?int $from = null, ?int $to = null): int
     {

@@ -406,6 +406,14 @@ class Users
     }
 
     /**
+     * @param list<string> $ids
+     */
+    public function remove(array $ids): void
+    {
+        $this->write([], $ids);
+    }
+
+    /**
      * Writes users, and removes the documents they had under another id before: a user taken over from the issues
      * is "forge:<number>" until Forge told the username.
      *
