@@ -1,0 +1,4 @@
+# Messenger only carries the messages of the schedule, see App\Scheduler\JobSchedule: its transport
+# "scheduler_jobs" comes with the schedule, no other transport is needed.
+framework:
+    messenger: ~

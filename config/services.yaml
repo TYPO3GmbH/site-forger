@@ -37,6 +37,10 @@ services:
       - '../src/Entity/'
       - '../src/Kernel.php'
 
+  # dotenv:dump compiles .env and .env.local into .env.local.php in a deployment (forger:dump_env in deploy.php),
+  # without Composer and its plugins on the server
+  Symfony\Component\Dotenv\Command\DotenvDumpCommand: ~
+
   redmine.client.forge:
     class: Redmine\Client\NativeCurlClient
     arguments:
@@ -55,14 +59,6 @@ services:
       $config:
         base_uri: 'https://review.typo3.org/'
 
-  guzzle.client.github:
-    class: GuzzleHttp\Client
-    arguments:
-      $config:
-        headers:
-          User-Agent: 'TYPO3 Forger'
-          Authorization: 'token %env(GITHUB_ACCESS_TOKEN)%'
-        base_uri: 'https://api.github.com/'
 
   renderer.redmineTextile:
     class: App\Renderer\RedmineTextileRenderer
@@ -88,6 +84,17 @@ services:
   App\Service\ForgeIssueImporter:
     arguments:
       $forgeClient: '@redmine.client.forge'
+
+  # The state of the schedule (App\Scheduler\JobSchedule): in var/scheduler, which the deployments keep,
+  # unlike var/cache
+  app.scheduler.state:
+    class: Symfony\Component\Cache\Adapter\FilesystemAdapter
+    arguments: ['jobs', 0, '%kernel.project_dir%/var/scheduler']
+
+  # The locks as the console takes them, not the lock of the app, see App\Scheduler\JobLocks
+  App\Scheduler\JobLocks:
+    arguments:
+      $factory: null
 
   App\Service\GerritChangeImporter:
     arguments:
@@ -120,10 +127,6 @@ services:
 
   App\Renderer\Factory\RedmineTextileRendererFactory: ~
 
-  App\Service\GithubService:
-    class: App\Service\GithubService
-    arguments:
-      $client: '@guzzle.client.github'
 
   App\Subscriber\HostAwareRouteSubscriber:
     class: App\Subscriber\HostAwareRouteSubscriber

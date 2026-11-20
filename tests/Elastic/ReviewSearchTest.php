@@ -26,7 +26,7 @@ final class ReviewSearchTest extends TestCase
     {
         $should = ReviewSearch::query(' form (editor) ')['bool']['should'];
 
-        self::assertSame(['query_string' => ['query' => 'form \\(editor\\)', 'fields' => ['subject^3', 'commit_message'], 'default_operator' => 'AND']], $should[0]);
+        self::assertSame(['query_string' => ['query' => 'form \\(editor\\)', 'fields' => ['subject^3', 'commit_text^2', 'commit_message'], 'default_operator' => 'AND']], $should[0]);
         self::assertSame(['term' => ['topic' => 'form (editor)']], $should[1]);
         self::assertSame(['wildcard' => ['owner' => ['value' => '*form (editor)*', 'case_insensitive' => true]]], $should[2]);
         self::assertCount(3, $should);

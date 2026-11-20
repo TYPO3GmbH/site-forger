@@ -25,11 +25,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Attribute\When;
 
 /**
- * Fills the local indices with mock issues, Gerrit changes and interactions in every state.
+ * Fills the local indices with mock issues and Gerrit changes in every state.
  * They belong to the dev login users, so "My Work" shows all of them.
  */
 #[When(env: 'dev')]
-#[AsCommand(name: 'app:mock-data', description: 'Replaces the mock issues, Gerrit changes and interactions in the local indices (dev only)')]
+#[AsCommand(name: 'app:mock-data', description: 'Replaces the mock issues and Gerrit changes in the local indices (dev only)')]
 final class MockDataCommand extends Command
 {
     /**
@@ -68,14 +68,12 @@ final class MockDataCommand extends Command
         $counts = [
             'issue' => $this->write('issue', $generator->issues(), static fn (array $doc): string => (string) $doc['id']),
             'review' => $this->write('review', $generator->reviews(), static fn (array $doc): string => (string) $doc['id']),
-            'interactions' => $this->write('interactions', $generator->interactions(), static fn (array $doc): string => $doc['interaction_id']),
         ];
 
         $io->success(sprintf(
-            'Wrote %d issues, %d Gerrit changes and %d interactions (ids from %d).',
+            'Wrote %d issues and %d Gerrit changes (ids from %d).',
             $counts['issue'],
             $counts['review'],
-            $counts['interactions'],
             MockDataGenerator::ID_OFFSET + 1,
         ));
         $io->text('Log in as one of the dev users and open "My Work" to see them.');
@@ -110,10 +108,6 @@ final class MockDataCommand extends Command
         foreach (['issue', 'review'] as $type) {
             ElasticUtility::getIndexByName($type)->deleteByQuery(['query' => $idRange], ['refresh' => true]);
         }
-        ElasticUtility::getIndexByName('interactions')->deleteByQuery(
-            ['query' => ['prefix' => ['interaction_id' => MockDataGenerator::INTERACTION_PREFIX]]],
-            ['refresh' => true],
-        );
     }
 
     /**

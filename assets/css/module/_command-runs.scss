@@ -35,15 +35,113 @@
     }
 }
 
+// "Live": the switch of the refresh, a pill with a pulsing dot while it is on
 .runs-refresh {
+    --runs-live: #1d4ed8;
+
     display: inline-flex;
     flex-shrink: 0;
-    gap: .4rem;
+    gap: .55rem;
     align-items: center;
     margin: 0;
+    padding: .3rem .4rem .3rem .75rem;
+    border: 1px solid var(--runs-border);
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: var(--runs-shadow);
     font-size: .8125rem;
+    font-weight: 600;
     white-space: nowrap;
     cursor: pointer;
+    user-select: none;
+    transition: border-color .15s ease, background-color .15s ease;
+
+    &:has(.runs-refresh-switch:checked) {
+        border-color: #c7d7fe;
+        background: #f3f7ff;
+    }
+
+    .runs-muted {
+        font-weight: 400;
+    }
+}
+
+.runs-refresh-dot {
+    position: relative;
+    width: .5rem;
+    height: .5rem;
+    border-radius: 50%;
+    background: #c4c9d1;
+
+    .runs-refresh:has(.runs-refresh-switch:checked) & {
+        background: var(--runs-live);
+
+        &::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: var(--runs-live);
+            animation: runs-live-pulse 1.6s ease-out infinite;
+        }
+    }
+}
+
+@keyframes runs-live-pulse {
+    from { opacity: .6; transform: scale(1); }
+    to { opacity: 0; transform: scale(2.6); }
+}
+
+// The switch: the checkbox itself, without the look of the browser
+.runs-refresh-switch {
+    position: relative;
+    flex-shrink: 0;
+    width: 2rem;
+    height: 1.125rem;
+    margin: 0;
+    border-radius: 999px;
+    background: #d1d5db;
+    cursor: pointer;
+    transition: background-color .15s ease;
+    appearance: none;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: .125rem;
+        left: .125rem;
+        width: .875rem;
+        height: .875rem;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(16, 24, 40, .2);
+        transition: transform .15s ease;
+    }
+
+    &:checked {
+        background: var(--runs-live);
+
+        &::before {
+            transform: translateX(.875rem);
+        }
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--runs-live);
+        outline-offset: 2px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .runs-refresh-dot::after {
+        animation: none;
+    }
+
+    .runs-refresh,
+    .runs-refresh-switch,
+    .runs-refresh-switch::before {
+        transition: none;
+    }
 }
 
 // Key figures, as on the dashboard
@@ -199,7 +297,22 @@
 }
 
 .runs-card-running {
+    gap: 1rem;
     border-color: #b9d0f3;
+
+    // A single run takes the whole width
+    &:only-child {
+        grid-column: 1 / -1;
+    }
+}
+
+// Started, heartbeat, documents, warnings: in one row as long as there is room
+.runs-facts-running {
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+
+    dd {
+        white-space: nowrap;
+    }
 }
 
 .runs-card-header {
@@ -209,17 +322,32 @@
     justify-content: space-between;
 }
 
-.runs-job,
-.runs-job code {
+.runs-job {
     color: #0b0b0b;
-    font-size: .875rem;
-    font-weight: 600;
     overflow-wrap: anywhere;
 }
 
-a.runs-job:hover code,
-a.runs-job:focus-visible code {
-    color: #2a78d6;
+// What the job does, its command below in small, see the macro "job"
+.runs-job-label {
+    display: block;
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+.runs-job-command {
+    display: block;
+    color: var(--runs-muted);
+    font-size: .75rem;
+    font-weight: 400;
+}
+
+a.runs-job {
+    text-decoration: none;
+
+    &:hover .runs-job-label,
+    &:focus-visible .runs-job-label {
+        color: #2a78d6;
+    }
 }
 
 .runs-facts {
@@ -290,39 +418,10 @@ a.runs-job:focus-visible code {
     font-weight: 600;
 }
 
-.runs-progress-track {
-    position: relative;
-    height: .5rem;
-    overflow: hidden;
-    border-radius: 999px;
-    background: #e7efff;
-}
-
-.runs-progress-bar {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: #2a78d6;
-    transition: width .4s;
-}
-
-// Without a total the bar only shows that something happens
-.runs-progress-track.is-indeterminate .runs-progress-bar {
-    width: 30% !important;
-    animation: runs-indeterminate 1.4s ease-in-out infinite;
-}
-
+// A moving bar for a step without a total, see .runs-segment.is-indeterminate
 @keyframes runs-indeterminate {
     from { transform: translateX(-100%); }
     to { transform: translateX(340%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .runs-progress-track.is-indeterminate .runs-progress-bar {
-        width: 100% !important;
-        opacity: .5;
-        animation: none;
-    }
 }
 
 // The list of runs
@@ -418,28 +517,81 @@ a.runs-job:focus-visible code {
     }
 }
 
-.runs-message {
+// How a run ended: its error, its warnings, for the runs from before their log, see the macro "message"
+.runs-error,
+.runs-warnings {
     max-width: 90ch;
+    margin: .25rem 0 .35rem;
+    padding: .6rem .85rem;
+    border-left: 3px solid var(--runs-message-color);
+    border-radius: .4rem;
+    background: var(--runs-message-background);
     font-size: .8125rem;
 
+    p {
+        margin: 0;
+    }
+
+    ul {
+        margin: .35rem 0 0;
+        padding-left: 1.1rem;
+    }
+
+    li + li {
+        margin-top: .15rem;
+    }
+}
+
+.runs-error {
+    --runs-message-color: #d03b3b;
+    --runs-message-background: #fdf3f2;
+}
+
+.runs-warnings {
+    --runs-message-color: #e0a106;
+    --runs-message-background: #fffaeb;
+}
+
+.runs-error-title,
+.runs-warnings-title {
+    color: #0b0b0b;
+    font-weight: 600;
+}
+
+.runs-error-type {
+    margin-right: .35rem;
+    padding: .05rem .35rem;
+    border-radius: .3rem;
+    background: #fbe0dd;
+    color: #b42318;
+    font-size: .75rem;
+}
+
+.runs-error-text {
+    margin-top: .3rem;
+    color: #3f3f46;
+    overflow-wrap: anywhere;
+
     summary {
-        overflow: hidden;
-        color: #b42318;
-        text-overflow: ellipsis;
-        white-space: nowrap;
         cursor: pointer;
     }
 
     pre {
         margin: .5rem 0 0;
-        padding: .75rem 1rem;
-        border-radius: .5rem;
-        background: #f7f8fa;
-        color: #1f2937;
+        padding: .6rem .8rem;
+        border-radius: .4rem;
+        background: #fff;
         font-size: .75rem;
         white-space: pre-wrap;
-        overflow-wrap: anywhere;
     }
+}
+
+// Why a run was stopped on purpose, beside its status
+.runs-reason {
+    display: block;
+    margin-top: .2rem;
+    font-size: .75rem;
+    white-space: normal;
 }
 
 .runs-more {
@@ -448,7 +600,7 @@ a.runs-job:focus-visible code {
     text-align: center;
 }
 
-// While the content is replaced
+// While the content of a filter or job link loads, not while it refreshes
 [data-runs-page][aria-busy="true"] [data-runs-list] {
     opacity: .6;
     transition: opacity .15s;
@@ -456,4 +608,716 @@ a.runs-job:focus-visible code {
 
 #runs {
     scroll-margin-top: 1rem;
+}
+
+// "Run now" of a job in the next runs, see templates/management/commands/index.html.twig
+.runs-actions {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.runs-queue {
+    display: inline;
+    margin: 0;
+}
+
+.runs-queue-button {
+    display: inline-flex;
+    gap: .35rem;
+    align-items: center;
+    padding: .2rem .65rem;
+    border: 1px solid var(--runs-border);
+    border-radius: .4rem;
+    background: #fff;
+    color: inherit;
+    font-size: .8125rem;
+    line-height: 1.4;
+    white-space: nowrap;
+
+    &:hover,
+    &:focus-visible {
+        border-color: currentcolor;
+    }
+
+    .icon {
+        flex-shrink: 0;
+        width: .875rem;
+        height: .875rem;
+    }
+}
+
+.runs-queue-button-pause {
+    padding: .3rem .8rem;
+    border-radius: 999px;
+    box-shadow: var(--runs-shadow);
+    font-weight: 600;
+}
+
+.runs-queue-button-primary {
+    border-color: #6d28d9;
+    background: #6d28d9;
+    color: #fff;
+    font-weight: 600;
+
+    &:hover,
+    &:focus-visible {
+        border-color: #5b21b6;
+        background: #5b21b6;
+    }
+}
+
+.runs-queue-button-danger {
+    color: #b42318;
+}
+
+// The actions of a job in the next runs, and those of a running job
+.runs-actions-group {
+    display: inline-flex;
+    gap: .4rem;
+    align-items: center;
+}
+
+.runs-card-actions {
+    display: flex;
+    gap: .4rem;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: auto;
+    padding-top: .75rem;
+    border-top: 1px solid var(--runs-border);
+    font-size: .8125rem;
+}
+
+// When the whole run ends, above the bar of its steps
+.runs-progress-run {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem .6rem;
+    align-items: baseline;
+    margin: 0 0 .5rem;
+    color: #374151;
+    font-size: .8125rem;
+}
+
+.runs-progress-run-label,
+.runs-progress-phase {
+    color: var(--runs-muted);
+    font-size: .6875rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.runs-progress-phase {
+    margin-right: .25rem;
+}
+
+.runs-intro-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: .6rem;
+    align-items: center;
+}
+
+// All jobs are paused, see App\Scheduler\JobControl
+.runs-paused {
+    display: flex;
+    gap: .9rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid #d9ccfb;
+    border-radius: var(--runs-radius);
+    background: #f7f3ff;
+    box-shadow: var(--runs-shadow);
+
+    p {
+        margin: 0;
+    }
+}
+
+.runs-paused-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: #ede5ff;
+    color: #6d28d9;
+
+    .icon {
+        width: 1rem;
+        height: 1rem;
+    }
+}
+
+.runs-paused-body {
+    flex: 1;
+}
+
+.runs-paused-title {
+    color: #0b0b0b;
+    font-weight: 600;
+}
+
+// The speed and the time left of a phase, below its bar
+.runs-progress-eta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 1rem;
+    margin-top: .35rem;
+    font-size: .75rem;
+}
+
+// Asks before an action on a job, see confirmAction() in command-runs.js
+.runs-confirm {
+    width: min(28rem, calc(100% - 2rem));
+    margin: 20vh auto auto;
+    padding: 1.25rem 1.5rem;
+    border: 0;
+    border-radius: .75rem;
+    box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, .25);
+
+    &::backdrop {
+        background-color: rgba(20, 24, 31, .45);
+    }
+}
+
+.runs-confirm-form {
+    margin: 0;
+}
+
+.runs-confirm-title {
+    margin: 0 0 .5rem;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.runs-confirm-detail {
+    margin: 0;
+    color: #6b7280;
+    font-size: .875rem;
+}
+
+.runs-confirm-buttons {
+    display: flex;
+    gap: .5rem;
+    justify-content: flex-end;
+    margin-top: 1.25rem;
+
+    .runs-queue-button {
+        padding: .35rem .9rem;
+        border-color: #e6e8eb;
+        font-size: .875rem;
+    }
+
+    .runs-queue-button-primary {
+        border-color: #6d28d9;
+    }
+}
+
+// Outlined on the page, filled in the dialog: the last step before a run is dropped
+.runs-confirm-submit.runs-queue-button-danger {
+    border-color: #b42318;
+    background: #b42318;
+    color: #fff;
+    font-weight: 600;
+
+    &:hover,
+    &:focus-visible {
+        border-color: #912018;
+        background: #912018;
+    }
+}
+
+// The bar of a run, a segment for each step, see the macro "segments"
+.runs-segments {
+    display: flex;
+    gap: 4px;
+    height: .5rem;
+}
+
+.runs-segment {
+    position: relative;
+    flex: 1 1 0;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e7efff;
+
+    &.is-skipped {
+        background: repeating-linear-gradient(135deg, #eef0f2 0 4px, #e2e5e9 4px 8px);
+    }
+}
+
+.runs-segment-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #2a78d6;
+    transition: width .4s;
+
+    .is-done > & {
+        background: #3f8f5b;
+    }
+
+    .is-stopped > & {
+        background: #b42318;
+    }
+
+    .is-upcoming > &,
+    .is-skipped > & {
+        display: none;
+    }
+}
+
+// Without a total the segment only shows that something happens
+.runs-segment.is-indeterminate .runs-segment-fill {
+    width: 30% !important;
+    animation: runs-indeterminate 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .runs-segment.is-indeterminate .runs-segment-fill {
+        width: 100% !important;
+        opacity: .5;
+        animation: none;
+    }
+}
+
+// The steps of a running run below its bar
+.runs-steps {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    margin: .75rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.runs-step {
+    position: relative;
+    display: flex;
+    gap: .75rem;
+    padding-bottom: .5rem;
+
+    // The line from one step to the next
+    &:not(:last-child)::before {
+        content: '';
+        position: absolute;
+        top: 1.5rem;
+        bottom: -.15rem;
+        left: calc(.75rem - 1px);
+        width: 2px;
+        background: var(--runs-border);
+    }
+
+    &.is-done:not(:last-child)::before {
+        background: #bfe0ca;
+    }
+}
+
+.runs-step-marker {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid var(--runs-border);
+    border-radius: 50%;
+    background: #fff;
+    color: var(--runs-muted);
+    font-size: .6875rem;
+    font-weight: 700;
+
+    .icon {
+        width: .75rem;
+        height: .75rem;
+    }
+
+    .is-done > & {
+        border-color: #3f8f5b;
+        background: #3f8f5b;
+        color: #fff;
+    }
+
+    .is-current > & {
+        border-color: #2a78d6;
+        background: #2a78d6;
+        color: #fff;
+        box-shadow: 0 0 0 4px #e7efff;
+    }
+
+    .is-stopped > & {
+        border-color: #b42318;
+        background: #b42318;
+        color: #fff;
+    }
+
+    .is-skipped > & {
+        border-style: dashed;
+    }
+}
+
+.runs-step-body {
+    flex: 1;
+    min-width: 0;
+    padding-top: .15rem;
+}
+
+.runs-step-head {
+    display: flex;
+    gap: 1rem;
+    align-items: baseline;
+    justify-content: space-between;
+    font-size: .8125rem;
+}
+
+.runs-step-name {
+    color: #374151;
+
+    .is-current & {
+        color: #0b0b0b;
+        font-weight: 600;
+    }
+
+    .is-upcoming &,
+    .is-skipped & {
+        color: var(--runs-muted);
+    }
+}
+
+.runs-step-meta {
+    flex-shrink: 0;
+    color: var(--runs-muted);
+    font-size: .75rem;
+    white-space: nowrap;
+
+    .is-current & {
+        color: #374151;
+        font-size: .8125rem;
+        font-weight: 600;
+    }
+
+    .is-stopped & {
+        color: #b42318;
+    }
+}
+
+// A step that waits, for a rate limit for example
+.runs-step-waiting {
+    display: inline-flex;
+    gap: .35rem;
+    align-items: center;
+    margin-top: .35rem;
+    padding: .15rem .5rem;
+    border-radius: .4rem;
+    background: #fff3dc;
+    color: #a15c07;
+    font-size: .75rem;
+
+    .icon {
+        width: .75rem;
+        height: .75rem;
+    }
+}
+
+// A run asked to stop, until it did
+.runs-stopping {
+    display: inline-flex;
+    gap: .4rem;
+    align-items: center;
+    color: var(--runs-muted);
+
+    .icon {
+        width: .875rem;
+        height: .875rem;
+    }
+}
+
+// A button whose action is on its way, see postAction() in command-runs.js
+.runs-queue-button[aria-busy="true"] {
+    cursor: progress;
+    opacity: .55;
+}
+
+// The messages of the actions, at the bottom of the page: they cover nothing and move nothing
+.runs-notices {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 1080;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    align-items: flex-end;
+    max-width: min(28rem, calc(100% - 3rem));
+}
+
+.runs-notice {
+    display: flex;
+    gap: .75rem;
+    align-items: flex-start;
+    padding: .65rem .75rem .65rem 1rem;
+    border-left: 4px solid #2a78d6;
+    border-radius: .5rem;
+    background: #fff;
+    box-shadow: 0 .75rem 2rem rgba(0, 0, 0, .18);
+    color: #0b0b0b;
+    font-size: .875rem;
+    animation: runs-notice-in .2s ease-out;
+
+    &.is-leaving {
+        animation: runs-notice-out .2s ease-in forwards;
+    }
+}
+
+.runs-notice-success {
+    border-left-color: #3f8f5b;
+}
+
+.runs-notice-danger {
+    border-left-color: #b42318;
+}
+
+.runs-notice-close {
+    flex-shrink: 0;
+    padding: 0 .25rem;
+    border: 0;
+    background: none;
+    color: var(--runs-muted, #6b7280);
+    font-size: 1.125rem;
+    line-height: 1;
+
+    &:hover,
+    &:focus-visible {
+        color: #0b0b0b;
+    }
+}
+
+@keyframes runs-notice-in {
+    from { opacity: 0; transform: translateY(.5rem); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes runs-notice-out {
+    to { opacity: 0; transform: translateY(.5rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .runs-notice {
+        animation: none;
+    }
+}
+
+// A run, or a queued one, started with --force, see the macro "forced"
+.runs-forced {
+    display: inline-flex;
+    align-items: center;
+    padding: .1em .55em;
+    border: 1px solid #f3c98b;
+    border-radius: 999px;
+    background: #fff7ea;
+    color: #8a4b06;
+    font-size: .6875rem;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.runs-card-badges {
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: .4rem;
+    align-items: center;
+}
+
+// The option to import everything again, in the dialog of "Run now"
+.runs-confirm-force {
+    display: flex;
+    gap: .6rem;
+    align-items: flex-start;
+    margin: 1rem 0 0;
+    padding: .65rem .75rem;
+    border: 1px solid var(--runs-border, #e6e8eb);
+    border-radius: .5rem;
+    cursor: pointer;
+    font-size: .875rem;
+
+    &[hidden] {
+        display: none;
+    }
+
+    &:has(input:checked) {
+        border-color: #f3c98b;
+        background: #fff7ea;
+    }
+
+    // The checkbox of the app (Bootstrap), in line with the first line of the label
+    .form-check-input {
+        flex-shrink: 0;
+        float: none;
+        width: 1.125rem;
+        height: 1.125rem;
+        margin: .05rem 0 0;
+        cursor: pointer;
+    }
+
+    code {
+        margin-left: .25rem;
+        color: #6b7280;
+        font-size: .75rem;
+    }
+}
+
+.runs-confirm-force-label {
+    display: block;
+    font-weight: 600;
+}
+
+.runs-confirm-force-detail {
+    display: block;
+    margin-top: .15rem;
+    color: #6b7280;
+    font-size: .8125rem;
+}
+
+// The log of a run, like a log file, see the macro "log"
+.runs-log {
+    margin: .35rem 0;
+    padding: .35rem 0;
+    border: 1px solid var(--runs-border);
+    border-radius: .5rem;
+    background: #fafbfc;
+    font-size: .8125rem;
+}
+
+.runs-log-entries {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.runs-log-entry {
+    display: grid;
+    grid-template-columns: 4.5rem 4.75rem minmax(0, 1fr);
+    gap: .75rem;
+    align-items: baseline;
+    padding: .3rem .85rem;
+
+    & + & {
+        border-top: 1px solid #eef0f2;
+    }
+}
+
+.runs-log-time,
+.runs-log-level {
+    font-family: var(--bs-font-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: .75rem;
+    white-space: nowrap;
+}
+
+.runs-log-time {
+    color: var(--runs-muted);
+}
+
+.runs-log-level {
+    font-weight: 700;
+    letter-spacing: .02em;
+
+    .is-info > & {
+        color: #2a78d6;
+    }
+
+    .is-notice > & {
+        color: #5c6670;
+    }
+
+    .is-warning > & {
+        color: #a15c07;
+    }
+
+    .is-error > & {
+        color: #b42318;
+    }
+}
+
+.runs-log-body {
+    min-width: 0;
+    color: #1f2937;
+    overflow-wrap: anywhere;
+}
+
+.runs-log-item,
+.runs-log-step {
+    margin-left: .5rem;
+    font-size: .75rem;
+}
+
+.runs-log-step {
+    color: var(--runs-muted);
+
+    &::before {
+        content: '\00B7  ';
+    }
+}
+
+.runs-log-exception {
+    margin-top: .2rem;
+
+    summary {
+        color: var(--runs-muted);
+        font-size: .75rem;
+        cursor: pointer;
+    }
+
+    code {
+        color: #374151;
+        font-size: inherit;
+    }
+
+    pre {
+        max-height: 20rem;
+        margin: .35rem 0 0;
+        padding: .6rem .75rem;
+        overflow: auto;
+        border-radius: .4rem;
+        background: #1f2937;
+        color: #e5e7eb;
+        font-size: .75rem;
+        line-height: 1.5;
+        white-space: pre;
+    }
+}
+
+.runs-log-more {
+    border-top: 1px solid #eef0f2;
+
+    > summary {
+        padding: .35rem .85rem;
+        color: #2a78d6;
+        font-size: .75rem;
+        cursor: pointer;
+    }
+
+    .runs-log-entries {
+        border-top: 1px solid #eef0f2;
+    }
+}
+
+.runs-log-truncated {
+    margin: 0;
+    padding: .35rem .85rem 0;
+    border-top: 1px solid #eef0f2;
+    color: var(--runs-muted);
+    font-size: .75rem;
+}
+
+.runs-skipped-local {
+    margin-left: .25rem;
+    color: var(--runs-muted);
 }

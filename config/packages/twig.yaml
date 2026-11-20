@@ -3,6 +3,9 @@ twig:
     debug: '%kernel.debug%'
     strict_variables: '%kernel.debug%'
     file_name_pattern: '*.twig'
+    # Dates in local time, the server runs in UTC; the weekly jobs count in it too, see App\Scheduler\JobSchedule::TIMEZONE
+    date:
+        timezone: 'Europe/Berlin'
     globals:
         usercentrics_id: '%env(USERCENTRICS_ID)%'
 

@@ -30,24 +30,86 @@ set('shared_files', [
     '.env.local',
 ]);
 
+// Run in the new release once it is live. The environment is compiled and the database migrated before already,
+// see forger:prepare_release.
 set('post_release_commands', [
-    // Compiles .env and the shared .env.local into .env.local.php
-    '{{bin/php}} /usr/bin/composer dump-env prod',
     'rm -rf var/cache',
-    '{{bin/php}} ./bin/console doctrine:migrations:migrate --no-interaction',
     '{{bin/php}} ./bin/console cache:warmup',
 ]);
 
-// Runs in the new release before it goes live, so a failure keeps the current release online.
-// Imports run the same health check, but the deployment applies configuration changes right away.
+// The console of the new release before it goes live. It has a cache of its own: the shared var/cache still belongs
+// to the live release. Environment and debug come from the .env.local.php of forger:dump_env. The cache stays in the
+// release and goes with it (deploy:cleanup), nothing else reads it.
+set('release_console', 'APP_CACHE_DIR={{release_path}}/.deploy-cache {{bin/php}} {{release_path}}/bin/console --no-interaction');
+
+// With the console of the release, not "composer dump-env": the Composer of the server does not load symfony/flex,
+// which brings that command
+desc('Compiles .env and the shared .env.local into .env.local.php of the new release');
+task('forger:dump_env', function (): void {
+    run('{{release_console}} dotenv:dump prod');
+});
+
+// The pause below needs the schema of the new release, so the migrations run while the current release is still
+// live: a migration has to keep the schema usable for the current release, adding tables and columns, not renaming
+// or dropping them in the same deployment.
+desc('Migrates the database for the new release before it goes live');
+task('forger:migrate', function (): void {
+    run('{{release_console}} doctrine:migrations:migrate --allow-no-migration', timeout: 900);
+});
+
+// The jobs of the schedule pause for the deployment: none starts, the running ones stop and are queued, so the
+// setup of the indices does not lose what an import writes meanwhile. See App\Scheduler\JobControl.
+desc('Pauses the jobs of the schedule and waits for the running ones to stop');
+task('forger:jobs_pause', function (): void {
+    // Before: the pause is set first, then the command waits for the running jobs
+    set('forger_jobs_paused', true);
+    run('{{release_console}} app:jobs:pause --reason="a deployment" --wait=300', timeout: 600);
+});
+
+// Imports run the same health check, but the deployment applies configuration changes right away
 desc('Brings the Elasticsearch indices in line with config/Elasticorn of the new release');
 task('forger:elasticsearch_setup', function (): void {
-    cd('{{release_path}}');
-    // Own cache directory: the shared var/cache still belongs to the live release
-    run('APP_ENV=prod APP_DEBUG=0 APP_CACHE_DIR={{release_path}}/.deploy-cache {{bin/php}} ./bin/console app:elasticsearch:setup --no-interaction', timeout: 1800);
-    run('rm -rf {{release_path}}/.deploy-cache');
+    run('{{release_console}} app:elasticsearch:setup', timeout: 1800);
 });
-before('deploy:symlink', 'forger:elasticsearch_setup');
+
+// Runs in the new release before it goes live, so a failure keeps the current release online
+desc('Prepares the new release before it goes live');
+task('forger:prepare_release', [
+    'forger:dump_env',
+    'forger:migrate',
+    'forger:jobs_pause',
+    'forger:elasticsearch_setup',
+]);
+before('deploy:symlink', 'forger:prepare_release');
+
+// Once the new release is live and its post release commands ran, the queue starts the paused jobs within a minute
+desc('Resumes the jobs of the schedule');
+task('forger:jobs_resume', function (): void {
+    run('{{bin/php}} {{current_path}}/bin/console app:jobs:resume --no-interaction');
+});
+after('deploy:post_release', 'forger:jobs_resume');
+
+// The worker of the schedule runs as a systemd service on the server (see "The systemd service" in README.md): it ends
+// after the message at hand, systemd starts it again within seconds, in the new release. The running jobs go on.
+desc('Restarts the worker of the schedule with the new release');
+task('forger:worker_restart', function (): void {
+    run('{{bin/php}} {{current_path}}/bin/console messenger:stop-workers --no-interaction');
+});
+after('forger:jobs_resume', 'forger:worker_restart');
+
+// With the release that paused them, its schema is migrated then. A deployment that failed before the pause has
+// nothing to resume, and no console could: the database does not have the tables of the pause yet, or the release
+// before does not know the command.
+desc('Resumes the jobs of the schedule after a failed deployment');
+task('forger:jobs_resume_failed', function (): void {
+    if (!get('forger_jobs_paused', false)) {
+        writeln('The jobs were not paused, nothing to resume');
+
+        return;
+    }
+    run('{{release_console}} app:jobs:resume');
+});
+after('deploy:failed', 'forger:jobs_resume_failed');
 
 // The host aliases match the branch names, the CI job deploys a branch to the host of the same name
 host('master')

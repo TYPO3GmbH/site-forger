@@ -60,36 +60,32 @@ Put your personal tokens into `.env.local` (git-ignored, overrides `.env`):
 
 ```dotenv
 FORGE_ACCESS_TOKEN=...
-GITHUB_ACCESS_TOKEN=...
 ```
 
 | Variable | Needed for | How to get it |
 |---|---|---|
 | `FORGE_ACCESS_TOKEN` | `forgeFull`, `forgeDelta` imports. Works without, but anonymous requests hit Forge's rate limit quickly. | Log in at [forge.typo3.org](https://forge.typo3.org), open [My account](https://forge.typo3.org/my/account) and click **Show** below **API access key** in the sidebar. |
-| `GITHUB_ACCESS_TOKEN` | `github`, `githubDelta` imports | Create a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new) with repository access **Public repositories (read-only)**. No further permissions are needed. |
 
 Gerrit imports (`reviewFull`, `reviewDelta`) read the public API of review.typo3.org and need no token.
 
 ## Imports
 
-`bin/console app:import --mode=<mode>` reads Forge (Redmine), Gerrit and GitHub into Elasticsearch.
+`bin/console app:import --mode=<mode>` reads Forge (Redmine) and Gerrit into Elasticsearch.
 Prefix the commands with `ddev exec` in the dev environment.
 
 | Mode | Reads | Meant for |
 |---|---|---|
 | `forgeFull [--force]` | Every Forge issue of the TYPO3 Core project | An empty index, a weekly safety net |
-| `forgeDelta` | The Forge issues changed since the last import | Cron, every few minutes |
-| `reviewFull [--force]` | Every Gerrit change of `Packages/TYPO3.CMS` with its interactions | An empty index, a weekly safety net |
-| `reviewDelta` | The Gerrit changes updated since the last import, with their interactions | Cron, every few minutes |
-| `github --organization=<org> [--repository=<repo>]` | Every event of the repositories of an organization (or of one repository) | An empty index |
-| `githubDelta --organization=<org> [--repository=<repo>]` | The latest events (one page per repository) | Cron, every 30 minutes |
+| `forgeDelta` | The Forge issues changed since the last import | The schedule, every 5 minutes |
+| `reviewFull [--force]` | Every Gerrit change of `Packages/TYPO3.CMS` | An empty index, a weekly safety net |
+| `reviewDelta` | The Gerrit changes updated since the last import | The schedule, every 5 minutes |
 
 An unknown mode ends with an error. `--startAt=<n>` lets a full import begin at the n-th issue or change.
 
 Other commands:
 
 * `app:backports` writes the list of the backport view (`var/backports.json`)
-* `app:truncate-type <issue|review|interactions>` deletes all documents of an index type
+* `app:truncate-type <issue|review>` deletes all documents of an index type
 * `app:elasticsearch:setup`, see [Elasticsearch indices](#elasticsearch-indices)
 
 ### The project
@@ -98,6 +94,10 @@ Forge lists the issues of subprojects with those of a project. The import keeps 
 (`redmine_project_id`, 27) only (`App\Elastic\ProjectIssues`), so the figures match the project on Forge. Every
 Forge import removes issues of other projects from the index, e.g. after an issue was moved; after a complete
 `forgeFull` the issues Forge did not list any more are checked one by one and removed if they are gone.
+
+Forger shows only what Gerrit shows to everyone, the Gerrit imports ask without an account. A refresh of a change
+Gerrit does not show any more (private now, deleted) removes it, and so does a complete `reviewFull` for the changes
+Gerrit did not list (`App\Elastic\ProjectChanges`): it asks Gerrit for them again first.
 
 ### How the deltas work
 
@@ -110,14 +110,11 @@ The deltas only read what changed, and only load details for what they do not ha
   with the same `updated_on`. Only changed issues are written, and only for those under review the journals
   are loaded. A run ends after 2000 issues and reports a warning, the next run goes on from there.
 * **Gerrit:** a light query lists the changes updated since the start (`after:`) with their update time,
-  the details (revisions, files, messages) are loaded only for the changes the index does not have in this
+  the details (votes, the current patch set with its files and commit) are loaded only for the changes the index does not have in this
   state. Gerrit lists the newest first, so the changes are written once all of them are loaded: a run that
   fails half way leaves the index as it was, and the next run tries again. Beyond 3000 updated changes the
   older ones are missing until the next `reviewFull`, the run reports a warning.
-* **GitHub:** asks for every events page with the ETag of the last answer; GitHub answers an unchanged page
-  with `304 Not Modified`, for authenticated requests without using the rate limit. The ETag is stored once
-  all events of a page are written, so a page is read again after a failed run.
-* **Authors:** the emails of Forge users and the profiles of GitHub users are cached for a day.
+* **Authors:** the emails of Forge users are cached for a day.
 
 On an empty index `forgeDelta` and `reviewDelta` import the latest 100 issues or changes and report a
 warning: run the full import once.
@@ -133,9 +130,6 @@ A full import that ended early is simply started again: what it already wrote is
 `--force` imports every issue or change, also the up-to-date ones. It is needed after a change of what the
 import stores (a new field, another mapping), as an unchanged issue would keep its old document otherwise.
 
-`github` has no such comparison, it reads all events GitHub keeps (the last 90 days, at most 300 per
-repository) and writes them again; writing an event twice does no harm.
-
 ### Catching up, e.g. over night
 
 The deltas only go forward from the latest change in the index. To bring back what was missed before (an import
@@ -146,9 +140,6 @@ cd /srv/vhosts/forger.typo3.com/site/mage/current
 nohup sh -c '
     /usr/bin/php8.5 bin/console app:import --mode=forgeFull
     /usr/bin/php8.5 bin/console app:import --mode=reviewFull
-    for organization in TYPO3-Documentation friendsoftypo3 TYPO3; do
-        /usr/bin/php8.5 bin/console app:import --mode=github --organization=$organization
-    done
 ' > ../shared/var/log/catch-up.log 2>&1 &
 ```
 
@@ -159,13 +150,16 @@ could be removed.
 ### Locks
 
 Every import holds a lock, so two runs of the same kind do not write at the same time: `forge` (both Forge
-modes), `gerrit` (both Gerrit modes, `reviewFull` blocks `reviewDelta` for its run) and one per GitHub
-organization and repository, so the organizations can run at the same minute. A run that finds the lock
+modes) and `gerrit` (both Gerrit modes, `reviewFull` blocks `reviewDelta` for its run). A run that finds the lock
 taken ends right away as "Skipped, locked". The lock goes with the process holding it.
+
+The schedule knows the lock of each job (`App\Scheduler\JobSchedule::JOBS`) and does not start a job whose lock
+another one holds: a delta during its full import waits in the queue and starts once the lock is free, the command
+runs page shows "waits for" the job holding it, and the waiting job is not overdue meanwhile.
 
 ### Errors and the command runs page
 
-Every run of an `app:*` command is recorded in the table `command_run`, whoever starts it (cron, a deployment,
+Every run of an `app:*` command is recorded in the table `command_run`, whoever starts it (the schedule, a deployment,
 by hand). Admins see the runs at **Admin → Command runs** (`/management/command-runs`):
 
 * the jobs (command with its options) with their last runs, overdue ones first
@@ -175,16 +169,23 @@ by hand). Admins see the runs at **Admin → Command runs** (`/management/comman
 | Status | Meaning |
 |---|---|
 | Success | The run did its work |
-| Success with warnings | Single items were skipped, e.g. a Forge issue Forge did not answer for, or a GitHub repository answering with 5xx; the message lists the first of them |
+| Success with warnings | Single items were skipped, e.g. a Forge issue Forge did not answer for; the message lists the first of them |
 | Skipped, locked | Another run held the lock |
-| Failed | The run ended with an error: exception, exit code other than 0, Gerrit or Forge unavailable after the retries, invalid GitHub credentials (401, 403) |
+| Failed | The run ended with an error: exception, exit code other than 0, Gerrit or Forge unavailable after the retries |
 | Aborted | No end recorded and no heartbeat for 15 minutes: killed, out of memory, server restart |
+| Interrupted | Stopped for a pause, e.g. a deployment; it starts again once resumed |
+| Cancelled | Stopped by an admin, it does not start again |
 | Running | Running, with a heartbeat at least every 15 seconds |
 
-A job is **overdue** when its last start or its last successful run is more than three times its usual interval
-ago (at least 15 minutes), the interval being learned from its runs: cron no longer starts it, or every run
-fails. Runs skipped for a lock count as fine for up to 12 hours. A job needs three runs within the 14 days kept
-before it has an interval, a weekly job never becomes overdue.
+The page shows the jobs of the schedule only (`App\Scheduler\ScheduledJobs` reads them from the schedule); other
+runs, like `app:elasticsearch:setup` of a deployment, are recorded but not shown. **Next runs** lists what starts
+next: the jobs queued with **Run now** (the worker of the schedule starts them within a minute, the web request
+does not run a command itself), then the next planned run of every job. Every job of the schedule shows when it
+runs and its next run. A job of the schedule is **overdue** when the run
+planned after its last start did not start within 10 minutes (the worker of the schedule does not run), or three planned
+runs in a row did not succeed (every run fails). Runs skipped for a lock count as fine for up to 12 hours. This
+holds for the weekly jobs too: a missing Monday run of `reviewFull` shows. A job the schedule does not start (a
+deployment, a run by hand) is never overdue.
 
 Rate limits are retried: Forge and Gerrit answer 429 now and then. Forge is retried up to six times with a
 pause doubling from 10 seconds to 5 minutes, Gerrit up to four times, honouring `Retry-After`.
@@ -195,29 +196,130 @@ job are deleted when a run starts, the message is cut at 2000 characters.
 What the page cannot show: a run that ends before the console starts (wrong PHP binary, a broken
 `.env.local.php`, the database down) leaves no row. The job then shows as overdue, or does not appear at all.
 
-### Cron
+### Schedule and worker
 
-The imports on production are started by a file in `/etc/cron.d` on the server, it is not part of this
-repository. A setup that keeps the data current:
+When the jobs run is part of the app, in `App\Scheduler\JobSchedule` (Symfony Scheduler):
 
-```cron
-# m  h  dom mon dow user              command
-*/5  *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=forgeDelta > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/forgeimport_delta.lastrun 2>&1
-*/5  *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=reviewDelta > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/forgeimport_gerritdelta.lastrun 2>&1
-*/30 *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=githubDelta --organization=TYPO3-Documentation > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/githubimport_typo3-documentation.lastrun 2>&1
-*/30 *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=githubDelta --organization=friendsoftypo3 > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/githubimport_friendsoftypo3.lastrun 2>&1
-*/30 *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=githubDelta --organization=TYPO3 > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/githubimport_typo3.lastrun 2>&1
-*/5  *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:backports > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/forgeimport_backports.lastrun 2>&1
-# Safety nets, on different nights so the rate limits of Forge and Gerrit do not add up
-17   3  *   *   1   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=reviewFull > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/forgeimport_fullgerrit.lastrun 2>&1
-17   3  *   *   4   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=forgeFull > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/forgeimport_fullforge.lastrun 2>&1
+| Job | When (server time) |
+|---|---|
+| `app:import --mode=forgeDelta` | every 5 minutes |
+| `app:import --mode=reviewDelta` | every 5 minutes |
+| `app:backports` | every 5 minutes |
+| `app:import --mode=reviewFull` | Monday 03:17 |
+| `app:import --mode=forgeFull` | Thursday 03:17 |
+
+`bin/console debug:scheduler` lists them with their next run. The server only runs the worker of the schedule,
+`messenger:consume scheduler_jobs`, as a systemd service. The worker starts a due job as a process of its own and does
+not wait for it: a `reviewFull` running for hours keeps no delta waiting, the locks of the imports keep two runs of
+one kind apart. The schedule remembers what it started (`var/scheduler`, kept by the deployments): a job that fell
+due while no worker ran, e.g. during a restart or a deployment, runs once when the worker starts again. The output
+of a job goes to `var/log/jobs/<job>.lastrun`, that of the worker to the journal.
+
+#### The systemd service
+
+The service is set up on the server, it is not part of this repository or of the deployment. Both hosts run on the
+same server, under `/srv/vhosts/<vhost>/site/mage` (see `deploy.php`): one template unit serves both, its instance
+is the vhost, whose user runs the worker. `/etc/systemd/system/forger-scheduler@.service`:
+
+```ini
+[Unit]
+Description=Forger: worker of the job schedule of %i
+After=network-online.target
+Wants=network-online.target
+# Never give up restarting, e.g. while the database is down for a while
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=%i
+# Resolved at each start: after a restart the worker runs the current release
+WorkingDirectory=/srv/vhosts/%i/site/mage/current
+# Ends itself after an hour or at 256 MB, and is started again: nothing builds up in a worker that runs for weeks
+ExecStart=/usr/bin/php8.5 bin/console messenger:consume scheduler_jobs --time-limit=3600 --memory-limit=256M --no-interaction
+Restart=always
+RestartSec=5
+# The jobs run as processes of their own (App\Scheduler\StartJobHandler): a restart or stop of the worker, the
+# hourly one too, must not kill a running import. Only the worker itself is stopped.
+KillMode=process
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
 ```
+
+```sh
+sudo systemctl daemon-reload
+sudo systemctl enable --now forger-scheduler@forger.typo3.com forger-scheduler@stage.forger.typo3.com
+systemctl status 'forger-scheduler@*'
+journalctl -u forger-scheduler@forger.typo3.com -f
+```
+
+The limits: `--time-limit=3600` and `--memory-limit=256M` end the worker after an hour or once it grew past 256 MB,
+after the message at hand; `Restart=always` starts it again after 5 seconds, with the release `current` points to
+then. A minute missed meanwhile runs when it starts. `KillMode=process` matters: systemd counts the jobs the worker
+started as part of the service, and would kill a running `reviewFull` with every restart otherwise.
+
+A worker keeps the code it started with. A deployment ends it once the new release is live and the jobs are resumed
+(`forger:worker_restart` in `deploy.php`, `bin/console messenger:stop-workers` on the server): systemd starts it again
+within seconds, with the new release, the running jobs go on. Without the service nothing restarts it, and a worker
+someone started by hand stops.
+
+The first deployment of the schedule replaces the cron jobs of the imports: comment them out in `/etc/cron.d`
+before, wait until no import runs (the release before knows neither the pause nor the stop of a run), deploy, then
+enable the service; the restart of the deployment finds no worker then, that does no harm. Not before: the release before does not know `scheduler_jobs`, the service would fail and restart
+over and over. Then start a full import of the reviews with **Run now** and *Import everything again* on the command
+runs page (or `app:import --mode=reviewFull --force`), the index gets the fields added with this release.
+
+#### Pause, resume, cancel
+
+Every job of the schedule can be paused, alone or all of them (`App\Scheduler\JobControl`): on the command runs
+page (**Pause all**, **Pause** and **Resume** at every job, **Pause** and **Cancel** at a running job) or with
+
+```sh
+bin/console app:jobs:pause [<job>] [--reason=...] [--wait=300]   # all jobs without <job>, e.g. forgeDelta
+bin/console app:jobs:resume [<job>]
+```
+
+A paused job does not start, its planned starts wait in the queue. A running job asked to stop stops within seconds,
+also while it waits for a rate limit (it reads every 2 seconds whether it was asked to; one waiting for an answer of
+Forge or Gerrit stops once it has it) and releases its lock: paused, it ends as "Interrupted" and is queued, to start again once resumed; cancelled, it ends as
+"Cancelled" and stays so. Starting again costs little: a delta goes on from the index, a full import skips what it
+has in its current state. `app:jobs:pause` waits for the running jobs to stop, at most `--wait` seconds.
+
+Before the new release goes live, a deployment compiles its environment, migrates the database and pauses all jobs
+for the setup of the indices (`forger:prepare_release` in `deploy.php`). It resumes them once the new release is live
+and its cache warmed up, or with the new release's console if the deployment failed: no import
+writes while the indices are rebuilt, and the interrupted jobs start again with the new code and schema. The
+migrations run while the current release is still live, so a migration has to keep the schema usable for it: add
+tables and columns, do not rename or drop them in the same deployment.
+
+#### Locally
+
+ddev runs no worker: locally the schedule starts nothing until you start it. The jobs then read
+the real Forge and Gerrit into the local indices, `app:mock-data` brings back the mock documents afterwards.
+
+```sh
+# The jobs with their next run
+ddev exec bin/console debug:scheduler
+# The worker for a minute: starts the due jobs and those queued with "Run now", then stops
+ddev exec bin/console messenger:consume scheduler_jobs --time-limit=55 -vv
+# Or keep it running in a terminal, until Ctrl+C
+ddev exec bin/console messenger:consume scheduler_jobs -vv
+```
+
+A worker keeps the code it started with: after a change, stop it and start it again.
+A job queued with "Run now" starts at the next full minute, unless its lock is taken (a delta of the same source runs or
+is planned for this minute): then it waits in the queue and starts once the lock is free.
+
+The worker logs every job it starts (`Started the job "forgeDelta"`), the output of a job is in
+`var/log/jobs/<job>.lastrun`, its run on the command runs page (`/management/command-runs`, as Dev Admin via
+`/_dev/login`). To see a missed run catch up: let a five-minute mark pass without a worker, then start it, the
+deltas run once. `rm -rf var/scheduler` forgets what the schedule started. The tests of the schedule:
+`bin/phpunit -c build/phpunit.xml tests/Scheduler`.
 
 What happened is on the command runs page. The output of the last run of each job (`*.lastrun`, overwritten
 by every run) is still worth keeping: it is the only trace of a run that fails before the console starts.
-Pitfalls of `/etc/cron.d`: the
-name of the file must not contain a dot (`forger.typo3.com` is ignored, `forger` works), and the last line
-needs a line break. Whether cron starts the jobs at all shows the system log: `grep CRON /var/log/syslog`.
+Whether the worker runs at all shows `systemctl status 'forger-scheduler@*'`, why it does not its journal.
 
 ## Keycloak
 
