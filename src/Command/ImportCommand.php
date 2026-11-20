@@ -52,6 +52,10 @@ class ImportCommand extends Command implements LoggerAwareInterface
      */
     private const int GERRIT_DETAIL_BATCH = 25;
     /**
+     * Changes per page of the light listing without details: Gerrit sends 500 in about the time of 100.
+     */
+    private const int GERRIT_LIST_PAGE_SIZE = 500;
+    /**
      * Retries of a Gerrit query that is rate-limited or fails, see waitForGerrit().
      */
     private const int GERRIT_RETRIES = 4;
@@ -388,9 +392,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         if (null === $since) {
             $this->recorder->warning('The review index is empty, run --mode=reviewFull. Imported the latest changes only.');
             $progressBar = new ProgressBar($output->section());
-            foreach ($this->reviewBlock(GerritChangeImporter::PROJECT, self::PAGE_SIZE, $progressBar) as $review) {
-                $this->changeImporter->write($review);
-            }
+            $this->changeImporter->writeAll($this->reviewBlock(GerritChangeImporter::PROJECT, self::PAGE_SIZE, $progressBar));
 
             return;
         }
@@ -417,8 +419,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $listed = 0;
         $changed = [];
         $more = true;
-        for ($start = max(0, $startAt); $more && (!$delta || $start < self::DELTA_LIMIT_GERRIT); $start += self::PAGE_SIZE) {
-            $changes = $this->changeImporter->find($query, self::PAGE_SIZE, $start, []);
+        for ($start = max(0, $startAt); $more && (!$delta || $start < self::DELTA_LIMIT_GERRIT); $start += self::GERRIT_LIST_PAGE_SIZE) {
+            $changes = $this->changeImporter->find($query, self::GERRIT_LIST_PAGE_SIZE, $start, []);
             $updated = [];
             foreach ($changes as $change) {
                 $updated[(string) $change['_number']] = $this->fixDateFormat($change['updated'], 'Gerrit');
@@ -449,14 +451,10 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 $reviews += $block;
                 continue;
             }
-            foreach ($block as $review) {
-                $this->changeImporter->write($review);
-            }
+            $this->changeImporter->writeAll($block);
         }
 
-        foreach ($reviews as $review) {
-            $this->changeImporter->write($review);
-        }
+        $this->changeImporter->writeAll($reviews);
     }
 
     /**

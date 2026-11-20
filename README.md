@@ -106,7 +106,7 @@ The deltas only read what changed, and only load details for what they do not ha
   with the same `updated_on`. Only changed issues are written, and only for those under review the journals
   are loaded. A run ends after 2000 issues and reports a warning, the next run goes on from there.
 * **Gerrit:** a light query lists the changes updated since the start (`after:`) with their update time,
-  the details (votes, patch sets, files) are loaded only for the changes the index does not have in this
+  the details (votes, the current patch set with its files and commit) are loaded only for the changes the index does not have in this
   state. Gerrit lists the newest first, so the changes are written once all of them are loaded: a run that
   fails half way leaves the index as it was, and the next run tries again. Beyond 3000 updated changes the
   older ones are missing until the next `reviewFull`, the run reports a warning.

@@ -32,14 +32,18 @@ final class GerritChangeImporter
 {
     public const string PROJECT = 'project:Packages/TYPO3.CMS';
     /**
-     * The details of a change, the same for the refresh of one change, the full import and the delta: the votes,
-     * the patch sets with their files and the commit of the current one.
+     * The details of a change, the same for the refresh of one change, the full import and the delta: the votes
+     * and the current patch set with its files and commit.
      */
-    public const array DETAIL_OPTIONS = ['DETAILED_LABELS', 'ALL_REVISIONS', 'ALL_FILES', 'CURRENT_COMMIT'];
+    public const array DETAIL_OPTIONS = ['DETAILED_LABELS', 'CURRENT_REVISION', 'CURRENT_FILES', 'CURRENT_COMMIT'];
     /**
      * The accounts of the CI, their votes are no reviews.
      */
     public const array CI_ACCOUNTS = [49454, 51735, 52386];
+    /**
+     * Documents per bulk request to Elasticsearch.
+     */
+    private const int BULK_SIZE = 500;
 
     /** @var (\Closure(int, int, int): void)|null */
     private ?\Closure $retryHandler = null;
@@ -94,6 +98,20 @@ final class GerritChangeImporter
             $index->refresh();
         }
         $this->recorder->document();
+    }
+
+    /**
+     * Writes the documents of changes to the review index in bulk requests, as the import does: one request for
+     * each change took longer than asking Gerrit for them.
+     *
+     * @param array<array<string, mixed>> $documents see documents()
+     */
+    public function writeAll(array $documents): void
+    {
+        foreach (array_chunk(array_values($documents), self::BULK_SIZE) as $chunk) {
+            ElasticUtility::getIndexByName('review')->addDocuments(array_map(static fn (array $document): Document => new Document((string) $document['id'], $document), $chunk));
+            $this->recorder->document(count($chunk));
+        }
     }
 
     /**

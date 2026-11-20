@@ -105,6 +105,20 @@ final class GerritChangeImporterTest extends TestCase
         self::assertSame($this->requests[0]['request']->getUri()->getQuery(), $this->requests[2]['request']->getUri()->getQuery());
     }
 
+    public function testTheRefreshOfAChangeAsksForTheDetailsOfTheImport(): void
+    {
+        $importer = $this->importer([new Response(200, [], ")]}'\n[]")]);
+
+        $importer->refresh(81234);
+
+        parse_str(str_replace('o=', 'o[]=', $this->requests[0]['request']->getUri()->getQuery()), $query);
+        // The same details as the full import and the delta, see ImportCommand::reviewBlock()
+        self::assertSame(GerritChangeImporter::DETAIL_OPTIONS, $query['o']);
+        // Only the current patch set
+        self::assertNotContains('ALL_REVISIONS', GerritChangeImporter::DETAIL_OPTIONS);
+        self::assertNotContains('ALL_FILES', GerritChangeImporter::DETAIL_OPTIONS);
+    }
+
     public function testTheDocumentKeepsTheCommitMessageAndTheIssuesOfItsFooter(): void
     {
         $message = "[BUGFIX] Show the translated record\n\nThe overlay first.\n\nResolves: #105123\nRelated: #104000\nReleases: main, 13.4\nChange-Id: I0123";
