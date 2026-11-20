@@ -289,9 +289,6 @@ final class GerritChangeImporter
             $author = $change['revisions'][$change['current_revision']]['commit']['author']['name'];
             $authorEmail = $change['revisions'][$change['current_revision']]['commit']['author']['email'];
             $filesInPatchset = array_keys($change['revisions'][$change['current_revision']]['files']);
-            if (11918 === (int) $change['_number']) {
-                $change['revisions'][$change['current_revision']]['commit']['message'] = '6.0';
-            }
 
             $reviewTags = ReviewSubject::tags($change['subject']);
             $commitMessage = (string) ($change['revisions'][$change['current_revision']]['commit']['message'] ?? '');
@@ -319,53 +316,15 @@ final class GerritChangeImporter
                 'patchsets' => $change['revisions'][$change['current_revision']]['_number'],
                 'created_on' => self::gerritDate($change['created']),
                 'updated_on' => self::gerritDate($change['updated']),
-                'releases' => self::releases(
-                    $change['revisions'][$change['current_revision']]['commit']['message']
-                ),
                 'owner' => $author ?? 'Unknown',
                 'ownerEmail' => $authorEmail ?? 'Unknown',
                 'files' => $filesInPatchset,
                 'work_in_progress' => ReviewSubject::isWorkInProgress($reviewTags) || ($change['work_in_progress'] ?? false),
                 'commit_message' => $commitMessage,
-                'resolves' => CommitMessage::issues($commitMessage, CommitMessage::RESOLVES),
-                'related' => CommitMessage::issues($commitMessage, CommitMessage::RELATED),
-            ];
+            ] + CommitMessage::fields($commitMessage);
         }
 
         return $out;
-    }
-
-    /**
-     * The releases of the commit message, as "Releases: main, 13.4" names them, ["omitted"] without the line.
-     *
-     * @return list<string>
-     *
-     * @throws \Exception
-     */
-    public static function releases(string $message): array
-    {
-        // Fix fucked up lines in message
-        $searches = ['Release: ',  '7,6'];
-        $replaces = ['Releases: ', '7.6'];
-        $message = str_replace($searches, $replaces, $message);
-        $pattern = '/Releases:\s*(.*)/';
-        preg_match($pattern, $message, $matches);
-        if (!isset($matches[1])) {
-            return ['omitted'];
-        }
-
-        $search = ['master.', 'master', '4.7.', '4.5 LTS'];
-        $replaces = ['master,', 'main', '4.7,', '4.5'];
-        $matches[1] = str_replace($search, $replaces, $matches[1]);
-        $releaseArray = array_map(trim(...), explode(',', $matches[1]));
-        foreach ($releaseArray as $key => $release) {
-            if (str_contains((string) $release, ' ')) {
-                throw new \InvalidArgumentException('Release contains space? ' . $message);
-            }
-            $releaseArray[$key] = strtolower((string) $release);
-        }
-
-        return $releaseArray;
     }
 
     /**

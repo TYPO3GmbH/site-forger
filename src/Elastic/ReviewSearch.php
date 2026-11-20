@@ -32,7 +32,9 @@ final class ReviewSearch
             return null;
         }
         $should = [
-            ['query_string' => ['query' => IssueSearch::escape($searchTerms), 'fields' => ['subject^3', 'commit_message'], 'default_operator' => 'AND']],
+            // The whole commit message with its trailers, its text ranks higher: a change about the words before
+            // one that only names them in a trailer, like a reviewer
+            ['query_string' => ['query' => IssueSearch::escape($searchTerms), 'fields' => ['subject^3', 'commit_text^2', 'commit_message'], 'default_operator' => 'AND']],
             ['term' => ['topic' => $searchTerms]],
             ['wildcard' => ['owner' => ['value' => '*' . addcslashes($searchTerms, '\\*?') . '*', 'case_insensitive' => true]]],
         ];

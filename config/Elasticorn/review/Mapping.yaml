@@ -54,8 +54,12 @@ files:
   type: keyword
 work_in_progress:
   type: boolean
-# The commit message of the current patch set, and the Forge issues of its footers "Resolves:" and "Related:"
+# The commit message of the current patch set, its text without subject and trailers for the search, and the
+# Forge issues of its trailers "Resolves:" and "Related:", see App\Elastic\CommitMessage. Elasticsearch has no
+# array type, every field takes several values: "resolves", "related", "releases" and "files" are lists.
 commit_message:
+  type: text
+commit_text:
   type: text
 resolves:
   type: integer

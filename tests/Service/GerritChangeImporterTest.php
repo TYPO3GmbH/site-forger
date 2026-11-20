@@ -64,12 +64,6 @@ final class GerritChangeImporterTest extends TestCase
         self::assertSame(0, $labels['highest_verification_vote']);
     }
 
-    public function testReleasesOfTheCommitMessage(): void
-    {
-        self::assertSame(['main', '13.4'], GerritChangeImporter::releases("[BUGFIX] Repair the cache\n\nReleases: main, 13.4\nResolves: #91089"));
-        self::assertSame(['omitted'], GerritChangeImporter::releases('[TASK] No release line'));
-    }
-
     public function testGerritDatesInTheFormatOfTheIndex(): void
     {
         self::assertSame('2026/11/19 17:42:30', GerritChangeImporter::gerritDate('2026-11-19 17:42:30.000000000'));
@@ -138,6 +132,7 @@ final class GerritChangeImporterTest extends TestCase
         $document = $this->importer([])->documents([$change])[81234];
 
         self::assertSame($message, $document['commit_message']);
+        self::assertSame('The overlay first.', $document['commit_text']);
         self::assertSame([105123], $document['resolves']);
         self::assertSame([104000], $document['related']);
         self::assertSame(['main', '13.4'], $document['releases']);

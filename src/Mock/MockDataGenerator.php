@@ -384,15 +384,12 @@ final readonly class MockDataGenerator
             'patchsets' => $patchSets,
             'created_on' => $this->formatDate($updated->modify('-' . (1 + $index % 90) . ' days')),
             'updated_on' => $this->formatDate($updated),
-            'releases' => null === $releases ? ['omitted'] : array_map(trim(...), explode(',', $releases)),
             'owner' => $person['name'],
             'ownerEmail' => $person['email'],
             'files' => $files,
             'work_in_progress' => $workInProgress || ReviewSubject::isWorkInProgress($reviewTags),
             'commit_message' => $commitMessage,
-            'resolves' => CommitMessage::issues($commitMessage, CommitMessage::RESOLVES),
-            'related' => CommitMessage::issues($commitMessage, CommitMessage::RELATED),
-        ];
+        ] + CommitMessage::fields($commitMessage);
     }
 
     /**
