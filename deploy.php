@@ -42,9 +42,11 @@ set('post_release_commands', [
 // release and goes with it (deploy:cleanup), nothing else reads it.
 set('release_console', 'APP_CACHE_DIR={{release_path}}/.deploy-cache {{bin/php}} {{release_path}}/bin/console --no-interaction');
 
+// With the console of the release, not "composer dump-env": the Composer of the server does not load symfony/flex,
+// which brings that command
 desc('Compiles .env and the shared .env.local into .env.local.php of the new release');
 task('forger:dump_env', function (): void {
-    run('cd {{release_path}} && {{bin/php}} /usr/bin/composer dump-env prod');
+    run('{{release_console}} dotenv:dump prod');
 });
 
 // The pause below needs the schema of the new release, so the migrations run while the current release is still
@@ -59,6 +61,8 @@ task('forger:migrate', function (): void {
 // setup of the indices does not lose what an import writes meanwhile. See App\Scheduler\JobControl.
 desc('Pauses the jobs of the schedule and waits for the running ones to stop');
 task('forger:jobs_pause', function (): void {
+    // Before: the pause is set first, then the command waits for the running jobs
+    set('forger_jobs_paused', true);
     run('{{release_console}} app:jobs:pause --reason="a deployment" --wait=300', timeout: 600);
 });
 
@@ -93,10 +97,17 @@ task('forger:worker_restart', function (): void {
 });
 after('forger:jobs_resume', 'forger:worker_restart');
 
-// With the release that paused them; the current one is the old release then, it may not know the command
+// With the release that paused them, its schema is migrated then. A deployment that failed before the pause has
+// nothing to resume, and no console could: the database does not have the tables of the pause yet, or the release
+// before does not know the command.
 desc('Resumes the jobs of the schedule after a failed deployment');
 task('forger:jobs_resume_failed', function (): void {
-    run('{{release_console}} app:jobs:resume || {{bin/php}} {{current_path}}/bin/console app:jobs:resume --no-interaction');
+    if (!get('forger_jobs_paused', false)) {
+        writeln('The jobs were not paused, nothing to resume');
+
+        return;
+    }
+    run('{{release_console}} app:jobs:resume');
 });
 after('deploy:failed', 'forger:jobs_resume_failed');
 

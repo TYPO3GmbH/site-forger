@@ -37,6 +37,10 @@ services:
       - '../src/Entity/'
       - '../src/Kernel.php'
 
+  # dotenv:dump compiles .env and .env.local into .env.local.php in a deployment (forger:dump_env in deploy.php),
+  # without Composer and its plugins on the server
+  Symfony\Component\Dotenv\Command\DotenvDumpCommand: ~
+
   redmine.client.forge:
     class: Redmine\Client\NativeCurlClient
     arguments:
