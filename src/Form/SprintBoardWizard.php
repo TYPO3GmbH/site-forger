@@ -66,7 +66,6 @@ class SprintBoardWizard extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => \App\Entity\SprintBoard::class,
-            'csrf_protection' => 'test' !== getenv('APP_ENV'),
         ]);
     }
 }
