@@ -60,7 +60,7 @@ final readonly class CommandRunSubscriber implements EventSubscriberInterface
 
     public function onError(ConsoleErrorEvent $event): void
     {
-        $this->recorder->fail($event->getError()::class . ': ' . $event->getError()->getMessage());
+        $this->recorder->fail($event->getError()::class . ': ' . $event->getError()->getMessage(), $event->getError());
     }
 
     public function onTerminate(ConsoleTerminateEvent $event): void

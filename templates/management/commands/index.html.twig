@@ -79,11 +79,75 @@
     </span>
 {% endmacro %}
 
-{# How a run ended, beyond its status: why it stopped, its error, its warnings #}
+{# A skipped item: on Forge or Gerrit, where its error can be looked at, and in Forger #}
+{% macro skippedItem(item) %}
+    {%- if item.type == 'change' -%}
+        <a href="{{ gerrit_change_url(item.id) }}" target="_blank" rel="noopener" title="The change on Gerrit">Change {{ item.id }}</a>
+        <a class="runs-skipped-local" href="{{ change_path(item.id) }}">in Forger</a>
+    {%- elseif item.id matches '/^\\d+$/' -%}
+        <a href="{{ forge_issue_url(item.id) }}" target="_blank" rel="noopener" title="The issue on Forge">#{{ item.id }}</a>
+        <a class="runs-skipped-local" href="{{ issue_path(item.id) }}">in Forger</a>
+    {%- else -%}
+        {{ item.id }}
+    {%- endif -%}
+{% endmacro %}
+
+{# The log of a run, like a log file: what it noted, waited for, skipped and failed with, each with its details. The first entries, the others behind a click. #}
+{% macro log(run) %}
+    {% set entries = run.log %}
+    {% if entries is not empty %}
+        <div class="runs-log">
+            <ol class="runs-log-entries">
+                {% for entry in entries|slice(0, 12) %}{{ _self.logEntry(entry) }}{% endfor %}
+            </ol>
+            {% if entries|length > 12 %}
+                <details class="runs-log-more">
+                    <summary>{{ entries|length - 12 }} more {{ entries|length - 12 == 1 ? 'entry' : 'entries' }}</summary>
+                    <ol class="runs-log-entries">
+                        {% for entry in entries|slice(12) %}{{ _self.logEntry(entry) }}{% endfor %}
+                    </ol>
+                </details>
+            {% endif %}
+            {% if run.warningsNotLogged > 0 %}
+                <p class="runs-log-truncated">and {{ run.warningsNotLogged|number_format(0, '.', ',') }} more warnings, not logged</p>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endmacro %}
+
+{% macro logEntry(entry) %}
+    <li class="runs-log-entry is-{{ entry.level }}">
+        <time class="runs-log-time" datetime="{{ entry.at }}" title="{{ entry.at|date('Y-m-d H:i:s') }}">{{ entry.at|date('H:i:s') }}</time>
+        <span class="runs-log-level">{{ entry.level|upper }}</span>
+        <div class="runs-log-body">
+            <span class="runs-log-message">{{ entry.message }}</span>
+            {% if entry.item is defined %}<span class="runs-log-item">{{ _self.skippedItem(entry.item) }}</span>{% endif %}
+            {% if entry.step is defined %}<span class="runs-log-step">{{ entry.step }}</span>{% endif %}
+            {% if entry.exception is defined %}
+                <details class="runs-log-exception">
+                    <summary><code>{{ entry.exception.class }}</code> in <code>{{ entry.exception.location }}</code></summary>
+                    <pre>{{ _self.exception(entry.exception) }}</pre>
+                </details>
+            {% endif %}
+        </div>
+    </li>
+{% endmacro %}
+
+{# An exception as PHP prints it: its message, its stack trace, the exception it was thrown for #}
+{% macro exception(exception) -%}
+{{ exception.class }}: {{ exception.message }}
+  at {{ exception.location }}
+{% for frame in exception.trace %}  #{{ loop.index0 }} {{ frame }}
+{% endfor %}{% if exception.previous is defined %}
+Caused by {{ _self.exception(exception.previous) }}{% endif %}
+{%- endmacro %}
+
+{# How a run ended, beyond its status: why it stopped, its error, its notes, its warnings #}
 {% macro message(run, now) %}
     {% set state = run.status(now) %}
     {% set parts = run.messageParts(now) %}
-    {% if parts.error or state.value == 'aborted' %}
+    {% set logged = run.log is not empty %}
+    {% if (parts.error and not logged) or state.value == 'aborted' %}
         <div class="runs-error">
             <p class="runs-error-title">
                 {% if parts.errorType %}<code class="runs-error-type">{{ parts.errorType }}</code>{% endif %}
@@ -102,9 +166,12 @@
             {% endif %}
         </div>
     {% endif %}
-    {% if parts.warnings is not empty %}
+    {% if logged %}
+        {{ _self.log(run) }}
+    {% elseif parts.warnings is not empty %}
+        {# A run from before the skipped items were recorded: its first warnings #}
         <div class="runs-warnings">
-            <p class="runs-warnings-title">{{ (parts.warnings|length + parts.moreWarnings) }} {{ parts.warnings|length + parts.moreWarnings == 1 ? 'item was' : 'items were' }} skipped, the run went on</p>
+            <p class="runs-warnings-title">{{ (parts.warnings|length + parts.moreWarnings) }} {{ parts.warnings|length + parts.moreWarnings == 1 ? 'item was' : 'items were' }} skipped because of an error, the run went on</p>
             <ul>
                 {% for warning in parts.warnings %}<li>{{ warning }}</li>{% endfor %}
             </ul>
@@ -392,6 +459,7 @@
                                         <span class="runs-card-badges">{% if run.forced %}{{ runs.forced() }}{% endif %}{{ runs.status(run, now) }}</span>
                                     </header>
                                     {{ runs.steps(run, steps[run.job] ?? [], now, usualDurations[run.job] ?? null) }}
+                                    {{ runs.log(run) }}
                                     <dl class="runs-facts runs-facts-running">
                                         <div><dt>Started</dt><dd>{{ runs.ago(run.startedAt, now) }} <span class="runs-muted">at {{ run.startedAt|date('H:i') }}</span></dd></div>
                                         <div><dt>Heartbeat</dt><dd>{{ runs.ago(run.heartbeatAt, now) }}</dd></div>
@@ -494,7 +562,7 @@
                                         <td class="runs-numeric">{{ run.warnings }}</td>
                                     </tr>
                                     {% set parts = run.messageParts(now) %}
-                                    {% if parts.error or parts.warnings is not empty or run.status(now).value in ['running', 'aborted'] %}
+                                    {% if parts.error or parts.warnings is not empty or run.log is not empty or run.status(now).value in ['running', 'aborted'] %}
                                         <tr class="runs-detail">
                                             <td colspan="{{ job ? 5 : 6 }}">
                                                 {% if run.status(now).value == 'running' %}

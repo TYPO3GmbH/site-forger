@@ -14,7 +14,8 @@ namespace App\Scheduler;
 use Symfony\Component\Scheduler\Trigger\TriggerInterface;
 
 /**
- * Once a week on a weekday at a time of the server, like "Monday 03:17".
+ * Once a week on a weekday at a time, like "Monday 03:17", in the time zone of the schedule (JobSchedule::TIMEZONE),
+ * whatever the time zone of the server: the command runs page shows the times in it too.
  *
  * The periodical trigger of the scheduler counts in seconds: "every week" would move by an hour with the change
  * to and from summer time. modify() goes by the calendar, the time stays.
@@ -30,6 +31,7 @@ final readonly class WeeklyTrigger implements TriggerInterface
     public function __construct(
         private string $weekday,
         private string $time,
+        private string $timezone = JobSchedule::TIMEZONE,
     ) {
         if (!in_array(strtolower($weekday), self::WEEKDAYS, true) || !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time)) {
             throw new \InvalidArgumentException(sprintf('"%s %s" is no weekday with a time like "monday 03:17"', $weekday, $time));
@@ -38,6 +40,7 @@ final readonly class WeeklyTrigger implements TriggerInterface
 
     public function getNextRunDate(\DateTimeImmutable $run): ?\DateTimeImmutable
     {
+        $run = $run->setTimezone(new \DateTimeZone($this->timezone));
         // The run of this week if it is still to come, the one of next week otherwise
         $next = $run->modify($this->weekday . ' this week ' . $this->time);
 

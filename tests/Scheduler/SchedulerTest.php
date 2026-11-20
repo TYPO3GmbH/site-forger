@@ -66,6 +66,15 @@ final class SchedulerTest extends TestCase
         self::assertSame('Europe/Berlin', $next?->getTimezone()->getName());
     }
 
+    public function testTheWeeklyTriggerCountsInTheTimeZoneOfTheScheduleOnAServerInUtc(): void
+    {
+        // Friday 14:00 UTC: Monday 03:17 in Berlin is Monday 02:17 UTC in winter
+        $next = (new WeeklyTrigger('monday', '03:17'))->getNextRunDate(new \DateTimeImmutable('2026-11-20 14:00', new \DateTimeZone('UTC')));
+
+        self::assertSame('2026-11-23 03:17', $next?->format('Y-m-d H:i'));
+        self::assertSame('2026-11-23 02:17', $next?->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i'));
+    }
+
     public function testTheWeeklyTriggerSaysWhen(): void
     {
         self::assertSame('every Thursday at 03:17', (string) new WeeklyTrigger('thursday', '03:17'));

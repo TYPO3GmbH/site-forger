@@ -106,6 +106,16 @@ class CommandRun
     #[ORM\Column(type: Types::JSON, nullable: true)]
     private ?array $steps = null;
 
+    /**
+     * What the run noted, waited for, skipped and failed with, in the order it happened, each with its time, level,
+     * step, item and exception, see App\Service\CommandRunRecorder::log(); null for the runs from before, their
+     * message has the first warnings.
+     *
+     * @var ?list<array<string, mixed>>
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $log = null;
+
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
     private ?int $progressTotal = null;
 
@@ -382,6 +392,26 @@ class CommandRun
     public function getWarnings(): int
     {
         return $this->warnings;
+    }
+
+    /**
+     * The log of the run, see $log.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getLog(): array
+    {
+        return $this->log ?? [];
+    }
+
+    /**
+     * The warnings beyond those in the log, see CommandRunRecorder::MAX_LOG_ENTRIES.
+     */
+    public function getWarningsNotLogged(): int
+    {
+        $logged = count(array_filter($this->getLog(), static fn (array $entry): bool => 'warning' === ($entry['level'] ?? null)));
+
+        return null === $this->log ? 0 : max(0, $this->warnings - $logged);
     }
 
     public function getMessage(): ?string

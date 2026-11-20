@@ -256,6 +256,25 @@ final class CommandRunTest extends TestCase
         self::assertSame([CommandRunStep::UPCOMING, CommandRunStep::UPCOMING, CommandRunStep::UPCOMING], $states);
     }
 
+    public function testTheWarningsBeyondTheLogAreCounted(): void
+    {
+        $run = $this->commandRun('-5 minutes', CommandRunStatusEnum::WARNING, more: [
+            'warnings' => 302,
+            'log' => [
+                ['at' => '2026-11-19T15:55:00+01:00', 'level' => 'info', 'message' => 'Catching up'],
+                ['at' => '2026-11-19T15:56:00+01:00', 'level' => 'warning', 'message' => 'Skipped Forge issue #2: Timeout', 'item' => ['type' => 'issue', 'id' => '2']],
+                ['at' => '2026-11-19T15:57:00+01:00', 'level' => 'warning', 'message' => 'Skipped Forge issue #3: Timeout', 'item' => ['type' => 'issue', 'id' => '3']],
+            ],
+        ]);
+        $before = $this->commandRun('-5 minutes', CommandRunStatusEnum::WARNING, more: ['warnings' => 7]);
+
+        self::assertCount(3, $run->getLog());
+        self::assertSame(300, $run->getWarningsNotLogged());
+        // A run from before the log has its message
+        self::assertSame([], $before->getLog());
+        self::assertSame(0, $before->getWarningsNotLogged());
+    }
+
     public function testTheMessageOfAFailedRunIsItsErrorThenItsWarnings(): void
     {
         $run = $this->commandRun('-5 minutes', CommandRunStatusEnum::FAILED, more: [

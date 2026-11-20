@@ -517,7 +517,7 @@ a.runs-job {
     }
 }
 
-// How a run ended: its error, its warnings, see the macro "message"
+// How a run ended: its error, its warnings, for the runs from before their log, see the macro "message"
 .runs-error,
 .runs-warnings {
     max-width: 90ch;
@@ -1184,4 +1184,140 @@ a.runs-job {
     margin-top: .15rem;
     color: #6b7280;
     font-size: .8125rem;
+}
+
+// The log of a run, like a log file, see the macro "log"
+.runs-log {
+    margin: .35rem 0;
+    padding: .35rem 0;
+    border: 1px solid var(--runs-border);
+    border-radius: .5rem;
+    background: #fafbfc;
+    font-size: .8125rem;
+}
+
+.runs-log-entries {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.runs-log-entry {
+    display: grid;
+    grid-template-columns: 4.5rem 4.75rem minmax(0, 1fr);
+    gap: .75rem;
+    align-items: baseline;
+    padding: .3rem .85rem;
+
+    & + & {
+        border-top: 1px solid #eef0f2;
+    }
+}
+
+.runs-log-time,
+.runs-log-level {
+    font-family: var(--bs-font-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: .75rem;
+    white-space: nowrap;
+}
+
+.runs-log-time {
+    color: var(--runs-muted);
+}
+
+.runs-log-level {
+    font-weight: 700;
+    letter-spacing: .02em;
+
+    .is-info > & {
+        color: #2a78d6;
+    }
+
+    .is-notice > & {
+        color: #5c6670;
+    }
+
+    .is-warning > & {
+        color: #a15c07;
+    }
+
+    .is-error > & {
+        color: #b42318;
+    }
+}
+
+.runs-log-body {
+    min-width: 0;
+    color: #1f2937;
+    overflow-wrap: anywhere;
+}
+
+.runs-log-item,
+.runs-log-step {
+    margin-left: .5rem;
+    font-size: .75rem;
+}
+
+.runs-log-step {
+    color: var(--runs-muted);
+
+    &::before {
+        content: '\00B7  ';
+    }
+}
+
+.runs-log-exception {
+    margin-top: .2rem;
+
+    summary {
+        color: var(--runs-muted);
+        font-size: .75rem;
+        cursor: pointer;
+    }
+
+    code {
+        color: #374151;
+        font-size: inherit;
+    }
+
+    pre {
+        max-height: 20rem;
+        margin: .35rem 0 0;
+        padding: .6rem .75rem;
+        overflow: auto;
+        border-radius: .4rem;
+        background: #1f2937;
+        color: #e5e7eb;
+        font-size: .75rem;
+        line-height: 1.5;
+        white-space: pre;
+    }
+}
+
+.runs-log-more {
+    border-top: 1px solid #eef0f2;
+
+    > summary {
+        padding: .35rem .85rem;
+        color: #2a78d6;
+        font-size: .75rem;
+        cursor: pointer;
+    }
+
+    .runs-log-entries {
+        border-top: 1px solid #eef0f2;
+    }
+}
+
+.runs-log-truncated {
+    margin: 0;
+    padding: .35rem .85rem 0;
+    border-top: 1px solid #eef0f2;
+    color: var(--runs-muted);
+    font-size: .75rem;
+}
+
+.runs-skipped-local {
+    margin-left: .25rem;
+    color: var(--runs-muted);
 }

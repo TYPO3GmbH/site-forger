@@ -212,8 +212,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
             return Command::FAILURE;
         } catch (\Exception $exception) {
             // If any exception occurs, release the lock, else the process will run never again.
-            $this->logger->error($exception->getMessage());
-            $this->recorder->fail($exception::class . ': ' . $exception->getMessage());
+            $this->logger->error($exception->getMessage(), ['exception' => $exception]);
+            $this->recorder->fail($exception::class . ': ' . $exception->getMessage(), $exception);
             $output->writeln('Release lock because of exception: ' . $exception->getMessage());
             $this->release();
 
@@ -292,7 +292,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     $remove[] = $id;
                     continue;
                 }
-                $this->recorder->warning(sprintf('Forge issue #%s could not be checked: %s', $id, $e->getMessage()));
+                $this->recorder->skipped('issue', (string) $id, $e);
                 continue;
             } finally {
                 usleep(50000);
@@ -316,7 +316,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $since = $this->watermark->since('issue');
         if (null === $since) {
             // An empty index needs forgeFull, until then the latest issues at least
-            $this->recorder->warning('The issue index is empty, run --mode=forgeFull. Imported the latest issues only.');
+            $this->recorder->note('The issue index is empty: this run imported the latest issues only. "Check all Forge issues" fills it.');
             $this->importIssues($this->getAllForgeIssuesPaginated(self::PAGE_SIZE, 0)['issues'] ?? [], self::STEP_FORGE_LATEST, null, false);
 
             return;
@@ -328,7 +328,12 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $limit = min($total, self::DELTA_LIMIT_FORGE);
         $this->output->writeln(sprintf('%d issues changed since %s, importing %d', $total, $since->format('Y-m-d H:i:s'), $limit));
         if ($total > self::DELTA_LIMIT_FORGE) {
-            $this->recorder->warning(sprintf('%d issues changed since %s, imported the oldest %d, the next run goes on', $total, $since->format('Y-m-d H:i:s'), self::DELTA_LIMIT_FORGE));
+            $this->recorder->note(sprintf(
+                'Catching up: %s issues changed since %s, more than a run imports. This run imports the oldest %s, the next runs go on from there.',
+                number_format($total),
+                $since->format('j M Y'),
+                number_format(self::DELTA_LIMIT_FORGE),
+            ));
         }
 
         $progressBar = new ProgressBar($this->output, $limit);
@@ -397,7 +402,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 throw $stopped;
             } catch (\Exception $e) {
                 // The import goes on with the next issue
-                $this->recorder->warning(sprintf('Forge issue #%s: %s', $doc['id'] ?? '?', $e->getMessage()));
+                $this->recorder->skipped('issue', (string) ($doc['id'] ?? '?'), $e);
             } finally {
                 // Stephan Großberndt asked for a sleep of between 50 - 100ms between requests to Forge on April 15th, 2024 in Slack channel #t3a-t3g-infra
                 // Since we run into a lot of requests here, 50ms should be fine to not block the overall import process for too long
@@ -419,7 +424,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
     {
         $since = $this->watermark->since('review');
         if (null === $since) {
-            $this->recorder->warning('The review index is empty, run --mode=reviewFull. Imported the latest changes only.');
+            $this->recorder->note('The review index is empty: this run imported the latest changes only. "Check all Gerrit changes" fills it.');
             $progressBar = new ProgressBar($output->section());
             $this->changeImporter->writeAll($this->reviewBlock(GerritChangeImporter::PROJECT, self::PAGE_SIZE, $progressBar, self::STEP_GERRIT_LATEST));
 
@@ -470,7 +475,11 @@ class ImportCommand extends Command implements LoggerAwareInterface
             $this->refreshLock();
         }
         if ($delta && $more) {
-            $this->recorder->warning(sprintf('More than %d changes were updated since %s, older ones are missing until the next reviewFull', self::DELTA_LIMIT_GERRIT, $since->format('Y-m-d H:i:s')));
+            $this->recorder->note(sprintf(
+                'More than %s changes were updated since %s, more than a run imports. This run imported the newest, the older ones follow with "Check all Gerrit changes".',
+                number_format(self::DELTA_LIMIT_GERRIT),
+                $since->format('j M Y'),
+            ));
         }
         $output->writeln(sprintf(
             '%d changes %s, %d of them not up to date in the index',

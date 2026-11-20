@@ -63,6 +63,58 @@ final class CommandRunRecorderTest extends TestCase
         self::assertLessThanOrEqual(2, $slept);
     }
 
+    public function testANoteIsInTheLogAndLeavesTheStatusAsItIs(): void
+    {
+        $recorder = $this->recorder(['stop_status' => null, 'stop_reason' => null]);
+        $recorder->start('app:import --mode=forgeDelta');
+
+        $recorder->progress('Import the issues changed since the last run', 0, 2000);
+        $recorder->note('Catching up: 17,809 issues changed since 8 Jun 2022, more than a run imports.');
+        $recorder->finish(0);
+
+        $last = array_last($this->updates);
+        self::assertSame(CommandRunStatusEnum::SUCCESS->value, $last['status']);
+        $log = json_decode((string) $last['log'], true);
+        self::assertSame('info', $log[0]['level']);
+        self::assertSame('Catching up: 17,809 issues changed since 8 Jun 2022, more than a run imports.', $log[0]['message']);
+        // In the step it happened in
+        self::assertSame('Import the issues changed since the last run', $log[0]['step']);
+    }
+
+    public function testASkippedItemIsAWarningWithItsItemAndItsException(): void
+    {
+        $recorder = $this->recorder(['stop_status' => null, 'stop_reason' => null], '/srv/forger');
+        $recorder->start('app:import --mode=forgeFull');
+
+        $recorder->skipped('issue', '98765', new \RuntimeException('Timeout after 30 s', 0, new \LogicException('cURL error 28')));
+        $recorder->finish(0);
+
+        $last = array_last($this->updates);
+        self::assertSame(CommandRunStatusEnum::WARNING->value, $last['status']);
+        self::assertSame(1, $last['warnings']);
+        self::assertSame('Skipped Forge issue #98765: Timeout after 30 s', $last['message']);
+        $entry = json_decode((string) $last['log'], true)[0];
+        self::assertSame(['warning', 'Skipped Forge issue #98765: Timeout after 30 s', ['type' => 'issue', 'id' => '98765']], [$entry['level'], $entry['message'], $entry['item']]);
+        self::assertSame(\RuntimeException::class, $entry['exception']['class']);
+        self::assertStringContainsString('CommandRunRecorderTest.php:', $entry['exception']['location']);
+        self::assertNotEmpty($entry['exception']['trace']);
+        self::assertSame('cURL error 28', $entry['exception']['previous']['message']);
+    }
+
+    public function testTheErrorThatEndsARunIsInTheLogWithItsStackTrace(): void
+    {
+        $recorder = $this->recorder(['stop_status' => null, 'stop_reason' => null]);
+        $recorder->start('app:import --mode=reviewFull');
+
+        $exception = new \RuntimeException('no such index [review_english]');
+        $recorder->fail(\RuntimeException::class . ': no such index [review_english]', $exception);
+        $recorder->finish(1);
+
+        $entry = json_decode((string) array_last($this->updates)['log'], true)[0];
+        self::assertSame('error', $entry['level']);
+        self::assertSame('no such index [review_english]', $entry['exception']['message']);
+    }
+
     public function testARunNotAskedToStopGoesOn(): void
     {
         $recorder = $this->recorder(['stop_status' => null, 'stop_reason' => null]);
@@ -131,7 +183,7 @@ final class CommandRunRecorderTest extends TestCase
     /**
      * @param array<string, mixed> $stop what the run reads of its row at a heartbeat
      */
-    private function recorder(array $stop): CommandRunRecorder
+    private function recorder(array $stop, string $projectDir = ''): CommandRunRecorder
     {
         $connection = $this->createStub(Connection::class);
         $connection->method('lastInsertId')->willReturn('7');
@@ -143,6 +195,6 @@ final class CommandRunRecorderTest extends TestCase
             return 1;
         });
 
-        return new CommandRunRecorder($connection, new NullLogger());
+        return new CommandRunRecorder($connection, new NullLogger(), $projectDir);
     }
 }

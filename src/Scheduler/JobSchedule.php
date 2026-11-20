@@ -44,6 +44,11 @@ use Symfony\Contracts\Cache\CacheInterface;
 final readonly class JobSchedule implements ScheduleProviderInterface
 {
     public const string NAME = 'jobs';
+    /**
+     * The time zone of the weekly jobs, and of the times on the pages (config/packages/twig.yaml): the server runs
+     * in UTC.
+     */
+    public const string TIMEZONE = 'Europe/Berlin';
 
     /**
      * The jobs: what they do in a few words, for the command runs page, when they run, every so many minutes
