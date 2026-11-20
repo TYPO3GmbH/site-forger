@@ -1,33 +1,23 @@
 {% extends 'my/_layout.html.twig' %}
-{% import 'my/_layout.html.twig' as my %}
-{% import '_macros/sort.html.twig' as sorting %}
 {% block title %}My issues{% endblock %}
-{% block intro %}The Forge issues you reported or are assigned to.{% endblock %}
 
 {% block view %}
+    {% import 'my/_layout.html.twig' as my %}
+    {% import '_macros/sort.html.twig' as sorting %}
     {% set hidden = includeClosed ? 0 : counts|filter((count, state) => state in closedStates)|reduce((sum, count) => sum + count, 0) %}
-    {% set baseParams = (includeClosed ? {'state': 'all'} : {})|merge(selectedId is not null ? {'status': selectedId} : {}) %}
+    {% set baseParams = (query is not empty ? {'query': query} : {})|merge(includeClosed ? {'state': 'all'} : {})|merge(selectedId is not null ? {'status': selectedId} : {}) %}
     {# The links keep the order, the sort field sends the other parameters #}
     {% set filterParams = baseParams %}
     {% set baseParams = baseParams|merge(isDefaultSort ? {} : {'sort': sort.value}) %}
 
-    <div class="mywork-stats">
-        {% for statusName in ['In Progress', 'Under Review', 'Needs Feedback'] %}
-            {% set state = issue_status(statusName) %}
-            {% set count = counts[statusName] ?? 0 %}
-            <a href="{{ path('my_issues', baseParams|merge({'status': state.value})) }}" class="mywork-stat status-pill-{{ state.severity }}{{ count == 0 ? ' is-empty' }}">
-                <span class="mywork-stat-count">{{ count }}</span>
-                <span class="mywork-stat-label">{{ state.label }}</span>
-            </a>
-        {% endfor %}
-    </div>
-
     <section class="mywork-section" aria-labelledby="issues-title">
         <header class="mywork-section-header">
-            <h2 id="issues-title">Issues <span class="mywork-section-count">{{ total }}</span></h2>
+            {# The tab names the list #}
+            <h2 id="issues-title" class="sr-only">Issues</h2>
+            {{ my.search('my_issues', query, baseParams, 'Subject, number or description', includeClosed, 'Also resolved, closed and rejected issues') }}
             {{ sorting.select(path('my_issues'), sort, sortOptions, filterParams, 'my-issues-sort') }}
             {% if counts is not empty %}
-                <nav class="mywork-chips" aria-label="Issue status">
+                <nav class="chips" aria-label="Issue status">
                     {{ my.chip('All', counts|reduce((sum, count) => sum + count, 0) - hidden, path('my_issues', baseParams|filter((v, k) => k != 'status')), selected is null, false) }}
                     {% for statusName, count in counts %}
                         {{ my.chip(statusName, count, path('my_issues', baseParams|merge({'status': statusIds[statusName] ?? statusName})), selected == statusName, statusName in closedStates and not includeClosed) }}
@@ -36,16 +26,19 @@
             {% endif %}
         </header>
 
-        {% if groups is empty %}
+        {% if issues is empty %}
             <div class="mywork-empty">
-                {% if selected is not null %}
+                {% if query is not empty %}
+                    None of your {{ includeClosed ? '' : 'open ' }}issues{{ selected is not null ? ' with the status “' ~ selected ~ '”' }} matches “{{ query }}”.
+                {% elseif selected is not null %}
                     No issues have the status “{{ selected }}”.
                 {% else %}
                     {{ includeClosed ? 'You have no issues.' : 'You have no open issues.' }}
+                    <p class="mywork-empty-hint">Forger looks for the Forge issues reported by or assigned to <strong>{{ name }}</strong>, or reported by <strong>{{ email }}</strong>.</p>
                 {% endif %}
             </div>
         {% else %}
-            {% include 'my/_issue_rows.html.twig' with {'groups': groups, 'name': name} only %}
+            {% include 'my/_issue_rows.html.twig' with {'issues': issues, 'name': name} only %}
             {% if total > shown %}
                 <p class="mywork-note">Showing the first {{ shown }} of {{ total }} issues, sorted by {{ sort.label|lower }}.</p>
             {% endif %}

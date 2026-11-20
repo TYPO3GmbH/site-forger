@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Twig;
 
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Finder\Finder;
 use Twig\Environment;
 
 final class LinkTwigExtensionTest extends KernelTestCase
@@ -45,5 +46,18 @@ final class LinkTwigExtensionTest extends KernelTestCase
             $html
         );
         self::assertStringNotContainsString('<a', $twig->createTemplate('{{ message|link_footer_issues }}')->render(['message' => "Subject\n\nResolves: #105123"]));
+    }
+
+    /**
+     * An issue or a change is linked through the helpers only, so all lists lead to the same place.
+     */
+    public function testTemplatesUseTheHelpers(): void
+    {
+        $finder = new Finder()->files()->in(__DIR__ . '/../../templates')->name('*.twig');
+        foreach ($finder as $file) {
+            $contents = $file->getContents();
+            self::assertDoesNotMatchRegularExpression('~forge\.typo3\.org/issues/|review\.typo3\.org/c/~', $contents, $file->getRelativePathname());
+            self::assertDoesNotMatchRegularExpression("~path\\('(issue_show|change_show)'~", $contents, $file->getRelativePathname());
+        }
     }
 }

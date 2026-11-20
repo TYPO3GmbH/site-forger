@@ -147,6 +147,90 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('class="view-tab is-changes is-active"', $html);
     }
 
+    public function testMyWorkHasNoOrangeBand(): void
+    {
+        $template = $this->twig->load('my/changes.html.twig');
+        $html = $template->renderBlock('body', [
+            'view' => 'changes', 'email' => 'me@example.org', 'name' => 'Me', 'includeClosed' => false, 'query' => '',
+            'openChanges' => 2, 'openIssues' => 3, 'changes' => [], 'shown' => 0, 'total' => 0, 'selected' => null,
+            'labels' => ['ready' => 'Ready for review', 'wip' => 'Work in progress'], 'counts' => [], 'closedStates' => [],
+            'sort' => ReviewSortEnum::UPDATED, 'sortOptions' => ReviewSortEnum::options(false), 'isDefaultSort' => true,
+        ]);
+
+        // The layout shows the band only for a page with this block
+        self::assertFalse($template->hasBlock('headline'));
+        self::assertTrue($this->twig->load('review/generic_review_view.html.twig')->hasBlock('headline'));
+        self::assertStringContainsString('<h1 class="sr-only">My Work</h1>', $html);
+        self::assertStringContainsString('class="view-tab is-changes is-active"', $html);
+        // Named as the tabs of the search
+        self::assertStringContainsString('<span>Reviews</span>', $html);
+        self::assertStringContainsString('<span>Issues</span>', $html);
+        // Who the work is found for only where nothing is found
+        self::assertStringNotContainsString('mywork-intro', $html);
+        self::assertStringContainsString('Forger looks for the Gerrit changes owned by <strong>me@example.org</strong> or <strong>Me</strong>.', $html);
+    }
+
+    public function testMyReviewsAreSortableAndNotGrouped(): void
+    {
+        $html = $this->twig->load('my/changes.html.twig')->renderBlock('view', [
+            'includeClosed' => false, 'query' => '', 'changes' => [self::CHANGE, ['id' => 81235] + self::CHANGE], 'shown' => 2, 'total' => 2,
+            'selected' => 'wip', 'labels' => ['ready' => 'Ready for review', 'wip' => 'Work in progress'], 'counts' => ['wip' => 2],
+            'closedStates' => [], 'sort' => ReviewSortEnum::SMALLEST, 'sortOptions' => ReviewSortEnum::options(false), 'isDefaultSort' => false,
+        ]);
+
+        self::assertStringContainsString('id="my-changes-sort"', $html);
+        self::assertStringContainsString('<option value="smallest" selected>Smallest first</option>', $html);
+        self::assertStringNotContainsString('value="relevance"', $html);
+        // The sort field keeps the selected state, the state chips keep the order
+        self::assertStringContainsString('<input type="hidden" name="review" value="wip">', $html);
+        self::assertStringContainsString('href="/my/changes?review=wip&amp;sort=smallest"', $html);
+        self::assertSame(2, substr_count($html, 'href="/change/'));
+        self::assertStringNotContainsString('mywork-group', $html);
+    }
+
+    public function testMyWorkSearchKeepsFilterAndOrderAndTheTabsKeepTheWords(): void
+    {
+        $data = [
+            'view' => 'changes', 'email' => 'me@example.org', 'name' => 'Me', 'includeClosed' => true, 'query' => 'cache',
+            'openChanges' => 1, 'openIssues' => 3, 'changes' => [], 'shown' => 0, 'total' => 0, 'selected' => 'wip',
+            'labels' => ['ready' => 'Ready for review', 'wip' => 'Work in progress'], 'counts' => ['wip' => 1], 'closedStates' => [],
+            'sort' => ReviewSortEnum::SMALLEST, 'sortOptions' => ReviewSortEnum::options(true), 'isDefaultSort' => false,
+        ];
+        $html = $this->twig->load('my/changes.html.twig')->renderBlock('body', $data);
+
+        // The search field instead of a title, the tab names the list
+        self::assertStringContainsString('<input type="search" id="mywork-search" name="query" value="cache"', $html);
+        self::assertStringContainsString('<h2 id="changes-title" class="sr-only">Reviews</h2>', $html);
+        self::assertStringNotContainsString('Gerrit changes <span', $html);
+        // New words keep the filter and the order, not the old words
+        self::assertMatchesRegularExpression('~<form class="list-search mywork-search"[^>]*>.*name="review" value="wip".*name="sort" value="smallest"~s', $html);
+        // Whether closed work counts, too, as in the search: a checkbox in the field
+        self::assertStringContainsString('<input class="form-check-input" type="checkbox" name="state" value="all" checked onchange="this.form.submit()">', $html);
+        self::assertStringNotContainsString('mywork-toggle', $html);
+        $searchForm = substr($html, (int) strpos($html, 'mywork-search'));
+        $searchForm = substr($searchForm, 0, (int) strpos($searchForm, '</form>'));
+        self::assertStringNotContainsString('<input type="hidden" name="query"', $searchForm);
+        self::assertStringNotContainsString('<input type="hidden" name="state"', $searchForm);
+        // The order keeps them
+        self::assertStringContainsString('<input type="hidden" name="query" value="cache">', $html);
+        // The tabs, the switch and the chips keep the words
+        self::assertStringContainsString('href="/my/issues?query=cache"', $html);
+        self::assertStringContainsString('href="/my/changes?query=cache"', $html);
+        self::assertStringContainsString('href="/my/changes?query=cache&amp;state=all&amp;review=wip&amp;sort=smallest"', $html);
+        self::assertStringContainsString('None of your reviews that are work in progress matches “cache”.', $html);
+    }
+
+    public function testMyWorkSaysToWhomAnIssueIsAssigned(): void
+    {
+        $render = fn (array $issue): string => $this->twig->render('my/_issue_rows.html.twig', ['issues' => [$issue], 'name' => 'Benni Mack']);
+
+        self::assertStringContainsString('>Unassigned</span>', $render(self::ISSUE));
+        self::assertStringContainsString('>Assigned to you</span>', $render(['assigned_to' => ['name' => 'Benni Mack']] + self::ISSUE));
+        self::assertStringContainsString('>for Oli Bartsch</span>', $render(['assigned_to' => ['name' => 'Oli Bartsch']] + self::ISSUE));
+        // The rows of the search
+        self::assertStringContainsString('overview-list-item kind-issue overview-list-item-detailed', $render(self::ISSUE));
+    }
+
     public function testReviewsAndIssuesAreToldApart(): void
     {
         $issue = $this->twig->render('_partials/row/issue.html.twig', ['issue' => ['id' => 91089] + self::ISSUE]);

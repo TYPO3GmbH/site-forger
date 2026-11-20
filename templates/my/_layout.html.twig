@@ -1,45 +1,65 @@
 {#
- # The frame of the two views of My Work: the switch between the Gerrit changes and the issues,
- # who the work is found for, and whether finished work is shown.
- # Expects: view ("changes" or "issues"), email, name, includeClosed, openChanges, openIssues
+ # The frame of the two views of My Work: the switch between the Gerrit changes and the issues, named as the
+ # tabs of the search and the menu: "Reviews" and "Issues",
+ # the search in it. Whether closed work is shown says the checkbox in the search, as in the search. Who the work is
+ # found for only an empty list says, as the rows say how they belong to the person.
+ # Expects: view ("changes" or "issues"), email, name, includeClosed, query, openChanges, openIssues
  #}
 {% extends 'base.html.twig' %}
-{% block headline %}My Work{% endblock %}
+{% block title %}My Work{% endblock %}
 
 {#
  # One state chip of a filter bar.
  #}
-{% macro chip(label, count, href, active, finished) %}
-    <a href="{{ href }}" class="mywork-chip{{ active ? ' is-active' }}{{ finished ? ' is-finished' }}"{% if active %} aria-current="true"{% endif %}>
-        {{ label }} <span class="mywork-chip-count">{{ count }}</span>
+{% macro chip(label, count, href, active, closed) %}
+    <a href="{{ href }}" class="chip{{ active ? ' is-active' }}{{ closed ? ' is-closed' }}"{% if active %} aria-current="true"{% endif %}>
+        {{ label }} <span class="chip-count">{{ count }}</span>
     </a>
+{% endmacro %}
+
+{#
+ # The search in the work of the person, with the checkbox of the search whether closed work counts, too. New words keep
+ # the filter and the order: their parameters as hidden fields.
+ #}
+{% macro search(route, query, parameters, placeholder, includeClosed, closedTitle) %}
+    {% import '_macros/sort.html.twig' as sorting %}
+    <form class="list-search mywork-search" action="{{ path(route) }}" method="get" role="search">
+        {% for name, value in parameters|filter((v, k) => k not in ['query', 'state']) %}
+            {{ sorting.hidden(name, value) }}
+        {% endfor %}
+        <label class="sr-only" for="mywork-search">Search in my work</label>
+        <div class="input-group input-group-sm">
+            <input type="search" id="mywork-search" name="query" value="{{ query }}" class="form-control" placeholder="{{ placeholder }}">
+            <label class="input-group-text search-form-closed" title="{{ closedTitle }}">
+                <input class="form-check-input" type="checkbox" name="state" value="all"{{ includeClosed ? ' checked' }} onchange="this.form.submit()">
+                Include closed
+            </label>
+            <button type="submit" class="btn btn-sm btn-default" title="Search">{{ icon('actions-search') }}</button>
+        </div>
+    </form>
 {% endmacro %}
 
 {% block body %}
     {% set route = 'my_' ~ view %}
+    {# The tabs keep the search words #}
+    {% set queryParams = (query ?? '') is not empty ? {'query': query} : {} %}
     <div class="content-section content-section-small mywork mywork-view-{{ view }}">
         <div class="container">
+            {# No orange band, as on the search: the tabs say where the page is #}
+            <h1 class="sr-only">My Work</h1>
 
-            <nav class="mywork-views" aria-label="My Work">
-                <a href="{{ path('my_changes') }}" class="mywork-views-item is-changes{{ view == 'changes' ? ' is-active' }}"{% if view == 'changes' %} aria-current="page"{% endif %}>
+            <nav class="view-tabs" aria-label="My Work">
+                <a href="{{ path('my_changes', queryParams) }}" class="view-tab is-changes{{ view == 'changes' ? ' is-active' }}"{% if view == 'changes' %} aria-current="page"{% endif %}>
                     {{ icon('actions-code-pull-request') }}
-                    <span>My changes</span>
-                    <span class="mywork-views-count" title="Open Gerrit changes">{{ openChanges }}</span>
+                    <span>Reviews</span>
+                    <span class="view-tab-count" title="{{ queryParams is empty ? 'Open reviews' : 'Open reviews found' }}">{{ openChanges }}</span>
                 </a>
-                <a href="{{ path('my_issues') }}" class="mywork-views-item is-issues{{ view == 'issues' ? ' is-active' }}"{% if view == 'issues' %} aria-current="page"{% endif %}>
+                <a href="{{ path('my_issues', queryParams) }}" class="view-tab is-issues{{ view == 'issues' ? ' is-active' }}"{% if view == 'issues' %} aria-current="page"{% endif %}>
                     {{ icon('actions-list') }}
-                    <span>My issues</span>
-                    <span class="mywork-views-count" title="Open issues">{{ openIssues }}</span>
+                    <span>Issues</span>
+                    <span class="view-tab-count" title="{{ queryParams is empty ? 'Open issues' : 'Open issues found' }}">{{ openIssues }}</span>
                 </a>
             </nav>
-
-            <div class="mywork-intro">
-                <p>{% block intro %}{% endblock %} Found by <strong>{{ email }}</strong> or <strong>{{ name }}</strong>.</p>
-                <nav class="mywork-toggle" aria-label="Finished work">
-                    <a href="{{ path(route) }}" class="{{ includeClosed ? '' : 'is-active' }}"{% if not includeClosed %} aria-current="true"{% endif %}>Open</a>
-                    <a href="{{ path(route, {'state': 'all'}) }}" class="{{ includeClosed ? 'is-active' : '' }}"{% if includeClosed %} aria-current="true"{% endif %}>Including finished</a>
-                </nav>
-            </div>
 
             {% block view %}{% endblock %}
 
