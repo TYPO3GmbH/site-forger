@@ -237,8 +237,9 @@ lock: paused, it ends as "Interrupted" and is queued, to start again once resume
 "Cancelled" and stays so. Starting again costs little: a delta goes on from the index, a full import skips what it
 has in its current state. `app:jobs:pause` waits for the running jobs to stop, at most `--wait` seconds.
 
-A deployment migrates the database, then pauses all jobs before the setup of the indices and resumes them once the
-new release is live and its post release commands ran, or with the old one if it failed (`deploy.php`): no import
+Before the new release goes live, a deployment compiles its environment, migrates the database and pauses all jobs
+for the setup of the indices (`forger:prepare_release` in `deploy.php`). It resumes them once the new release is live
+and its cache warmed up, or with the new release's console if the deployment failed: no import
 writes while the indices are rebuilt, and the interrupted jobs start again with the new code and schema. The
 migrations run while the current release is still live, so a migration has to keep the schema usable for it: add
 tables and columns, do not rename or drop them in the same deployment.
