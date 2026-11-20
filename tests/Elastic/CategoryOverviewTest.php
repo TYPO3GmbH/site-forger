@@ -68,4 +68,10 @@ final class CategoryOverviewTest extends TestCase
         self::assertNull(CategoryOverview::withoutCategory(null));
         self::assertArrayHasKey('without_category', CategoryOverview::request()['aggregations']);
     }
+
+    public function testTheIssuesWithoutCategoryAreAValueOfTheFilter(): void
+    {
+        self::assertSame(CategoryOverview::WITHOUT, CategoryOverview::withoutCategory(['doc_count' => 1, 'tracker' => ['buckets' => []]])['name']);
+        self::assertSame(['bool' => ['must_not' => [['exists' => ['field' => 'category.name']]]]], CategoryOverview::withoutCategoryQuery());
+    }
 }

@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 {% block title %}Sprint Categories{% endblock %}
-{% block headline %}Sprint Categories{% endblock %}
+{% block page_title %}Sprint Categories{% endblock %}
 {% block breadcrumb %}
     {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
     {{ breadcrumb.trail([{'label': 'Sprints', 'url': path('sprint_overview')}, {'label': 'Categories', 'url': path('sprintcategory_index')}, {'label': edit is defined ? 'Edit category' : 'New category'}]) }}

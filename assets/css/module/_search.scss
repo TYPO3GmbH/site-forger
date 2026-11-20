@@ -1,23 +1,39 @@
-// The search pages: the search words, the tabs and the exact matches, see templates/_partials/search_form.html.twig,
-// search_tabs.html.twig and exact_matches.html.twig
+// The search field of every page, and the search pages: the tabs and the exact matches, see
+// templates/_macros/search.html.twig, _partials/search_tabs.html.twig and exact_matches.html.twig
 
-// The head: one field over the width, in it whether closed ones count, too, as a part of the field before the
-// button, white like the field and apart from the words by a line only
-.search-form {
+// The search field of _macros/search.html.twig, on every page with a search. In the head of a page one field over
+// the width; small in the toolbar of a list, as high as the sort field beside it.
+.search-field {
     margin: -.5rem 0 1rem;
 
-    .form-control {
-        font-size: 1rem;
-    }
-
-    .search-form-closed {
+    .form-control,
+    .search-field-closed {
         font-size: 1rem;
     }
 }
 
-// Whether closed ones count, too: a checkbox in the field of the search words, before its button. In the head of the
-// search and in the search of My Work.
-.search-form-closed {
+.search-field-small {
+    flex: 1 1 18rem;
+    max-width: 32rem;
+    margin: 0;
+
+    .form-control,
+    .search-field-closed {
+        font-size: .875rem;
+    }
+
+    .form-control,
+    .search-field-closed,
+    .btn {
+        height: var(--list-control-height);
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+}
+
+// Whether closed ones count, too: a checkbox in the field of the search words, before its button, white like the
+// field and apart from the words by a line only
+.search-field-closed {
     gap: .5rem;
     margin: 0;
     border-left: 0;
@@ -41,7 +57,7 @@
 }
 
 // As the field: with the words in it, the border of the field goes on around it
-.form-control:focus ~ .search-form-closed {
+.form-control:focus ~ .search-field-closed {
     border-color: var(--bs-primary, #ed6d05);
 }
 

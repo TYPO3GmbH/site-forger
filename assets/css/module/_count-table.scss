@@ -85,8 +85,9 @@
         }
     }
 
-    // The issues without category: below the categories, in gray, as they lead nowhere
-    .is-without th {
+    // The issues without category: below the categories, in gray and italic, as they have no category of their own
+    .is-without th,
+    .is-without th a {
         color: #4b5563;
         font-style: italic;
         font-weight: 400;

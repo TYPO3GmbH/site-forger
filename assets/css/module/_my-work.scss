@@ -34,8 +34,6 @@
 
 .mywork-section-header {
     // The search and the order, the chips below them, then the list: the same space between them
-    --mywork-control-height: 2.25rem;
-
     display: flex;
     flex-wrap: wrap;
     gap: 1rem 1.5rem;
@@ -43,22 +41,6 @@
     justify-content: space-between;
     margin-bottom: 1.25rem;
 
-    // The search field and the sort field as high as each other
-    .mywork-search .form-control,
-    .mywork-search .search-form-closed,
-    .mywork-search .btn,
-    .list-sort-select {
-        height: var(--mywork-control-height);
-        padding-top: 0;
-        padding-bottom: 0;
-    }
-}
-
-// The search in the work of the person, see the macro "search" in templates/my/_layout.html.twig: the place of the
-// title, as the tab names the list, the order beside it
-.mywork-search {
-    flex: 1 1 18rem;
-    max-width: 32rem;
 }
 
 // Lists: the rows of the review lists and the search (templates/_partials/row/)

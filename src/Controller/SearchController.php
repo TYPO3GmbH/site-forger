@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Elastic\CategoryOverview;
 use App\Elastic\ElasticUtility;
 use App\Elastic\FacetSelection;
 use App\Elastic\GlobalSearch;
@@ -197,6 +198,11 @@ class SearchController extends AbstractController
                         ++$filterCatCount;
                         continue;
                     }
+                    if ('category' === $key && CategoryOverview::WITHOUT === $term) {
+                        $filterPart->addShould(new Query\Simple(CategoryOverview::withoutCategoryQuery()));
+                        ++$filterCatCount;
+                        continue;
+                    }
                     $filter = new Query\Term();
                     if ('tracker' === $key
                         || 'project' === $key
@@ -235,6 +241,8 @@ class SearchController extends AbstractController
     {
         $catAggregation = new Terms('Category');
         $catAggregation->setField('category.name');
+        // The issues without category as a value of their own, as the row of "Issues by category"
+        $catAggregation->setParam('missing', CategoryOverview::WITHOUT);
         $catAggregation->setSize(100);
         $catAggregation->setOrder('_term', 'ASC');
         $elasticaQuery->addAggregation($catAggregation);

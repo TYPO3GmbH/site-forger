@@ -1,6 +1,7 @@
 // The title of a page without orange band: below the breadcrumb, on the gray of the page, a line about the page right
-// below it. Not .page-header: that is the head of the site in the template bundle. See
-// templates/management/bycategory.html.twig and review/stale_issues.html.twig.
+// below it. Not .page-header: that is the head of the site in the template bundle. Pages with a line about them write
+// it in their content, see templates/management/bycategory.html.twig; pages with the title only fill the block
+// "page_title", which base.html.twig shows in .page-intro-bar.
 
 .page-intro {
     margin-bottom: 1.5rem;
@@ -23,4 +24,44 @@
         color: #0b0b0b;
         font-weight: 600;
     }
+}
+
+// The title of the block "page_title", between the breadcrumb and the first section of the page: the same space as
+// a .page-intro at the top of a section
+.page-intro-bar {
+    padding-top: 1.25rem;
+
+    .breadcrumb-bar + & {
+        padding-top: 1rem;
+    }
+
+    // The buttons of the block "page_actions" on the right, on one line with the title
+    .page-intro {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem 1.5rem;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0;
+    }
+
+    .page-intro-title {
+        margin-bottom: 0;
+    }
+
+    // The line about the page below the title and the buttons, on the whole width
+    .page-intro-summary {
+        flex-basis: 100%;
+        margin-top: -.375rem;
+    }
+
+    ~ .page-main-content > .content-section:first-child {
+        padding-top: 1.5rem;
+    }
+}
+
+.page-intro-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
 }

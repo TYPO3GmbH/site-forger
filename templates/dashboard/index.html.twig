@@ -29,10 +29,15 @@
 {% block body %}
     {% import _self as dashboard %}
 
-    {% include '_partials/searchbar.html.twig' %}
+    {% import '_macros/search.html.twig' as search %}
 
     <div class="content-section content-section-small overview">
         <div class="container">
+            <h1 class="sr-only">Dashboard</h1>
+            {{ search.field(path('search_search'), '', {
+                'id': 'dashboard-search',
+                'closed': {'title': 'Also merged and abandoned changes, and resolved, closed and rejected issues'},
+            }) }}
 
             <div class="overview-stats">
                 <a class="overview-stat" href="{{ path('search_search') }}">

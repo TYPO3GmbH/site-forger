@@ -1,18 +1,13 @@
 {% extends 'base.html.twig' %}
 {% block title %}Help{% endblock %}
-{% block headline %}Help{% endblock %}
+{% block page_title %}Help{% endblock %}
 
 {#
  # A tile linking to a page of Forger.
  #}
 {% macro tile(route, icon, title, description) %}
-    <a class="help-tile" href="{{ path(route) }}">
-        <span class="help-tile-icon">{{ icon(icon) }}</span>
-        <span class="help-tile-body">
-            <span class="help-tile-title">{{ title }}</span>
-            <span class="help-tile-text">{{ description|raw }}</span>
-        </span>
-    </a>
+    {% import '_macros/tiles.html.twig' as tiles %}
+    {{ tiles.tile(path(route), icon, title, description) }}
 {% endmacro %}
 
 {% block body %}
@@ -124,7 +119,7 @@
                         Work in progress only appears in its own list, in "Find by file" and in the search.
                         Votes count when a person gave them, not the CI bot.
                     </p>
-                    <div class="help-tiles">
+                    <div class="link-tiles">
                         {{ help.tile('gerrit_index', 'actions-code-pull-request', 'Ready for review', 'Every open change that is not work in progress.') }}
                         {{ help.tile('gerrit_wip', 'actions-code-pull-request-draft', 'Work in progress', 'Marked as work in progress in Gerrit or with [WIP] or [POC] in the subject, the oldest first.') }}
                         {{ help.tile('gerrit_missesreview', 'actions-comment', 'Needs review', 'Verified, but no positive code review yet.') }}
@@ -164,9 +159,9 @@
                         <span class="help-section-icon">{{ icon('actions-list') }}</span>
                         <h2>Issues</h2>
                     </header>
-                    <div class="help-tiles">
+                    <div class="link-tiles">
                         {{ help.tile('search_search', 'actions-search', 'Search', 'Words find open issues and reviews, each in a tab. A number shows the issue and the change with it, and finds the changes that resolve the issue. The page of an issue shows its changes and finds its possible duplicates.') }}
-                        <div id="stale-issues" class="help-tile-anchor">
+                        <div id="stale-issues" class="link-tile-anchor">
                             {{ help.tile('gerrit_stale_issues', 'actions-clock', 'Stale issues', 'Open issues without activity for 60 days or more, the stages "Stale" and "Orphaned". Each says which changes it has, linked in the comments or resolving or naming the issue in their commit message.') }}
                         </div>
                         {{ help.tile('management_bycategory', 'actions-tag', 'By category', 'Open issues per category and tracker, the categories with the most first.') }}
@@ -211,12 +206,12 @@
                         <span class="help-section-icon">{{ icon('actions-line-columns') }}</span>
                         <h2>Sprints</h2>
                     </header>
-                    <div class="help-tiles">
-                        <div class="help-tile help-tile-static">
-                            <span class="help-tile-icon">{{ icon('actions-viewmode-tiles') }}</span>
-                            <span class="help-tile-body">
-                                <span class="help-tile-title">Sprint boards</span>
-                                <span class="help-tile-text">Selected issues in the columns Blocked, Open, WIP, Review and Done. The Core team creates them.</span>
+                    <div class="link-tiles">
+                        <div class="link-tile link-tile-static">
+                            <span class="link-tile-icon">{{ icon('actions-viewmode-tiles') }}</span>
+                            <span class="link-tile-body">
+                                <span class="link-tile-title">Sprint boards</span>
+                                <span class="link-tile-text">Selected issues in the columns Blocked, Open, WIP, Review and Done. The Core team creates them.</span>
                             </span>
                         </div>
                         {{ help.tile('sprint_reviews', 'actions-line-columns', 'Review board', 'Open bugfixes, features or tasks, grouped by what they lack.') }}
@@ -229,7 +224,7 @@
                         <span class="help-section-icon">{{ icon('actions-briefcase') }}</span>
                         <h2>Tools</h2>
                     </header>
-                    <div class="help-tiles">
+                    <div class="link-tiles">
                         {{ help.tile('utilities_backport', 'actions-code-compare', 'Backports', 'Merged into main within a year, with a version in "Releases:" that has no backport yet.') }}
                         {{ help.tile('utilities_rst', 'actions-file-text', 'ReST helper', 'Writes the changelog file of a breaking change, deprecation or feature.') }}
                     </div>

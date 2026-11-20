@@ -97,26 +97,28 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             $this->addLink($sprints, 'sprintcategory_index', 'Categories', 'sprintcategory_index', 'actions-category');
         }
 
-        $tools = $menu->addChild('utility', ['label' => 'Tools', 'uri' => '#']);
-        $this->addLink($tools, 'utility_backports', 'Backports', 'utilities_backport', 'actions-code-compare');
+        // A click on "Tools" opens their overview, its tiles are the items below with their description
+        $tools = $menu->addChild('utility', ['label' => 'Tools', 'route' => 'utilities_index']);
+        $this->addLink($tools, 'utility_backports', 'Backports', 'utilities_backport', 'actions-code-compare', description: 'Merged into main within a year, with a version in "Releases:" that has no backport yet.');
         if ($this->authorizationChecker->isGranted('ROLE_CORE_COMPONENT')) {
-            $this->addLink($tools, 'utility_backport_list', 'Backport exclusions', 'utilities_backport_index', 'actions-ban');
+            $this->addLink($tools, 'utility_backport_list', 'Backport exclusions', 'utilities_backport_index', 'actions-ban', description: 'The changes the backports leave out, and why.');
         }
-        $this->addLink($tools, 'utility_rst', 'ReST helper', 'utilities_rst', 'actions-file-text');
+        $this->addLink($tools, 'utility_rst', 'ReST helper', 'utilities_rst', 'actions-file-text', description: 'Writes the changelog file of a breaking change, deprecation or feature.');
 
         return $menu;
     }
 
     /**
      * @param array<string, string> $routeParameters
+     * @param string|null           $description     a line about the page, for the tiles of an overview like the tools
      */
-    private function addLink(ItemInterface $parent, string $name, string $label, string $route, string $icon, array $routeParameters = []): void
+    private function addLink(ItemInterface $parent, string $name, string $label, string $route, string $icon, array $routeParameters = [], ?string $description = null): void
     {
         $parent->addChild($name, [
             'label' => $label,
             'route' => $route,
             'routeParameters' => $routeParameters,
-            'extras' => ['icon' => $icon],
+            'extras' => array_filter(['icon' => $icon, 'description' => $description]),
         ]);
     }
 

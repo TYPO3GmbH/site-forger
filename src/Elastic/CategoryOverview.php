@@ -20,6 +20,22 @@ use App\Enum\TrackerEnum;
 final class CategoryOverview
 {
     /**
+     * The name of the issues without category: their row, and their value in the filter "Category" of the search,
+     * see the filter query withoutCategoryQuery().
+     */
+    public const string WITHOUT = 'Without category';
+
+    /**
+     * The issues without category, for the filter "Category" of the search.
+     *
+     * @return array<string, mixed>
+     */
+    public static function withoutCategoryQuery(): array
+    {
+        return ['bool' => ['must_not' => [['exists' => ['field' => 'category.name']]]]];
+    }
+
+    /**
      * The trackers of the TYPO3 Core team, in the order of the work: what is broken, then what is new. Each has a column
      * of its own, the others, rare in every category, share the column "Other".
      */
@@ -85,7 +101,7 @@ final class CategoryOverview
             return null;
         }
 
-        return self::row(['key' => 'Without category'] + $bucket);
+        return self::row(['key' => self::WITHOUT] + $bucket);
     }
 
     /**

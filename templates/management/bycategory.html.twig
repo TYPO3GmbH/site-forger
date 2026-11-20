@@ -57,13 +57,19 @@
                                 </tr>
                             {% endfor %}
                             {% if withoutCategory is not null %}
+                                {# The value "Without category" of the filter "Category" finds them, see CategoryOverview::WITHOUT #}
+                                {% set categoryFilter = {(withoutCategory.name|filterKey): 'true'} %}
                                 <tr class="is-without">
-                                    <th scope="row">{{ withoutCategory.name }}</th>
-                                    {% for count in withoutCategory.counts %}
-                                        <td class="is-count">{{ _self.count(count, null, null) }}</td>
+                                    <th scope="row"><a href="{{ path('search_search', {'filters': {'category': categoryFilter}}) }}" title="Show the open issues without category">{{ withoutCategory.name }}</a></th>
+                                    {% for label, count in withoutCategory.counts %}
+                                        <td class="is-count">{{ _self.count(count, path('search_search', {'filters': {'category': categoryFilter, 'tracker': {(label|filterKey): 'true'}}}), 'Show the open ' ~ label ~ ' issues without category') }}</td>
                                     {% endfor %}
-                                    <td class="is-count">{{ _self.count(withoutCategory.other.count, null, null) }}</td>
-                                    <td class="is-count is-total">{{ _self.count(withoutCategory.total, null, null) }}</td>
+                                    {% set otherFilter = {} %}
+                                    {% for label in withoutCategory.other.labels %}
+                                        {% set otherFilter = otherFilter|merge({(label|filterKey): 'true'}) %}
+                                    {% endfor %}
+                                    <td class="is-count">{{ _self.count(withoutCategory.other.count, path('search_search', {'filters': {'category': categoryFilter, 'tracker': otherFilter}}), 'Show the open ' ~ withoutCategory.other.labels|join(', ') ~ ' issues without category') }}</td>
+                                    <td class="is-count is-total">{{ _self.count(withoutCategory.total, path('search_search', {'filters': {'category': categoryFilter}}), 'Show the open issues without category') }}</td>
                                 </tr>
                             {% endif %}
                         </tbody>

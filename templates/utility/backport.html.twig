@@ -1,4 +1,6 @@
 {% extends 'base.html.twig' %}
+{# Over the whole width, as its content: the breadcrumb and the title too, see base.html.twig #}
+{% set wide = true %}
 {% block title %}Backports{% endblock %}
 {% block body %}
     {% set versions = ['main', '14.3', '13.4'] %}

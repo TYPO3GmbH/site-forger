@@ -1,4 +1,6 @@
 {% extends 'base.html.twig' %}
+{# Over the whole width, as its content: the breadcrumb and the title too, see base.html.twig #}
+{% set wide = true %}
 {% import '_macros/buttons.html.twig' as buttons %}
 {% block title %}Sprints{% endblock %}
 {# The board below its category, as the menu has the category only #}

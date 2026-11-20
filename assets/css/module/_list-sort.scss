@@ -1,5 +1,10 @@
 // Sort field of the issue and review lists, see templates/_macros/sort.html.twig
 
+// The height of the sort field and of the small search field beside it, see .search-field-small in _search.scss
+:root {
+    --list-control-height: 2.25rem;
+}
+
 .list-sort {
     display: inline-flex;
     gap: .5rem;
@@ -18,6 +23,9 @@
 
 .list-sort-select {
     width: auto;
+    height: var(--list-control-height);
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
 // Above the search results, beside the count of the results
@@ -51,8 +59,3 @@
     margin-bottom: 1rem;
 }
 
-.list-search {
-    flex: 1 1 18rem;
-    max-width: 32rem;
-    margin: 0;
-}

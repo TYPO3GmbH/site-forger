@@ -155,13 +155,17 @@
     text-overflow: ellipsis;
 }
 
+// The pills of a row as large as its text, 14px: elsewhere they are smaller
+.overview-list-item .status-pill {
+    font-size: .875rem;
+}
+
 // The size leads the column on the right: it tells a reviewer how long the review takes
 .overview-list-column-size {
     gap: 0 .625rem;
 
     .status-pill-size {
         padding: .2em .8em;
-        font-size: .875rem;
     }
 }
 

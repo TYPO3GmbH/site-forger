@@ -30,6 +30,15 @@ class UtilityController extends AbstractController
     ) {
     }
 
+    /**
+     * The overview of the tools: the items of the menu "Tools", see MenuBuilder and templates/utility/index.html.twig.
+     */
+    #[Route(path: '', name: 'index')]
+    public function index(): Response
+    {
+        return $this->render('utility/index.html.twig');
+    }
+
     #[Route(path: '/backport', name: 'backport')]
     public function backport(): Response
     {

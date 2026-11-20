@@ -1,14 +1,25 @@
 {% extends 'base.html.twig' %}
 {% block title %}Find by file{% endblock %}
+{#
+ # The changes that touch a file, by its path. The search field of the search pages, with whether merged and
+ # abandoned changes count, too.
+ #}
 {% block body %}
-
-    {% include '_partials/searchbar.html.twig' with {'searchRouteName': routeName} %}
+    {% import '_macros/search.html.twig' as search %}
     <div class="content-section bg-transparent">
         <div class="container">
+            <h1 class="sr-only">Find by file</h1>
+            {{ search.field(path('gerrit_files'), query ?? '', {
+                'id': 'file-search',
+                'label': 'Path of the file',
+                'placeholder': 'Full path in the Git repository, like typo3/sysext/core/Classes/Cache/CacheManager.php',
+                'title': 'Find the changes of this file',
+                'closed': {'checked': searchClosed ?? null, 'title': 'Also merged and abandoned changes'},
+            }) }}
             {% if results is defined and results|length > 0 %}
                 {% include '_partials/review_view.html.twig' %}
-            {% else %}
-                {% include '_partials/alert.html.twig' with {'message': 'We couldn\'t find any review matching your query. Please try searching for a full path name.'} %}
+            {% elseif (query ?? '') is not empty %}
+                {% include '_partials/alert.html.twig' with {'message': 'No change touches this file. Search for its full path.'} %}
             {% endif %}
         </div>
     </div>

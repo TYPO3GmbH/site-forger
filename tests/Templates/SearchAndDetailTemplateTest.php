@@ -19,6 +19,7 @@ use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
 use App\Enum\TrackerEnum;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Finder\Finder;
 use Twig\Environment;
 
 /**
@@ -160,9 +161,9 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
             'sort' => ReviewSortEnum::UPDATED, 'sortOptions' => ReviewSortEnum::options(false), 'isDefaultSort' => true,
         ]);
 
-        // The layout shows the band only for a page with this block
-        self::assertFalse($template->hasBlock('headline'));
-        self::assertTrue($this->twig->load('review/generic_review_view.html.twig')->hasBlock('headline'));
+        // No title of its own: the tabs say where the page is
+        self::assertFalse($template->hasBlock('page_title'));
+        self::assertTrue($this->twig->load('review/generic_review_view.html.twig')->hasBlock('page_title'));
         self::assertStringContainsString('<h1 class="sr-only">My Work</h1>', $html);
         self::assertStringContainsString('class="view-tab is-changes is-active"', $html);
         // Named as the tabs of the search
@@ -206,7 +207,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('<h2 id="changes-title" class="sr-only">Reviews</h2>', $html);
         self::assertStringNotContainsString('Gerrit changes <span', $html);
         // New words keep the filter and the order, not the old words
-        self::assertMatchesRegularExpression('~<form class="list-search mywork-search"[^>]*>.*name="review" value="wip".*name="sort" value="smallest"~s', $html);
+        self::assertMatchesRegularExpression('~<form class="search-field search-field-small"[^>]*>.*name="review" value="wip".*name="sort" value="smallest"~s', $html);
         // Whether closed work counts, too, as in the search: a checkbox in the field
         self::assertStringContainsString('<input class="form-check-input" type="checkbox" name="state" value="all" checked onchange="this.form.submit()">', $html);
         self::assertStringNotContainsString('mywork-toggle', $html);
@@ -261,7 +262,8 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         // Every open issue, those without category, too
         self::assertStringContainsString('<strong>5</strong> open issues in <strong>1</strong> categories, the most open first.', $html);
         // The issues without category lead nowhere: the search has no filter for them
-        self::assertMatchesRegularExpression('~<tr class="is-without">\\s*<th scope="row">Without category</th>\\s*<td class="is-count">1</td>~', $html);
+        // The issues without category lead to the search, too, with the value "Without category" of the filter
+        self::assertMatchesRegularExpression('~<tr class="is-without">\\s*<th scope="row"><a href="/search\\?filters%5Bcategory%5D%5BWithout_category%5D=true" title="Show the open issues without category">Without category</a></th>\\s*<td class="is-count"><a href="/search\\?filters%5Bcategory%5D%5BWithout_category%5D=true&amp;filters%5Btracker%5D%5BBug%5D=true" title="Show the open Bug issues without category">1</a></td>~', $html);
         self::assertStringContainsString('<span class="tracker-dot is-story" aria-hidden="true"></span>Stories</th>', $html);
         self::assertStringContainsString('<a href="/search?filters%5Bcategory%5D%5BForm_Framework%5D=true&amp;filters%5Btracker%5D%5BBug%5D=true" title="Show the open Bug issues of Form Framework">2</a>', $html);
         // None as a dash, not as a link
@@ -372,6 +374,40 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         // Clear empties its own field only
         self::assertStringContainsString('[name^=&quot;filters[updated]&quot;]', $html);
         self::assertGreaterThan(strpos($html, 'facet-changes-size'), strpos($html, 'facet-changes-updated'));
+    }
+
+    public function testNoPageHasTheOrangeBand(): void
+    {
+        // The template bundle shows the block "headline" in an orange band; base.html.twig shows "page_title" instead
+        $withBand = [];
+        foreach (new Finder()->files()->in(dirname(__DIR__, 2) . '/templates')->name('*.twig') as $file) {
+            if (str_contains($file->getContents(), '{% block headline')) {
+                $withBand[] = $file->getRelativePathname();
+            }
+        }
+        self::assertSame([], $withBand);
+
+        $base = (string) file_get_contents(dirname(__DIR__, 2) . '/templates/base.html.twig');
+        self::assertStringContainsString("<h1 class=\"page-intro-title\">{{ block('page_title') }}</h1>", $base);
+    }
+
+    public function testEverySearchHasTheSameField(): void
+    {
+        $field = static fn (string $html): bool => str_contains($html, '<form class="search-field');
+        $html = $this->twig->render('_partials/search_form.html.twig', ['route' => 'search_search', 'query' => 'cache', 'searchClosed' => '1']);
+        self::assertTrue($field($html));
+        self::assertStringContainsString('name="searchClosed" value="1" checked', $html);
+
+        // Small in the toolbar of a list, with the filters and the order of the list
+        $html = $this->twig->createTemplate("{% import '_macros/search.html.twig' as search %}{{ search.field('/gerrit/status', 'cache', {'small': true, 'hidden': {'sort': 'smallest'}}) }}")->render();
+        self::assertStringContainsString('<form class="search-field search-field-small" action="/gerrit/status"', $html);
+        self::assertStringContainsString('<input type="hidden" name="sort" value="smallest">', $html);
+        self::assertStringContainsString('class="btn btn-default btn-sm"', $html);
+        // Without "closed" no checkbox
+        self::assertStringNotContainsString('checkbox', $html);
+
+        // The gray bar of before is gone
+        self::assertFileDoesNotExist(dirname(__DIR__, 2) . '/templates/_partials/searchbar.html.twig');
     }
 
     public function testExactMatchesLeadToTheDetailPages(): void

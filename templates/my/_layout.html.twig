@@ -22,21 +22,15 @@
  # the filter and the order: their parameters as hidden fields.
  #}
 {% macro search(route, query, parameters, placeholder, includeClosed, closedTitle) %}
-    {% import '_macros/sort.html.twig' as sorting %}
-    <form class="list-search mywork-search" action="{{ path(route) }}" method="get" role="search">
-        {% for name, value in parameters|filter((v, k) => k not in ['query', 'state']) %}
-            {{ sorting.hidden(name, value) }}
-        {% endfor %}
-        <label class="sr-only" for="mywork-search">Search in my work</label>
-        <div class="input-group input-group-sm">
-            <input type="search" id="mywork-search" name="query" value="{{ query }}" class="form-control" placeholder="{{ placeholder }}">
-            <label class="input-group-text search-form-closed" title="{{ closedTitle }}">
-                <input class="form-check-input" type="checkbox" name="state" value="all"{{ includeClosed ? ' checked' }} onchange="this.form.submit()">
-                Include closed
-            </label>
-            <button type="submit" class="btn btn-sm btn-default" title="Search">{{ icon('actions-search') }}</button>
-        </div>
-    </form>
+    {% import '_macros/search.html.twig' as searchField %}
+    {{ searchField.field(path(route), query, {
+        'id': 'mywork-search',
+        'small': true,
+        'label': 'Search in my work',
+        'placeholder': placeholder,
+        'hidden': parameters|filter((v, k) => k not in ['query', 'state']),
+        'closed': {'name': 'state', 'value': 'all', 'checked': includeClosed, 'title': closedTitle},
+    }) }}
 {% endmacro %}
 
 {% block body %}

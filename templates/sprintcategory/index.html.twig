@@ -1,25 +1,13 @@
 {% extends 'base.html.twig' %}
 {% import '_macros/buttons.html.twig' as buttons %}
 {% block title %}Sprint categories{% endblock %}
-{% block headline %}Sprint categories{% endblock %}
+{% block page_title %}Sprint categories{% endblock %}
+{# Beside the title, on its right #}
+{% block page_actions %}{{ buttons.link(path('sprintcategory_create'), 'Create new', 'primary', 'actions-plus') }}{% endblock %}
 {% block body %}
 
     <div class="content-section bg-transparent">
         <div class="container">
-
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="float-right">
-                        {{ buttons.link(
-                            path('sprintcategory_create'),
-                            'Create new',
-                            'primary',
-                            'actions-plus'
-                        ) }}
-                    </div>
-                </div>
-            </div>
-            <br>
             <div class="row">
                 <div class="col-md-12">
                     {% if items %}
