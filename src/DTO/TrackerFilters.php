@@ -40,12 +40,38 @@ readonly class TrackerFilters
     }
 
     /**
+     * @return list<string> the names of the trackers left out
+     */
+    public function excludedLabels(): array
+    {
+        return array_map(static fn (TrackerEnum $tracker): string => $tracker->label(), $this->excluded);
+    }
+
+    /**
+     * The parameters of the page with the tracker left out, or taken in again if it is left out.
+     *
+     * @return array{trackerFilters: array<string, string>}
+     */
+    public function toggled(TrackerEnum $tracker): array
+    {
+        $excluded = $this->isExcluded($tracker)
+            ? array_filter($this->excluded, static fn (TrackerEnum $excluded): bool => $excluded !== $tracker)
+            : [...$this->excluded, $tracker];
+        $severities = array_map(static fn (TrackerEnum $excluded): string => $excluded->severity(), $excluded);
+
+        return ['trackerFilters' => array_fill_keys(array_values($severities), 'true')];
+    }
+
+    /**
      * The filterable trackers that are not left out.
      *
      * @return list<TrackerEnum>
      */
     public function included(): array
     {
-        return array_values(array_filter(TrackerEnum::filterable(), fn (TrackerEnum $tracker): bool => !$this->isExcluded($tracker)));
+        return array_values(array_filter(
+            TrackerEnum::filterable(),
+            fn (TrackerEnum $tracker): bool => !$this->isExcluded($tracker),
+        ));
     }
 }

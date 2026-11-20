@@ -15,7 +15,6 @@ use App\DTO\TrackerFilters;
 use App\Elastic\CategoryOverview;
 use App\Elastic\Indices;
 use App\Elastic\MonthOverview;
-use App\Enum\IssueStatusEnum;
 use App\Enum\TrackerEnum;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -36,76 +35,24 @@ class ManagementController extends AbstractController
         $viewData['routeName'] = 'management_index';
         $trackerFilters = new TrackerFilters($request);
         $viewData['trackerFilters'] = $trackerFilters;
-        $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'must_not' => [
-                        [
-                            'terms' => [
-                                'status.name' => IssueStatusEnum::closedLabels(),
-                            ],
-                        ],
-                        [
-                            'terms' => [
-                                'project.id' => [
-                                    '78',
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-            'size' => 0,
-            'aggregations' => [
-                'year' => [
-                    'date_histogram' => [
-                        'field' => MonthOverview::FIELD,
-                        'calendar_interval' => 'year',
-                    ],
-                    'aggregations' => [
-                        'month' => [
-                            'date_histogram' => [
-                                'field' => MonthOverview::FIELD,
-                                'calendar_interval' => 'month',
-                            ],
-                            'aggregations' => [
-                                'status' => [
-                                    'terms' => [
-                                        'field' => 'status.name',
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-                // The trackers of the counted issues, so a cell finds them in the search with the left out ones left out
-                'tracker' => ['terms' => ['field' => 'tracker.name', 'size' => 20]],
-            ],
-        ];
-        foreach ($trackerFilters->excluded as $tracker) {
-            $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = $tracker->label();
-        }
-        $resultSet = $this->indices->issues()->createSearch($fullRequest)->search();
-        $rows = MonthOverview::rows($resultSet->getAggregations()['year']['buckets'] ?? []);
+        $request = MonthOverview::request($trackerFilters->excludedLabels());
+        $aggregations = $this->indices->issues()->createSearch($request)->search()->getAggregations();
+        $rows = MonthOverview::rows($aggregations['year']['buckets'] ?? []);
         $viewData['rows'] = $rows;
         $viewData['maximum'] = MonthOverview::maximum($rows);
         $viewData['total'] = array_sum(array_column($rows, 'total'));
         // Nothing left out: no filter of the trackers in the search, the issues of every tracker count
-        $viewData['trackerFilter'] = [] === $trackerFilters->excluded ? [] : array_fill_keys(array_map(
+        $trackerNames = array_map(
             static fn (array $bucket): string => str_replace(' ', '_', (string) $bucket['key']),
-            $resultSet->getAggregations()['tracker']['buckets'] ?? [],
-        ), 'true');
-        // Tracker => the parameters of the page with it left out or taken in again, for the chips
+            $aggregations['tracker']['buckets'] ?? [],
+        );
+        $viewData['trackerFilter'] = [] === $trackerFilters->excluded ? [] : array_fill_keys($trackerNames, 'true');
+        // The chips of the trackers
         $viewData['trackers'] = array_map(
             static fn (TrackerEnum $tracker): array => [
                 'tracker' => $tracker,
                 'included' => !$trackerFilters->isExcluded($tracker),
-                'toggle' => ['trackerFilters' => array_fill_keys(array_map(
-                    static fn (TrackerEnum $excluded): string => $excluded->severity(),
-                    $trackerFilters->isExcluded($tracker)
-                        ? array_values(array_filter($trackerFilters->excluded, static fn (TrackerEnum $excluded): bool => $excluded !== $tracker))
-                        : [...$trackerFilters->excluded, $tracker],
-                ), 'true')],
+                'toggle' => $trackerFilters->toggled($tracker),
             ],
             CategoryOverview::TRACKERS,
         );
@@ -125,7 +72,7 @@ class ManagementController extends AbstractController
             'rows' => $rows,
             'withoutCategory' => $withoutCategory,
             // Of every open issue, those without category, too
-            'sums' => CategoryOverview::sums([...$rows, ...(null === $withoutCategory ? [] : [$withoutCategory])]),
+            'sums' => CategoryOverview::sums(null === $withoutCategory ? $rows : [...$rows, $withoutCategory]),
             'trackers' => CategoryOverview::TRACKERS,
         ]);
     }

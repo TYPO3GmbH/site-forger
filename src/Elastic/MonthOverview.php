@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Elastic;
 
+use App\Enum\IssueStatusEnum;
 use Twig\Attribute\AsTwigFunction;
 
 /**
@@ -29,6 +30,54 @@ final class MonthOverview
      * The field the months count, and the one of the filter "Created" of the search.
      */
     public const string FIELD = 'created_on';
+
+    /**
+     * The table leaves out the issues of this Forge project.
+     */
+    private const string EXCLUDED_PROJECT = '78';
+
+    /**
+     * The search request of the table: the open issues by year, month and status.
+     * It also asks for the trackers of the counted issues, so a cell can link the search with the same trackers.
+     *
+     * @param list<string> $excludedTrackers the names of the trackers to leave out
+     *
+     * @return array<string, mixed>
+     */
+    public static function request(array $excludedTrackers): array
+    {
+        $mustNot = [
+            ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]],
+            ['terms' => ['project.id' => [self::EXCLUDED_PROJECT]]],
+        ];
+        if ([] !== $excludedTrackers) {
+            $mustNot[] = ['terms' => ['tracker.name' => $excludedTrackers]];
+        }
+        $month = self::histogram('month', ['status' => ['terms' => ['field' => 'status.name']]]);
+        $year = self::histogram('year', ['month' => $month]);
+
+        return [
+            'query' => ['bool' => ['must_not' => $mustNot]],
+            'size' => 0,
+            'aggregations' => [
+                'year' => $year,
+                'tracker' => ['terms' => ['field' => 'tracker.name', 'size' => 20]],
+            ],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $aggregations
+     *
+     * @return array<string, mixed>
+     */
+    private static function histogram(string $interval, array $aggregations): array
+    {
+        return [
+            'date_histogram' => ['field' => self::FIELD, 'calendar_interval' => $interval],
+            'aggregations' => $aggregations,
+        ];
+    }
 
     /**
      * The documents of a date field from and to, both included, see days(): by default the issues created then, the
