@@ -79,12 +79,15 @@ final class CategoryOverview
      *
      * @param ReadableCollection<array-key, Bucket> $categories
      *
-     * @return list<array{name: string, total: int, counts: array<string, int>, other: array{count: int, labels: list<string>}}>
+     * @return list<CategoryRow>
      */
     public static function rows(ReadableCollection $categories): array
     {
         $rows = array_values($categories->map(self::row(...))->toArray());
-        usort($rows, static fn (array $a, array $b): int => [$b['total'], $a['name']] <=> [$a['total'], $b['name']]);
+        usort(
+            $rows,
+            static fn (CategoryRow $a, CategoryRow $b): int => [$b->total, $a->name] <=> [$a->total, $b->name],
+        );
 
         return $rows;
     }
@@ -94,10 +97,8 @@ final class CategoryOverview
      * "without_category" of request().
      *
      * @param array<string, mixed>|null $bucket
-     *
-     * @return array{name: string, total: int, counts: array<string, int>, other: array{count: int, labels: list<string>}}|null
      */
-    public static function withoutCategory(?array $bucket): ?array
+    public static function withoutCategory(?array $bucket): ?CategoryRow
     {
         $category = null === $bucket ? null : Bucket::fromArray($bucket, self::WITHOUT);
         if (null === $category || 0 === $category->count) {
@@ -107,52 +108,54 @@ final class CategoryOverview
         return self::row($category);
     }
 
-    /**
-     * @return array{name: string, total: int, counts: array<string, int>, other: array{count: int, labels: list<string>}}
-     */
-    private static function row(Bucket $category): array
+    private static function row(Bucket $category): CategoryRow
     {
-        $counts = array_fill_keys(array_map(static fn (TrackerEnum $tracker): string => $tracker->label(), self::TRACKERS), 0);
-        $other = ['count' => 0, 'labels' => []];
+        $counts = self::noCounts();
+        $otherCount = 0;
+        $otherLabels = [];
         foreach ($category->buckets('tracker') as $tracker) {
             if (array_key_exists($tracker->key, $counts)) {
                 $counts[$tracker->key] = $tracker->count;
                 continue;
             }
-            $other['count'] += $tracker->count;
-            $other['labels'][] = $tracker->key;
+            $otherCount += $tracker->count;
+            $otherLabels[] = $tracker->key;
         }
-        sort($other['labels']);
+        sort($otherLabels);
 
-        return [
-            'name' => $category->key,
-            // All its open issues, also those without a tracker the aggregation lists
-            'total' => $category->count,
-            'counts' => $counts,
-            'other' => $other,
-        ];
+        // The total counts all its open issues, also those without a tracker the aggregation lists
+        return new CategoryRow($category->key, $category->count, $counts, new OtherTrackers($otherCount, $otherLabels));
     }
 
     /**
      * The sums of the columns, for the last row of the table.
      *
-     * @param list<array{name: string, total: int, counts: array<string, int>, other: array{count: int, labels: list<string>}}> $rows
-     *
-     * @return array{total: int, counts: array<string, int>, other: int}
+     * @param list<CategoryRow> $rows
      */
-    public static function sums(array $rows): array
+    public static function sums(array $rows): CategorySums
     {
-        $counts = array_fill_keys(array_map(static fn (TrackerEnum $tracker): string => $tracker->label(), self::TRACKERS), 0);
+        $counts = self::noCounts();
+        $total = 0;
+        $other = 0;
         foreach ($rows as $row) {
-            foreach ($row['counts'] as $label => $count) {
+            foreach ($row->counts as $label => $count) {
                 $counts[$label] += $count;
             }
+            $total += $row->total;
+            $other += $row->other->count;
         }
 
-        return [
-            'total' => array_sum(array_column($rows, 'total')),
-            'counts' => $counts,
-            'other' => array_sum(array_map(static fn (array $row): int => $row['other']['count'], $rows)),
-        ];
+        return new CategorySums($total, $counts, $other);
+    }
+
+    /**
+     * @return array<string, int> 0 by the label of each of TRACKERS
+     */
+    private static function noCounts(): array
+    {
+        return array_fill_keys(
+            array_map(static fn (TrackerEnum $tracker): string => $tracker->label(), self::TRACKERS),
+            0,
+        );
     }
 }

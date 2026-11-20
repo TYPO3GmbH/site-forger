@@ -13,6 +13,9 @@ namespace App\Tests\Report;
 
 use App\Elastic\Bucket;
 use App\Report\CategoryOverview;
+use App\Report\CategoryRow;
+use App\Report\CategorySums;
+use App\Report\OtherTrackers;
 use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\TestCase;
 
@@ -27,7 +30,10 @@ final class CategoryOverviewTest extends TestCase
         ]));
 
         // The same counts by name
-        self::assertSame(['Fluid', 'Workspaces', 'Caching'], array_column($rows, 'name'));
+        self::assertSame(
+            ['Fluid', 'Workspaces', 'Caching'],
+            array_map(static fn (CategoryRow $row): string => $row->name, $rows),
+        );
     }
 
     public function testEveryRowAddsUpTheRareTrackersInOther(): void
@@ -42,10 +48,10 @@ final class CategoryOverviewTest extends TestCase
             ]]],
         ]));
 
-        self::assertSame(['Bug' => 2, 'Feature' => 0, 'Task' => 4, 'Story' => 0, 'Epic' => 2], $row['counts']);
+        self::assertSame(['Bug' => 2, 'Feature' => 0, 'Task' => 4, 'Story' => 0, 'Epic' => 2], $row->counts);
         // None left out: a tracker Forge does not know any more counts, too
-        self::assertSame(['count' => 2, 'labels' => ['Retired tracker', 'Support']], $row['other']);
-        self::assertSame($row['total'], array_sum($row['counts']) + $row['other']['count']);
+        self::assertEquals(new OtherTrackers(2, ['Retired tracker', 'Support']), $row->other);
+        self::assertSame($row->total, array_sum($row->counts) + $row->other->count);
     }
 
     public function testTheSumsOfTheColumns(): void
@@ -55,7 +61,10 @@ final class CategoryOverviewTest extends TestCase
             ['key' => 'SEO', 'doc_count' => 2, 'tracker' => ['buckets' => [['key' => 'Bug', 'doc_count' => 1], ['key' => 'Task', 'doc_count' => 1]]]],
         ])));
 
-        self::assertSame(['total' => 5, 'counts' => ['Bug' => 3, 'Feature' => 0, 'Task' => 1, 'Story' => 0, 'Epic' => 0], 'other' => 1], $sums);
+        self::assertEquals(
+            new CategorySums(5, ['Bug' => 3, 'Feature' => 0, 'Task' => 1, 'Story' => 0, 'Epic' => 0], 1),
+            $sums,
+        );
     }
 
     public function testTheIssuesWithoutCategoryInARowOfTheirOwn(): void
@@ -66,9 +75,9 @@ final class CategoryOverviewTest extends TestCase
         ]]]);
         self::assertNotNull($row);
 
-        self::assertSame('Without category', $row['name']);
-        self::assertSame(3, $row['total']);
-        self::assertSame(2, $row['counts']['Bug']);
+        self::assertSame('Without category', $row->name);
+        self::assertSame(3, $row->total);
+        self::assertSame(2, $row->counts['Bug']);
         // None, or no aggregation: no row
         self::assertNull(CategoryOverview::withoutCategory(['doc_count' => 0]));
         self::assertNull(CategoryOverview::withoutCategory(null));
@@ -79,7 +88,7 @@ final class CategoryOverviewTest extends TestCase
     {
         $row = CategoryOverview::withoutCategory(['doc_count' => 1, 'tracker' => ['buckets' => []]]);
         self::assertNotNull($row);
-        self::assertSame(CategoryOverview::WITHOUT, $row['name']);
+        self::assertSame(CategoryOverview::WITHOUT, $row->name);
         self::assertSame(['bool' => ['must_not' => [['exists' => ['field' => 'category.name']]]]], CategoryOverview::withoutCategoryQuery());
     }
 
