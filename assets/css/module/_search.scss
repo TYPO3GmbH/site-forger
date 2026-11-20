@@ -1,0 +1,87 @@
+// The search pages: the search words, the tabs and the exact matches, see templates/_partials/search_form.html.twig,
+// search_tabs.html.twig and exact_matches.html.twig
+
+// The head: one field over the width, in it whether closed ones count, too, as a part of the field before the
+// button, white like the field and apart from the words by a line only
+.search-form {
+    margin: -.5rem 0 1rem;
+
+    .form-control {
+        font-size: 1rem;
+    }
+
+    .search-form-closed {
+        font-size: 1rem;
+    }
+}
+
+// Whether closed ones count, too: a checkbox in the field of the search words, before its button. In the head of the
+// search and in the search of My Work.
+.search-form-closed {
+    gap: .5rem;
+    margin: 0;
+    border-left: 0;
+    border-right: 0;
+    background: #fff;
+    color: #374151;
+    white-space: nowrap;
+    cursor: pointer;
+
+    // The line between the words and it
+    box-shadow: inset 1px 0 0 #e0e3e7;
+
+    .form-check-input {
+        margin: 0;
+        cursor: pointer;
+    }
+
+    &:hover {
+        color: #0b0b0b;
+    }
+}
+
+// As the field: with the words in it, the border of the field goes on around it
+.form-control:focus ~ .search-form-closed {
+    border-color: var(--bs-primary, #ed6d05);
+}
+
+// The tabs of _view-tabs.scss
+
+.exact-matches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-bottom: 1rem;
+}
+
+.exact-match {
+    display: inline-flex;
+    gap: .5rem;
+    align-items: center;
+    padding: .5rem .75rem;
+    border: 1px solid #e6e8eb;
+    border-radius: .5rem;
+    // White like the lists: on the gray of the page the muted label is too light
+    background: #fff;
+    color: inherit;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        border-color: var(--bs-primary, #ed6d05);
+    }
+}
+
+.exact-match-kind {
+    display: inline-flex;
+    gap: .3rem;
+    align-items: center;
+    color: #4b5563;
+    font-size: .875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.exact-match-title {
+    font-weight: 600;
+}

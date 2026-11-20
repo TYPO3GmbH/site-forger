@@ -1,0 +1,61 @@
+{#
+ # A Forge issue in one row of a list: the tracker, the subject, below it status, category, version and
+ # author, when it was created.
+ # Expects: issue, a document of the issue index
+ # Optional: relation, how it belongs to the page, like "Resolved by this change";
+ #           detailed, for the search: the whole subject, below it the beginning of the description, then in one line the tracker and the state, the author with a
+ #           small avatar, category and versions; the update and the assignee in a column on the right, the same in every row. The update
+ #           instead of the creation, as the search sorts by it;
+ #           viewer, the name of the logged-in user, for My Work: the assignee as "Assigned to you" or "Unassigned";
+ #           note, for detailed rows: why the issue is in the list, in a line of its own below the others.
+ #}
+{# "-" in a field of the index: the import found no value #}
+{% import '_macros/status.html.twig' as status %}
+{% set detailed = detailed ?? false %}
+{% set tracker = issue_tracker(issue.tracker.name ?? null) %}
+{% set dateField = detailed ? 'updated_on' : 'created_on' %}
+{% set trackerTag %}<span class="tag-label tag-label-{{ tracker.severity ?? 'default' }}">{{ tracker.label ?? issue.tracker.name ?? 'Issue' }}</span>{% endset %}
+{% set date %}<time class="overview-list-item-date" datetime="{{ to_datetime(issue[dateField])|date('c') }}" title="{{ detailed ? 'Updated' : 'Created' }} {{ issue[dateField] }}">{{ relativetime(to_datetime(issue[dateField])) }}</time>{% endset %}
+<a class="overview-list-item kind-issue{{ detailed ? ' overview-list-item-detailed' }}" href="{{ issue_path(issue.id) }}" title="{{ issue.subject }}">
+    {% if not detailed %}
+        {{ trackerTag }}
+    {% endif %}
+    <span class="overview-list-item-main">
+        <span class="overview-list-item-title"><span class="overview-list-item-id" title="Issue">{{ icon('actions-list') }}#{{ issue.id }}</span>{{ issue.subject }}</span>
+        {% if detailed %}
+            {% set teaser = (issue.description ?? null)|forgeTeaser %}
+            {% if teaser is not empty %}<span class="overview-list-item-teaser">{{ teaser }}</span>{% endif %}
+            <span class="overview-list-item-meta">
+                {{ trackerTag }}
+                {{ status.issue(issue.status.name ?? null) }}
+                {{ status.issueActivity(issue) }}
+                {% if issue.author.name is defined %}<span class="overview-list-person" title="Author"><span class="overview-list-person-avatar" aria-hidden="true">{{ avatar('@' in (issue.author.email ?? '') ? issue.author.email : '', 40) }}</span>by {{ issue.author.name }}</span>{% endif %}
+                {% if issue.category.name is defined %}<span title="Category">{{ issue.category.name }}</span>{% endif %}
+                {% if (issue.typo3_version ?? '-') != '-' %}<span title="TYPO3 version">v{{ issue.typo3_version }}</span>{% endif %}
+                {% if issue.fixed_version.name is defined %}<span title="Target version">→ {{ issue.fixed_version.name }}</span>{% endif %}
+            </span>
+            {% if note is defined and note is not empty %}<span class="overview-list-item-note">{{ note }}</span>{% endif %}
+        {% else %}
+            <span class="overview-list-item-meta">
+                {% if relation is defined %}<span class="overview-list-relation">{{ relation }}</span>{% endif %}
+                {{ status.issue(issue.status.name ?? null) }}
+                {% if issue.category.name is defined %}<span title="Category">{{ issue.category.name }}</span>{% endif %}
+                {% if (issue.typo3_version ?? '-') != '-' %}<span title="TYPO3 version">v{{ issue.typo3_version }}</span>{% endif %}
+                {% if issue.author.name is defined %}<span>by {{ issue.author.name }}</span>{% endif %}
+            </span>
+        {% endif %}
+    </span>
+    {% if detailed %}
+        <span class="overview-list-column">
+            {{ date }}
+            {% set assignee = issue.assigned_to.name ?? null %}
+            {% if viewer is defined and viewer is not empty %}
+                <span class="overview-list-column-line" title="Assigned to">{{ assignee is null ? 'Unassigned' : (assignee == viewer ? 'Assigned to you' : 'for ' ~ assignee) }}</span>
+            {% elseif assignee is not null %}
+                <span class="overview-list-column-line" title="Assigned to">for {{ assignee }}</span>
+            {% endif %}
+        </span>
+    {% else %}
+        {{ date }}
+    {% endif %}
+</a>

@@ -1,0 +1,58 @@
+// Sort field of the issue and review lists, see templates/_macros/sort.html.twig
+
+.list-sort {
+    display: inline-flex;
+    gap: .5rem;
+    align-items: center;
+    margin: 0;
+}
+
+.list-sort-label {
+    margin: 0;
+    // On the gray of the page, where #6b7280 is too light
+    color: #4b5563;
+    font-size: .875rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.list-sort-select {
+    width: auto;
+}
+
+// Above the search results, beside the count of the results
+.results-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+
+    // The toolbar spaces it
+    .pagination-section {
+        flex: 1 1 auto;
+        margin: 0;
+    }
+
+    // The order at the end, also without a count before it
+    > :last-child {
+        margin-left: auto;
+    }
+}
+
+// Above a review list: the search in the list and the sort field, see templates/_partials/review_view.html.twig
+.list-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.list-search {
+    flex: 1 1 18rem;
+    max-width: 32rem;
+    margin: 0;
+}

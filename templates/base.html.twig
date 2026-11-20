@@ -5,6 +5,26 @@
     {% include '_partials/header_search.html.twig' %}
 {% endblock %}
 
+{#
+ # Above the content and the messages: the trail of the block "breadcrumb" of a page, else the one of its item in the
+ # menu, see App\Menu\Breadcrumb and _macros/breadcrumb.html.twig
+ #}
+{% block header %}
+    {% if block('breadcrumb') is defined %}
+        <div class="breadcrumb-bar">
+            <div class="container">{{ block('breadcrumb') }}</div>
+        </div>
+    {% else %}
+        {% set trail = menu_breadcrumb() %}
+        {% if trail is not empty %}
+            {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+            <div class="breadcrumb-bar">
+                <div class="container">{{ breadcrumb.trail(trail) }}</div>
+            </div>
+        {% endif %}
+    {% endif %}
+{% endblock %}
+
 {% block javascripts %}
     {% include '_partials/refresh_form.html.twig' %}
     <script type="application/javascript" src="https://app.usercentrics.eu/latest/main.js" id="{{ usercentrics_id }}"></script>

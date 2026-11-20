@@ -1,9 +1,9 @@
 {# Search dialog, opened by the search icon in the menu bar or Ctrl+K, see assets/js/header-search.js #}
-<dialog class="search-dialog" id="header-search" aria-label="Search issues">
+<dialog class="search-dialog" id="header-search" aria-label="Search issues and reviews">
     <form action="{{ path('search_search') }}" method="get" class="search-dialog-form" role="search">
         <span class="search-dialog-icon" aria-hidden="true">{{ icon('actions-search') }}</span>
-        <input type="search" name="query" class="search-dialog-input" placeholder="Issue ID or search words" aria-label="Issue ID or search words" autocomplete="off">
-        <kbd class="search-dialog-hint">Esc</kbd>
+        <input type="search" name="query" class="search-dialog-input" placeholder="Search reviews and issues" aria-label="Search reviews and issues, or an issue or change number" aria-describedby="header-search-help" autocomplete="off">
+        <kbd class="search-dialog-hint" title="Closes the search">Esc</kbd>
     </form>
-    <p class="search-dialog-help">An issue ID shows the issue and its likely duplicates, words search all open issues.</p>
+    <p class="search-dialog-help" id="header-search-help">Words find the open ones, a number the issue and the change with it.</p>
 </dialog>

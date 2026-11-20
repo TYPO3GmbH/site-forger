@@ -15,12 +15,49 @@
 
 {#
  # The vote that counts for a label of a Gerrit change, "review" or "verification": mergers' +2 and -2 filled,
- # +1 and -1 tinted.
+ # +1 and -1 tinted. The title tells how many voted for and against.
  #}
 {% macro vote(change, label) %}
     {% set vote = review_vote(change, label) %}
     {% set name = label == 'review' ? 'Code review' : 'Verified' %}
-    <span class="status-pill status-pill-vote status-pill-{{ vote.severity }}" title="{{ name }}: {{ vote.value == 0 ? 'no votes' : vote.label ~ (vote.strong ? ' by a merger' : '') }}">{{ label == 'review' ? 'CR' : 'V' }} {{ vote.label }}</span>
+    {% set positive = change['positive_' ~ label ~ 's'] ?? 0 %}
+    {% set negative = change['negative_' ~ label ~ 's'] ?? 0 %}
+    {% set summary = vote.value == 0 ? 'no votes' : vote.label ~ (vote.strong ? ' by a merger' : '') %}
+    <span class="status-pill status-pill-vote status-pill-{{ vote.severity }}" title="{{ name }}: {{ summary }} · {{ positive }} for, {{ negative }} against">{{ label == 'review' ? 'CR' : 'V' }} {{ vote.label }}</span>
+{% endmacro %}
+
+{#
+ # Both votes of a Gerrit change, the way every list, card and page shows them.
+ #}
+{% macro votes(change) %}
+    <span class="status-votes">{{ _self.vote(change, 'review') }}{{ _self.vote(change, 'verification') }}</span>
+{% endmacro %}
+
+{#
+ # How big a Gerrit change is, see ReviewSizeEnum. The title has the lines added and removed.
+ #}
+{% macro size(change) %}
+    {% set size = review_size(change) %}
+    {% if size %}
+        {{ _self.sizePill(size, size.label ~ ': +' ~ change.insertions ~ ' −' ~ change.deletions ~ ' lines, ' ~ size.description) }}
+    {% endif %}
+{% endmacro %}
+
+{% macro sizePill(size, title) %}
+    <span class="status-pill status-pill-size status-pill-{{ size.severity }}" title="{{ title }}">{{ size.label }}</span>
+{% endmacro %}
+
+{#
+ # The tags in the subject of a Gerrit change: its type in the color of ReviewTypeEnum, the others plain.
+ #}
+{# With linked, each tag leads to the search of the changes with it, as the filter "Type" sets it; with closed of the
+ # closed ones, too #}
+{% macro reviewTags(change, linked = false, closed = false) %}
+    {% set type = review_type(change) %}
+    {% for tag in change.reviewtags ?? [] %}
+        {% set element = linked ? 'a' : 'span' %}
+        <{{ element }} class="tag-label{{ type and tag == type.value ? ' tag-label-' ~ type.severity }}"{% if linked %} href="{{ path('search_changes', {'filters': {'type': {(tag|filterKey): 'true'}}}|merge(closed ? {'searchClosed': '1'} : {})) }}"{% endif %}{% if type and tag == type.value %} title="{{ type.label }}{{ linked ? ': the changes with this tag' }}"{% elseif linked %} title="The changes with this tag"{% endif %}>{{ tag }}</{{ element }}>
+    {% endfor %}
 {% endmacro %}
 
 {% macro review(change) %}
@@ -34,14 +71,18 @@
  # How long ago an open Gerrit change was last updated, nothing for closed ones.
  #}
 {% macro activity(change) %}
-    {{ _self.activityPill(review_activity(change), change) }}
+    {# Only when it lies still, see ActivityEnum::isNoteworthy() #}
+    {% set stage = review_activity(change) %}
+    {% if stage and stage.isNoteworthy %}{{ _self.activityPill(stage, change) }}{% endif %}
 {% endmacro %}
 
 {#
  # How long ago an open Forge issue was last updated, nothing for closed ones.
  #}
 {% macro issueActivity(issue) %}
-    {{ _self.activityPill(issue_activity(issue), issue) }}
+    {# Only when it lies still, see ActivityEnum::isNoteworthy() #}
+    {% set stage = issue_activity(issue) %}
+    {% if stage and stage.isNoteworthy %}{{ _self.activityPill(stage, issue) }}{% endif %}
 {% endmacro %}
 
 {% macro activityPill(stage, document) %}

@@ -30,16 +30,36 @@ final class ReviewLists
     public const string WORK_IN_PROGRESS = 'gerrit_wip';
     public const string READY_TO_MERGE = 'gerrit_coreteam_merge';
     public const string FILES = 'gerrit_files';
+    /**
+     * The changes of the search, also work in progress, and also merged and abandoned ones if asked for.
+     */
+    public const string SEARCH = 'search_changes';
 
     /**
      * The query of the list, null for a name that is no list.
      *
      * @param string $file          the file the changes touch, for the list "Find by file" only
-     * @param bool   $includeClosed whether "Find by file" finds merged and abandoned changes, too
+     * @param bool   $includeClosed whether "Find by file" and the search find merged and abandoned changes, too
+     * @param string $searchTerms   words that narrow down the list, see ReviewSearch
      *
      * @return array<string, mixed>|null
      */
-    public static function query(string $list, string $file = '', bool $includeClosed = false): ?array
+    public static function query(string $list, string $file = '', bool $includeClosed = false, string $searchTerms = ''): ?array
+    {
+        $listQuery = self::listQuery($list, $file, $includeClosed);
+        $search = ReviewSearch::query($searchTerms);
+        if (null === $listQuery || null === $search) {
+            return $listQuery;
+        }
+
+        // Not added to the list's own clauses: next to a "must" its "should" would no longer be required
+        return ['bool' => ['must' => [$listQuery, $search]]];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private static function listQuery(string $list, string $file, bool $includeClosed): ?array
     {
         $closed = ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]];
         $workInProgress = ['term' => ['work_in_progress' => true]];
@@ -86,6 +106,7 @@ final class ReviewLists
                 must: [['terms' => ['files' => [htmlspecialchars($file)]]]],
                 mustNot: $includeClosed ? [] : [$closed]
             ),
+            self::SEARCH => $includeClosed ? ['match_all' => new \stdClass()] : self::bool(mustNot: [$closed]),
             default => null,
         };
     }

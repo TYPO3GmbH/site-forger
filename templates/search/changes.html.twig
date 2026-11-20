@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+{% block title %}Search reviews{% endblock %}
+{% block body %}
+
+    <div class="content-section content-section-small">
+        <div class="container">
+            {% include '_partials/search_form.html.twig' with {'route': 'search_changes'} %}
+            {% include '_partials/search_tabs.html.twig' with {'active': 'changes'} %}
+            {% include '_partials/exact_matches.html.twig' %}
+            {% if totalResults > 0 or filters is not empty %}
+                {% include '_partials/review_view.html.twig' %}
+            {% else %}
+                {% include '_partials/alert.html.twig' with {
+                    'message': tabs.issues > 0 ? 'The tab "Issues" has ' ~ tabs.issues ~ ' issues for it.' : 'Try other words, or tick "Include closed" for the merged and abandoned ones.',
+                    'title': 'No change was found for "' ~ query ~ '".',
+                    'style': tabs.issues > 0 ? 'info' : 'danger'
+                } %}
+            {% endif %}
+        </div>
+    </div>
+
+{% endblock %}

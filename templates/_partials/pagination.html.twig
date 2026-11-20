@@ -1,9 +1,13 @@
+{#
+ # Above a list the count of the results (resultsTotal, resultsFrom, resultsTo), below it the pages (pages, current,
+ # routeName, arguments). The pages are only shown below the list.
+ #}
 <div class="pagination-section">
     {% if resultsTotal is defined and resultsFrom is defined and resultsTo is defined %}
-        <h4>Showing results <strong>{{ resultsFrom }}</strong> to <strong>{{ resultsTo }}</strong> of <strong>{{ resultsTotal }}</strong></h4>
+        <p class="pagination-count">Showing <strong>{{ resultsFrom }}</strong>–<strong>{{ resultsTo }}</strong> of <strong>{{ resultsTotal }}</strong></p>
     {% endif %}
-    {% if pages|length > 1 %}
-        <nav>
+    {% if (pages ?? [])|length > 1 %}
+        <nav aria-label="Pages">
             <ul class="pagination">
                 {% for pageDesc, page in pages %}
                     {% if current == page %}

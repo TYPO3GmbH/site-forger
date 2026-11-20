@@ -1,5 +1,4 @@
 {% import '_macros/status.html.twig' as status %}
-{% import '_macros/refresh.html.twig' as refresh %}
 {% if card is not defined or card is null %}
 
     {% include '_partials/alert.html.twig' with {message: 'Issue is missing.', style: 'danger'} %}
@@ -14,7 +13,6 @@
             <span class="issue-type-title">{{ card.tracker.name }}</span>
         </div>
         <div class="issue-content">
-            {{ refresh.issue(card.id) }}
             <div class="issue-status">
                 {{ status.issue(card.status.name ?? null) }}
                 {{ status.issueActivity(card) }}
@@ -29,7 +27,7 @@
                 {% endif %}
             </div>
             <h4 class="issue-headline">
-                <a href="http://forge.typo3.org/issues/{{ card.id }}" target="issue{{ card.id }}">
+                <a href="{{ issue_path(card.id) }}">
                     <span class="issue-id">#{{ card.id }}</span>
                     <span class="issue-title">{{ card.subject }}</span>
                 </a>

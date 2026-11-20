@@ -2,6 +2,10 @@
 {% import '_macros/buttons.html.twig' as buttons %}
 {% block title %}Sprint Boards{% endblock %}
 {% block headline %}Sprint Boards{% endblock %}
+{% block breadcrumb %}
+    {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+    {{ breadcrumb.trail([{'label': 'Sprints', 'url': path('sprint_overview')}, {'label': 'Sprint boards', 'url': path('sprint_list')}, {'label': edit ? 'Edit ' ~ sprint.name : 'New sprint board'}]) }}
+{% endblock %}
 {% block body %}
 
     <div class="content-section">

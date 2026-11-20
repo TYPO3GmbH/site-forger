@@ -1,80 +1,64 @@
 {% extends 'base.html.twig' %}
-{% block title %}Searchresult{% endblock %}
+{% block title %}Search issues{% endblock %}
 {% block body %}
     {% import '_macros/sort.html.twig' as sorting %}
 
-    {% include '_partials/searchbar.html.twig' %}
     <div class="content-section content-section-small">
         <div class="container">
-            {% if (ErrorMessage is defined) %}
-                {% include '_partials/alert.html.twig' with {'message': ErrorMessage} %}
-            {% else %}
-                {% if mode == 'query' %}
-                    {# The parameters of the list, for the pages, the filters and the sort field #}
-                    {% set closedParameter = (searchClosed is defined) ? {'searchClosed': searchClosed} : {} %}
-                    {% set listArguments = {'query': query, 'filters': filters}|merge(closedParameter)|merge(sortParameter) %}
-                    {% if totalResults > 0 %}
-                        <div class="section">
-                            <div class="section-filter">
-                                <form action="{{ path('search_search') }}" method="get">
-                                    <input type="hidden" name="query" value="{{ (query is defined) ? query : '' }}">
-                                    {{ sorting.hidden('searchClosed', searchClosed ?? null) }}
-                                    {{ sorting.hidden('sort', sortParameter.sort ?? null) }}
-                                    {% include '_partials/aggregations.html.twig' with {
-                                        'facetScope': 'issues',
-                                        'aggregations': aggs,
-                                        'query': query,
-                                        'personSearch': {
-                                            'Author': {'filter': 'author', 'url': path('search_people', {'filter': 'author'}), 'label': 'Find an author'},
-                                            'Assigned to': {'filter': 'assigned_to', 'url': path('search_people', {'filter': 'assigned_to'}), 'label': 'Find an assignee'},
-                                        },
-                                    } only %}
-                                </form>
-                            </div>
-                            <div class="section-main">
-                                <div class="search-results-toolbar">
-                                    {% include '_partials/pagination.html.twig' with {
-                                        'pages': pagesToLinkTo,
-                                        'current': currentPage,
-                                        'routeName': routeName,
-                                        'resultsTotal': totalResults,
-                                        'resultsFrom': startingAtItem,
-                                        'resultsTo': endingAtItem,
-                                        'arguments': listArguments
-                                    } only %}
-                                    {{ sorting.select(path(routeName), sort, sortOptions, {'query': query, 'filters': filters}|merge(closedParameter)) }}
-                                </div>
-                                {% for result in results %}
-                                    {% include '_partials/issue.html.twig' with {'issue': result.hit} only %}
-                                {% endfor %}
-                                {% include '_partials/pagination.html.twig' with {
-                                    'pages': pagesToLinkTo,
-                                    'current': currentPage,
-                                    'routeName': routeName,
-                                    'resultsTotal': totalResults,
-                                    'resultsFrom': startingAtItem,
-                                    'resultsTo': endingAtItem,
-                                    'arguments': listArguments
-                                } only %}
-                            </div>
-                        </div>
-                    {% else %}
-                        {% include '_partials/alert.html.twig' with {'message': 'Try another term or set the checkbox "Search closed tickets".', 'title': 'No results were found for "' ~ query ~ '".', 'style': 'danger'} %}
-                    {% endif %}
-                {% else %}
-                    <div class="row">
-                        <div class="col-sm-12 col-md-6">
-                            <h4>Requested Issue</h4>
-                            {% include '_partials/issue.html.twig' with {'issue': issue} %}
-                        </div>
-                        <div class="col-sm-12 col-md-6">
-                            <h4>{{totalResults}} potential duplicates</h4>
-                            {% for result in results %}
-                                {% include '_partials/issue.html.twig' with {'issue': result.hit} %}
-                            {% endfor %}
-                        </div>
+            {% include '_partials/search_form.html.twig' with {'route': 'search_search'} %}
+            {% include '_partials/search_tabs.html.twig' with {'active': 'issues'} %}
+            {% include '_partials/exact_matches.html.twig' %}
+            {# The parameters of the list, for the pages, the filters and the sort field #}
+            {% set closedParameter = (searchClosed is defined) ? {'searchClosed': searchClosed} : {} %}
+            {% set listArguments = {'query': query, 'filters': filters}|merge(closedParameter)|merge(sortParameter) %}
+            {% if totalResults > 0 %}
+                <div class="section">
+                    <div class="section-filter">
+                        <form action="{{ path('search_search') }}" method="get">
+                            <input type="hidden" name="query" value="{{ query }}">
+                            {{ sorting.hidden('searchClosed', searchClosed ?? null) }}
+                            {{ sorting.hidden('sort', sortParameter.sort ?? null) }}
+                            {% include '_partials/aggregations.html.twig' with {
+                                'facetScope': 'issues',
+                                'aggregations': aggs,
+                                'dateFilters': {'created': {'title': 'Created', 'value': filters.created ?? {}}},
+                                'query': query,
+                                'personSearch': {
+                                    'Author': {'filter': 'author', 'url': path('search_people', {'filter': 'author'}), 'label': 'Find an author'},
+                                    'Assigned to': {'filter': 'assigned_to', 'url': path('search_people', {'filter': 'assigned_to'}), 'label': 'Find an assignee'},
+                                },
+                            } only %}
+                        </form>
                     </div>
-                {% endif %}
+                    <div class="section-main">
+                        <div class="results-toolbar">
+                            {% include '_partials/pagination.html.twig' with {
+                                'resultsTotal': totalResults,
+                                'resultsFrom': startingAtItem,
+                                'resultsTo': endingAtItem,
+                            } only %}
+                            {{ sorting.select(path(routeName), sort, sortOptions, {'query': query, 'filters': filters}|merge(closedParameter)) }}
+                        </div>
+                        <ul class="row-list row-list-panel">
+                            {% for result in results %}
+                                <li>{% include '_partials/row/issue.html.twig' with {'issue': result.data, 'detailed': true} only %}</li>
+                            {% endfor %}
+                        </ul>
+                        {# The pages only below the list, the count stands above it #}
+                        {% include '_partials/pagination.html.twig' with {
+                            'pages': pagesToLinkTo,
+                            'current': currentPage,
+                            'routeName': routeName,
+                            'arguments': listArguments
+                        } only %}
+                    </div>
+                </div>
+            {% else %}
+                {% include '_partials/alert.html.twig' with {
+                    'message': tabs.changes > 0 ? 'The tab "Reviews" has ' ~ tabs.changes ~ ' changes for it.' : 'Try other words, or tick "Include closed" for the resolved, closed and rejected ones.',
+                    'title': 'No issue was found for "' ~ query ~ '".',
+                    'style': tabs.changes > 0 ? 'info' : 'danger'
+                } %}
             {% endif %}
         </div>
     </div>

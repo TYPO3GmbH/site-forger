@@ -4,7 +4,17 @@
 @use "module/sprint-wizard";
 @use "module/sprint-overview";
 @use "module/my-work";
-@use "module/issue-sort";
+@use "module/view-tabs";
+@use "module/chips";
+@use "module/tags";
+@use "module/list-sort";
+@use "module/aggregations";
+@use "module/search";
+@use "module/detail";
+@use "module/row-list";
+@use "module/pagination";
+@use "module/breadcrumb";
+@use "module/page-intro";
 @use "module/refresh";
 @use "module/status";
 @use "module/dashboard";
@@ -37,4 +47,10 @@
     white-space: nowrap;
     vertical-align: baseline;
     border-radius: .25em;
+}
+
+// Always the room for the scrollbar: pages shorter than the window, like a tab of the search with few results,
+// do not move sideways against the longer ones
+html {
+    scrollbar-gutter: stable;
 }

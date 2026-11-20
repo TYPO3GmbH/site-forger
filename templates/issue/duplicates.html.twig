@@ -1,0 +1,40 @@
+{% extends 'base.html.twig' %}
+{% block title %}Possible duplicates of #{{ issue.id }}{% endblock %}
+{% block breadcrumb %}
+    {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+    {{ breadcrumb.trail([{'label': 'Issues', 'url': path('search_search')}, {'label': '#' ~ issue.id, 'url': issue_path(issue.id)}, {'label': 'Possible duplicates'}]) }}
+{% endblock %}
+{% block body %}
+
+    <div class="content-section content-section-small">
+        <div class="container">
+            <article class="overview detail">
+                <header class="detail-header">
+                    <div class="detail-header-main">
+                        <h1 class="detail-title">Possible duplicates <span class="detail-count">{{ results|length }}</span></h1>
+                        <p class="detail-meta">
+                            <span>The {{ searchClosed ? '' : 'open ' }}issues most like <a href="{{ issue_path(issue.id) }}">#{{ issue.id }} {{ issue.subject }}</a> in subject and description, the most similar first.</span>
+                        </p>
+                    </div>
+                    <div class="detail-actions">
+                        {% if searchClosed %}
+                            <a class="btn btn-sm btn-default" href="{{ path('issue_duplicates', {'id': issue.id}) }}">Open issues only</a>
+                        {% else %}
+                            <a class="btn btn-sm btn-default" href="{{ path('issue_duplicates', {'id': issue.id, 'searchClosed': 1}) }}">Include closed issues</a>
+                        {% endif %}
+                    </div>
+                </header>
+                {% if results is not empty %}
+                    <ul class="overview-list-items">
+                        {% for result in results %}
+                            <li>{% include '_partials/row/issue.html.twig' with {'issue': result.data} only %}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="detail-empty">No {{ searchClosed ? '' : 'open ' }}issue is much like this one.</p>
+                {% endif %}
+            </article>
+        </div>
+    </div>
+
+{% endblock %}

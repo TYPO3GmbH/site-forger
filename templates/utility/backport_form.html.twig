@@ -1,6 +1,10 @@
 {% extends 'base.html.twig' %}
 {% block title %}Backport exclusions{% endblock %}
 {% block headline %}Backport exclusions{% endblock %}
+{% block breadcrumb %}
+    {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+    {{ breadcrumb.trail([{'label': 'Tools'}, {'label': 'Backport exclusions', 'url': path('utilities_backport_index')}, {'label': edit is defined ? 'Edit exclusion' : 'New exclusion'}]) }}
+{% endblock %}
 {% block body %}
 
     <div class="content-section">

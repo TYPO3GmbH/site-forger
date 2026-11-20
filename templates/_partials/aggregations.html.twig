@@ -12,7 +12,10 @@
  # The filters of a list. The template bundle remembers which of them are open, by the id of their panel in
  # the localStorage "aggregations". The ids name the filter and the kind of list ("issues", "changes"), so a
  # filter opened in one list does not open another one at the same place in the next list.
- # Expects: aggregations, facetScope; personSearch (optional)
+ # Expects: aggregations, facetScope; personSearch (optional);
+ #          dateFilters (optional): the filters of dates, last in the list: filter key => title, and value (the
+ #          parameters of the filter). Each is one field with the datepicker of the template bundle, the first and the
+ #          last day clicked in one calendar, see MonthOverview::days()
  #}
 <div class="aggregations" id="aggregations" role="tablist">
     {% for title, buckets in aggregations %}
@@ -36,6 +39,33 @@
                             {{ aggregationBucket(title, index, bucket) }}
                         {% endif %}
                     {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+    {% for key, dateFilter in dateFilters ?? {} %}
+        {% set value = dateFilter.value ?? {} %}
+        {% set panelId = 'facet-' ~ facetScope ~ '-' ~ key %}
+        {% set active = (value.range ?? '') is not empty or (value.from ?? '') is not empty or (value.to ?? '') is not empty %}
+        <div class="aggregation">
+            <div class="aggregation-title" id="{{ panelId }}-title">
+                <a class="aggregation-title-link{{ active ? '' : ' collapsed' }}" data-bs-toggle="collapse" href="#{{ panelId }}" aria-expanded="{{ active ? 'true' : 'false' }}" aria-controls="{{ panelId }}">
+                    <span class="aggregation-title-text">{{ dateFilter.title }}</span>
+                </a>
+            </div>
+            <div id="{{ panelId }}" class="collapse{{ active ? ' show' }}" role="tabpanel" aria-labelledby="{{ panelId }}-title" data-bs-parent="#aggregations"{% if active %} data-facet-active{% endif %}>
+                <div class="aggregation-body aggregation-range">
+                    {# The first and the last day in one calendar, both included: one day clicked alone is that day, see assets/js/date-range.js #}
+                    {% set picker = {'mode': 'range', 'dateFormat': 'Y-m-d', 'altInput': true, 'altFormat': 'M j, Y', 'maxDate': 'today'}|json_encode %}
+                    {% set days = (value.range ?? '') is not empty ? value.range : ((value.from ?? '') ~ ((value.to ?? '') is not empty ? ' to ' ~ value.to : '')) %}
+                    <label class="sr-only" for="{{ panelId }}-days">{{ dateFilter.title }} from and to</label>
+                    <input type="text" id="{{ panelId }}-days" class="form-control form-control-sm" name="filters[{{ key }}][range]" value="{{ days|trim }}" placeholder="Pick the first and the last day" data-datepicker="{{ picker }}" data-date-range>
+                    <div class="aggregation-range-actions">
+                        <button type="submit" class="btn btn-sm btn-default">Apply</button>
+                        {% if active %}
+                            <button type="submit" class="btn btn-sm btn-link" onclick="this.form.querySelectorAll('[name^=&quot;filters[{{ key }}]&quot;]').forEach(function (field) { field.value = ''; })">Clear</button>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

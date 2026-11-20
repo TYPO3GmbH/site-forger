@@ -172,6 +172,11 @@
     margin: 1rem 0;
 }
 
+// The six sizes in two rows of three, not five and one
+.help-stages-sizes {
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
 // Space between a grid and the text after it
 .help-tiles + p,
 .help-facts + p {

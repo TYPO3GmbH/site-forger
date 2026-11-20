@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Elastic;
 
 use App\Elastic\ReviewLists;
+use App\Elastic\ReviewSearch;
 use App\Enum\ReviewStatusEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -96,5 +97,22 @@ final class ReviewListsTest extends TestCase
     {
         self::assertNull(ReviewLists::query('gerrit_stale_issues'));
         self::assertNull(ReviewLists::query(''));
+    }
+
+    public function testSearchWordsNarrowDownAList(): void
+    {
+        $list = ReviewLists::query(ReviewLists::NEGATIVE_VOTES);
+        $query = ReviewLists::query(ReviewLists::NEGATIVE_VOTES, '', false, 'cache');
+
+        // Kept apart, so the "should" of the negative votes stays required
+        self::assertSame($list, $query['bool']['must'][0]);
+        self::assertSame(ReviewSearch::query('cache'), $query['bool']['must'][1]);
+        self::assertSame($list, ReviewLists::query(ReviewLists::NEGATIVE_VOTES, '', false, ' '));
+    }
+
+    public function testTheSearchFindsWorkInProgressAndClosedChangesOnRequest(): void
+    {
+        self::assertSame(['bool' => ['must_not' => [self::CLOSED]]], ReviewLists::query(ReviewLists::SEARCH));
+        self::assertEquals(['match_all' => new \stdClass()], ReviewLists::query(ReviewLists::SEARCH, '', true));
     }
 }

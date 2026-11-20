@@ -1,0 +1,229 @@
+// A framed list of the rows of templates/_partials/row/: the review lists, the search, and the lists on the
+// detail pages. The rows are those of the dashboard, a little larger, as the text of these pages is.
+
+.row-list {
+    --overview-border: #e6e8eb;
+    --overview-muted: #6b7280;
+
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--overview-border);
+    border-radius: .5rem;
+    list-style: none;
+
+    > li + li {
+        border-top: 1px solid #f0f1f3;
+    }
+
+    .overview-list-item {
+        gap: .875rem;
+        padding: 1rem;
+        font-size: .875rem;
+    }
+
+    .overview-list-item-main {
+        gap: .3rem;
+    }
+
+    .overview-list-item-title {
+        font-size: .9375rem;
+        font-weight: 600;
+    }
+}
+
+// On its own on a page, like the panels of the dashboard
+.row-list-panel {
+    margin-bottom: 1.5rem;
+    border-radius: .75rem;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .05);
+
+    .overview-list-item {
+        padding: 1.25rem;
+    }
+}
+
+// The rows of the review lists and the search: the subject on the whole width it has, and on the right one column
+// with the update, the votes and the size, the same in every row. Larger than the rows of the dashboard, as
+// these lists are the content of their pages. Two classes: the dashboard, loaded later, sets the rows up, too.
+.overview-list-item.overview-list-item-detailed {
+    // Every line on either side as high as the others, with the same space between them, so the lines of the
+    // column on the right stand beside those of the subject
+    --row-line: 1.5rem;
+    --row-line-gap: .375rem;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 12rem;
+    gap: .5rem 0;
+    align-items: start;
+    // About a blank line between two rows, so each stands on its own; as much space to the sides
+    padding: 1.5rem;
+    font-size: .9375rem;
+
+    // The column on the right stands apart
+    > .overview-list-column {
+        margin-left: 1.5rem;
+    }
+
+    .overview-list-item-main {
+        gap: var(--row-line-gap);
+    }
+
+    .overview-list-item-title {
+        overflow: visible;
+        font-size: 1.0625rem;
+        font-weight: 600;
+        line-height: var(--row-line);
+        text-overflow: clip;
+        white-space: normal;
+    }
+
+    .overview-list-item-meta {
+        gap: 0 .75rem;
+        min-height: var(--row-line);
+        font-size: .9375rem;
+        line-height: var(--row-line);
+    }
+
+    // Their own height, inside the line: with the line's they would grow beyond it
+    .tag-label,
+    .status-pill {
+        line-height: 1.4;
+    }
+
+    .overview-list-item-date {
+        font-size: .9375rem;
+    }
+
+    @media (max-width: 767.98px) {
+        grid-template-columns: minmax(0, 1fr);
+
+        // Below the subject, side by side
+        > .overview-list-column {
+            margin-left: 0;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            text-align: left;
+        }
+    }
+}
+
+// The owner or author: a small avatar beside the name, so it is clear whom it shows, and it does not lead the row
+.overview-list-person {
+    display: inline-flex;
+    gap: .375rem;
+    align-items: center;
+}
+
+.overview-list-person-avatar .avatar {
+    display: block;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 1px solid var(--overview-border);
+    border-radius: 50%;
+    background: #f3f4f6;
+}
+
+.overview-list-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--row-line-gap, .375rem);
+    align-items: flex-end;
+    min-width: 0;
+    color: var(--overview-muted);
+    font-size: .9375rem;
+    text-align: right;
+}
+
+.overview-list-column > *,
+.overview-list-column-line,
+.overview-list-column-note {
+    display: flex;
+    gap: 0 .5rem;
+    align-items: center;
+    justify-content: flex-end;
+    min-height: var(--row-line, 1.5rem);
+    max-width: 100%;
+    line-height: var(--row-line, 1.5rem);
+    white-space: nowrap;
+}
+
+.overview-list-column-line {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+// The size leads the column on the right: it tells a reviewer how long the review takes
+.overview-list-column-size {
+    gap: 0 .625rem;
+
+    .status-pill-size {
+        padding: .2em .8em;
+        font-size: .875rem;
+    }
+}
+
+// The votes on the edge of the column, each as wide as with two digits ("CR +2"), so they stand the same in every
+// row, whatever the vote and however long the update before them
+.overview-list-column-votes .status-pill-vote {
+    justify-content: center;
+    min-width: 3.25em;
+}
+
+// The beginning of the description of an issue, below its subject: at most two lines, muted (4.5:1 on white)
+.overview-list-item.overview-list-item-detailed .overview-list-item-teaser {
+    display: -webkit-box;
+    overflow: hidden;
+    color: #4b5563;
+    font-size: .9375rem;
+    line-height: var(--row-line);
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
+// Reviews and issues told apart at a glance, as in the tabs of the search and My Work: reviews blue with the icon of a
+// pull request, issues orange with the icon of a list and "#" before the number, as in the commit messages
+.kind-change {
+    --kind-accent: #2a78d6;
+}
+
+.kind-issue {
+    // #eb6834 of the tabs is too light for the text of .detail-kind, 4.5:1 at least
+    --kind-accent: #c2410c;
+}
+
+.overview-list-item-id .icon,
+.exact-match-kind .icon,
+.detail-kind .icon {
+    width: 1em;
+    height: 1em;
+    color: var(--kind-accent);
+}
+
+.overview-list-item-id .icon {
+    margin-right: .3em;
+    vertical-align: -.125em;
+}
+
+.detail-kind {
+    display: inline-flex;
+    gap: .35rem;
+    align-items: center;
+    margin-right: .25rem;
+    color: var(--kind-accent);
+    font-size: .875rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+// Why an issue is in the list, below its other lines, see "note" in templates/_partials/row/issue.html.twig
+.overview-list-item.overview-list-item-detailed .overview-list-item-note {
+    color: #374151;
+    font-size: .875rem;
+    font-weight: 600;
+    line-height: var(--row-line);
+}

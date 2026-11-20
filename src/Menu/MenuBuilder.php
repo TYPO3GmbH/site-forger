@@ -54,11 +54,17 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         $menu->addChild('index', ['label' => 'Dashboard', 'route' => 'dashboard_index']);
         if ($this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
             $myWork = $menu->addChild('my_work', ['label' => 'My Work', 'route' => 'my_changes']);
-            $this->addLink($myWork, 'my_changes', 'My changes', 'my_changes', 'actions-code-pull-request');
+            $this->addLink($myWork, 'my_changes', 'My reviews', 'my_changes', 'actions-code-pull-request');
             $this->addLink($myWork, 'my_issues', 'My issues', 'my_issues', 'actions-list');
+            // The tabs of My Work say where the page is
+            foreach ($myWork->getChildren() as $child) {
+                $child->setExtra('breadcrumb', false);
+            }
         }
 
-        $reviews = $menu->addChild('gerrit', ['label' => 'Reviews', 'route' => 'gerrit_index']);
+        // A click on "Reviews" or "Issues" opens their search, all open ones without search words: the entry page,
+        // so their dropdowns have no "Search" of their own
+        $reviews = $menu->addChild('gerrit', ['label' => 'Reviews', 'route' => 'search_changes']);
         $this->addHeader($reviews, 'Overview');
         $this->addLink($reviews, 'gerrit_status', 'Ready for review', 'gerrit_index', 'actions-code-pull-request');
         $this->addLink($reviews, 'gerrit_wip', 'Work in progress', 'gerrit_wip', 'actions-code-pull-request-draft');
@@ -72,11 +78,11 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         $this->addHeader($reviews, 'Tools');
         $this->addLink($reviews, 'gerrit_files', 'Find by file', 'gerrit_files', 'actions-file-search');
 
+        // The most important first: where work waits, then the overviews
         $issues = $menu->addChild('issues', ['label' => 'Issues', 'route' => 'search_search']);
-        $this->addLink($issues, 'issues_search', 'Search', 'search_search', 'actions-search');
-        $this->addLink($issues, 'management-by-year', 'By month', 'management_index', 'actions-calendar');
-        $this->addLink($issues, 'management-by-category', 'By category', 'management_bycategory', 'actions-tag');
         $this->addLink($issues, 'gerrit_stale_issues', 'Stale issues', 'gerrit_stale_issues', 'actions-clock');
+        $this->addLink($issues, 'management-by-category', 'By category', 'management_bycategory', 'actions-tag');
+        $this->addLink($issues, 'management-by-year', 'By month', 'management_index', 'actions-calendar');
 
         $sprints = $menu->addChild('sprint', ['label' => 'Sprints', 'route' => 'sprint_overview']);
         $this->addLink($sprints, 'sprint_overview', 'Overview', 'sprint_overview', 'actions-viewmode-layout');

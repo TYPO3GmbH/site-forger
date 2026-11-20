@@ -1,53 +1,58 @@
 {% extends 'base.html.twig' %}
-{% import '_macros/status.html.twig' as status %}
 {% block title %}Stale issues{% endblock %}
-{% block headline %}Stale issues{% endblock %}
+{#
+ # The open issues nobody works on, the stages "Stale" and "Orphaned" of App\Enum\ActivityEnum, see
+ # App\Elastic\StaleIssues: by default the ones lying still the longest first, in an order of IssueSortEnum, a page at
+ # a time. Each row names its changes in Gerrit and their states; an issue "Under Review" without any change says so.
+ # No orange band: the title stands on the gray of the page, below the breadcrumb.
+ # Expects: issues (see StaleIssues::withChanges()), stages (the ActivityEnum cases of the list), totalResults,
+ #          startingAtItem, endingAtItem, pagesToLinkTo, currentPage, sort, sortOptions, sortParameter (the order in
+ #          links, empty for the default)
+ #}
 {% block body %}
-
-    <div class="content-section bg-transparent">
+    {% import '_macros/sort.html.twig' as sorting %}
+    {% set since = stages|first.minimumDays %}
+    <div class="content-section content-section-small">
         <div class="container">
+            <header class="page-intro">
+                <h1 class="page-intro-title">Stale issues</h1>
+                <p class="page-intro-summary">
+                    {% if totalResults == 0 %}
+                        Every open issue had activity within the last {{ since }} days.
+                    {% else %}
+                        <strong>{{ totalResults }}</strong> open issues without activity for {{ since }} days or more: {{ stages|map(stage => stage.label|lower ~ ' (' ~ stage.description|lower|replace({'no activity for ': ''}) ~ ')')|join(' or ') }}.
+                    {% endif %}
+                </p>
+            </header>
 
-            {% if issues %}
-                <div class="card">
-                    <div class="datatable">
-                        <table class="datatable-table">
-                            <thead>
-                                <tr>
-                                    <th scope="col" colspan="4">Issue</th>
-                                    <th scope="col">Author</th>
-                                    <th scope="col">Created</th>
-                                    <th scope="col">Updated</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for issue in issues %}
-                                    <tr>
-                                        <th data-type="icon"><a href="https://forge.typo3.org/issues/{{ issue.id }}" class="datatable-link-highlight" rel="noopener" target="_blank">{{ icon('actions-search') }}</a></th>
-                                        <th data-type="id">{{ issue.id }}</th>
-                                        <th data-type="title">
-                                            <strong>{{ issue.subject }}</strong><br>
-                                            <small>{% if issue.category.name is defined %}Category: {{ issue.category.name }}{% endif %}</small>
-                                        </th>
-                                        <th data-type="badge">{{ status.issue(issue.status.name ?? null) }} {{ status.issueActivity(issue) }}</th>
-                                        <td>{{ issue.author.name }}</td>
-                                        <td>
-                                            {{ relativetime(to_datetime(issue.created_on)) }}<br>
-                                            <small>{{ localtime(to_datetime(issue.created_on)) }}</small>
-                                        </td>
-                                        <td>
-                                            {{ relativetime(to_datetime(issue.updated_on)) }}<br>
-                                            <small>{{ localtime(to_datetime(issue.updated_on)) }}</small>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+            {% if issues is not empty %}
+                <div class="results-toolbar">
+                    {% include '_partials/pagination.html.twig' with {
+                        'resultsTotal': totalResults,
+                        'resultsFrom': startingAtItem,
+                        'resultsTo': endingAtItem,
+                    } only %}
+                    {{ sorting.select(path('gerrit_stale_issues'), sort, sortOptions, {}) }}
                 </div>
-            {% else %}
-                {% include '_partials/alert.html.twig' with {'title': 'No stale issues!', 'message': 'Good job, I couldn\'t find any stale issue!', 'style': 'success'} %}
+                <ul class="row-list row-list-panel">
+                    {% for item in issues %}
+                        {% set note %}
+                            {%- if item.changes is not empty -%}
+                                {{ item.changes|length == 1 ? 'Change' : 'Changes' }}: {{ item.changes|map(change => change.id ~ ' ' ~ (change.state is null ? 'not in Forger' : change.state.label|lower))|join(' · ') }}
+                            {%- elseif (item.issue.status.name ?? null) == constant('App\\Enum\\IssueStatusEnum::UNDER_REVIEW').label -%}
+                                Under review, but no change linked
+                            {%- endif -%}
+                        {% endset %}
+                        <li>{% include '_partials/row/issue.html.twig' with {'issue': item.issue, 'detailed': true, 'note': note} only %}</li>
+                    {% endfor %}
+                </ul>
+                {% include '_partials/pagination.html.twig' with {
+                    'pages': pagesToLinkTo,
+                    'current': currentPage,
+                    'routeName': 'gerrit_stale_issues',
+                    'arguments': sortParameter,
+                } only %}
             {% endif %}
         </div>
     </div>
-
 {% endblock %}

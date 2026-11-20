@@ -1,0 +1,26 @@
+// The small framed tags of trackers and of the types of changes: in the rows of the lists, on the detail pages and
+// on the dashboard.
+
+.tag-label {
+    padding: 0 .45rem;
+    border: 1px solid #e6e8eb;
+    border-radius: .35rem;
+    color: #374151;
+    font-size: .75rem;
+    font-weight: 600;
+
+    // The tracker colors of the template bundle (.issue-type-<severity>), see TrackerEnum::severity()
+    // A bugfix looks like a bug, see ReviewTypeEnum
+    &.tag-label-bug,
+    &.tag-label-bugfix { border-color: #cc3d33; color: #cc3d33; }
+    &.tag-label-feature { border-color: #6eb34d; color: #3d6e26; }
+    &.tag-label-task { border-color: #268bd9; color: #1f6fae; }
+    &.tag-label-story { border-color: #e6c000; color: #8a7300; }
+    &.tag-label-epic { border-color: #5d4db3; color: #5d4db3; }
+
+    &.is-backport {
+        border-color: #f5c2bd;
+        background: #fdecea;
+        color: #b42318;
+    }
+}

@@ -1,5 +1,6 @@
 {% set searchRouteName = (searchRouteName is defined) ? searchRouteName : 'search_search' %}
-{% set searchPlaceholder = (searchPlaceholder is defined) ? searchPlaceholder : 'Issue ID or Searchwords' %}
+{% set searchPlaceholder = (searchPlaceholder is defined) ? searchPlaceholder : 'Issue or change number, or search words' %}
+{% set closedLabel = closedLabel ?? 'Include closed' %}
 <div class="content-section content-section-smallest bg-lighter pb-0">
     <div class="container">
         <form action="{{ path(searchRouteName) }}" method="get" class="form">
@@ -7,8 +8,8 @@
                 <input type="text" name="query" placeholder="{{ searchPlaceholder }}" class="form-control" value="{{ (query is defined) ? query : '' }}">
                 <span class="input-group-text">
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="customControlAutosizing" type="checkbox" name="searchClosed" value="1" aria-label="Search in closed tickets, too" {{ (searchClosed is defined) ? 'checked="checked"' : '' }}>
-                        <label class="form-check-label" for="customControlAutosizing">Closed Tickets</label>
+                        <input class="form-check-input" type="checkbox" id="customControlAutosizing" type="checkbox" name="searchClosed" value="1" aria-label="{{ closedLabel }}" {{ (searchClosed is defined) ? 'checked="checked"' : '' }}>
+                        <label class="form-check-label" for="customControlAutosizing">{{ closedLabel }}</label>
                     </div>
                 </span>
                 <button type="submit" class="btn btn-success">{{ icon('actions-search') }}</button>

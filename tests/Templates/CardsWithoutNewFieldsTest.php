@@ -75,13 +75,49 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         unset($change['reviewtags']);
 
         $card = $this->twig->render('_partials/review_card.html.twig', ['card' => $change, 'mode' => 'default']);
-        $full = $this->twig->render('_partials/review.html.twig', ['review' => ['_source' => $change]]);
+        $full = $this->twig->render('_partials/row/change.html.twig', ['change' => $change, 'detailed' => true]);
 
         foreach ([$card, $full] as $html) {
             self::assertStringContainsString('Benni Mack', $html);
-            self::assertStringNotContainsString('class="avatar"', $html);
             self::assertStringNotContainsString('review-breaking', $html);
         }
+        self::assertStringNotContainsString('class="avatar"', $card);
+        // Beside the name the placeholder of Gravatar without an address, so every name starts at the same place
+        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('') . '?s=40&d=mp', $full);
+    }
+
+    public function testOnlyChangesLyingStillShowTheirActivity(): void
+    {
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => self::OLD_CHANGE, 'detailed' => true]);
+        self::assertStringContainsString('status-pill-activity-', $row);
+
+        $change = ['updated_on' => date('Y/m/d H:i:s'), 'created_on' => date('Y/m/d H:i:s')] + self::OLD_CHANGE;
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => $change, 'detailed' => true]);
+        self::assertStringNotContainsString('status-pill-activity-', $row);
+    }
+
+    public function testRowsNameTheStateOnlyWhenNotReady(): void
+    {
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => self::OLD_CHANGE, 'detailed' => true]);
+        self::assertStringNotContainsString('status-pill-ready', $row);
+
+        foreach (['wip' => ['work_in_progress' => true], 'merged' => ['reviewstatus' => 'MERGED']] as $state => $fields) {
+            $row = $this->twig->render('_partials/row/change.html.twig', ['change' => $fields + self::OLD_CHANGE, 'detailed' => true]);
+            self::assertStringContainsString('status-pill-' . $state . '"', $row);
+        }
+    }
+
+    public function testRowShowsBranchAndReleasesTogether(): void
+    {
+        $change = self::OLD_CHANGE;
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => $change, 'detailed' => true]);
+        // The branch is in the releases of old documents, it shows once
+        self::assertStringContainsString('<span title="Branch">→ main</span>', $row);
+        self::assertStringNotContainsString('class="tag-label" title="Branch"', $row);
+
+        $change['releases'] = ['main', '14.3'];
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => $change, 'detailed' => true]);
+        self::assertStringContainsString('<span title="Branch and target releases">→ main, 14.3</span>', $row);
     }
 
     public function testChangeWithTagsAndEmail(): void
@@ -116,7 +152,7 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     public function testIssueWithoutNewFields(array $issue): void
     {
         $card = $this->twig->render('_partials/issue_card.html.twig', ['card' => $issue]);
-        $listed = $this->twig->render('_partials/issue.html.twig', ['issue' => ['_source' => $issue]]);
+        $listed = $this->twig->render('_partials/row/issue.html.twig', ['issue' => $issue, 'detailed' => true]);
 
         foreach ([$card, $listed] as $html) {
             self::assertStringContainsString('Benni Mack', $html);
@@ -129,7 +165,7 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         $issue = self::OLD_ISSUE;
         $issue['assigned_to']['email'] = 'benjamin@example.org';
 
-        $html = $this->twig->render('_partials/issue.html.twig', ['issue' => ['_source' => $issue]]);
+        $html = $this->twig->render('_partials/issue_card.html.twig', ['card' => $issue]);
 
         self::assertStringContainsString(md5('benjamin@example.org'), $html);
     }

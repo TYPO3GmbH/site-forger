@@ -349,14 +349,14 @@
 .overview-list-count {
     margin-left: .35rem;
     color: var(--overview-muted);
-    font-size: .8125rem;
+    font-size: .875rem;
     font-variant-numeric: tabular-nums;
     font-weight: 600;
 }
 
 .overview-list-all {
     flex-shrink: 0;
-    font-size: .8125rem;
+    font-size: .875rem;
     font-weight: 600;
 }
 
@@ -370,19 +370,20 @@
     }
 }
 
-// Per entry: tag, the title with a line of details below, date
+// Per entry: tag, the title with a line of details below, date. Nothing to read below 14px, the pills
+// and tags are the only smaller ones.
 .overview-list-item {
     display: flex;
     gap: .75rem;
     align-items: flex-start;
-    padding: .55rem 1.25rem;
+    padding: .8rem 1.25rem;
     color: inherit;
     font-size: .875rem;
     text-decoration: none;
     transition: background-color .12s;
 
     // The same width for each tag, so the titles start in one column
-    .mywork-tag {
+    .tag-label {
         flex-shrink: 0;
         min-width: 3.25rem;
         text-align: center;
@@ -393,8 +394,12 @@
         background: #f7f8fa;
         color: inherit;
 
+        // The title stays dark, orange text is too light to read: underlined like the links of the text
         .overview-list-item-title {
-            color: var(--bs-primary, #ff8700);
+            text-decoration: underline;
+            text-decoration-color: var(--bs-primary, #ed6d05);
+            text-decoration-thickness: 2px;
+            text-underline-offset: 3px;
         }
     }
 }
@@ -413,21 +418,18 @@
     gap: .2rem .65rem;
     align-items: center;
     color: var(--overview-muted);
-    font-size: .75rem;
+    font-size: .875rem;
 
+    // As big as the pills everywhere else
     .status-pill {
-        font-size: .6875rem;
+        font-size: .75rem;
     }
 }
 
-// The colors of the priorities as in My Work
-.overview-list-priority {
+// How a row belongs to the page it is on, like "Resolves" on the page of a change
+.overview-list-relation {
+    color: #374151;
     font-weight: 600;
-
-    &.priority-must { color: #b42318; }
-    &.priority-could,
-    &.priority-wont,
-    &.priority-undefined { color: #9ca3af; }
 }
 
 .overview-list-size {
@@ -454,7 +456,7 @@
 .overview-list-item-date {
     flex-shrink: 0;
     color: var(--overview-muted);
-    font-size: .8125rem;
+    font-size: .875rem;
     white-space: nowrap;
 }
 
@@ -462,5 +464,5 @@
     margin: 0;
     padding: 1rem 1.25rem;
     color: var(--overview-muted);
-    font-size: .8125rem;
+    font-size: .875rem;
 }

@@ -1,0 +1,57 @@
+// Filter chips: a click sets a filter or takes it away, like the states in My Work or the trackers of "Issues by
+// month".
+
+// In a line of their own below the search in both views of My Work, however many states there are
+.chips {
+    display: flex;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    gap: .4rem;
+    order: 1;
+}
+
+.chip {
+    display: inline-flex;
+    gap: .4rem;
+    align-items: center;
+    padding: .3rem .75rem;
+    border: 1px solid #e6e8eb;
+    border-radius: 999px;
+    background: #fff;
+    color: #374151;
+    font-size: .8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: border-color .15s, background-color .15s, color .15s;
+
+    &:hover {
+        border-color: #c9ced4;
+        color: #111827;
+    }
+
+    &.is-closed {
+        border-style: dashed;
+        color: #4b5563;
+    }
+
+    &.is-active {
+        border-color: #111827;
+        background: #111827;
+        color: #fff;
+
+        .chip-count {
+            background: rgba(255, 255, 255, .2);
+            color: #fff;
+        }
+    }
+}
+
+.chip-count {
+    min-width: 1.4em;
+    padding: 0 .4em;
+    border-radius: 999px;
+    background: #eef0f2;
+    color: #4b5563;
+    font-size: .75rem;
+    text-align: center;
+}

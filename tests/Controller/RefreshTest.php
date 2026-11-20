@@ -81,7 +81,7 @@ final class RefreshTest extends KernelTestCase
         if ($shown) {
             self::assertStringContainsString('form="refresh-form" formaction="/issue/91089/refresh" formmethod="post"', $buttons);
             self::assertStringContainsString('form="refresh-form" formaction="/change/95026/refresh" formmethod="post"', $buttons);
-            // No form of their own: in the lists they stand inside the form of the filters
+            // No form of their own: a form in another form of the page would be dropped
             self::assertStringNotContainsString('<form', $buttons);
             self::assertStringContainsString('<form id="refresh-form" method="post" hidden>', $form);
             self::assertStringContainsString('name="_target_path" value="/search?query=cache"', $form);

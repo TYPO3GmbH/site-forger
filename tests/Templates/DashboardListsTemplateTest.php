@@ -56,14 +56,13 @@ final class DashboardListsTemplateTest extends KernelTestCase
     {
         $html = $this->twig->render('dashboard/_new_issues.html.twig', ['issues' => ['documents' => [self::ISSUE], 'total' => 1]]);
 
-        self::assertStringContainsString('https://forge.typo3.org/issues/91089', $html);
+        self::assertStringContainsString('href="/issue/91089"', $html);
         self::assertStringContainsString('Something is broken', $html);
         self::assertStringContainsString('by Benni Mack', $html);
         self::assertStringContainsString('status-pill-new', $html);
-        self::assertStringContainsString('mywork-tag-bug', $html);
-        // Without category, version and priority their details are left out
+        self::assertStringContainsString('tag-label-bug', $html);
+        // Without category and version their details are left out
         self::assertStringNotContainsString('title="Category"', $html);
-        self::assertStringNotContainsString('title="Priority"', $html);
         self::assertStringContainsString('/search?sort=newest', $html);
         self::assertStringNotContainsString('There are no open issues.', $html);
     }
@@ -77,7 +76,8 @@ final class DashboardListsTemplateTest extends KernelTestCase
         ];
         $html = $this->twig->render('dashboard/_new_issues.html.twig', ['issues' => ['documents' => [$issue], 'total' => 1]]);
 
-        self::assertStringContainsString('priority-must" title="Priority">Must have', $html);
+        // The priority is not of interest in a list, the page of the issue has it
+        self::assertStringNotContainsString('Must have', $html);
         self::assertStringContainsString('<span title="Category">Backend</span>', $html);
         self::assertStringContainsString('v13', $html);
     }
@@ -99,8 +99,8 @@ final class DashboardListsTemplateTest extends KernelTestCase
         ];
         $html = $this->twig->render('dashboard/_ready_to_merge.html.twig', ['changes' => ['documents' => [$change], 'total' => 1]]);
 
-        self::assertStringContainsString('status-pill-vote-approved" title="Code review: +2 by a merger">CR +2</span>', $html);
-        self::assertStringContainsString('status-pill-vote-recommended" title="Verified: +1">V +1</span>', $html);
+        self::assertStringContainsString('status-pill-vote-approved" title="Code review: +2 by a merger · 3 for, 0 against">CR +2</span>', $html);
+        self::assertStringContainsString('status-pill-vote-recommended" title="Verified: +1 · 2 for, 0 against">V +1</span>', $html);
         // The branch of the change and "omitted" are no target releases
         self::assertStringContainsString('→ main</span>', $html);
         self::assertStringContainsString('<span title="Topic">cache</span>', $html);
@@ -116,13 +116,13 @@ final class DashboardListsTemplateTest extends KernelTestCase
     {
         $html = $this->twig->render('dashboard/_ready_to_merge.html.twig', ['changes' => ['documents' => [self::CHANGE], 'total' => 7]]);
 
-        self::assertStringContainsString('https://review.typo3.org/c/Packages/TYPO3.CMS/+/12345/', $html);
+        self::assertStringContainsString('href="/change/12345"', $html);
         self::assertStringContainsString('[BUGFIX] Repair the cache', $html);
         self::assertStringContainsString('by Benni Mack', $html);
         // Votes missing in old documents count as none
-        self::assertStringContainsString('status-pill-vote-none" title="Code review: no votes">CR 0</span>', $html);
+        self::assertStringContainsString('status-pill-vote-none" title="Code review: no votes · 0 for, 0 against">CR 0</span>', $html);
         self::assertStringNotContainsString('Lines added and removed', $html);
-        self::assertStringContainsString('mywork-tag is-backport', $html);
+        self::assertStringContainsString('tag-label is-backport', $html);
         self::assertStringContainsString('<span class="overview-list-count">7</span>', $html);
         self::assertStringContainsString('/gerrit/core-team-merge', $html);
     }

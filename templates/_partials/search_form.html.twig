@@ -1,0 +1,19 @@
+{#
+ # The head of the search pages, above their tabs: one field for the search words as in the lists, in it whether
+ # closed ones count, too, before the button. A new search starts without the filters and the order of a tab.
+ # The title only for screen readers: the field says what the page is. The same words on both tabs, so the head
+ # does not move between them; which ones are closed says the title of the checkbox.
+ # Expects: route (search_search or search_changes), query; optional searchClosed
+ #}
+<form class="search-form" action="{{ path(route) }}" method="get" role="search">
+    <h1 class="sr-only">Search</h1>
+    <label class="sr-only" for="search-form-query">Search words</label>
+    <div class="input-group search-form-field">
+        <input type="search" id="search-form-query" name="query" value="{{ query ?? '' }}" class="form-control" placeholder="Issue or change number, or search words">
+        <label class="input-group-text search-form-closed" title="Also merged and abandoned changes, and resolved, closed and rejected issues">
+            <input class="form-check-input" type="checkbox" name="searchClosed" value="1"{{ (searchClosed ?? null) ? ' checked' }} onchange="this.form.submit()">
+            Include closed
+        </label>
+        <button type="submit" class="btn btn-default" title="Search">{{ icon('actions-search') }}</button>
+    </div>
+</form>

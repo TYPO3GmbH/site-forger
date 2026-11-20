@@ -1,0 +1,63 @@
+// The tabs of a page between Gerrit changes and issues: My Work and the search, see
+// templates/_partials/search_tabs.html.twig.
+
+.view-tabs {
+    display: flex;
+    gap: .5rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid #e6e8eb;
+}
+
+.view-tab {
+    --views-accent: #2a78d6;
+    // Darker for white text on it, 4.5:1 at least
+    --views-accent-strong: #1d5fb8;
+
+    display: inline-flex;
+    gap: .55rem;
+    align-items: center;
+    margin-bottom: -1px;
+    padding: .7rem 1.1rem .8rem;
+    border-bottom: 3px solid transparent;
+    // On the gray of the page, where #6b7280 is too light
+    color: #4b5563;
+    font-size: 1.125rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color .15s, border-color .15s;
+
+    &.is-issues {
+        --views-accent: #eb6834;
+        --views-accent-strong: #b54708;
+    }
+
+    &:hover,
+    &:focus-visible {
+        color: #111827;
+    }
+
+    &.is-active {
+        border-bottom-color: var(--views-accent);
+        color: #111827;
+
+        .view-tab-count {
+            background: var(--views-accent-strong);
+            color: #fff;
+        }
+    }
+
+    .icon {
+        color: var(--views-accent);
+    }
+}
+
+.view-tab-count {
+    min-width: 1.6em;
+    padding: .05rem .5rem;
+    border-radius: 999px;
+    background: #e5e7eb;
+    color: #374151;
+    font-size: .875rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}

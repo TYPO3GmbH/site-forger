@@ -1,0 +1,48 @@
+// The filters beside the lists and the search, see templates/_partials/aggregations.html.twig. A step below the
+// rows beside them, not on the larger scale of the template bundle: they serve the content, they do not lead.
+
+.aggregations {
+    .aggregation {
+        padding: .625rem 1.25rem;
+    }
+
+    .aggregation-title-text {
+        font-size: .9375rem;
+        font-weight: 600;
+        line-height: 1.5rem;
+    }
+
+    .aggregation-body {
+        margin-top: .375rem;
+        // As large as the titles, only lighter
+        font-size: .9375rem;
+
+        .form-check {
+            min-height: 1.625rem;
+            margin-bottom: 0;
+            line-height: 1.625rem;
+        }
+
+        .form-check-input {
+            margin-top: .3125rem;
+        }
+
+        .form-check-label-count {
+            color: #4b5563;
+            font-variant-numeric: tabular-nums;
+        }
+    }
+}
+
+// A range instead of values to tick, like "Created" of the issues: the field of the datepicker, then the buttons
+.aggregation-range {
+    display: flex;
+    flex-direction: column;
+    gap: .625rem;
+}
+
+.aggregation-range-actions {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+}

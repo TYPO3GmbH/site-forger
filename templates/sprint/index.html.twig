@@ -1,6 +1,12 @@
 {% extends 'base.html.twig' %}
 {% import '_macros/buttons.html.twig' as buttons %}
 {% block title %}Sprints{% endblock %}
+{# The board below its category, as the menu has the category only #}
+{% block breadcrumb %}
+    {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+    {% set categoryItem = {'label': categoryName, 'url': path('sprint', {'category': category})} %}
+    {{ breadcrumb.trail([{'label': 'Sprints', 'url': path('sprint_overview')}, categoryItem]|merge(boardInfo is not empty ? [{'label': boardInfo}] : [])) }}
+{% endblock %}
 {% block body %}
 
     <div class="content-section content-section-smallest bg-lighter">

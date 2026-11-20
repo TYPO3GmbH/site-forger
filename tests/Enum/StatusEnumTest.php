@@ -14,6 +14,7 @@ namespace App\Tests\Enum;
 use App\Enum\ActivityEnum;
 use App\Enum\CommandRunStatusEnum;
 use App\Enum\IssueStatusEnum;
+use App\Enum\ReviewSizeEnum;
 use App\Enum\ReviewStateEnum;
 use App\Enum\ReviewStatusEnum;
 use App\Enum\ReviewVoteEnum;
@@ -105,7 +106,7 @@ final class StatusEnumTest extends TestCase
     public function testEverySeverityHasAStyle(): void
     {
         $styles = (string) file_get_contents(__DIR__ . '/../../assets/css/module/_status.scss');
-        foreach ([...IssueStatusEnum::cases(), ...ReviewStateEnum::cases(), ...ActivityEnum::cases(), ...CommandRunStatusEnum::cases(), ...SystemCheckEnum::cases(), ...ReviewVoteEnum::cases()] as $state) {
+        foreach ([...IssueStatusEnum::cases(), ...ReviewStateEnum::cases(), ...ActivityEnum::cases(), ...CommandRunStatusEnum::cases(), ...SystemCheckEnum::cases(), ...ReviewVoteEnum::cases(), ...ReviewSizeEnum::cases()] as $state) {
             self::assertMatchesRegularExpression('/\\.status-pill-' . preg_quote($state->severity(), '/') . '[\\s,{]/', $styles, $state->name . ' has no status pill style');
         }
     }

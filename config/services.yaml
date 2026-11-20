@@ -93,6 +93,10 @@ services:
     arguments:
       $client: '@guzzle.client.gerrit'
 
+  App\Menu\Breadcrumb:
+    arguments:
+      $helper: '@knp_menu.helper'
+
   App\Menu\MenuBuilder:
     tags:
       - name: 'knp_menu.menu_builder'

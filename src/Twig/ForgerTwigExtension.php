@@ -93,6 +93,35 @@ class ForgerTwigExtension
         return $this->redmineTextRenderer->render($markdown);
     }
 
+    /**
+     * The beginning of a description as plain text, for a list: without markup and code, the whitespace in one line,
+     * cut at a word with an ellipsis. Empty when there is no text.
+     */
+    #[AsTwigFilter(name: 'forgeTeaser')]
+    public function forgeTeaser(?string $markdown, int $length = 240): string
+    {
+        if (null === $markdown || '' === trim($markdown)) {
+            return '';
+        }
+        $html = $this->redmineTextRenderer->render($markdown);
+        // A block of code says little out of its context
+        $html = (string) preg_replace('#<pre\b[^>]*>.*?</pre>#is', ' ', $html);
+        // Blocks stay apart as words
+        $html = (string) preg_replace('#<(br|/p|/h[1-6]|/li|/div|/tr|/td|/th|/blockquote)\b[^>]*>#i', ' ', $html);
+        $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = trim((string) preg_replace('/\s+/u', ' ', $text));
+        if (mb_strlen($text) <= $length) {
+            return $text;
+        }
+        $cut = mb_substr($text, 0, $length);
+        $space = mb_strrpos($cut, ' ');
+        if (false !== $space && $space > $length / 2) {
+            $cut = mb_substr($cut, 0, $space);
+        }
+
+        return rtrim($cut, " \t\n.,;:-") . '…';
+    }
+
     #[AsTwigFunction(name: 'trackerCheckbox', isSafe: ['html'])]
     public function trackerCheckbox(string $trackerType, string $label): string
     {

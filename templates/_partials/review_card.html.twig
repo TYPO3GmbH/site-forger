@@ -1,6 +1,5 @@
 {% import '_macros/buttons.html.twig' as buttons %}
 {% import '_macros/status.html.twig' as status %}
-{% import '_macros/refresh.html.twig' as refresh %}
 {% if card is not defined or card is null %}
 
     {% include '_partials/alert.html.twig' with {message: 'Review is missing.', style: 'danger'} %}
@@ -8,14 +7,8 @@
 {% else %}
 
     {% set reviewTags = card.reviewtags ?? [] %}
-    {% set reviewTypeClass = 'default' %}
-    {% if 'FEATURE' in reviewTags %}
-        {% set reviewTypeClass = 'feature' %}
-    {% elseif 'TASK' in reviewTags %}
-        {% set reviewTypeClass = 'task' %}
-    {% elseif 'BUGFIX' in reviewTags %}
-        {% set reviewTypeClass = 'bugfix' %}
-    {% endif %}
+    {# The color of the type comes from ReviewTypeEnum #}
+    {% set reviewTypeClass = review_type(card).severity ?? 'default' %}
     <div class="review review-card review-type-{{ reviewTypeClass }}">
         {% if card.mergeable is defined and card.mergeable == 'no' and (card.reviewstatus ?? 'NEW') == 'NEW' %}
             <div class="review-note review-note-danger">Merge conflict</div>
@@ -30,19 +23,22 @@
             {% endif %}
         {% endif %}
         <div class="review-header">
-            {% if mode != 'backport' %}
-                {{ refresh.change(card.id) }}
-            {% endif %}
             <div class="review-issue">
                 #{{card.id}}
             </div>
             <div class="review-title">
-                <a href="https://review.typo3.org/c/Packages/TYPO3.CMS/+/{{ card.id }}/" target="gerrit{}{{ card.id }}">{{card.subject}}</a>
+                {# A missing backport may not be imported, Gerrit always has it #}
+                {% if mode == 'backport' %}
+                    <a href="{{ gerrit_change_url(card.id) }}" target="gerrit{{ card.id }}">{{card.subject}}</a>
+                {% else %}
+                    <a href="{{ change_path(card.id) }}">{{card.subject}}</a>
+                {% endif %}
             </div>
             {% if mode != 'backport' %}
                 <div class="review-status">
                     {{ status.review(card) }}
                     {{ status.activity(card) }}
+                    {{ status.size(card) }}
                 </div>
             {% endif %}
             {% if '!!!' in reviewTags %}
@@ -79,26 +75,8 @@
                 <span class="review-data-item-value">{{ card.patchsets }}</span>
             </div>
             <div class="review-data-item">
-                <span class="review-data-item-label">Reviews</span>
-                <span class="review-data-item-value">
-                    {% if card.positive_reviews %}
-                        <span class="badge badge-success">{{card.positive_reviews}}</span>
-                    {% endif %}
-                    {% if card.negative_reviews %}
-                        <span class="badge badge-danger">{{card.negative_reviews}}</span>
-                    {% endif %}
-                </span>
-            </div>
-            <div class="review-data-item">
-                <span class="review-data-item-label">Verifies</span>
-                <span class="review-data-item-value">
-                    {% if card.positive_verifications %}
-                        <span class="badge badge-success">{{card.positive_verifications}}</span>
-                    {% endif %}
-                    {% if card.negative_verifications %}
-                        <span class="badge badge-danger">{{card.negative_verifications}}</span>
-                    {% endif %}
-                </span>
+                <span class="review-data-item-label">Votes</span>
+                <span class="review-data-item-value">{{ status.votes(card) }}</span>
             </div>
         </div>
         {% if mode == 'backport' and is_granted('ROLE_CORE_COMPONENT') %}
