@@ -154,7 +154,8 @@ and adds the number on Gerrit to a person it has by the username. When Forge tel
 
 Forge tells more than the number and the name of a user only user by user, one request each: it lists users to its
 admins only. So the imports of Forge do not wait for the users. The job "Update users" (`app:import:users`)
-runs every five minutes, with the lock of the Forge import, so the two never ask Forge at the same time. Its name
+runs every five minutes with a lock of its own, so it does not wait for the Forge import. Both share the rate
+limit of Forge, because the limiter keeps its state in the cache. Its name
 says what it keeps, not where from: the source of the users is Forge for now (`App\Service\ForgeUserSync`), and
 may be another one later under the same command:
 

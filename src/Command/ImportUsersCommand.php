@@ -15,7 +15,6 @@ namespace App\Command;
 
 use App\Elastic\IndexSetup;
 use App\Http\ApiRequests;
-use App\Import\ForgeImport;
 use App\Import\ImportRun;
 use App\Service\CommandRunRecorder;
 use App\Service\ForgeUserSync;
@@ -28,6 +27,7 @@ use Symfony\Component\Lock\LockFactory;
 #[AsCommand(name: 'app:import:users', description: 'Fills the users from Forge: some that are due per run, or the ones given')]
 final class ImportUsersCommand extends ImportJobCommand
 {
+    public const string LOCK = 'users';
     public const string STEP_TAKE_OVER = 'Take the users of the issues over';
 
     public function __construct(
@@ -50,7 +50,7 @@ final class ImportUsersCommand extends ImportJobCommand
 
     protected function lockName(): string
     {
-        return ForgeImport::LOCK;
+        return self::LOCK;
     }
 
     protected function import(InputInterface $input, ImportRun $run): void

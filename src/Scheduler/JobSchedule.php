@@ -64,7 +64,7 @@ final readonly class JobSchedule implements ScheduleProviderInterface
     public const array JOBS = [
         'forgeDelta' => ['label' => 'Update Forge issues', 'every' => '5 minutes', 'command' => ['app:import:forge'], 'lock' => ForgeImport::LOCK, 'steps' => [ForgeImport::STEP_DELTA, ForgeImport::STEP_OUTDATED, ForgeImport::STEP_RECONCILE]],
         'reviewDelta' => ['label' => 'Update Gerrit changes', 'every' => '5 minutes', 'command' => ['app:import:review'], 'lock' => GerritImport::LOCK, 'steps' => [GerritImport::STEP_DELTA_LIST, GerritImport::STEP_DELTA_LOAD, GerritImport::STEP_OUTDATED]],
-        'users' => ['label' => 'Update users', 'every' => '5 minutes', 'command' => ['app:import:users'], 'lock' => ForgeImport::LOCK, 'steps' => [ImportUsersCommand::STEP_TAKE_OVER, ForgeUserSync::STEP]],
+        'users' => ['label' => 'Update users', 'every' => '5 minutes', 'command' => ['app:import:users'], 'lock' => ImportUsersCommand::LOCK, 'steps' => [ImportUsersCommand::STEP_TAKE_OVER, ForgeUserSync::STEP]],
         'backports' => ['label' => 'Find missing backports', 'every' => '5 minutes', 'command' => ['app:backports']],
     ];
 
