@@ -1,40 +1,57 @@
 {% extends 'base.html.twig' %}
-{# Over the whole width, as its content: the breadcrumb and the title too, see base.html.twig #}
-{% set wide = true %}
 {% block title %}Backports{% endblock %}
+{% block page_title %}Backports{% endblock %}
+{#
+ # The changes merged into main whose backports are missing or wait for their review, see App\Elastic\Backports:
+ # those with a missing backport first. Each row is the change in main, below it its versions: "missing", or the
+ # backport and its state, which leads to it. Core members exclude a change from the list.
+ # Expects: rows (see Backports::rows()), fileExists (whether app:backport wrote its file)
+ #}
+{% block page_summary %}
+    {% set missing = rows|filter(row => row.missing > 0)|length %}
+    {% if rows is empty %}
+        {{ fileExists ? 'Every change of the last year that targets an older version has its backports.' : 'No list of backports yet: app:backport writes it.' }}
+    {% else %}
+        {% set inReview = rows|length - missing %}
+        <strong>{{ rows|length }}</strong> {{ rows|length == 1 ? 'change' : 'changes' }} merged into main within a year {{ rows|length == 1 ? 'waits' : 'wait' }} for a backport.
+        {% if missing > 0 %}<strong>{{ missing }}</strong> {{ missing == 1 ? 'has a backport missing' : 'have a backport missing' }}{{ inReview > 0 ? ', ' : '.' }}{% endif %}
+        {%- if inReview > 0 %}{{ missing > 0 ? '' : ' ' }}<strong>{{ inReview }}</strong> {{ inReview == 1 ? 'has its backports in review' : 'have their backports in review' }}.{% endif %}
+    {% endif %}
+{% endblock %}
 {% block body %}
-    {% set versions = ['main', '14.3', '13.4'] %}
-    <div class="content-section bg-transparent">
-        <div class="container-fluid">
-            <h1>{{ sum ?? 0 }} backports to do</h1>
-            <table class="table table-striped">
-                <colgroup>
-                    {% for version in versions %}
-                        <col style="width: calc(100% / {{ versions|length }})">
-                    {% endfor %}
-                </colgroup>
-                <tr>
-                    {% for version in versions %}
-                        <th>{{ version }}</th>
-                    {% endfor %}
-                </tr>
-                {% for backport in backports %}
-                    <tr>
-                        {% for version in versions %}
-                            {% set normalizedVersion = version|replace({'.': ''}) %}
-                            {% set key = 't3_' ~ normalizedVersion %}
-                            <td>
-                                {% if backport.releases.(key) is defined and backport.releases.(key) == 'missing' %}
-                                    {% include '_partials/review_card.html.twig' with {'card': null, 'mode': 'backport'} only %}
-                                {% elseif backport.releases.(key).id is defined %}
-                                    {% include '_partials/review_card.html.twig' with {'card': backport.releases.(key), 'mode': 'backport'} only %}
+    <div class="content-section content-section-small">
+        <div class="container">
+            {% if rows is not empty %}
+                <ul class="row-list row-list-panel">
+                    {% for row in rows %}
+                        <li class="backport">
+                            {% if row.change %}
+                                {% include '_partials/row/change.html.twig' with {'change': row.change} only %}
+                            {% else %}
+                                {# Not in Forger: Gerrit has it #}
+                                <a class="overview-list-item kind-change" href="{{ gerrit_change_url(row.number) }}">
+                                    <span class="overview-list-item-main">
+                                        <span class="overview-list-item-title"><span class="overview-list-item-id" title="Review">{{ icon('actions-code-pull-request') }}{{ row.number }}</span>Not in Forger</span>
+                                    </span>
+                                </a>
+                            {% endif %}
+                            <div class="backport-versions">
+                                <span class="backport-versions-label">Backports</span>
+                                {% for version in row.versions %}
+                                    {% if version.state is null %}
+                                        <span class="status-pill status-pill-backport-missing" title="No backport for {{ version.version }} in Gerrit">{{ version.version }} missing</span>
+                                    {% else %}
+                                        <a class="status-pill status-pill-{{ version.state.severity }}" href="{{ change_path(version.change.id) }}" title="{{ version.change.id }} on {{ version.change.branch ?? version.version }}: {{ version.state.label }}">{{ version.version }} {{ version.state.label|lower }}</a>
+                                    {% endif %}
+                                {% endfor %}
+                                {% if is_granted('ROLE_CORE_COMPONENT') %}
+                                    <a class="btn btn-sm btn-default backport-exclude" href="{{ path('utilities_backport_create', {'changeId': row.changeId}) }}" title="Leave this change out of the backports, with a reason">{{ icon('actions-ban') }} Exclude</a>
                                 {% endif %}
-                            </td>
-                        {% endfor %}
-                    </tr>
-                {% endfor %}
-            </table>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
         </div>
     </div>
-
 {% endblock %}

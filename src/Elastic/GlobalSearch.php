@@ -34,7 +34,7 @@ final class GlobalSearch
     {
         return [
             self::ISSUES => ElasticUtility::getIndexByName('issue')->count(new Query(['query' => IssueSearch::query($searchTerms, $includeClosed)])),
-            self::CHANGES => ElasticUtility::getIndexByName('review')->count(new Query(['query' => ReviewLists::query(ReviewLists::SEARCH, '', $includeClosed, $searchTerms)])),
+            self::CHANGES => ElasticUtility::getIndexByName('review')->count(new Query(['query' => ReviewLists::query(ReviewLists::SEARCH, $includeClosed, $searchTerms)])),
         ];
     }
 

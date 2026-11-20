@@ -13,6 +13,8 @@
  # the localStorage "aggregations". The ids name the filter and the kind of list ("issues", "changes"), so a
  # filter opened in one list does not open another one at the same place in the next list.
  # Expects: aggregations, facetScope; personSearch (optional);
+ #          textFilters (optional): filters of a value typed in, after the others: filter key => title, value (the
+ #          parameters of the filter), placeholder. The value is sent as filters[<key>][path], like the path of "File";
  #          dateFilters (optional): the filters of dates, last in the list: filter key => title, and value (the
  #          parameters of the filter). Each is one field with the datepicker of the template bundle, the first and the
  #          last day clicked in one calendar, see MonthOverview::days()
@@ -39,6 +41,30 @@
                             {{ aggregationBucket(title, index, bucket) }}
                         {% endif %}
                     {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+    {% for key, textFilter in textFilters ?? {} %}
+        {% set value = (textFilter.value ?? {}).path ?? '' %}
+        {% set panelId = 'facet-' ~ facetScope ~ '-' ~ key %}
+        {% set active = value is not empty %}
+        <div class="aggregation">
+            <div class="aggregation-title" id="{{ panelId }}-title">
+                <a class="aggregation-title-link{{ active ? '' : ' collapsed' }}" data-bs-toggle="collapse" href="#{{ panelId }}" aria-expanded="{{ active ? 'true' : 'false' }}" aria-controls="{{ panelId }}">
+                    <span class="aggregation-title-text">{{ textFilter.title }}</span>
+                </a>
+            </div>
+            <div id="{{ panelId }}" class="collapse{{ active ? ' show' }}" role="tabpanel" aria-labelledby="{{ panelId }}-title" data-bs-parent="#aggregations"{% if active %} data-facet-active{% endif %}>
+                <div class="aggregation-body aggregation-range">
+                    <label class="sr-only" for="{{ panelId }}-value">{{ textFilter.title }}</label>
+                    <input type="text" id="{{ panelId }}-value" class="form-control form-control-sm" name="filters[{{ key }}][path]" value="{{ value }}" placeholder="{{ textFilter.placeholder ?? '' }}">
+                    <div class="aggregation-range-actions">
+                        <button type="submit" class="btn btn-sm btn-default">Apply</button>
+                        {% if active %}
+                            <button type="submit" class="btn btn-sm btn-link" onclick="this.form.querySelectorAll('[name^=&quot;filters[{{ key }}]&quot;]').forEach(function (field) { field.value = ''; })">Clear</button>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

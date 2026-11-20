@@ -106,7 +106,7 @@ class ReviewController extends AbstractController
         $searchTerms = $this->query()->getString('query');
         $searchClosed = '1' === $this->query()->getString('searchClosed');
         $viewData = $this->listData(
-            ReviewLists::query(ReviewLists::SEARCH, '', $searchClosed, $searchTerms),
+            ReviewLists::query(ReviewLists::SEARCH, $searchClosed, $searchTerms),
             ReviewLists::SEARCH,
             $this->queryAggregations(),
             ReviewSortEnum::UPDATED,
@@ -120,17 +120,15 @@ class ReviewController extends AbstractController
 
     /**
      * Owners of the changes in the list "list" whose name contains "term", for the search in the "Owner" filter.
-     * Names, numbers and avatars only, no email addresses. The lists also pass their "query": the search words, or
-     * the file of "Find by file". "Find by file" and the search also pass "searchClosed".
+     * Names, numbers and avatars only, no email addresses. The lists also pass their search words "query", the search
+     * also "searchClosed".
      */
     #[Route(path: '/gerrit/owners', name: 'gerrit_owners', methods: ['GET'])]
     public function owners(): JsonResponse
     {
         $list = $this->query()->getString('list');
         $query = $this->query()->getString('query');
-        $listQuery = ReviewLists::FILES === $list
-            ? ReviewLists::query($list, $query, '1' === $this->query()->getString('searchClosed'))
-            : ReviewLists::query($list, '', '1' === $this->query()->getString('searchClosed'), $query);
+        $listQuery = ReviewLists::query($list, '1' === $this->query()->getString('searchClosed'), $query);
         if (null === $listQuery) {
             return new JsonResponse('Unknown list', Response::HTTP_BAD_REQUEST);
         }
@@ -143,27 +141,19 @@ class ReviewController extends AbstractController
         return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), 'ownerEmail'));
     }
 
+    /**
+     * "Find by file" of before: the filter "File" of the search of the changes finds them now.
+     */
     #[Route(path: '/gerrit/files', name: 'gerrit_files')]
     public function getFiles(): Response
     {
-        $viewData = [];
-        $viewData['routeName'] = 'gerrit_files';
-        $viewData['searchRouteName'] = 'gerrit_files';
-        $viewData['searchPlaceholder'] = 'full relative path in GIT repo';
-        $viewData['results'] = [];
-        if ($this->query()->has('query')) {
-            $file = $this->query()->getString('query');
-            $searchClosed = '1' === $this->query()->getString('searchClosed');
-            $viewData = $this->listData(
-                ReviewLists::query(ReviewLists::FILES, $file, $searchClosed),
-                ReviewLists::FILES,
-                $this->queryAggregations(),
-            );
-            $viewData['searchRouteName'] = 'gerrit_files';
-            $viewData['searchPlaceholder'] = 'full relative path in GIT repo';
+        $file = trim($this->query()->getString('query'));
+        $parameters = '' === $file ? [] : ['filters' => ['file' => ['path' => $file]]];
+        if ('1' === $this->query()->getString('searchClosed')) {
+            $parameters['searchClosed'] = '1';
         }
 
-        return $this->render('review/files.html.twig', $viewData);
+        return $this->redirectToRoute('search_changes', $parameters, Response::HTTP_MOVED_PERMANENTLY);
     }
 
     #[Route(path: '/gerrit/stale-issues', name: 'gerrit_stale_issues')]
@@ -204,7 +194,7 @@ class ReviewController extends AbstractController
     {
         $searchTerms = $this->query()->getString('query');
         $viewData = $this->listData(
-            ReviewLists::query($list, '', false, $searchTerms),
+            ReviewLists::query($list, false, $searchTerms),
             $list,
             $aggregations,
             $listDefault,
@@ -342,6 +332,14 @@ class ReviewController extends AbstractController
         $filters = new BoolQuery();
 
         foreach ($this->query()->all('filters') as $key => $filterValue) {
+            if ('file' === $key) {
+                // A path typed in, not values to tick
+                $file = ReviewLists::fileQuery(is_array($filterValue) ? (string) ($filterValue['path'] ?? '') : '');
+                if (null !== $file) {
+                    $filters->addMust(new Simple($file));
+                }
+                continue;
+            }
             if ('updated' === $key) {
                 // The days of the last update, from the datepicker, not values to tick
                 $days = is_array($filterValue) ? MonthOverview::days($filterValue) : ['from' => null, 'to' => null];

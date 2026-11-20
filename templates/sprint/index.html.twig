@@ -77,7 +77,7 @@
                         <div class="board-column-content">
                             {% for card in cardList %}
                                 {% if card._redmine_issue_id is defined %}
-                                    {% include '_partials/review_card.html.twig' with {'card': card, 'mode': ''} only %}
+                                    {% include '_partials/review_card.html.twig' with {'card': card} only %}
                                 {% else %}
                                     {% include '_partials/issue_card.html.twig' with {'card': card} only %}
                                 {% endif %}

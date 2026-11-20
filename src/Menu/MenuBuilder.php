@@ -75,8 +75,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         $this->addLink($reviews, 'gerrit_negative_vote_cleanup', 'Negative votes', 'gerrit_negative_vote_cleanup', 'actions-minus-circle');
         $this->addLink($reviews, 'gerrit_hasverifications', 'Reviewed and verified', 'gerrit_hasverifications', 'actions-check-badge');
         $this->addLink($reviews, 'gerrit_coreteam_merge', 'Ready to merge', 'gerrit_coreteam_merge', 'actions-code-merge');
-        $this->addHeader($reviews, 'Tools');
-        $this->addLink($reviews, 'gerrit_files', 'Find by file', 'gerrit_files', 'actions-file-search');
 
         // The most important first: where work waits, then the overviews
         $issues = $menu->addChild('issues', ['label' => 'Issues', 'route' => 'search_search']);

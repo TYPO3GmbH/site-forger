@@ -1,7 +1,7 @@
 {#
  # A list of Gerrit changes with its filters, pages and sort field, see ReviewController::listData().
- # listParameters are what the list keeps besides the filters and the order: its search words, or the file of
- # "Find by file", and "searchClosed". With listSearch the list has a field for search words of its own.
+ # listParameters are what the list keeps besides the filters and the order: its search words and "searchClosed".
+ # With listSearch the list has a field for search words of its own.
  #}
 {% import '_macros/sort.html.twig' as sorting %}
 {% import '_macros/search.html.twig' as search %}
@@ -17,6 +17,7 @@
                 {% include '_partials/aggregations.html.twig' with {
                     'facetScope': 'changes',
                     'aggregations': aggregations,
+                    'textFilters': {'file': {'title': 'File', 'value': filters.file ?? {}, 'placeholder': 'A path, or a folder'}},
                     'dateFilters': {'updated': {'title': 'Updated', 'value': filters.updated ?? {}}},
                     'query': query,
                     'personSearch': {

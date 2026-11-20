@@ -360,6 +360,24 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringNotContainsString('>Clear</button>', $html);
     }
 
+    public function testTheFilterFileTakesAPath(): void
+    {
+        $render = fn (array $file): string => $this->twig->render('_partials/aggregations.html.twig', [
+            'facetScope' => 'changes',
+            'textFilters' => ['file' => ['title' => 'File', 'value' => $file, 'placeholder' => 'A path, or a folder']],
+            'dateFilters' => ['updated' => ['title' => 'Updated', 'value' => []]],
+            'aggregations' => ['Size' => ['buckets' => [['key' => 'S', 'doc_count' => 2]]]],
+        ]);
+
+        $html = $render(['path' => 'typo3/sysext/core']);
+        self::assertStringContainsString('<input type="text" id="facet-changes-file-value" class="form-control form-control-sm" name="filters[file][path]" value="typo3/sysext/core" placeholder="A path, or a folder">', $html);
+        self::assertStringContainsString('id="facet-changes-file" class="collapse show"', $html);
+        // After the filters to tick, before the dates
+        self::assertGreaterThan(strpos($html, 'facet-changes-size'), strpos($html, 'facet-changes-file'));
+        self::assertLessThan(strpos($html, 'facet-changes-updated'), strpos($html, 'facet-changes-file'));
+        self::assertStringContainsString('id="facet-changes-file" class="collapse"', $render([]));
+    }
+
     public function testEveryFilterOfDatesHasTheDatepicker(): void
     {
         $html = $this->twig->render('_partials/aggregations.html.twig', [
@@ -410,6 +428,26 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertFileDoesNotExist(dirname(__DIR__, 2) . '/templates/_partials/searchbar.html.twig');
     }
 
+    public function testBackportsShowTheVersionsOfEachChange(): void
+    {
+        $template = $this->twig->load('utility/backport.html.twig');
+        $rows = [
+            ['changeId' => 'I1', 'number' => 81234, 'change' => self::CHANGE, 'missing' => 1, 'versions' => [
+                ['version' => '14.3', 'state' => ReviewStateEnum::READY, 'change' => ['id' => 97836, 'branch' => '14.3']],
+                ['version' => '13.4', 'state' => null, 'change' => null],
+            ]],
+        ];
+        $html = $template->renderBlock('body', ['rows' => $rows, 'fileExists' => true]);
+
+        // The change in main as in the lists, below it its versions
+        self::assertStringContainsString('href="/change/81234"', $html);
+        self::assertStringContainsString('<a class="status-pill status-pill-ready" href="/change/97836" title="97836 on 14.3: Ready for review">14.3 ready for review</a>', $html);
+        self::assertStringContainsString('<span class="status-pill status-pill-backport-missing" title="No backport for 13.4 in Gerrit">13.4 missing</span>', $html);
+        self::assertTrue($template->hasBlock('page_title'));
+        self::assertStringContainsString('<strong>1</strong> has a backport missing.', preg_replace('/\s+/', ' ', $template->renderBlock('page_summary', ['rows' => $rows, 'fileExists' => true])));
+        self::assertStringContainsString('No list of backports yet', $template->renderBlock('page_summary', ['rows' => [], 'fileExists' => false]));
+    }
+
     public function testExactMatchesLeadToTheDetailPages(): void
     {
         $html = $this->twig->render('_partials/exact_matches.html.twig', ['exactMatches' => ['issue' => ['id' => 81234] + self::ISSUE, 'change' => self::CHANGE]]);
@@ -447,7 +485,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
         $html = $this->twig->load('change/show.html.twig')->renderBlock('body', ['change' => $change, 'message' => '', 'issues' => []]);
 
-        preg_match_all('~<a href="/gerrit/files\?query=[^"]+" title="([^"]+): other changes touching this file">~', $html, $matches);
+        preg_match_all('~<a href="/search/changes\?filters%5Bfile%5D%5Bpath%5D=[^"]+" title="([^"]+): the changes touching this file">~', $html, $matches);
         self::assertSame(['Build/Sources/cache.ts', 'typo3/sysext/backend/Classes/Page.php', 'typo3/sysext/core/Classes/Cache.php', 'composer.json'], $matches[1]);
     }
 
@@ -475,6 +513,16 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('href="/search/changes?query=caching&amp;searchClosed=1"', $html);
     }
 
+    public function testTheFilesOfAChangeLeadToTheChangesTouchingThem(): void
+    {
+        $change = ['files' => ['typo3/sysext/core/Classes/Cache.php']] + self::CHANGE;
+        $html = $this->twig->load('change/show.html.twig')->renderBlock('body', ['change' => $change, 'message' => '', 'issues' => []]);
+        self::assertStringContainsString('href="/search/changes?filters%5Bfile%5D%5Bpath%5D=typo3/sysext/core/Classes/Cache.php" title="typo3/sysext/core/Classes/Cache.php: the changes touching this file"', $html);
+
+        $html = $this->twig->load('change/show.html.twig')->renderBlock('body', ['change' => ['reviewstatus' => 'ABANDONED'] + $change, 'message' => '', 'issues' => []]);
+        self::assertStringContainsString('href="/search/changes?filters%5Bfile%5D%5Bpath%5D=typo3/sysext/core/Classes/Cache.php&amp;searchClosed=1"', $html);
+    }
+
     public function testTheTagsOfAChangeLeadToTheSearch(): void
     {
         $html = $this->twig->load('change/show.html.twig')->renderBlock('body', ['change' => self::CHANGE, 'message' => '', 'issues' => []]);
@@ -490,9 +538,9 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         $html = $this->twig->load('change/show.html.twig')->renderBlock('body', ['change' => self::CHANGE + ['files' => $files], 'message' => '', 'issues' => []]);
 
         [$shown, $collapsed] = explode('<details class="detail-files-more">', $html);
-        self::assertSame(20, substr_count($shown, ': other changes touching this file"'));
+        self::assertSame(20, substr_count($shown, ': the changes touching this file"'));
         self::assertStringContainsString('<summary>Show 3 more files</summary>', $collapsed);
-        self::assertSame(3, substr_count($collapsed, ': other changes touching this file"'));
+        self::assertSame(3, substr_count($collapsed, ': the changes touching this file"'));
         // The order of the tree goes on in the collapsed ones
         self::assertStringContainsString('Classes/File20.php', $shown);
         self::assertStringContainsString('Classes/File21.php', $collapsed);

@@ -82,15 +82,19 @@ final class ReviewListsTest extends TestCase
         );
     }
 
-    public function testFindByFileFindsClosedChangesOnRequest(): void
+    public function testTheFilterFileFindsAFileOrTheFilesOfAFolder(): void
     {
-        $file = ['terms' => ['files' => ['typo3/sysext/core/Classes/Foo.php']]];
+        $query = static fn (string $path): array => ['bool' => [
+            'should' => [['term' => ['files' => $path]], ['prefix' => ['files' => $path . '/']]],
+            'minimum_should_match' => 1,
+        ]];
 
-        self::assertSame(
-            ['bool' => ['must' => [$file], 'must_not' => [self::CLOSED]]],
-            ReviewLists::query(ReviewLists::FILES, 'typo3/sysext/core/Classes/Foo.php')
-        );
-        self::assertSame(['bool' => ['must' => [$file]]], ReviewLists::query(ReviewLists::FILES, 'typo3/sysext/core/Classes/Foo.php', true));
+        self::assertSame($query('typo3/sysext/core/Classes/Foo.php'), ReviewLists::fileQuery('typo3/sysext/core/Classes/Foo.php'));
+        // A "/" around the path counts for nothing, a folder finds its files
+        self::assertSame($query('typo3/sysext/core'), ReviewLists::fileQuery(' /typo3/sysext/core/ '));
+        // As stored: a path with "&" is not escaped
+        self::assertSame($query('Build/a&b.json'), ReviewLists::fileQuery('Build/a&b.json'));
+        self::assertNull(ReviewLists::fileQuery(' / '));
     }
 
     public function testUnknownListHasNoQuery(): void
@@ -102,17 +106,17 @@ final class ReviewListsTest extends TestCase
     public function testSearchWordsNarrowDownAList(): void
     {
         $list = ReviewLists::query(ReviewLists::NEGATIVE_VOTES);
-        $query = ReviewLists::query(ReviewLists::NEGATIVE_VOTES, '', false, 'cache');
+        $query = ReviewLists::query(ReviewLists::NEGATIVE_VOTES, false, 'cache');
 
         // Kept apart, so the "should" of the negative votes stays required
         self::assertSame($list, $query['bool']['must'][0]);
         self::assertSame(ReviewSearch::query('cache'), $query['bool']['must'][1]);
-        self::assertSame($list, ReviewLists::query(ReviewLists::NEGATIVE_VOTES, '', false, ' '));
+        self::assertSame($list, ReviewLists::query(ReviewLists::NEGATIVE_VOTES, false, ' '));
     }
 
     public function testTheSearchFindsWorkInProgressAndClosedChangesOnRequest(): void
     {
         self::assertSame(['bool' => ['must_not' => [self::CLOSED]]], ReviewLists::query(ReviewLists::SEARCH));
-        self::assertEquals(['match_all' => new \stdClass()], ReviewLists::query(ReviewLists::SEARCH, '', true));
+        self::assertEquals(['match_all' => new \stdClass()], ReviewLists::query(ReviewLists::SEARCH, true));
     }
 }

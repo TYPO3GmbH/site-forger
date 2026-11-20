@@ -45,6 +45,8 @@
 .status-pill-merged { --status-color: #166534; --status-background: #e5f6eb; }
 .status-pill-abandoned { --status-color: #6c757d; --status-background: #f1f3f5; }
 .status-pill-conflict { --status-color: #b42318; --status-background: #fdecea; }
+// A version without a backport in Gerrit, see templates/utility/backport.html.twig
+.status-pill-backport-missing { --status-color: #b42318; --status-background: #fdecea; }
 
 // Votes of Gerrit labels, see App\Enum\ReviewVoteEnum: the +2 and -2 of mergers filled, +1 and -1 tinted
 .status-pill-vote {

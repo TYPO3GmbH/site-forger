@@ -74,7 +74,7 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         $change = self::OLD_CHANGE;
         unset($change['reviewtags']);
 
-        $card = $this->twig->render('_partials/review_card.html.twig', ['card' => $change, 'mode' => 'default']);
+        $card = $this->twig->render('_partials/review_card.html.twig', ['card' => $change]);
         $full = $this->twig->render('_partials/row/change.html.twig', ['change' => $change, 'detailed' => true]);
 
         foreach ([$card, $full] as $html) {
@@ -124,7 +124,7 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     {
         $change = self::OLD_CHANGE + ['reviewtags' => ['!!!', 'FEATURE'], 'ownerEmail' => 'benni@example.org'];
 
-        $html = $this->twig->render('_partials/review_card.html.twig', ['card' => $change, 'mode' => 'default']);
+        $html = $this->twig->render('_partials/review_card.html.twig', ['card' => $change]);
 
         self::assertStringContainsString('review-type-feature', $html);
         self::assertStringContainsString('review-breaking', $html);

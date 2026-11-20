@@ -1,0 +1,51 @@
+// "Backports", see templates/utility/backport.html.twig: the row of the change in main, below it its versions
+
+.backport {
+    // The versions belong to the row above them
+    > .overview-list-item {
+        padding-bottom: .5rem;
+    }
+}
+
+.backport-versions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+    padding: 0 1.25rem 1.25rem;
+
+    // As large as the pills of the row above
+    .status-pill {
+        font-size: .875rem;
+    }
+
+    // Each version leads to its backport
+    a.status-pill {
+        text-decoration: none;
+
+        &:hover,
+        &:focus-visible {
+            text-decoration: underline;
+        }
+    }
+}
+
+.backport-versions-label {
+    // On white, 4.5:1 at least
+    color: #4b5563;
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+// The action on the right, apart from the versions, quiet and as high as the pills: btn-sm of the template bundle
+// is larger than the text of the rows
+.backport-exclude {
+    --bs-btn-padding-y: .125rem;
+    --bs-btn-padding-x: .625rem;
+    --bs-btn-font-size: .875rem;
+
+    display: inline-flex;
+    gap: .375rem;
+    align-items: center;
+    margin-left: auto;
+}

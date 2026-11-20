@@ -28,9 +28,9 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 class BackportCommand extends Command
 {
     /**
-     * @var array<string, string>
+     * The versions of the footer "Releases:" and their branches in Gerrit, see also App\Elastic\Backports.
      */
-    private static array $versionBranchMap = [
+    public const array VERSION_BRANCHES = [
         'main' => 'main',
         '6.2' => 'TYPO3_6-2',
         '7.6' => 'TYPO3_7-6',
@@ -264,7 +264,7 @@ class BackportCommand extends Command
             }
             unset($relatedChange['mergeable']);
 
-            $branchForRelease = self::$versionBranchMap[$release] ?? null;
+            $branchForRelease = self::VERSION_BRANCHES[$release] ?? null;
             if ($branchForRelease === $relatedChange['branch']) {
                 return $relatedChange;
             }

@@ -116,7 +116,7 @@
                     </header>
                     <p>
                         The lists show open changes, the ones updated last first. Each list can be sorted and searched by subject, commit message, number, Change-Id, topic and owner.
-                        Work in progress only appears in its own list, in "Find by file" and in the search.
+                        Work in progress only appears in its own list and in the search. The filter "File" finds the changes that touch a file, by its path, or any file of a folder.
                         Votes count when a person gave them, not the CI bot.
                     </p>
                     <div class="link-tiles">
@@ -128,7 +128,6 @@
                         {{ help.tile('gerrit_negative_vote_cleanup', 'actions-minus-circle', 'Negative votes', 'At least one negative review or verification.') }}
                         {{ help.tile('gerrit_hasverifications', 'actions-check-badge', 'Reviewed and verified', 'A positive review and verification, whatever else they have.') }}
                         {{ help.tile('gerrit_coreteam_merge', 'actions-code-merge', 'Ready to merge', 'Reviewed and verified, no negative vote, no conflict.') }}
-                        {{ help.tile('gerrit_files', 'actions-file-search', 'Find by file', 'Changes touching a file, by its full path in the repository.') }}
                         {{ help.tile('search_changes', 'actions-search', 'Search', 'Words find open changes, also work in progress. The subject leads to a page with the commit message, the issues and the files of a change.') }}
                     </div>
                     <p id="change-sizes">
