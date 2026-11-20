@@ -193,10 +193,10 @@ class UserRepository
      */
     public function ensureGerrit(array $users): int
     {
-        $known = $this->known();
         $missing = [];
         foreach ($users as $user) {
-            if (null !== $user->gerritId && !isset($known['gerrit:' . $user->gerritId])) {
+            // known() reads all users of the index, so it runs only for a user of Gerrit
+            if (null !== $user->gerritId && !isset($this->known()['gerrit:' . $user->gerritId])) {
                 $missing[$user->gerritId] = $user;
             }
         }
