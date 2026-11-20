@@ -13,6 +13,7 @@ namespace App\Command;
 
 use App\Elastic\ImportWatermark;
 use App\Elastic\IndexSetup;
+use App\Elastic\ProjectChanges;
 use App\Elastic\ProjectIssues;
 use App\Service\CommandRunRecorder;
 use App\Service\ForgeIssueImporter;
@@ -71,6 +72,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         private readonly ProjectIssues $projectIssues,
         private readonly ForgeIssueImporter $issueImporter,
         private readonly GerritChangeImporter $changeImporter,
+        private readonly ProjectChanges $projectChanges,
     ) {
         parent::__construct();
     }
@@ -407,6 +409,9 @@ class ImportCommand extends Command implements LoggerAwareInterface
      * Gerrit lists the newest changes first. The delta writes the changes once all of them are loaded, so a run
      * that fails half way does not move the latest change in the index, and the next run tries again. The full
      * import writes them batch by batch, it handles far more changes than fit in memory.
+     *
+     * After a complete listing the full import checks the changes the index has but Gerrit did not list, see
+     * removeVanishedChanges().
      */
     private function importReviews(OutputInterface $output, ?\DateTimeImmutable $since, bool $force, int $startAt = 0): void
     {
@@ -417,6 +422,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         // Step 1: which changes are not up to date in the index, without their details
         $query = GerritChangeImporter::PROJECT . ($delta ? ' ' . ImportWatermark::gerritOperator($since) : '');
         $listed = 0;
+        $numbers = [];
         $changed = [];
         $more = true;
         for ($start = max(0, $startAt); $more && (!$delta || $start < self::DELTA_LIMIT_GERRIT); $start += self::GERRIT_LIST_PAGE_SIZE) {
@@ -424,6 +430,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
             $updated = [];
             foreach ($changes as $change) {
                 $updated[(string) $change['_number']] = $this->fixDateFormat($change['updated'], 'Gerrit');
+                $numbers[(int) $change['_number']] = true;
             }
             $listed += count($updated);
             array_push($changed, ...($force ? array_map('strval', array_keys($updated)) : ImportWatermark::changed($updated, $this->watermark->storedUpdates('review', array_keys($updated)))));
@@ -455,6 +462,45 @@ class ImportCommand extends Command implements LoggerAwareInterface
         }
 
         $this->changeImporter->writeAll($reviews);
+
+        if (!$delta && 0 === $startAt && !$more) {
+            $this->removeVanishedChanges($numbers, $progressBar);
+        }
+    }
+
+    /**
+     * Changes the index has but Gerrit did not list: private now, deleted, or only missed, as the order of the
+     * list shifts while the import runs. Gerrit is asked for them in batches: those it shows are imported again,
+     * the others are removed.
+     *
+     * @param array<int, true> $listed the numbers Gerrit listed
+     */
+    private function removeVanishedChanges(array $listed, ProgressBar $progressBar): void
+    {
+        $vanished = [];
+        foreach ($this->projectChanges->indexedNumbers() as $number) {
+            if (!isset($listed[$number])) {
+                $vanished[] = $number;
+            }
+        }
+        $this->output->writeln(sprintf('%d changes in the index that Gerrit did not list, checking them', count($vanished)));
+
+        $remove = [];
+        foreach (array_chunk($vanished, self::GERRIT_DETAIL_BATCH) as $position => $batch) {
+            $this->recorder->progress('Checking changes Gerrit did not list', $position * self::GERRIT_DETAIL_BATCH + count($batch), count($vanished));
+            $query = GerritChangeImporter::PROJECT . ' (' . implode(' OR ', array_map(static fn (int $number): string => 'change:' . $number, $batch)) . ')';
+            $shown = [];
+            foreach ($this->changeImporter->find($query, count($batch), 0, []) as $change) {
+                $shown[] = (int) $change['_number'];
+            }
+            if ([] !== $shown) {
+                $this->changeImporter->writeAll($this->reviewBlock(implode(' OR ', array_map(static fn (int $number): string => 'change:' . $number, $shown)), count($shown), $progressBar));
+            }
+            array_push($remove, ...array_diff($batch, $shown));
+            $this->refreshLock();
+        }
+        $removed = $this->projectChanges->remove(array_values($remove));
+        $this->output->writeln(sprintf('Removed %d changes that Gerrit does not show any more', $removed));
     }
 
     /**

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Service;
 
+use App\Elastic\ProjectChanges;
 use App\Service\ChangeRefreshResult;
 use App\Service\CommandRunRecorder;
 use App\Service\GerritChangeImporter;
@@ -67,6 +68,31 @@ final class GerritChangeImporterTest extends TestCase
     public function testGerritDatesInTheFormatOfTheIndex(): void
     {
         self::assertSame('2026/11/19 17:42:30', GerritChangeImporter::gerritDate('2026-11-19 17:42:30.000000000'));
+    }
+
+    public function testARefreshedChangeGerritDoesNotShowAnyMoreIsRemoved(): void
+    {
+        $projectChanges = $this->createMock(ProjectChanges::class);
+        $projectChanges->expects(self::once())->method('remove')->with([95026])->willReturn(1);
+
+        self::assertSame(ChangeRefreshResult::REMOVED, $this->importer([new Response(200, [], ")]}'\n[]")], $projectChanges)->refresh(95026));
+    }
+
+    public function testARefreshedChangeNeitherGerritNorTheIndexHasIsNotFound(): void
+    {
+        $projectChanges = $this->createStub(ProjectChanges::class);
+        $projectChanges->method('remove')->willReturn(0);
+
+        self::assertSame(ChangeRefreshResult::NOT_FOUND, $this->importer([new Response(200, [], ")]}'\n[]")], $projectChanges)->refresh(95026));
+    }
+
+    public function testARefreshThatFailsRemovesNothing(): void
+    {
+        $projectChanges = $this->createMock(ProjectChanges::class);
+        $projectChanges->expects(self::never())->method('remove');
+
+        $this->expectException(\RuntimeException::class);
+        $this->importer([new Response(404)], $projectChanges)->refresh(95026);
     }
 
     public function testRefreshAsksForTheChangeInTheProjectOnly(): void
@@ -155,7 +181,7 @@ final class GerritChangeImporterTest extends TestCase
     /**
      * @param list<Response> $responses
      */
-    private function importer(array $responses): GerritChangeImporter
+    private function importer(array $responses, ?ProjectChanges $projectChanges = null): GerritChangeImporter
     {
         $stack = HandlerStack::create(new MockHandler($responses));
         $stack->push(Middleware::history($this->requests));
@@ -163,6 +189,7 @@ final class GerritChangeImporterTest extends TestCase
         return new GerritChangeImporter(
             new Client(['handler' => $stack, 'base_uri' => 'https://review.typo3.org']),
             new CommandRunRecorder($this->createStub(Connection::class), new NullLogger()),
+            $projectChanges ?? $this->createStub(ProjectChanges::class),
         );
     }
 }

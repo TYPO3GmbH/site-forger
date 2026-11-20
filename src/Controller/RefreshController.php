@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Service\ChangeRefreshResult;
 use App\Service\ForgeIssueImporter;
 use App\Service\GerritChangeImporter;
 use Psr\Log\LoggerInterface;
@@ -59,6 +60,10 @@ class RefreshController extends AbstractController
             try {
                 $result = $this->changeImporter->refresh($number);
                 $this->addFlash($result->flashType(), $result->message($number));
+                // Its page is gone with it
+                if (ChangeRefreshResult::REMOVED === $result) {
+                    return $this->redirectToRoute('search_changes');
+                }
             } catch (\RuntimeException $e) {
                 $this->failed(sprintf('Change %d', $number), 'Gerrit', $e);
             }

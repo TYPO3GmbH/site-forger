@@ -13,6 +13,7 @@ namespace App\Service;
 
 use App\Elastic\CommitMessage;
 use App\Elastic\ElasticUtility;
+use App\Elastic\ProjectChanges;
 use App\Elastic\ReviewSubject;
 use App\Enum\ReviewVoteEnum;
 use Elastica\Document;
@@ -53,6 +54,7 @@ final class GerritChangeImporter
     public function __construct(
         private readonly ClientInterface $client,
         private readonly CommandRunRecorder $recorder,
+        private readonly ProjectChanges $projectChanges,
     ) {
     }
 
@@ -68,14 +70,18 @@ final class GerritChangeImporter
     }
 
     /**
-     * Loads a change of the project from Gerrit again and writes it to the index, as the import does.
-     * A change Gerrit does not find (any more) stays in the index as it is.
+     * Loads a change of the project from Gerrit again and writes it to the index, as the import does. A change
+     * Gerrit does not show (any more), private now, deleted or in another project, is removed from the index.
      *
      * @throws \RuntimeException Gerrit could not be asked, the index keeps the change as it is
      */
     public function refresh(int $number): ChangeRefreshResult
     {
-        $documents = $this->documents($this->find(self::PROJECT . ' change:' . $number, 1));
+        $changes = $this->find(self::PROJECT . ' change:' . $number, 1);
+        if ([] === $changes) {
+            return $this->projectChanges->remove([$number]) > 0 ? ChangeRefreshResult::REMOVED : ChangeRefreshResult::NOT_FOUND;
+        }
+        $documents = $this->documents($changes);
         if (!isset($documents[$number])) {
             return ChangeRefreshResult::NOT_FOUND;
         }

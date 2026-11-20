@@ -18,7 +18,12 @@ enum ChangeRefreshResult
 {
     case UPDATED;
     /**
-     * Gerrit does not find the change in the project. Gerrit hardly deletes changes, so the index keeps it.
+     * Gerrit does not show the change (any more): private now, deleted or in another project. Removed from the
+     * index.
+     */
+    case REMOVED;
+    /**
+     * Gerrit does not show the change, and the index does not have it either.
      */
     case NOT_FOUND;
 
@@ -26,7 +31,8 @@ enum ChangeRefreshResult
     {
         return match ($this) {
             self::UPDATED => sprintf('Change %d is up to date with Gerrit.', $number),
-            self::NOT_FOUND => sprintf('Gerrit has no change %d in TYPO3 CMS. Forger shows it as before.', $number),
+            self::REMOVED => sprintf('Gerrit does not show change %d in TYPO3 CMS any more. Forger removed it.', $number),
+            self::NOT_FOUND => sprintf('Gerrit has no change %d in TYPO3 CMS.', $number),
         };
     }
 
@@ -37,7 +43,7 @@ enum ChangeRefreshResult
     {
         return match ($this) {
             self::UPDATED => 'success',
-            self::NOT_FOUND => 'warning',
+            self::REMOVED, self::NOT_FOUND => 'warning',
         };
     }
 }

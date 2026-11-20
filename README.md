@@ -95,6 +95,10 @@ Forge lists the issues of subprojects with those of a project. The import keeps 
 Forge import removes issues of other projects from the index, e.g. after an issue was moved; after a complete
 `forgeFull` the issues Forge did not list any more are checked one by one and removed if they are gone.
 
+Forger shows only what Gerrit shows to everyone, the Gerrit imports ask without an account. A refresh of a change
+Gerrit does not show any more (private now, deleted) removes it, and so does a complete `reviewFull` for the changes
+Gerrit did not list (`App\Elastic\ProjectChanges`): it asks Gerrit for them again first.
+
 ### How the deltas work
 
 The deltas only read what changed, and only load details for what they do not have yet:
