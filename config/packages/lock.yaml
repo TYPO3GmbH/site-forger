@@ -1,2 +1,5 @@
+# The locks of the app: the lock of the schedule, the locks of the imports (App\Scheduler\JobLocks). In var/lock of
+# the installation: var is kept by the deployments, so a lock holds across releases, and installations on the same
+# server (stage and live) do not lock each other, as they would with the temporary directory of the server.
 framework:
-    lock: '%env(LOCK_DSN)%'
+    lock: 'flock://%kernel.project_dir%/var/lock'

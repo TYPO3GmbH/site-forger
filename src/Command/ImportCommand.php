@@ -32,6 +32,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\Lock\LockFactory;
 
 #[AsCommand(name: 'app:import', description: 'Imports data from Redmine (forge.typo3.org) and Gerrit (review.typo3.org)')]
 class ImportCommand extends Command implements LoggerAwareInterface
@@ -92,8 +93,12 @@ class ImportCommand extends Command implements LoggerAwareInterface
         private readonly ForgeIssueImporter $issueImporter,
         private readonly GerritChangeImporter $changeImporter,
         private readonly ProjectChanges $projectChanges,
+        LockFactory $lockFactory,
     ) {
         parent::__construct();
+        // The locks of the app (config/packages/lock.yaml), not the semaphores of the server LockableTrait takes
+        // otherwise: those are the same for every installation on the server, stage would block live
+        $this->lockFactory = $lockFactory;
     }
 
     protected function configure(): void
