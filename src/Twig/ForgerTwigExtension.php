@@ -11,8 +11,6 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
-use App\DTO\TrackerFilters;
-use App\Enum\TrackerEnum;
 use App\Renderer\RedmineTextileRenderer;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -122,33 +120,6 @@ class ForgerTwigExtension
         return rtrim($cut, " \t\n.,;:-") . '…';
     }
 
-    #[AsTwigFunction(name: 'trackerCheckbox', isSafe: ['html'])]
-    public function trackerCheckbox(string $trackerType, string $label): string
-    {
-        $tracker = null;
-        foreach (TrackerEnum::filterable() as $filterable) {
-            if ($filterable->severity() === $trackerType) {
-                $tracker = $filterable;
-            }
-        }
-        if (null === $tracker) {
-            throw new \InvalidArgumentException(sprintf('The tracker "%s" cannot be filtered.', $trackerType));
-        }
-        $checked = '';
-        $trackerFilters = new TrackerFilters($this->requestStack->getMainRequest());
-        if ($trackerFilters->isExcluded($tracker)) {
-            $checked = ' checked="checked"';
-        }
-
-        $content = [];
-        $content[] = '<div class="form-check">';
-        $content[] = '<input class="form-check-input" id="checkbox-' . $trackerType . '" type="checkbox" name="trackerFilters[' . $trackerType . ']"' . $checked . ' value="true" />';
-        $content[] = '<label class="form-check-label" for="checkbox-' . $trackerType . '">' . $label . '</label>';
-        $content[] = '</div>';
-
-        return implode('', $content);
-    }
-
     /**
      * A value as the search expects it in "filters[<name>][<value>]", like the filter checkboxes write it.
      */
@@ -166,93 +137,5 @@ class ForgerTwigExtension
         }
 
         return $in;
-    }
-
-    #[AsTwigFunction(name: 'forgeLink')]
-    public function forgeLink(int|string $year, int|string $month, string $status = 'o'): string
-    {
-        $redmineUrl = 'https://forge.typo3.org/projects/typo3cms-core/issues?set_filter=1';
-        // @todo figure out how to work with the server-team forger here
-        // $projectId = Config::get('app.redmine.projectId');
-        // if ($projectId === '1862') {
-        //     $redmineUrl = 'https://forge.typo3.org/projects/team-server-public/issues?set_filter=1';
-        // }
-        $filtersString = $this->getFiltersString($year, $month, $status);
-
-        return $redmineUrl . $filtersString . '&f[]=' . $this->getColumnsString() . '&group_by=';
-    }
-
-    protected function getLastDayOfMonth(int|string $year, int|string $month): string
-    {
-        $dateString = $year . '-' . $month . '-16';
-
-        return date('Y-m-t', strtotime($dateString));
-    }
-
-    protected function getColumnsString(): string
-    {
-        $string = '';
-        $columns = [
-            'tracker',
-            'status',
-            'priority',
-            'subject',
-            'assigned_to',
-            'category',
-            'fixed_version',
-        ];
-        foreach ($columns as $columnName) {
-            $string .= '&c[]=' . $columnName;
-        }
-
-        return $string;
-    }
-
-    protected function getFiltersString(int|string $year, int|string $month, string $statusId, ?TrackerFilters $trackerFilters = null): string
-    {
-        if (!$trackerFilters) {
-            $trackerFilters = new TrackerFilters($this->requestStack->getMainRequest());
-        }
-        $end = $this->getLastDayOfMonth($year, $month);
-        $string = '';
-        $filters = [
-            'status_id' => [
-                'type' => '=',
-                'values' => [
-                    $statusId,
-                ],
-            ],
-            'tracker_id' => [
-                'type' => '=',
-                'values' => [],
-            ],
-            'updated_on' => [
-                'type' => '><',
-                'values' => [
-                    $year . '-' . $month . '-01',
-                    $end,
-                ],
-            ],
-        ];
-
-        /*
-         * Tracker Filters
-         */
-        foreach ($trackerFilters->included() as $tracker) {
-            $filters['tracker_id']['values'][] = $tracker->value;
-        }
-        if ('o' === $statusId) {
-            $filters['status_id']['type'] = 'o';
-            $filters['status_id']['values'] = [];
-        }
-        foreach ($filters as $fieldName => $config) {
-            $string .= '&f[]=' . $fieldName;
-            $string .= '&op[' . $fieldName . ']=' . $config['type'];
-            foreach ($config['values'] as $value) {
-                $string .= '&v[' . $fieldName . '][]=' . $value;
-            }
-        }
-
-        return $string;
     }
 }

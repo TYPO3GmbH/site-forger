@@ -1,76 +1,71 @@
 {% extends 'base.html.twig' %}
 {% block title %}Issues by month{% endblock %}
-{% block headline %}Issues by month{% endblock %}
+{#
+ # The open issues by the month they were created, see App\Elastic\MonthOverview: a row per year, the newest first,
+ # a cell per month, the darker the more issues. So it shows how old the open issues are. A cell names its states on
+ # hover and leads to its issues in the search, with the month as the range of "Created"; the year and its total do so for the whole year. Above the table the trackers, a click
+ # leaves one out or takes it in again.
+ # No orange band: the title stands on the gray of the page, below the breadcrumb.
+ # Expects: rows, maximum, total, trackers (tracker, included, toggle: the parameters of the page after a click),
+ #          trackerFilter (the filter "Tracker" of the search for the trackers taken in, empty for all)
+ #}
 {% block body %}
-
-    <div class="content-section content-section-smallest bg-dark text-white">
-        <div class="container">
-
-            <form action="{{ path(routeName) }}" method="get" class="form">
-                <div class="row justify-content-md-center align-items-center">
-                    <div class="col">
-                        {{ trackerCheckbox('epic', 'Exclude Epics') }}
-                    </div>
-                    <div class="col">
-                        {{ trackerCheckbox('story', 'Exclude Stories') }}
-                    </div>
-                    <div class="col">
-                        {{ trackerCheckbox('feature', 'Exclude Features') }}
-                    </div>
-                    <div class="col">
-                        {{ trackerCheckbox('task', 'Exclude Tasks') }}
-                    </div>
-                    <div class="col">
-                        {{ trackerCheckbox('bug', 'Exclude Bugs') }}
-                    </div>
-                    <div class="col">
-                        <button type="submit" class="btn btn-primary">Filter</button>
-                    </div>
-                </div>
-            </form>
-
-        </div>
-    </div>
+    {% set monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] %}
     <div class="content-section content-section-small">
-        <div class="container-fluid">
-            {% for year in aggs %}
-                <div class="yearview">
-                    <h4 class="yearview-headline">{{year.year}} ({{year.total}})</h4>
-                    <div class="yearview-year">
-                        {% for month in year.months %}
-                            <div class="yearview-month">
-                                {% if month.stati is defined %}
-                                    <div class="listbox listbox-small">
-                                        <div class="listbox-header">
-                                            <span class="listbox-header-title">
-                                                <a href="{{ forgeLink(year.year, month.month) }}">{{month.month}}</a>
-                                            </span>
-                                            <span class="listbox-header-count">{{ month.total }}</span>
-                                        </div>
-                                        <div class="listbox-entries">
-                                            {% for status in month.stati %}
-                                                {# Label, Forge id and severity come from IssueStatusEnum, states Forge does not know are left out #}
-                                                {% set state = issue_status(status.name) %}
-                                                {% if state %}
-                                                    <div class="listbox-item">
-                                                        <div class="listbox-item-name">
-                                                            <a href="{{ forgeLink(year.year, month.month, state.value) }}">{{ state.label }}</a>
-                                                        </div>
-                                                        <div class="listbox-item-badge">
-                                                            <span class="status-pill status-pill-{{ state.severity }}">{{ status.total }}</span>
-                                                        </div>
-                                                    </div>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
+        <div class="container">
+            <header class="page-intro">
+                <h1 class="page-intro-title">Issues by month</h1>
+                <p class="page-intro-summary"><strong>{{ total }}</strong> open issues by the month they were created: how old the open issues are.</p>
+            </header>
+
+            <nav class="chips month-trackers" aria-label="Trackers">
+                {% for item in trackers %}
+                    {% set plural = item.tracker.label == 'Story' ? 'Stories' : item.tracker.label ~ 's' %}
+                    <a href="{{ path('management_index', item.toggle) }}" class="chip{{ item.included ? ' is-active' }}" aria-pressed="{{ item.included ? 'true' : 'false' }}" title="{{ item.included ? 'Leave out' : 'Take in' }} the {{ plural|lower }}">{{ plural }}</a>
+                {% endfor %}
+            </nav>
+
+            {% if rows is empty %}
+                {% include '_partials/alert.html.twig' with {'message': 'No open issue of these trackers.', 'style': 'info'} only %}
+            {% else %}
+                <div class="count-table-frame">
+                    <table class="count-table month-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Year</th>
+                                {% for name in monthNames %}
+                                    <th scope="col" class="is-count">{{ name }}</th>
+                                {% endfor %}
+                                <th scope="col" class="is-count is-total">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rows %}
+                                {% set yearUrl = path('search_search', {'filters': {'created': {'range': row.filter}}|merge(trackerFilter is empty ? {} : {'tracker': trackerFilter})}) %}
+                                <tr>
+                                    <th scope="row"><a href="{{ yearUrl }}" title="Show the open issues created in {{ row.year }}">{{ row.year }}</a></th>
+                                    {% for month in row.months %}
+                                        {% set shade = shade(month.total, maximum) %}
+                                        <td class="is-count month-shade-{{ shade }}">
+                                            {%- if month.total > 0 -%}
+                                                <a href="{{ path('search_search', {'filters': {'created': {'range': month.filter}}|merge(trackerFilter is empty ? {} : {'tracker': trackerFilter})}) }}" title="{{ monthNames[loop.index0] }} {{ row.year }}: {% for status, count in month.statuses %}{{ status }} {{ count }}{{ not loop.last ? ', ' }}{% endfor %}">{{ month.total }}</a>
+                                            {%- else -%}
+                                                <span class="count-table-none" aria-label="none">–</span>
+                                            {%- endif -%}
+                                        </td>
+                                    {% endfor %}
+                                    <td class="is-count is-total"><a href="{{ yearUrl }}" title="Show the open issues created in {{ row.year }}">{{ row.total }}</a></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-            {% endfor %}
+                <p class="month-legend" aria-hidden="true">
+                    Fewer
+                    {% for step in 1..constant('App\\Elastic\\MonthOverview::SHADES') %}<span class="month-legend-step month-shade-{{ step }}"></span>{% endfor %}
+                    More
+                </p>
+            {% endif %}
         </div>
     </div>
-
 {% endblock %}

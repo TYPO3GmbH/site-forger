@@ -11,10 +11,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Templates;
 
+use App\Elastic\CategoryOverview;
+use App\Elastic\MonthOverview;
 use App\Elastic\StaleIssues;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
+use App\Enum\TrackerEnum;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Twig\Environment;
 
@@ -243,6 +246,31 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringNotContainsString('#81234', $change);
     }
 
+    public function testTheCategoriesAreATableWhoseRowsAddUp(): void
+    {
+        $rows = CategoryOverview::rows([['key' => 'Form Framework', 'doc_count' => 4, 'tracker' => ['buckets' => [['key' => 'Bug', 'doc_count' => 2], ['key' => 'Support', 'doc_count' => 1], ['key' => 'Topic', 'doc_count' => 1]]]]]);
+        $without = CategoryOverview::withoutCategory(['doc_count' => 1, 'tracker' => ['buckets' => [['key' => 'Bug', 'doc_count' => 1]]]]);
+        $template = $this->twig->load('management/bycategory.html.twig');
+        $html = $template->renderBlock('body', [
+            'rows' => $rows, 'withoutCategory' => $without, 'sums' => CategoryOverview::sums([...$rows, $without]), 'trackers' => CategoryOverview::TRACKERS,
+        ]);
+
+        // No orange band, the title below the breadcrumb
+        self::assertFalse($template->hasBlock('headline'));
+        self::assertStringContainsString('<h1 class="page-intro-title">Issues by category</h1>', $html);
+        // Every open issue, those without category, too
+        self::assertStringContainsString('<strong>5</strong> open issues in <strong>1</strong> categories, the most open first.', $html);
+        // The issues without category lead nowhere: the search has no filter for them
+        self::assertMatchesRegularExpression('~<tr class="is-without">\\s*<th scope="row">Without category</th>\\s*<td class="is-count">1</td>~', $html);
+        self::assertStringContainsString('<span class="tracker-dot is-story" aria-hidden="true"></span>Stories</th>', $html);
+        self::assertStringContainsString('<a href="/search?filters%5Bcategory%5D%5BForm_Framework%5D=true&amp;filters%5Btracker%5D%5BBug%5D=true" title="Show the open Bug issues of Form Framework">2</a>', $html);
+        // None as a dash, not as a link
+        self::assertSame(9, substr_count($html, '<span class="count-table-none" aria-label="none">–</span>'));
+        // The rare trackers together, the link finds the issues of each
+        self::assertStringContainsString('filters%5Btracker%5D%5BSupport%5D=true&amp;filters%5Btracker%5D%5BTopic%5D=true" title="Show the open Support, Topic issues of Form Framework">2</a>', $html);
+        self::assertMatchesRegularExpression('~<th scope="row">All open issues</th>\\s*<td class="is-count">3</td>(\\s*<td class="is-count">0</td>){4}\\s*<td class="is-count">2</td>\\s*<td class="is-count is-total">5</td>~', $html);
+    }
+
     public function testStaleIssuesNameTheirChangesAPageAtATime(): void
     {
         $template = $this->twig->load('review/stale_issues.html.twig');
@@ -275,6 +303,36 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         $html = $template->renderBlock('body', ['stages' => StaleIssues::STAGES, 'totalResults' => 0, 'issues' => []]);
         self::assertStringContainsString('Every open issue had activity within the last 60 days.', $html);
         self::assertStringNotContainsString('row-list', $html);
+    }
+
+    public function testTheMonthsAsAHeatmapAndTheTrackersAsChips(): void
+    {
+        $rows = MonthOverview::rows([['key_as_string' => '2025/01/01 00:00:00', 'doc_count' => 3, 'month' => ['buckets' => [
+            ['key_as_string' => '2025/03/01 00:00:00', 'doc_count' => 3, 'status' => ['buckets' => [['key' => 'New', 'doc_count' => 2], ['key' => 'Under Review', 'doc_count' => 1]]]],
+        ]]]]);
+        $template = $this->twig->load('management/index.html.twig');
+        $html = $template->renderBlock('body', [
+            'rows' => $rows, 'maximum' => 3, 'total' => 3, 'trackerFilter' => [],
+            'trackers' => [
+                ['tracker' => TrackerEnum::BUG, 'included' => true, 'toggle' => ['trackerFilters' => ['bug' => 'true']]],
+                ['tracker' => TrackerEnum::STORY, 'included' => false, 'toggle' => ['trackerFilters' => []]],
+            ],
+        ]);
+
+        self::assertFalse($template->hasBlock('headline'));
+        self::assertStringContainsString('<h1 class="page-intro-title">Issues by month</h1>', $html);
+        // A click leaves a tracker out or takes it in again
+        self::assertStringContainsString('<a href="/management?trackerFilters%5Bbug%5D=true" class="chip is-active" aria-pressed="true" title="Leave out the bugs">Bugs</a>', $html);
+        self::assertStringContainsString('<a href="/management" class="chip" aria-pressed="false" title="Take in the stories">Stories</a>', $html);
+        // The darkest cell, its states on hover
+        self::assertStringContainsString('<td class="is-count month-shade-5"><a href="/search?filters%5Bcreated%5D%5Brange%5D=2025-03-01%20to%202025-03-31" title="Mar 2025: New 2, Under Review 1">3</a></td>', $html);
+        // The year and its total lead to the issues of the whole year
+        self::assertStringContainsString('<th scope="row"><a href="/search?filters%5Bcreated%5D%5Brange%5D=2025-01-01%20to%202025-12-31" title="Show the open issues created in 2025">2025</a></th>', $html);
+        self::assertStringContainsString('<td class="is-count is-total"><a href="/search?filters%5Bcreated%5D%5Brange%5D=2025-01-01%20to%202025-12-31" title="Show the open issues created in 2025">3</a></td>', $html);
+        // With trackers left out the search finds those taken in
+        $html = $template->renderBlock('body', ['trackerFilter' => ['Task' => 'true', 'Support' => 'true']] + compact('rows') + ['maximum' => 3, 'total' => 3, 'trackers' => []]);
+        self::assertStringContainsString('href="/search?filters%5Bcreated%5D%5Brange%5D=2025-03-01%20to%202025-03-31&amp;filters%5Btracker%5D%5BTask%5D=true&amp;filters%5Btracker%5D%5BSupport%5D=true"', $html);
+        self::assertSame(11, substr_count($html, '<td class="is-count month-shade-0"><span class="count-table-none" aria-label="none">–</span></td>'));
     }
 
     public function testTheFilterCreatedIsARangeAtTheEnd(): void

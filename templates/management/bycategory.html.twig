@@ -1,46 +1,85 @@
 {% extends 'base.html.twig' %}
 {% block title %}Issues by category{% endblock %}
-{% block headline %}Issues by category{% endblock %}
+{# No orange band: the title stands on the gray of the page, below the breadcrumb #}
+{#
+ # The open issues per category and tracker, the categories with the most open issues first. The trackers of the TYPO3
+ # Core team each in a column, the others together in "Other", so every row adds up to its total. Every count leads to
+ # its issues in the search. The sums of the columns in the last row.
+ # Below the categories the open issues without one, without links: the search has no filter for them.
+ # Expects: rows, withoutCategory (or null) and sums (see App\Elastic\CategoryOverview), trackers
+ #}
+{% macro count(count, url, title) %}
+    {%- if count > 0 and url is null -%}
+        {{ count }}
+    {%- elseif count > 0 -%}
+        <a href="{{ url }}" title="{{ title }}">{{ count }}</a>
+    {%- else -%}
+        <span class="count-table-none" aria-label="none">–</span>
+    {%- endif -%}
+{% endmacro %}
+
 {% block body %}
-
-<div class="content-section bg-transparent">
-    <div class="container">
-
-        <div class="card">
-            <div class="datatable">
-                <table class="datatable-table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Category</th>
-                            <th scope="col">Bugs</th>
-                            <th scope="col">Features</th>
-                            <th scope="col">Tasks</th>
-                            <th scope="col">Stories</th>
-                            <th scope="col">Epics</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for category, trackers in data %}
-                            {% set categoryFilter = {(category|filterKey): 'true'} %}
+    <div class="content-section content-section-small">
+        <div class="container">
+            <header class="page-intro">
+                <h1 class="page-intro-title">Issues by category</h1>
+                <p class="page-intro-summary"><strong>{{ sums.total }}</strong> open issues in <strong>{{ rows|length }}</strong> categories, the most open first.</p>
+            </header>
+            {% if rows is empty %}
+                {% include '_partials/alert.html.twig' with {'message': 'No open issue has a category.', 'style': 'info'} only %}
+            {% else %}
+                <div class="count-table-frame">
+                    <table class="count-table">
+                        <thead>
                             <tr>
-                                <th data-type="title">
-                                    <a href="{{ path('search_search', {'filters': {'category': categoryFilter}}) }}" title="Show the open issues of {{ category }}">{{ category }}</a>
-                                </th>
-                                {% for tracker, amount in trackers %}
-                                    <td>
-                                        {% if amount > 0 %}
-                                            <a href="{{ path('search_search', {'filters': {'category': categoryFilter, 'tracker': {(tracker|filterKey): 'true'}}}) }}" title="Show the open {{ tracker }} issues of {{ category }}">{{ amount }}</a>
-                                        {% endif %}
-                                    </td>
+                                <th scope="col">Category</th>
+                                {% for tracker in trackers %}
+                                    <th scope="col" class="is-count"><span class="tracker-dot is-{{ tracker.severity }}" aria-hidden="true"></span>{{ tracker.label == 'Story' ? 'Stories' : tracker.label ~ 's' }}</th>
                                 {% endfor %}
+                                <th scope="col" class="is-count" title="Support, Suggestion, Topic and the other trackers"><span class="tracker-dot is-other" aria-hidden="true"></span>Other</th>
+                                <th scope="col" class="is-count is-total">Total</th>
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            {% for row in rows %}
+                                {% set categoryFilter = {(row.name|filterKey): 'true'} %}
+                                <tr>
+                                    <th scope="row"><a href="{{ path('search_search', {'filters': {'category': categoryFilter}}) }}" title="Show the open issues of {{ row.name }}">{{ row.name }}</a></th>
+                                    {% for label, count in row.counts %}
+                                        <td class="is-count">{{ _self.count(count, path('search_search', {'filters': {'category': categoryFilter, 'tracker': {(label|filterKey): 'true'}}}), 'Show the open ' ~ label ~ ' issues of ' ~ row.name) }}</td>
+                                    {% endfor %}
+                                    {% set otherFilter = {} %}
+                                    {% for label in row.other.labels %}
+                                        {% set otherFilter = otherFilter|merge({(label|filterKey): 'true'}) %}
+                                    {% endfor %}
+                                    <td class="is-count">{{ _self.count(row.other.count, path('search_search', {'filters': {'category': categoryFilter, 'tracker': otherFilter}}), 'Show the open ' ~ row.other.labels|join(', ') ~ ' issues of ' ~ row.name) }}</td>
+                                    <td class="is-count is-total">{{ _self.count(row.total, path('search_search', {'filters': {'category': categoryFilter}}), 'Show the open issues of ' ~ row.name) }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% if withoutCategory is not null %}
+                                <tr class="is-without">
+                                    <th scope="row">{{ withoutCategory.name }}</th>
+                                    {% for count in withoutCategory.counts %}
+                                        <td class="is-count">{{ _self.count(count, null, null) }}</td>
+                                    {% endfor %}
+                                    <td class="is-count">{{ _self.count(withoutCategory.other.count, null, null) }}</td>
+                                    <td class="is-count is-total">{{ _self.count(withoutCategory.total, null, null) }}</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th scope="row">All open issues</th>
+                                {% for count in sums.counts %}
+                                    <td class="is-count">{{ count }}</td>
+                                {% endfor %}
+                                <td class="is-count">{{ sums.other }}</td>
+                                <td class="is-count is-total">{{ sums.total }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            {% endif %}
         </div>
-
     </div>
-</div>
-
 {% endblock %}
