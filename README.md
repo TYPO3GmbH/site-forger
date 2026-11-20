@@ -153,6 +153,12 @@ Every import holds a lock, so two runs of the same kind do not write at the same
 modes) and `gerrit` (both Gerrit modes, `reviewFull` blocks `reviewDelta` for its run). A run that finds the lock
 taken ends right away as "Skipped, locked". The lock goes with the process holding it.
 
+The locks lie in `var/lock` of the installation (`config/packages/lock.yaml`), the lock of the schedule too:
+`var` is kept by the deployments, so a lock holds across releases, and stage and live on the same server do not
+lock each other, as they would with the temporary directory or the semaphores of the server. A job the worker
+starts gets none of its open files (`App\Scheduler\StartJobHandler`): it would keep the lock of the schedule
+otherwise, and the next worker would process no schedule until the job ends.
+
 The schedule knows the lock of each job (`App\Scheduler\JobSchedule::JOBS`) and does not start a job whose lock
 another one holds: a delta during its full import waits in the queue and starts once the lock is free, the command
 runs page shows "waits for" the job holding it, and the waiting job is not overdue meanwhile.

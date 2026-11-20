@@ -80,13 +80,23 @@ final readonly class StartJobHandler
     }
 
     /**
+     * Closes the files the shell got from the worker, all but stdin, stdout and stderr: the job would keep them open
+     * otherwise, the lock of the schedule too (a flock lasts as long as a process has its file open). A worker that
+     * ends, after an hour or after a deployment, would leave its lock to the jobs it started, and the next worker
+     * would process no schedule until they end, for hours with a reviewFull. bash: dash closes file descriptors 0 to
+     * 9 only. Without /proc (not Linux) nothing is closed.
+     */
+    private const string CLOSE_INHERITED_FILES = 'for fd in /proc/$$/fd/*; do n=${fd##*/}; if [ "$n" -gt 2 ] 2>/dev/null; then eval "exec $n>&-"; fi; done 2>/dev/null; ';
+
+    /**
      * The command line that starts the job in the background: the shell gets the log file as $0 and the
-     * command as "$@", nothing of it goes through the shell unquoted.
+     * command as "$@", nothing of it goes through the shell unquoted. The job gets none of the files of the worker,
+     * see CLOSE_INHERITED_FILES.
      *
      * @return list<string>
      */
     public static function commandLine(string $php, StartJob $job, string $logFile): array
     {
-        return ['sh', '-c', 'nohup "$@" > "$0" 2>&1 < /dev/null &', $logFile, $php, 'bin/console', ...$job->command, ...($job->forced ? ['--force'] : [])];
+        return ['bash', '-c', self::CLOSE_INHERITED_FILES . 'nohup "$@" > "$0" 2>&1 < /dev/null &', $logFile, $php, 'bin/console', ...$job->command, ...($job->forced ? ['--force'] : [])];
     }
 }

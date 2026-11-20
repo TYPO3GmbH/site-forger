@@ -91,11 +91,6 @@ services:
     class: Symfony\Component\Cache\Adapter\FilesystemAdapter
     arguments: ['jobs', 0, '%kernel.project_dir%/var/scheduler']
 
-  # The locks as the console takes them, not the lock of the app, see App\Scheduler\JobLocks
-  App\Scheduler\JobLocks:
-    arguments:
-      $factory: null
-
   App\Service\GerritChangeImporter:
     arguments:
       $client: '@guzzle.client.gerrit'
