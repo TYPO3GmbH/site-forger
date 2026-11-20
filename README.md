@@ -302,7 +302,7 @@ tables and columns, do not rename or drop them in the same deployment.
 #### Locally
 
 ddev runs no worker: locally the schedule starts nothing until you start it. The jobs then read
-the real Forge and Gerrit into the local indices, `app:mock-data` brings back the mock documents afterwards.
+the real Forge and Gerrit into the local indices.
 
 ```sh
 # The jobs with their next run

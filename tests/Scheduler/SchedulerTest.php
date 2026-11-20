@@ -374,7 +374,7 @@ final class SchedulerTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->control($this->createStub(JobPauseRepository::class), $this->createStub(QueuedJobRepository::class), $this->createStub(CommandRunRepository::class))->pause('app:mock-data', 'dev-admin', 'test', new \DateTimeImmutable());
+        $this->control($this->createStub(JobPauseRepository::class), $this->createStub(QueuedJobRepository::class), $this->createStub(CommandRunRepository::class))->pause('app:truncate-type', 'dev-admin', 'test', new \DateTimeImmutable());
     }
 
     public function testAPauseOfAllJobsCountsForEveryJob(): void

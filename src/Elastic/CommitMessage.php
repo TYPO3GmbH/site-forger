@@ -13,8 +13,8 @@ namespace App\Elastic;
 
 /**
  * Reads the commit message of a Gerrit change: its text, and what its trailers say, the Forge issues and the
- * releases. The import and the mock data take the fields of the review index from here, see fields(), the change
- * page shows the trailers apart from the text, see parts().
+ * releases. The import takes the fields of the review index from here, see fields(), the change page shows the
+ * trailers apart from the text, see parts().
  *
  * TYPO3 Core commits end with trailers such as "Resolves: #12345", "Related: #12346", "Releases: main, 13.4"
  * and "Change-Id: I...", one value or several separated by commas, and a key may come several times. Only the
