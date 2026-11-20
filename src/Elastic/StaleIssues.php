@@ -14,6 +14,7 @@ namespace App\Elastic;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewStateEnum;
+use Elastica\Result;
 
 /**
  * The open Forge issues nobody works on: those in the stage "Stale" or "Orphaned" of ActivityEnum, by default the
@@ -23,7 +24,7 @@ use App\Enum\ReviewStateEnum;
  * the issue links it in its journals (see GerritLinks) or when its commit message resolves or names the issue. A
  * change the journals link but Forger has not imported has no state.
  */
-final class StaleIssues
+final readonly class StaleIssues
 {
     /**
      * The stages of the issues in the list.
@@ -39,6 +40,29 @@ final class StaleIssues
      * A page of the issues has not more changes than this.
      */
     private const int MAXIMUM_CHANGES = 1000;
+
+    public function __construct(
+        private Indices $indices,
+    ) {
+    }
+
+    /**
+     * A page of the issues, each with its changes, see withChanges().
+     *
+     * @return array{issues: list<array<string, mixed>>, total: int}
+     */
+    public function page(int $page, int $perPage, IssueSortEnum $sort): array
+    {
+        $resultSet = $this->indices->issues()->createSearch(self::issuesRequest($page, $perPage, $sort))->search();
+        $issues = array_map(static fn (Result $result): array => $result->getData(), $resultSet->getResults());
+        $changesRequest = self::changesRequest($issues);
+        $changes = null === $changesRequest ? [] : array_map(
+            static fn (Result $result): array => $result->getData(),
+            $this->indices->reviews()->createSearch($changesRequest)->search()->getResults(),
+        );
+
+        return ['issues' => self::withChanges($issues, $changes), 'total' => $resultSet->getTotalHits()];
+    }
 
     /**
      * The search request of a page of the issues in an order, the first page is 1.

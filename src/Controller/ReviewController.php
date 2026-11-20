@@ -12,17 +12,12 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\DTO\Pagination;
-use App\Elastic\FacetSelection;
 use App\Elastic\GlobalSearch;
-use App\Elastic\Indices;
-use App\Elastic\PeopleFacet;
-use App\Elastic\PersonSuggestion;
 use App\Elastic\ReviewLists;
+use App\Elastic\ReviewListSearch;
 use App\Elastic\StaleIssues;
 use App\Elastic\Users;
-use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
-use App\Enum\ReviewSizeEnum;
 use App\Enum\ReviewSortEnum;
 use Elastica\Exception\InvalidException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -35,7 +30,8 @@ use Symfony\Component\Routing\Attribute\Route;
 class ReviewController extends AbstractController
 {
     public function __construct(
-        private readonly Indices $indices,
+        private readonly ReviewListSearch $reviewListSearch,
+        private readonly StaleIssues $staleIssues,
         private readonly GlobalSearch $globalSearch,
         private readonly RequestStack $requestStack,
         private readonly Users $users,
@@ -133,13 +129,8 @@ class ReviewController extends AbstractController
         if (null === $listQuery) {
             return new JsonResponse('Unknown list', Response::HTTP_BAD_REQUEST);
         }
-        $request = PersonSuggestion::request($this->query()->getString('term'), $listQuery, 'Owner');
-        if (null === $request) {
-            return new JsonResponse([]);
-        }
-        $resultSet = $this->indices->reviews()->search($request);
 
-        return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), 'Owner', fn (array $user): ?string => $this->users->avatarOfUser($user, PersonSuggestion::AVATAR_SIZE), $this->users->keyOf(...)));
+        return new JsonResponse($this->reviewListSearch->owners($this->query()->getString('term'), $listQuery));
     }
 
     /**
@@ -162,16 +153,10 @@ class ReviewController extends AbstractController
     {
         $sort = IssueSortEnum::fromRequest($this->query()->getString('sort'), false, StaleIssues::DEFAULT_SORT);
         $page = $this->page();
-        $resultSet = $this->indices->issues()->createSearch(StaleIssues::issuesRequest($page->page, $page->perPage, $sort))->search();
-        $issues = array_map(static fn ($result): array => $result->getData(), $resultSet->getResults());
-        $changesRequest = StaleIssues::changesRequest($issues);
-        $changes = null === $changesRequest ? [] : array_map(
-            static fn ($result): array => $result->getData(),
-            $this->indices->reviews()->createSearch($changesRequest)->search()->getResults(),
-        );
+        $found = $this->staleIssues->page($page->page, $page->perPage, $sort);
 
-        return $this->render('review/stale_issues.html.twig', $page->withTotal($resultSet->getTotalHits())->viewData() + [
-            'issues' => StaleIssues::withChanges($issues, $changes),
+        return $this->render('review/stale_issues.html.twig', $page->withTotal($found['total'])->viewData() + [
+            'issues' => $found['issues'],
             'stages' => StaleIssues::STAGES,
             'sort' => $sort,
             'sortOptions' => IssueSortEnum::options(false),
@@ -216,13 +201,10 @@ class ReviewController extends AbstractController
     {
         $sort = ReviewSortEnum::fromRequest($this->query()->getString('sort'), $withRelevance, $listDefault);
         $page = $this->page();
-        $viewData = $this->search([
-            'query' => $listQuery,
-            'sort' => $sort->sort(),
-            'size' => $page->perPage,
-            'from' => $page->from(),
-            'aggregations' => $aggregations,
-        ], $page);
+        $filters = $this->query()->all('filters');
+        $viewData = $this->reviewListSearch->search($listQuery, $sort, $aggregations, $filters, $page);
+        $viewData['filters'] = $filters;
+        $viewData['query'] = $this->query()->getString('query');
         $viewData['routeName'] = $routeName;
         $viewData['sort'] = $sort;
         $viewData['sortOptions'] = ReviewSortEnum::options($withRelevance);
@@ -239,46 +221,6 @@ class ReviewController extends AbstractController
         }
 
         return $viewData;
-    }
-
-    /**
-     * @param array<string, mixed> $request
-     *
-     * @return array<string, mixed>
-     *
-     * @throws InvalidException
-     */
-    private function search(array $request, Pagination $page): array
-    {
-        $filters = $this->query()->all('filters');
-        $filterQuery = ReviewLists::filterQuery($filters, $this->users);
-        // A BoolQuery without clauses cannot be turned into an array
-        if ($filterQuery->count() > 0 && [] !== $filterQuery->toArray()) {
-            $request['post_filter'] = $filterQuery;
-        }
-        // Selected owners show in the filter, also when they are not among those with the most changes
-        $owners = PeopleFacet::selection('Owner', FacetSelection::keys($filters, 'owner'), $this->users);
-        $request['aggregations'] = FacetSelection::withSelected($request['aggregations'] ?? [], 'Owner', array_keys($owners));
-        $resultSet = $this->indices->reviews()->createSearch($request)->search();
-
-        $aggregations = FacetSelection::inOrderOf(FacetSelection::merge($resultSet->getAggregations(), 'Owner'), array_keys($request['aggregations']));
-        // The owners by their keys, as their checkboxes send them
-        if (isset($aggregations['Owner'])) {
-            $aggregations['Owner'] = PeopleFacet::keyed($aggregations['Owner'], 'Owner', $this->users, $owners);
-        }
-        if (isset($aggregations['Activity'])) {
-            $aggregations['Activity'] = ActivityEnum::buckets($aggregations['Activity']);
-        }
-        if (isset($aggregations['Size'])) {
-            $aggregations['Size'] = ReviewSizeEnum::buckets($aggregations['Size']);
-        }
-
-        return $page->withTotal($resultSet->getTotalHits())->viewData() + [
-            'results' => $resultSet->getResults(),
-            'aggregations' => $aggregations,
-            'filters' => $filters,
-            'query' => $this->query()->getString('query'),
-        ];
     }
 
     private function page(): Pagination
