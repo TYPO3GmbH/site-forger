@@ -31,7 +31,7 @@
         'unknown': 'Built before the configuration was stored with it, app:elasticsearch:setup compares the mapping',
         'missing': 'No index has this alias, app:elasticsearch:setup creates it',
     } %}
-    {% set waiting = pending|filter(check => check.result.value != 'ok') %}
+    {% set waiting = pending|filter(check => check.result != constant('App\\Enum\\SystemCheckEnum::OK')) %}
     {% set outdated = 0 %}
     {% for check in waiting %}{% set outdated = outdated + check.matches %}{% endfor %}
 
