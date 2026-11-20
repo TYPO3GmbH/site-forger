@@ -26,14 +26,14 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
  */
 final class MockApi
 {
-    /** @var list<array{request: \Psr\Http\Message\RequestInterface}> */
-    public array $requests = [];
+    /** @var \ArrayObject<int, array{request: \Psr\Http\Message\RequestInterface}> */
+    public readonly \ArrayObject $requests;
 
     /** @var list<int> one entry per second */
     public array $slept = [];
 
-    /** @var list<int> microseconds */
-    public array $paused = [];
+    /** @var \ArrayObject<int, int> microseconds */
+    public readonly \ArrayObject $paused;
 
     public readonly ApiRequests $apiRequests;
 
@@ -45,7 +45,10 @@ final class MockApi
     public function __construct(array $responses, CommandRunRecorder $recorder, string $name = 'Forge', ?RateLimiterFactoryInterface $rateLimiter = null, int $minPauseMs = 0)
     {
         $stack = HandlerStack::create(new MockHandler($responses));
-        $stack->push(Middleware::history($this->requests));
+        $this->paused = new \ArrayObject();
+        $history = new \ArrayObject();
+        $stack->push(Middleware::history($history));
+        $this->requests = $history;
         $this->apiRequests = new ApiRequests(
             $recorder,
             new NullLogger(),
@@ -53,7 +56,7 @@ final class MockApi
                 $this->slept[] = $seconds;
             },
             function (int $microseconds): void {
-                $this->paused[] = $microseconds;
+                $this->paused->append($microseconds);
             },
         );
         $this->client = new ApiClient($name, new Client(['handler' => $stack, 'base_uri' => 'https://api.example.org']), $this->apiRequests, $rateLimiter, $minPauseMs);

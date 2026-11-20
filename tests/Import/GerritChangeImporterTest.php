@@ -28,8 +28,8 @@ use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 final class GerritChangeImporterTest extends TestCase
 {
-    /** @var list<array{request: \Psr\Http\Message\RequestInterface}> */
-    private array $requests = [];
+    /** @var \ArrayObject<int, array{request: \Psr\Http\Message\RequestInterface}> */
+    private \ArrayObject $requests;
 
     public function testSumsAndTheLowestAndHighestSingleVote(): void
     {
@@ -181,7 +181,7 @@ final class GerritChangeImporterTest extends TestCase
     {
         $recorder = new CommandRunRecorder($this->createStub(Connection::class), new NullLogger());
         $api = new MockApi($responses, $recorder, 'Gerrit');
-        $this->requests = &$api->requests;
+        $this->requests = $api->requests;
 
         return new GerritChangeImporter(
             new Indices(new Client()),

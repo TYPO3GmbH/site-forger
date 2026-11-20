@@ -28,7 +28,7 @@ final class SearchResultTest extends TestCase
         );
 
         self::assertSame([2, 1], $result->toArray());
-        self::assertSame(2, $result->count());
+        self::assertCount(2, $result);
     }
 
     public function testKeepsTheTotalAndTheMaxScore(): void

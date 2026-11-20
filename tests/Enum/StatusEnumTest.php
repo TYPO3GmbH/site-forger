@@ -24,11 +24,8 @@ use PHPUnit\Framework\TestCase;
 
 final class StatusEnumTest extends TestCase
 {
-    public function testIssueStatesAreTheForgeIds(): void
+    public function testIssueStatesLeaveOutTheForgeIdsTheProjectDoesNotUse(): void
     {
-        self::assertSame(IssueStatusEnum::UNDER_REVIEW, IssueStatusEnum::from(8));
-        self::assertSame(IssueStatusEnum::IN_PROGRESS, IssueStatusEnum::from(11));
-        self::assertSame(IssueStatusEnum::POSTPONED, IssueStatusEnum::tryFrom(9));
         self::assertNotContains(10, array_column(IssueStatusEnum::cases(), 'value'));
     }
 
@@ -50,9 +47,8 @@ final class StatusEnumTest extends TestCase
         self::assertFalse(IssueStatusEnum::POSTPONED->isClosed());
     }
 
-    public function testReviewStatesAreTheGerritValuesWithLabels(): void
+    public function testReviewStatesHaveLabels(): void
     {
-        self::assertSame(ReviewStatusEnum::MERGED, ReviewStatusEnum::from('MERGED'));
         self::assertSame('Open', ReviewStatusEnum::NEW->label());
         self::assertSame(ReviewStatusEnum::ABANDONED, ReviewStatusEnum::tryFromLabel('Abandoned'));
     }

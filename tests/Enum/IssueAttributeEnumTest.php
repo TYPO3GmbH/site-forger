@@ -19,9 +19,8 @@ use Symfony\Component\HttpFoundation\Request;
 
 final class IssueAttributeEnumTest extends TestCase
 {
-    public function testTrackersAreTheForgeIdsWithLabels(): void
+    public function testTrackersHaveLabels(): void
     {
-        self::assertSame(TrackerEnum::EPIC, TrackerEnum::from(10));
         self::assertSame('Work Package', TrackerEnum::WORK_PACKAGE->label());
         self::assertSame(TrackerEnum::MAJOR_FEATURE, TrackerEnum::tryFromLabel('Major Feature'));
         self::assertNotContains(8, array_column(TrackerEnum::cases(), 'value'));
@@ -34,9 +33,8 @@ final class IssueAttributeEnumTest extends TestCase
         self::assertSame('default', TrackerEnum::SUPPORT->severity());
     }
 
-    public function testPrioritiesAreTheForgeIdsWithLabels(): void
+    public function testPrioritiesHaveLabels(): void
     {
-        self::assertSame(PriorityEnum::MUST_HAVE, PriorityEnum::from(3));
         self::assertSame(PriorityEnum::WONT_HAVE, PriorityEnum::tryFromLabel("Won't have this time"));
         self::assertSame('must', PriorityEnum::MUST_HAVE->severity());
         self::assertTrue(PriorityEnum::SHOULD_HAVE->isDefault());

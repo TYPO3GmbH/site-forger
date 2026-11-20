@@ -75,7 +75,7 @@ final class ApiClientTest extends TestCase
 
         self::assertSame([], $api->client->get('/changes/'));
         self::assertCount(3, $api->requests);
-        self::assertSame(1 + 2, count($api->slept));
+        self::assertCount(1 + 2, $api->slept);
     }
 
     public function testAJobWaitsForTheRetryAfterOfTheApi(): void
@@ -87,7 +87,7 @@ final class ApiClientTest extends TestCase
         });
 
         self::assertSame([], $api->client->get('/changes/', ['q' => 'change:1']));
-        self::assertSame(7, count($api->slept));
+        self::assertCount(7, $api->slept);
         // The job keeps its lock while it waits
         self::assertSame(1, $kept);
         // The retry asks the same
@@ -203,7 +203,7 @@ final class ApiClientTest extends TestCase
 
         $forge->client->get('/issues.json');
         $gerrit->get('/changes/');
-        self::assertSame([], $forge->paused);
+        self::assertCount(0, $forge->paused);
         $forge->client->get('/issues.json');
         self::assertCount(1, $forge->paused);
     }

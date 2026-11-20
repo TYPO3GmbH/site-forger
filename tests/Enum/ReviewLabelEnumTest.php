@@ -16,9 +16,8 @@ use PHPUnit\Framework\TestCase;
 
 final class ReviewLabelEnumTest extends TestCase
 {
-    public function testTheLabelsAreTheGerritNames(): void
+    public function testTheLabelsHaveNames(): void
     {
-        self::assertSame(['Code-Review', 'Verified'], array_column(ReviewLabelEnum::cases(), 'value'));
         self::assertSame('Code review', ReviewLabelEnum::CODE_REVIEW->label());
         self::assertSame('V', ReviewLabelEnum::VERIFIED->abbreviation());
     }

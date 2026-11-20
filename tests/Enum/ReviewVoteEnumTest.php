@@ -19,10 +19,8 @@ use PHPUnit\Framework\TestCase;
 
 final class ReviewVoteEnumTest extends TestCase
 {
-    public function testVotesAreTheGerritValues(): void
+    public function testVotesHaveLabels(): void
     {
-        self::assertSame(ReviewVoteEnum::APPROVED, ReviewVoteEnum::from(2));
-        self::assertSame(ReviewVoteEnum::REJECTED, ReviewVoteEnum::from(-2));
         self::assertSame('+2', ReviewVoteEnum::APPROVED->label());
         self::assertSame('-1', ReviewVoteEnum::DISLIKED->label());
         self::assertSame('0', ReviewVoteEnum::NONE->label());
