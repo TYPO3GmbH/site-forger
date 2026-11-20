@@ -24,6 +24,12 @@ final class FacetSelection
      */
     public const int SIZE = 10;
 
+    /**
+     * How many values each shard tells: the indices have several, and a value counts only on the shards that tell it
+     * among their most. With all of them told the counts are exact: there are some thousands of people.
+     */
+    public const int SHARD_SIZE = 5000;
+
     private const string SELECTED = ' (selected)';
 
     /**
@@ -35,14 +41,14 @@ final class FacetSelection
      */
     public static function aggregation(string $field, int $size = self::SIZE): array
     {
-        return ['terms' => ['field' => $field, 'size' => $size]];
+        return ['terms' => ['field' => $field, 'size' => $size, 'shard_size' => max($size, self::SHARD_SIZE)]];
     }
 
     /**
      * Adds the aggregation of the selected people to the aggregations of the request, if any are selected.
      *
      * @param array<string, mixed> $aggregations
-     * @param list<string>         $selected     the selected values, as they are stored
+     * @param list<string|int>     $selected     the selected values, as the field has them: the numbers of people
      *
      * @return array<string, mixed>
      */
@@ -51,9 +57,10 @@ final class FacetSelection
         if (!isset($aggregations[$title]['terms']['field']) || [] === $selected) {
             return $aggregations;
         }
+        // With the aggregations within, like the latest document of a person, see PeopleFacet
         $aggregations[$title . self::SELECTED] = [
             'terms' => ['field' => $aggregations[$title]['terms']['field'], 'include' => array_values($selected), 'size' => count($selected)],
-        ];
+        ] + array_intersect_key($aggregations[$title], ['aggs' => true, 'aggregations' => true]);
 
         return $aggregations;
     }
@@ -91,13 +98,26 @@ final class FacetSelection
      */
     public static function selected(array $filters, string $key): array
     {
-        $values = [];
+        return array_map(static fn (string $value): string => str_replace('_', ' ', $value), self::keys($filters, $key));
+    }
+
+    /**
+     * The keys of "filters[<key>][<value>]=true" as they are sent, like the people, see PeopleFacet: a username may
+     * have a "_" of its own.
+     *
+     * @param array<string, mixed> $filters
+     *
+     * @return list<string>
+     */
+    public static function keys(array $filters, string $key): array
+    {
+        $keys = [];
         foreach ((array) ($filters[$key] ?? []) as $value => $enabled) {
             if ('true' === $enabled) {
-                $values[] = str_replace('_', ' ', (string) $value);
+                $keys[] = (string) $value;
             }
         }
 
-        return $values;
+        return $keys;
     }
 }

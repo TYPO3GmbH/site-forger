@@ -58,10 +58,16 @@ class ForgerTwigExtension
         return $activeCount;
     }
 
+    /**
+     * A value of a filter as a checkbox, with its count. The value is escaped; $labelHtml shows instead, like a
+     * person with the avatar, see templates/_partials/aggregations.html.twig.
+     *
+     * @param array<string, mixed> $bucket
+     */
     #[AsTwigFunction(name: 'aggregationBucket', isSafe: ['html'])]
-    public function aggregationBucket(string $category, string $index, array $bucket): string
+    public function aggregationBucket(string $category, string $index, array $bucket, string|\Stringable|null $labelHtml = null): string
     {
-        $label = $bucket['key_as_string'] ?? $bucket['key'];
+        $label = null === $labelHtml ? htmlspecialchars((string) ($bucket['key_as_string'] ?? $bucket['key']), ENT_QUOTES) : (string) $labelHtml;
         $docCount = $bucket['doc_count'];
         $category = $this->fixWording($category);
         if (is_string($bucket['key'])) {
@@ -78,8 +84,8 @@ class ForgerTwigExtension
         }
 
         return '<div class="form-check">'
-            . '<input type="checkbox" class="form-check-input" id="' . $category . '-' . $index . '" name="filters[' . $category . '][' . $key . ']" ' . $checked . ' value="true" onchange="this.form.submit()">'
-            . '<label class="form-check-label form-check-label-hascount" for="' . $category . '-' . $index . '">'
+            . '<input type="checkbox" class="form-check-input" id="' . htmlspecialchars($category . '-' . $index, ENT_QUOTES) . '" name="filters[' . htmlspecialchars($category, ENT_QUOTES) . '][' . htmlspecialchars((string) $key, ENT_QUOTES) . ']" ' . $checked . ' value="true" onchange="this.form.submit()">'
+            . '<label class="form-check-label form-check-label-hascount" for="' . htmlspecialchars($category . '-' . $index, ENT_QUOTES) . '">'
             . '<span class="form-check-label-title">' . $label . '</span> <span class="form-check-label-count">' . $docCount . '</span>'
             . '</label>'
             . '</div>';

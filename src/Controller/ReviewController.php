@@ -15,9 +15,11 @@ use App\Elastic\ElasticUtility;
 use App\Elastic\FacetSelection;
 use App\Elastic\GlobalSearch;
 use App\Elastic\MonthOverview;
+use App\Elastic\PeopleFacet;
 use App\Elastic\PersonSuggestion;
 use App\Elastic\ReviewLists;
 use App\Elastic\StaleIssues;
+use App\Elastic\Users;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewSizeEnum;
@@ -42,6 +44,7 @@ class ReviewController extends AbstractController
 
     public function __construct(
         private readonly RequestStack $requestStack,
+        private readonly Users $users,
     ) {
         $this->currentPage = $this->query()->getInt('page', 1);
     }
@@ -132,13 +135,13 @@ class ReviewController extends AbstractController
         if (null === $listQuery) {
             return new JsonResponse('Unknown list', Response::HTTP_BAD_REQUEST);
         }
-        $request = PersonSuggestion::request($this->query()->getString('term'), $listQuery, 'owner', 'ownerEmail');
+        $request = PersonSuggestion::request($this->query()->getString('term'), $listQuery, 'Owner');
         if (null === $request) {
             return new JsonResponse([]);
         }
         $resultSet = ElasticUtility::getIndexByName('review')->search($request);
 
-        return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), 'ownerEmail'));
+        return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), 'Owner', fn (array $user): ?string => $this->users->avatarOfUser($user, PersonSuggestion::AVATAR_SIZE), $this->users->keyOf(...)));
     }
 
     /**
@@ -263,12 +266,9 @@ class ReviewController extends AbstractController
         if ($usedFilters->count() > 0 && count($usedFilters->toArray()) > 0) {
             $fullRequest['post_filter'] = $usedFilters;
         }
-        // Selected owners show in the filter also when they are not among those with the most changes
-        $fullRequest['aggregations'] = FacetSelection::withSelected(
-            $fullRequest['aggregations'] ?? [],
-            'Owner',
-            FacetSelection::selected($this->query()->all('filters'), 'owner')
-        );
+        // Selected owners show in the filter also when they are not among those with the most changes: by number
+        $owners = PeopleFacet::selection('Owner', FacetSelection::keys($this->query()->all('filters'), 'owner'), $this->users);
+        $fullRequest['aggregations'] = FacetSelection::withSelected($fullRequest['aggregations'] ?? [], 'Owner', array_keys($owners));
         $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
         $resultSet = $query->search();
         $this->totalHits = $resultSet->getTotalHits();
@@ -289,6 +289,10 @@ class ReviewController extends AbstractController
             FacetSelection::merge($resultSet->getAggregations(), 'Owner'),
             array_keys($fullRequest['aggregations'])
         );
+        // The owners by their keys, as their checkboxes send them
+        if (isset($viewData['aggregations']['Owner'])) {
+            $viewData['aggregations']['Owner'] = PeopleFacet::keyed($viewData['aggregations']['Owner'], 'Owner', $this->users, $owners);
+        }
         if (isset($viewData['aggregations']['Activity'])) {
             $viewData['aggregations']['Activity'] = ActivityEnum::buckets($viewData['aggregations']['Activity']);
         }
@@ -346,6 +350,14 @@ class ReviewController extends AbstractController
                 $range = MonthOverview::rangeQuery($days['from'], $days['to'], 'updated_on');
                 if (null !== $range) {
                     $filters->addMust(new Simple($range));
+                }
+                continue;
+            }
+            if ('owner' === $key) {
+                // A person by the key, see PeopleFacet
+                $owner = PeopleFacet::query('Owner', FacetSelection::keys($this->query()->all('filters'), 'owner'), $this->users);
+                if (null !== $owner) {
+                    $filters->addMust(new Simple($owner));
                 }
                 continue;
             }
@@ -459,7 +471,7 @@ class ReviewController extends AbstractController
                 ],
             ],
             // The owners with the most changes only, the others are found with the search in the filter
-            'Owner' => FacetSelection::aggregation('owner'),
+            'Owner' => PeopleFacet::aggregation('Owner'),
             // The tags in the subject, like "BUGFIX" or "!!!", filtered as "filters[type][...]"
             'Type' => [
                 'terms' => [

@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Twig;
 
 use App\DTO\User;
+use App\Elastic\PeopleFacet;
 use App\Elastic\Users;
 use Twig\Attribute\AsTwigFunction;
 use Twig\Markup;
@@ -53,6 +54,31 @@ final readonly class UserTwigExtension
     }
 
     /**
+     * The key of a person in the filters of people, for the links to the issues and changes of the person, see
+     * Users::keyOfUser().
+     *
+     * @param array<string, mixed>|null $user
+     */
+    #[AsTwigFunction(name: 'user_key')]
+    public function userKey(?array $user): string
+    {
+        return $this->users->keyOfUser($user);
+    }
+
+    /**
+     * The person of a value of a filter of people, see PeopleFacet, null for a filter of no people.
+     *
+     * @param array<string, mixed> $bucket
+     *
+     * @return array<string, mixed>|null
+     */
+    #[AsTwigFunction(name: 'facet_user')]
+    public function facetUser(string $title, array $bucket): ?array
+    {
+        return PeopleFacet::user($title, $bucket);
+    }
+
+    /**
      * The avatar of a user, the placeholder of Gravatar if no email of it is known: every person looks alike, and the
      * names start at the same place. Markup, so it stays an image when a template keeps it in a variable.
      *
@@ -61,27 +87,8 @@ final readonly class UserTwigExtension
     #[AsTwigFunction(name: 'user_avatar')]
     public function avatar(?array $user, int $size = 36): Markup
     {
-        $url = $this->avatarUrl($user, $size) ?? User::avatarUrl(self::PLACEHOLDER, $size);
+        $url = $this->users->avatarOfUser($user, $size) ?? User::avatarUrl(self::PLACEHOLDER, $size);
 
         return new Markup(sprintf('<img src="%1$s" class="avatar" height="%2$d" width="%2$d" alt=""/>', htmlspecialchars($url, ENT_QUOTES), $size), 'UTF-8');
-    }
-
-    /**
-     * By the number on Forge or Gerrit, from the index "user"; else by the email, for the changes imported before
-     * the number of their owner.
-     *
-     * @param array<string, mixed>|null $user
-     */
-    private function avatarUrl(?array $user, int $size): ?string
-    {
-        if (isset($user['id'])) {
-            return $this->users->avatarOf((int) $user['id'], $size);
-        }
-        if (isset($user['gerrit_id']) && null !== ($url = $this->users->gerritAvatarOf((int) $user['gerrit_id'], $size))) {
-            return $url;
-        }
-        $email = mb_strtolower(trim((string) ($user['email'] ?? '')));
-
-        return str_contains($email, '@') ? User::avatarUrl(User::avatarHash($email), $size) : null;
     }
 }

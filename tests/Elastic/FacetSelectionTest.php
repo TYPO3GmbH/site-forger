@@ -38,8 +38,9 @@ final class FacetSelectionTest extends TestCase
 
     public function testShowsAsManyValuesAsAsked(): void
     {
-        self::assertSame(['terms' => ['field' => 'owner', 'size' => FacetSelection::SIZE]], FacetSelection::aggregation('owner'));
-        self::assertSame(['terms' => ['field' => 'tags', 'size' => 30]], FacetSelection::aggregation('tags', 30));
+        // Each of the shards tells all values: the counts are exact
+        self::assertSame(['terms' => ['field' => 'owner', 'size' => FacetSelection::SIZE, 'shard_size' => FacetSelection::SHARD_SIZE]], FacetSelection::aggregation('owner'));
+        self::assertSame(['terms' => ['field' => 'tags', 'size' => 30, 'shard_size' => FacetSelection::SHARD_SIZE]], FacetSelection::aggregation('tags', 30));
     }
 
     public function testAddsSelectedOnesTheFilterDoesNotShow(): void

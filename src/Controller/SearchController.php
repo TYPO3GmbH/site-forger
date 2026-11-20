@@ -17,12 +17,14 @@ use App\Elastic\FacetSelection;
 use App\Elastic\GlobalSearch;
 use App\Elastic\IssueSearch;
 use App\Elastic\MonthOverview;
+use App\Elastic\PeopleFacet;
 use App\Elastic\PersonSuggestion;
 use App\Elastic\Users;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
 use Elastica\Aggregation\Filters;
 use Elastica\Aggregation\Terms;
+use Elastica\Aggregation\TopHits;
 use Elastica\Query;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -34,13 +36,10 @@ use Symfony\Component\Routing\Attribute\Route;
 class SearchController extends AbstractController
 {
     /**
-     * The filters of people: title => [filter key, field of the name, field of the Forge number for the avatar].
-     * They show the people with the most issues, the search in the filter finds the others.
+     * The filters of people, see PeopleFacet: they show the people with the most issues, the search in the filter
+     * finds the others.
      */
-    private const array PEOPLE_FILTERS = [
-        'Author' => ['author', 'author.name', 'author.id'],
-        'Assigned to' => ['assigned_to', 'assigned_to.name.keyword', 'assigned_to.id'],
-    ];
+    private const array PEOPLE_FILTERS = ['Author', 'Assigned to'];
 
     /**
      * How many tags the "Tags" filter shows, the most used ones. Selected tags show, too.
@@ -53,6 +52,18 @@ class SearchController extends AbstractController
 
     /** @var array<string, array<string, string>> */
     private array $filters = [];
+
+    /**
+     * The selected people of each filter of people, see PeopleFacet::selection().
+     *
+     * @var array<string, array<int, string>>
+     */
+    private array $selection = [];
+
+    public function __construct(
+        private readonly Users $users,
+    ) {
+    }
 
     /**
      * @throws \Exception
@@ -90,25 +101,23 @@ class SearchController extends AbstractController
      * search in their filter. Names, numbers and avatars only, no email addresses.
      */
     #[Route(path: '/people/{filter}', name: 'people', methods: ['GET'])]
-    public function people(Request $request, string $filter, Users $users): JsonResponse
+    public function people(Request $request, string $filter): JsonResponse
     {
-        $people = array_column(self::PEOPLE_FILTERS, null, 0)[$filter] ?? null;
-        if (null === $people) {
+        $title = array_find(self::PEOPLE_FILTERS, static fn (string $title): bool => PeopleFacet::FILTERS[$title]['key'] === $filter);
+        if (null === $title) {
             return new JsonResponse('Unknown filter', Response::HTTP_BAD_REQUEST);
         }
-        [, $nameField, $avatarField] = $people;
         $search = PersonSuggestion::request(
             $request->query->getString('term'),
             IssueSearch::query($request->query->getString('query'), 1 === $request->query->getInt('searchClosed')),
-            $nameField,
-            $avatarField
+            $title,
         );
         if (null === $search) {
             return new JsonResponse([]);
         }
         $resultSet = ElasticUtility::getIndexByName('issue')->search($search);
 
-        return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), $avatarField, static fn (mixed $forgeId): ?string => $users->avatarOf((int) $forgeId, PersonSuggestion::AVATAR_SIZE)));
+        return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), $title, fn (array $user): ?string => $this->users->avatarOfUser($user, PersonSuggestion::AVATAR_SIZE), $this->users->keyOf(...)));
     }
 
     /**
@@ -139,8 +148,14 @@ class SearchController extends AbstractController
         $results = $elasticaResultSet->getResults();
         $maxScore = $elasticaResultSet->getMaxScore();
         $aggs = $elasticaResultSet->getAggregations();
-        foreach ([...array_keys(self::PEOPLE_FILTERS), 'Tags'] as $title) {
+        foreach ([...self::PEOPLE_FILTERS, 'Tags'] as $title) {
             $aggs = FacetSelection::merge($aggs, $title);
+        }
+        // The people by their keys, as their checkboxes send them
+        foreach (self::PEOPLE_FILTERS as $title) {
+            if (isset($aggs[$title])) {
+                $aggs[$title] = PeopleFacet::keyed($aggs[$title], $title, $this->users, $this->selection[$title] ?? []);
+            }
         }
         if (isset($aggs['Activity'])) {
             $aggs['Activity'] = ActivityEnum::buckets($aggs['Activity']);
@@ -183,6 +198,15 @@ class SearchController extends AbstractController
                 }
                 continue;
             }
+            // A person by the key, see PeopleFacet
+            $people = PeopleFacet::titleOf((string) $key);
+            if (null !== $people && in_array($people, self::PEOPLE_FILTERS, true)) {
+                $query = PeopleFacet::query($people, FacetSelection::keys($this->filters, (string) $key), $this->users);
+                if (null !== $query) {
+                    $filters->addMust(new Query\Simple($query));
+                }
+                continue;
+            }
             $key = $this->mapFilterNames($key);
             $filterCatCount = 0;
             $filterPart = new Query\BoolQuery();
@@ -209,7 +233,6 @@ class SearchController extends AbstractController
                         || 'project' === $key
                         || 'category' === $key
                         || 'status' === $key
-                        || 'author' === $key
                         || 'priority' === $key
                         || 'fixed_version' === $key
                     ) {
@@ -233,7 +256,6 @@ class SearchController extends AbstractController
     {
         return match ($key) {
             'target_version' => 'fixed_version.name',
-            'assigned_to' => 'assigned_to.name.keyword',
             default => $key,
         };
     }
@@ -272,11 +294,12 @@ class SearchController extends AbstractController
         $phpVer->setField('php_version');
         $elasticaQuery->addAggregation($phpVer);
 
-        $this->addTopTerms($elasticaQuery, 'Tags', 'tags', 'tags', self::TAGS_SHOWN);
+        $this->addTopTerms($elasticaQuery, 'Tags', 'tags', self::TAGS_SHOWN, FacetSelection::selected($this->filters, 'tags'));
 
-        // Selected people show in their filter also when they are not among those with the most issues
-        foreach (self::PEOPLE_FILTERS as $title => [$key, $field]) {
-            $this->addTopTerms($elasticaQuery, $title, $key, $field, FacetSelection::SIZE);
+        // Selected people show in their filter also when they are not among those with the most issues: by number
+        foreach (self::PEOPLE_FILTERS as $title) {
+            $this->selection[$title] = PeopleFacet::selection($title, FacetSelection::keys($this->filters, PeopleFacet::FILTERS[$title]['key']), $this->users);
+            $this->addTopTerms($elasticaQuery, $title, PeopleFacet::FILTERS[$title]['number'], FacetSelection::SIZE, array_keys($this->selection[$title]), true);
         }
 
         $activity = new Filters('Activity');
@@ -288,17 +311,27 @@ class SearchController extends AbstractController
     }
 
     /**
-     * The values of a filter with the most issues, and the selected ones also when they are not among them.
+     * The values of a filter with the most issues, and the selected ones also when they are not among them; of a
+     * filter of people each with its latest document, see PeopleFacet.
+     *
+     * @param list<string|int> $selected the selected values, as the field has them: the numbers of the people
      */
-    private function addTopTerms(Query $elasticaQuery, string $title, string $key, string $field, int $size): void
+    private function addTopTerms(Query $elasticaQuery, string $title, string $field, int $size, array $selected, bool $people = false): void
     {
-        $aggregations = FacetSelection::withSelected([$title => FacetSelection::aggregation($field, $size)], $title, FacetSelection::selected($this->filters, $key));
+        $aggregations = FacetSelection::withSelected([$title => FacetSelection::aggregation($field, $size)], $title, $selected);
         foreach ($aggregations as $name => $definition) {
             $terms = new Terms($name);
             $terms->setField($definition['terms']['field']);
             $terms->setSize($definition['terms']['size']);
+            if (isset($definition['terms']['shard_size'])) {
+                $terms->setShardSize($definition['terms']['shard_size']);
+            }
             if (isset($definition['terms']['include'])) {
                 $terms->setIncludeAsExactMatch($definition['terms']['include']);
+            }
+            if ($people) {
+                $latest = PeopleFacet::latest($title)['top_hits'];
+                $terms->addAggregation((new TopHits('user'))->setSize($latest['size'])->setSource($latest['_source'])->setSort($latest['sort']));
             }
             $elasticaQuery->addAggregation($terms);
         }

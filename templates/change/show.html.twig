@@ -41,7 +41,7 @@
                         </div>
                         <h1 class="detail-title"><span class="detail-number">{{ change.id }}</span>{{ change.subject }}</h1>
                         <p class="detail-meta">
-                            {{ user.inline(change_owner(change), role: 'Owner') }}
+                            {{ user.inline(change_owner(change), url: detail.changeSearch('owner', user_key(change_owner(change)), closed), title: 'Changes by them', role: 'Owner') }}
                             {{ status.votes(change) }}
                             {{ status.size(change) }}
                             {% if change.insertions is defined and change.deletions is defined %}
@@ -131,7 +131,7 @@
 
                     <aside class="detail-aside" aria-label="Details">
                         <dl class="detail-facts">
-                            {{ detail.person('Owner', change_owner(change), detail.changeSearch('owner', change.owner ?? '', closed), 'Changes by them') }}
+                            {{ detail.person('Owner', change_owner(change), detail.changeSearch('owner', user_key(change_owner(change)), closed), 'Changes by them') }}
                             {% if (change.topic ?? 'no topic') != 'no topic' %}
                                 <div class="detail-fact">
                                     <dt>Topic</dt>

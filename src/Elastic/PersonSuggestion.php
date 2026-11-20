@@ -11,10 +11,8 @@ declare(strict_types=1);
 
 namespace App\Elastic;
 
-use T3G\Bundle\TemplateBundle\Utility\AvatarUtility;
-
 /**
- * People in a list whose name contains what was typed, for the search in a filter of people:
+ * People in a list whose name contains what was typed, for the search in a filter of people, see PeopleFacet:
  * the owners of Gerrit changes, the authors and assignees of issues.
  *
  * There are thousands of them, so the page does not hold them all but asks for the ones that match.
@@ -40,20 +38,21 @@ final class PersonSuggestion
     private const string UNKNOWN = 'Unknown';
 
     /**
-     * The search request for the people in the list whose name contains the term, any case, those with the most first.
+     * The search request for the people of a filter in the list whose name contains the term, any case, those with
+     * the most first, each with its latest document, for the avatar.
      *
-     * @param array<string, mixed> $listQuery   the query of the list, like ReviewLists::query()
-     * @param string               $nameField   a keyword field with the name, like "owner"
-     * @param string               $avatarField the field the avatar is found by, like "ownerEmail" or "author.id"
+     * @param array<string, mixed> $listQuery the query of the list, like ReviewLists::query()
+     * @param string               $title     the filter, a key of PeopleFacet::FILTERS
      *
      * @return array<string, mixed>|null null if the term is too short
      */
-    public static function request(string $term, array $listQuery, string $nameField, string $avatarField): ?array
+    public static function request(string $term, array $listQuery, string $title): ?array
     {
         $term = trim($term);
         if (mb_strlen($term) < self::MIN_LENGTH) {
             return null;
         }
+        $nameField = PeopleFacet::FILTERS[$title]['name'];
 
         return [
             'size' => 0,
@@ -76,82 +75,37 @@ final class PersonSuggestion
                 ],
             ],
             'aggregations' => [
-                'people' => [
-                    'terms' => [
-                        'field' => $nameField,
-                        'size' => self::SIZE,
-                    ],
-                    // The latest document of the person that has the field, for the avatar
-                    'aggregations' => [
-                        'withAvatar' => [
-                            'filter' => ['exists' => ['field' => $avatarField]],
-                            'aggregations' => [
-                                'latest' => [
-                                    'top_hits' => [
-                                        'size' => 1,
-                                        '_source' => ['includes' => [$avatarField]],
-                                        'sort' => [['updated_on' => 'desc']],
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
+                'people' => PeopleFacet::aggregation($title, self::SIZE),
             ],
         ];
     }
 
     /**
-     * The people from the response, with how many documents of the list they have and their avatar.
+     * The people from the response, with their key in the filter (see Users::keyOf()), how many documents of the list
+     * they have and their avatar, null without one: the search shows the initials then. Keys, names and avatars
+     * only, no email addresses.
      *
-     * The field only gives the address of the avatar, an email address does not leave the application.
+     * @param array<string, mixed>                    $aggregations
+     * @param \Closure(array<string, mixed>): ?string $avatar       the address of the avatar of a user, of size AVATAR_SIZE,
+     *                                                              see Users::avatarOfUser()
+     * @param \Closure(string, int): string           $keyOf        see Users::keyOf()
      *
-     * @param array<string, mixed>                  $aggregations
-     * @param (\Closure(mixed): (string|null))|null $avatar       the address of the avatar for the value of the
-     *                                                            field, of size AVATAR_SIZE; without, the field is
-     *                                                            an email
-     *
-     * @return list<array{name: string, count: int, avatar: string|null}>
+     * @return list<array{key: string, name: string, count: int, avatar: string|null}>
      */
-    public static function fromAggregations(array $aggregations, string $avatarField, ?\Closure $avatar = null): array
+    public static function fromAggregations(array $aggregations, string $title, \Closure $avatar, \Closure $keyOf): array
     {
         return array_values(array_map(
-            static function (array $bucket) use ($avatarField, $avatar): array {
-                $source = $bucket['withAvatar']['latest']['hits']['hits'][0]['_source'] ?? [];
-                $value = self::valueAt($source, $avatarField);
+            static function (array $bucket) use ($title, $avatar, $keyOf): array {
+                $user = (array) PeopleFacet::user($title, $bucket);
 
                 return [
-                    'name' => (string) $bucket['key'],
+                    'key' => $keyOf(PeopleFacet::FILTERS[$title]['system'], (int) $bucket['key']),
+                    'name' => (string) ($user['name'] ?? ''),
                     'count' => (int) $bucket['doc_count'],
-                    'avatar' => null === $avatar ? self::emailAvatar((string) $value) : (null === $value ? null : $avatar($value)),
+                    'avatar' => $avatar($user),
                 ];
             },
             $aggregations['people']['buckets'] ?? []
         ));
-    }
-
-    /**
-     * The avatar of an email, null if it is none ("Unknown").
-     */
-    private static function emailAvatar(string $email): ?string
-    {
-        return str_contains($email, '@') ? AvatarUtility::getAvatarUrl($email, self::AVATAR_SIZE) : null;
-    }
-
-    /**
-     * The value at a dotted path like "assigned_to.id".
-     *
-     * @param array<string, mixed> $source
-     */
-    private static function valueAt(array $source, string $path): mixed
-    {
-        foreach (explode('.', $path) as $key) {
-            if (!is_array($source) || !array_key_exists($key, $source)) {
-                return null;
-            }
-            $source = $source[$key];
-        }
-
-        return $source;
     }
 }

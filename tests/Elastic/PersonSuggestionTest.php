@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Elastic;
 
+use App\Elastic\FacetSelection;
+use App\Elastic\PeopleFacet;
 use App\Elastic\PersonSuggestion;
 use PHPUnit\Framework\TestCase;
 
@@ -20,13 +22,13 @@ final class PersonSuggestionTest extends TestCase
 
     public function testTooShortTermAsksNothing(): void
     {
-        self::assertNull(PersonSuggestion::request('', self::LIST_QUERY, 'owner', 'ownerEmail'));
-        self::assertNull(PersonSuggestion::request(' b ', self::LIST_QUERY, 'owner', 'ownerEmail'));
+        self::assertNull(PersonSuggestion::request('', self::LIST_QUERY, 'Owner'));
+        self::assertNull(PersonSuggestion::request(' b ', self::LIST_QUERY, 'Owner'));
     }
 
     public function testFindsPeopleOfTheListContainingTheTermInAnyCase(): void
     {
-        $request = PersonSuggestion::request(' benni ', self::LIST_QUERY, 'assigned_to.name.keyword', 'assigned_to.id');
+        $request = PersonSuggestion::request(' benni ', self::LIST_QUERY, 'Assigned to');
 
         self::assertSame(0, $request['size']);
         self::assertSame(self::LIST_QUERY, $request['query']['bool']['filter'][0]);
@@ -35,60 +37,63 @@ final class PersonSuggestionTest extends TestCase
             $request['query']['bool']['filter'][1]['wildcard']['assigned_to.name.keyword']
         );
         self::assertSame([['term' => ['assigned_to.name.keyword' => 'Unknown']]], $request['query']['bool']['must_not']);
-        $people = $request['aggregations']['people'];
-        self::assertSame(['field' => 'assigned_to.name.keyword', 'size' => PersonSuggestion::SIZE], $people['terms']);
-        self::assertSame(['exists' => ['field' => 'assigned_to.id']], $people['aggregations']['withAvatar']['filter']);
-        self::assertSame(['includes' => ['assigned_to.id']], $people['aggregations']['withAvatar']['aggregations']['latest']['top_hits']['_source']);
+        // The same aggregation as the filter, with more people
+        self::assertSame(PeopleFacet::aggregation('Assigned to', PersonSuggestion::SIZE), $request['aggregations']['people']);
     }
 
     public function testWildcardsInTheTermAreTakenLiterally(): void
     {
-        $request = PersonSuggestion::request('a*b?c\\', self::LIST_QUERY, 'owner', 'ownerEmail');
+        $request = PersonSuggestion::request('a*b?c\\', self::LIST_QUERY, 'Owner');
 
         self::assertSame('*a\\*b\\?c\\\\*', $request['query']['bool']['filter'][1]['wildcard']['owner']['value']);
     }
 
-    public function testReadsNamesCountsAndAvatarsWithoutEmailAddresses(): void
+    public function testReadsNamesCountsAndAvatarsOfTheUsers(): void
     {
-        $withEmail = static fn (array $source): array => ['withAvatar' => ['latest' => ['hits' => ['hits' => [['_source' => $source]]]]]];
+        $latest = static fn (array $source): array => ['user' => ['hits' => ['hits' => [['_source' => $source]]]]];
+        // By the number of the owner, the name from the latest change
         $aggregations = ['people' => ['buckets' => [
-            ['key' => 'Benni Mack', 'doc_count' => 16] + $withEmail(['ownerEmail' => 'Benni@Example.org ']),
-            ['key' => 'Somebody', 'doc_count' => 1] + $withEmail(['ownerEmail' => 'Unknown']),
-            ['key' => 'A group', 'doc_count' => 2, 'withAvatar' => ['latest' => ['hits' => ['hits' => []]]]],
+            ['key' => 52917, 'doc_count' => 16] + $latest(['owner' => 'Ingo Hollmann', 'owner_id' => 52917, 'ownerEmail' => 'ingo@example.org']),
+            ['key' => 7, 'doc_count' => 1] + $latest(['owner' => 'Somebody', 'owner_id' => 7, 'ownerEmail' => 'Unknown']),
         ]]];
-
-        $people = PersonSuggestion::fromAggregations($aggregations, 'ownerEmail');
-
-        self::assertSame(
-            [
-                ['name' => 'Benni Mack', 'count' => 16, 'avatar' => 'https://www.gravatar.com/avatar/' . md5('benni@example.org') . '?s=48&d=mp&r=g'],
-                ['name' => 'Somebody', 'count' => 1, 'avatar' => null],
-                ['name' => 'A group', 'count' => 2, 'avatar' => null],
-            ],
-            $people
-        );
-        self::assertStringNotContainsString('@', (string) json_encode($people));
-        self::assertSame([], PersonSuggestion::fromAggregations([], 'ownerEmail'));
-    }
-
-    public function testAvatarsOfIssuesComeByTheForgeNumber(): void
-    {
-        $withNumber = static fn (array $source): array => ['withAvatar' => ['latest' => ['hits' => ['hits' => [['_source' => $source]]]]]];
-        $aggregations = ['people' => ['buckets' => [
-            ['key' => 'Benni Mack', 'doc_count' => 16] + $withNumber(['author' => ['id' => 1]]),
-            ['key' => 'Unknown to the users', 'doc_count' => 3] + $withNumber(['author' => ['id' => 2]]),
-            ['key' => 'Without a number', 'doc_count' => 1, 'withAvatar' => ['latest' => ['hits' => ['hits' => []]]]],
-        ]]];
+        $keyOf = static fn (string $system, int $number): string => 52917 === $number ? 'ingoholl' : $system . ':' . $number;
         $asked = [];
-        $avatar = static function (mixed $forgeId) use (&$asked): ?string {
-            $asked[] = $forgeId;
+        $avatar = static function (array $user) use (&$asked): ?string {
+            $asked[] = $user;
 
-            return 1 === $forgeId ? 'https://www.gravatar.com/avatar/abc?s=48&d=mp&r=g' : null;
+            return isset($user['gerrit_id']) ? 'https://www.gravatar.com/avatar/abc?s=48&d=mp&r=g' : null;
         };
 
-        $people = PersonSuggestion::fromAggregations($aggregations, 'author.id', $avatar);
+        $people = PersonSuggestion::fromAggregations($aggregations, 'Owner', $avatar, $keyOf);
 
-        self::assertSame(['https://www.gravatar.com/avatar/abc?s=48&d=mp&r=g', null, null], array_column($people, 'avatar'));
-        self::assertSame([1, 2], $asked);
+        // The key the checkbox of the person has: the username, the number while the index knows none
+        self::assertSame([
+            ['key' => 'ingoholl', 'name' => 'Ingo Hollmann', 'count' => 16, 'avatar' => 'https://www.gravatar.com/avatar/abc?s=48&d=mp&r=g'],
+            ['key' => 'gerrit:7', 'name' => 'Somebody', 'count' => 1, 'avatar' => 'https://www.gravatar.com/avatar/abc?s=48&d=mp&r=g'],
+        ], $people);
+        // The users of the filter: name, number and email, as the macros of the users take them
+        self::assertSame([
+            ['name' => 'Ingo Hollmann', 'gerrit_id' => 52917, 'email' => 'ingo@example.org'],
+            ['name' => 'Somebody', 'gerrit_id' => 7, 'email' => 'Unknown'],
+        ], $asked);
+        self::assertStringNotContainsString('@', (string) json_encode($people));
+        self::assertSame([], PersonSuggestion::fromAggregations([], 'Owner', $avatar, $keyOf));
+    }
+
+    public function testThePeopleOfIssuesAndChangesAreFoundAlike(): void
+    {
+        $author = PeopleFacet::aggregation('Author');
+        $owner = PeopleFacet::aggregation('Owner');
+
+        // By the number: two people of one name are two
+        self::assertSame(['field' => 'author.id', 'size' => FacetSelection::SIZE, 'shard_size' => FacetSelection::SHARD_SIZE], $author['terms']);
+        self::assertSame(['field' => 'owner_id', 'size' => FacetSelection::SIZE, 'shard_size' => FacetSelection::SHARD_SIZE], $owner['terms']);
+        self::assertSame(['author.id', 'author.name'], $author['aggs']['user']['top_hits']['_source']['includes']);
+        self::assertSame(['owner_id', 'ownerEmail', 'owner'], $owner['aggs']['user']['top_hits']['_source']['includes']);
+        self::assertSame(['name' => 'Benni Mack', 'id' => 320], PeopleFacet::user('Author', ['key' => 320, 'user' => ['hits' => ['hits' => [['_source' => ['author' => ['id' => 320, 'name' => 'Benni Mack']]]]]]]));
+        self::assertSame(['name' => 'Benni Mack'], PeopleFacet::user('Author', ['key' => 'Benni Mack']));
+        self::assertNull(PeopleFacet::user('Tags', ['key' => 'cache']));
+        // The selected people of a filter come with their latest document too
+        self::assertSame($author['aggs'], FacetSelection::withSelected(['Author' => $author], 'Author', [320])['Author (selected)']['aggs']);
     }
 }

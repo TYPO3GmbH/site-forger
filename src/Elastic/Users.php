@@ -37,8 +37,25 @@ class Users
     private const string AVATARS_CACHE_KEY = 'user_avatars';
     private const int AVATARS_CACHE_LIFETIME = 600;
 
+    /**
+     * The keys of the people, see keyOf() and personOf(), cached for the pages as the avatars.
+     */
+    private const string PEOPLE_CACHE_KEY = 'user_people';
+
     /** @var array<string, string>|null */
     private ?array $avatars = null;
+
+    /**
+     * @var array{keys: array<string, string>, people: array<string, array{name: string, username: string|null, forge: int|null, gerrit: int|null}>}|null
+     */
+    private ?array $people = null;
+
+    /**
+     * The numbers of the people by "forge" or "gerrit" and their name, see numbersOf().
+     *
+     * @var array<string, array<string, list<int>>>
+     */
+    private array $byName = [];
 
     /**
      * The numbers the index has, by "forge:<number>" and "gerrit:<number>", loaded once per process for the
@@ -55,6 +72,26 @@ class Users
     }
 
     /**
+     * The address of the avatar of a user as the documents have the person, see templates/_macros/user.html.twig:
+     * by the number on Forge ("id") or on Gerrit ("gerrit_id"), from the index; else by the "email", for the changes
+     * imported before the number of their owner. Null if none is known.
+     *
+     * @param array<string, mixed>|null $user
+     */
+    public function avatarOfUser(?array $user, int $size): ?string
+    {
+        if (isset($user['id'])) {
+            return $this->avatarOf((int) $user['id'], $size);
+        }
+        if (isset($user['gerrit_id']) && null !== ($url = $this->gerritAvatarOf((int) $user['gerrit_id'], $size))) {
+            return $url;
+        }
+        $email = mb_strtolower(trim((string) ($user['email'] ?? '')));
+
+        return str_contains($email, '@') ? User::avatarUrl(User::avatarHash($email), $size) : null;
+    }
+
+    /**
      * The address of the avatar of a Forge user, null if the index knows none.
      */
     public function avatarOf(?int $forgeId, int $size): ?string
@@ -68,6 +105,93 @@ class Users
     public function gerritAvatarOf(?int $gerritId, int $size): ?string
     {
         return null === $gerritId ? null : $this->avatarBy('gerrit:' . $gerritId, $size);
+    }
+
+    /**
+     * The key of a person in the filters of people, "filters[author][<key>]", see PeopleFacet: the id of its
+     * document, the username; "forge:<number>" or "gerrit:<number>" while the index knows none.
+     *
+     * @param string $system "forge" or "gerrit"
+     */
+    public function keyOf(string $system, int $number): string
+    {
+        $key = $system . ':' . $number;
+
+        return $this->people()['keys'][$key] ?? $key;
+    }
+
+    /**
+     * The key of a person as the documents have it, see templates/_macros/user.html.twig: by the number on Forge
+     * ("id") or on Gerrit ("gerrit_id"); else the name with "_" for the spaces, as the filters had them before.
+     *
+     * @param array<string, mixed>|null $user
+     */
+    public function keyOfUser(?array $user): string
+    {
+        if (isset($user['id'])) {
+            return $this->keyOf('forge', (int) $user['id']);
+        }
+        if (isset($user['gerrit_id'])) {
+            return $this->keyOf('gerrit', (int) $user['gerrit_id']);
+        }
+
+        return str_replace(' ', '_', trim((string) ($user['name'] ?? '')));
+    }
+
+    /**
+     * The person of a key of the filters of people, see keyOf(): its name, username and numbers on Forge and Gerrit.
+     * A key "forge:<number>" the index has no document of is the number alone. Null for a key that is no person's:
+     * a name, as the links had them before.
+     *
+     * @return array{name: string, username: string|null, forge: int|null, gerrit: int|null}|null
+     */
+    public function personOf(string $key): ?array
+    {
+        $people = $this->people();
+        if (1 === preg_match('/^(forge|gerrit):(\d+)$/', $key, $matches)) {
+            $id = $people['keys'][$key] ?? null;
+
+            return null === $id ? [
+                'name' => '',
+                'username' => null,
+                'forge' => 'forge' === $matches[1] ? (int) $matches[2] : null,
+                'gerrit' => 'gerrit' === $matches[1] ? (int) $matches[2] : null,
+            ] : $people['people'][$id];
+        }
+
+        return $people['people'][mb_strtolower($key)] ?? null;
+    }
+
+    /**
+     * The numbers on Forge or Gerrit of a key of the filters of people: the number of the person; without one the
+     * numbers of the people of the same name, as the index has them until ForgeUserSync joins the person of Gerrit
+     * and the one of the issues. A key that is no person's is a name, as the links had them before. Empty if the
+     * index knows nobody of the name.
+     *
+     * @param string $system "forge" or "gerrit"
+     *
+     * @return list<int>
+     */
+    public function numbersOf(string $key, string $system): array
+    {
+        $person = $this->personOf($key);
+        if (null !== ($person[$system] ?? null)) {
+            return [(int) $person[$system]];
+        }
+        $name = null === $person ? str_replace('_', ' ', $key) : $person['name'];
+        if ('' === $name) {
+            return [];
+        }
+        if (!isset($this->byName[$system])) {
+            $this->byName[$system] = [];
+            foreach ($this->people()['people'] as $other) {
+                if (null !== $other[$system]) {
+                    $this->byName[$system][$other['name']][] = (int) $other[$system];
+                }
+            }
+        }
+
+        return $this->byName[$system][$name] ?? [];
     }
 
     /**
@@ -303,7 +427,10 @@ class Users
         }
         $index->refresh();
         $this->cache->delete(self::AVATARS_CACHE_KEY);
+        $this->cache->delete(self::PEOPLE_CACHE_KEY);
         $this->avatars = null;
+        $this->people = null;
+        $this->byName = [];
         if (null !== $this->known) {
             foreach ($users as $user) {
                 $this->known += self::keys($user);
@@ -362,6 +489,34 @@ class Users
         }
 
         return $this->known;
+    }
+
+    /**
+     * The id of the document by "forge:<number>" and "gerrit:<number>" ("keys"), and the people by the id.
+     *
+     * @return array{keys: array<string, string>, people: array<string, array{name: string, username: string|null, forge: int|null, gerrit: int|null}>}
+     */
+    private function people(): array
+    {
+        return $this->people ??= $this->cache->get(self::PEOPLE_CACHE_KEY, function (ItemInterface $item): array {
+            $item->expiresAfter(self::AVATARS_CACHE_LIFETIME);
+            $people = ['keys' => [], 'people' => []];
+            try {
+                foreach ($this->scroll(['match_all' => new \stdClass()]) as $user) {
+                    $id = $user->id();
+                    foreach (array_keys(self::keys($user)) as $key) {
+                        $people['keys'][$key] = $id;
+                    }
+                    $people['people'][$id] = ['name' => $user->name, 'username' => $user->username, 'forge' => $user->forgeId, 'gerrit' => $user->gerritId];
+                }
+            } catch (\Exception $e) {
+                // The filters find the people by their numbers and names then; and ask again soon
+                $this->logger->warning('The people could not be read: ' . $e->getMessage(), ['exception' => $e]);
+                $item->expiresAfter(30);
+            }
+
+            return $people;
+        });
     }
 
     /**

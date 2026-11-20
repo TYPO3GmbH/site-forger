@@ -498,7 +498,8 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         $html = $this->twig->load('change/show.html.twig')->renderBlock('body', ['change' => $change, 'message' => '', 'issues' => []]);
 
         // As the checkboxes of the filters set them, spaces as "_"
-        self::assertStringContainsString('<a href="/search/changes?filters%5Bowner%5D%5BBenni_Mack%5D=true" title="Changes by them">Benni Mack</a>', $html);
+        // The owner in the head and in the facts
+        self::assertSame(2, substr_count($html, '<a href="/search/changes?filters%5Bowner%5D%5BBenni_Mack%5D=true" title="Changes by them">Benni Mack</a>'));
         // Every release a link of its own
         self::assertStringContainsString('<dd><a href="/search/changes?filters%5Breleases%5D%5Bmain%5D=true" title="Changes for this release">main</a>, <a href="/search/changes?filters%5Breleases%5D%5B14.3%5D=true" title="Changes for this release">14.3</a></dd>', $html);
         self::assertStringContainsString('<a href="/search/changes?filters%5Bpatchsets%5D%5B3%5D=true" title="Changes with as many patch sets">3</a>', $html);
@@ -578,11 +579,21 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
             'tags' => ['preview'],
             'complexity' => 'easy',
         ];
-        $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', ['issue' => $issue, 'changes' => [], 'unknownChanges' => []]);
+        // The author is "benni" to the index "user", see Users::keyOf()
+        $cache = self::getContainer()->get('cache.app');
+        $cache->delete('user_people');
+        $cache->get('user_people', static fn (): array => ['keys' => ['forge:1' => 'benni'], 'people' => ['benni' => ['name' => 'Benni Mack', 'username' => 'benni', 'forge' => 1, 'gerrit' => null]]]);
+        try {
+            $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', ['issue' => $issue, 'changes' => [], 'unknownChanges' => []]);
+        } finally {
+            $cache->delete('user_people');
+        }
 
-        // As the checkboxes of the search write the filters, a space as "_"
+        // As the checkboxes of the search write the filters, a space as "_"; a person by the username
         self::assertStringContainsString('<a href="/search?filters%5Bcategory%5D%5BLink_Handling%5D=true" title="Issues in this category">Link Handling</a>', $html);
-        self::assertStringContainsString('<a href="/search?filters%5Bauthor%5D%5BBenni_Mack%5D=true" title="Issues by them">Benni Mack</a>', $html);
+        self::assertStringContainsString('<a href="/search?filters%5Bauthor%5D%5Bbenni%5D=true" title="Issues by them">Benni Mack</a>', $html);
+        // The author in the head too
+        self::assertSame(2, substr_count($html, '<a href="/search?filters%5Bauthor%5D%5Bbenni%5D=true" title="Issues by them">Benni Mack</a>'));
         self::assertStringContainsString('href="/search?filters%5Btypo3_version%5D%5B14%5D=true"', $html);
         self::assertStringContainsString('<a class="tag-label" href="/search?filters%5Btags%5D%5Bpreview%5D=true" title="Issues with this tag">preview</a>', $html);
         // The search has no filter for it
