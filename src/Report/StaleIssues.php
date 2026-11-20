@@ -14,7 +14,6 @@ namespace App\Report;
 use App\Document\Change;
 use App\Document\GerritLinks;
 use App\Document\Issue;
-use App\Elastic\Indices;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewStateEnum;
@@ -47,7 +46,7 @@ final readonly class StaleIssues
     private const int MAXIMUM_CHANGES = 1000;
 
     public function __construct(
-        private Indices $indices,
+        private IssueRepository $issues,
         private ChangeRepository $changes,
     ) {
     }
@@ -60,14 +59,14 @@ final readonly class StaleIssues
     public function page(int $page, int $perPage, IssueSortEnum $sort): array
     {
         $request = self::issuesRequest($page, $perPage, $sort);
-        $resultSet = $this->indices->issues()->createSearch($request)->search();
-        $issues = array_values(IssueRepository::fromResultSet($resultSet)->toArray());
+        $found = $this->issues->search($request);
+        $issues = $found->getValues();
         $changesRequest = self::changesRequest($issues);
-        $changes = null === $changesRequest ? [] : $this->changes->search($changesRequest)->toArray();
+        $changes = null === $changesRequest ? [] : $this->changes->search($changesRequest)->getValues();
 
         return [
             'issues' => self::withChanges($issues, $changes),
-            'total' => $resultSet->getTotalHits(),
+            'total' => $found->total,
         ];
     }
 

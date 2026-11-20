@@ -57,8 +57,7 @@ class IssueController extends AbstractController
 
         return $this->render('issue/duplicates.html.twig', [
             'issue' => $issue,
-            'results' => IssueRepository::fromResultSet($results),
-            'totalResults' => $results->getTotalHits(),
+            'results' => $results,
             'searchClosed' => $searchClosed,
         ]);
     }

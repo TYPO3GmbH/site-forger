@@ -13,8 +13,6 @@ namespace App\Sprint;
 
 use App\Document\Change;
 use App\Document\Issue;
-use App\Elastic\Bucket;
-use App\Elastic\Indices;
 use App\Entity\SprintBoard;
 use App\Enum\IssueStatusEnum;
 use App\Repository\ChangeRepository;
@@ -30,7 +28,7 @@ final readonly class SprintBoards
     private const int PREVIEW_SIZE = 25;
 
     public function __construct(
-        private Indices $indices,
+        private IssueRepository $issues,
         private ChangeRepository $changes,
     ) {
     }
@@ -42,13 +40,13 @@ final readonly class SprintBoards
      */
     public function counts(string $query): array
     {
-        $resultSet = $this->indices->issues()->createSearch([
+        $found = $this->issues->search([
             'query' => Yaml::parse($query),
             'size' => 0,
             'aggregations' => ['status' => ['terms' => ['field' => 'status.id']]],
-        ])->search();
+        ]);
         $count = ['open' => 0, 'closed' => 0, 'blocked' => 0, 'review' => 0, 'total' => 0];
-        foreach (Bucket::listOf($resultSet->getAggregation('status')) as $bucket) {
+        foreach ($found->buckets('status') as $bucket) {
             $group = self::group(IssueStatusEnum::tryFrom((int) $bucket->key));
             $count[$group] += $bucket->count;
             $count['total'] += $bucket->count;
@@ -74,11 +72,11 @@ final readonly class SprintBoards
     public function cards(SprintBoard $board): array
     {
         $cards = BoardColumnEnum::each([]);
-        $resultSet = $this->indices->issues()->createSearch([
+        $found = $this->issues->search([
             'query' => Yaml::parse((string) $board->getQuery()),
             'size' => self::MAX_ISSUES,
-        ])->search();
-        foreach (IssueRepository::fromResultSet($resultSet) as $issue) {
+        ]);
+        foreach ($found as $issue) {
             $column = BoardColumnEnum::ofIssue($issue);
             $change = BoardColumnEnum::REVIEW === $column ? $this->changeOf($issue) : null;
             $cards[$column->value][] = ['issue' => $issue, 'change' => $change];
@@ -94,15 +92,15 @@ final readonly class SprintBoards
      */
     public function preview(BoardFilter $filter): array
     {
-        $resultSet = $this->indices->issues()->createSearch([
+        $found = $this->issues->search([
             'query' => $filter->toQuery(),
             'size' => self::MAX_ISSUES,
             '_source' => ['id', 'subject', 'status', 'tracker'],
             'sort' => [['updated_on' => ['order' => 'desc']]],
-        ])->search();
+        ]);
         $columns = BoardColumnEnum::each(0);
         $issues = [];
-        foreach (IssueRepository::fromResultSet($resultSet) as $issue) {
+        foreach ($found as $issue) {
             $column = BoardColumnEnum::ofIssue($issue)->value;
             ++$columns[$column];
             $issues[] = ['issue' => $issue, 'column' => $column];

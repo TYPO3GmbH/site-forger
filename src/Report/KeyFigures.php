@@ -13,7 +13,7 @@ namespace App\Report;
 
 use App\Document\Change;
 use App\Document\Issue;
-use App\Elastic\Indices;
+use App\Elastic\SearchResult;
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStatusEnum;
@@ -21,8 +21,6 @@ use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
 use App\Search\IssueSearch;
 use App\Search\ReviewLists;
-use Elastica\Index;
-use Elastica\ResultSet;
 
 /**
  * The numbers and short lists of the dashboard and of the quick stats.
@@ -37,28 +35,29 @@ final readonly class KeyFigures
     private const string LAST_30_DAYS = 'now-30d/d';
 
     public function __construct(
-        private Indices $indices,
+        private IssueRepository $issues,
+        private ChangeRepository $changes,
     ) {
     }
 
     public function openIssues(): int
     {
-        return $this->count($this->indices->issues(), [], [self::closedStatus()]);
+        return $this->issues->count(self::filtered([], [self::closedStatus()]));
     }
 
     public function openedIssues(): int
     {
-        return $this->count($this->indices->issues(), [
+        return $this->issues->count(self::filtered([
             ['range' => ['created_on' => ['gte' => self::LAST_30_DAYS]]],
-        ]);
+        ]));
     }
 
     public function closedIssues(): int
     {
-        return $this->count($this->indices->issues(), [
+        return $this->issues->count(self::filtered([
             self::closedStatus(),
             ['range' => ['updated_on' => ['gte' => self::LAST_30_DAYS]]],
-        ]);
+        ]));
     }
 
     /**
@@ -66,10 +65,10 @@ final readonly class KeyFigures
      */
     public function openChanges(): int
     {
-        return $this->count($this->indices->reviews(), [], [
+        return $this->changes->count(self::filtered([], [
             ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]],
             self::workInProgress(),
-        ]);
+        ]));
     }
 
     /**
@@ -77,66 +76,61 @@ final readonly class KeyFigures
      */
     public function waitingChanges(): int
     {
-        return $this->count($this->indices->reviews(), [
+        return $this->changes->count(self::filtered([
             ['term' => ['reviewstatus' => ReviewStatusEnum::NEW->value]],
             ['range' => ['updated_on' => ['lt' => self::LAST_30_DAYS]]],
-        ], [self::workInProgress()]);
+        ], [self::workInProgress()]));
     }
 
     /**
      * The open issues created last, as the search sorts them by "Newest".
      *
-     * @return array{documents: list<Issue>, total: int}
+     * @return SearchResult<Issue>
      */
-    public function newIssues(): array
+    public function newIssues(): SearchResult
     {
-        $resultSet = $this->latest($this->indices->issues(), IssueSearch::query(''), IssueSortEnum::NEWEST->sort());
-
-        return [
-            'documents' => array_values(IssueRepository::fromResultSet($resultSet)->toArray()),
-            'total' => $resultSet->getTotalHits(),
-        ];
+        return $this->issues->search(self::latest(IssueSearch::query(''), IssueSortEnum::NEWEST->sort()));
     }
 
     /**
      * The changes of the list "Ready to merge" updated last.
      *
-     * @return array{documents: list<Change>, total: int}
+     * @return SearchResult<Change>
      */
-    public function readyToMerge(): array
+    public function readyToMerge(): SearchResult
     {
         $query = (array) ReviewLists::query(ReviewLists::READY_TO_MERGE);
-        $resultSet = $this->latest($this->indices->reviews(), $query, [['updated_on' => 'desc']]);
 
-        return [
-            'documents' => array_values(ChangeRepository::fromResultSet($resultSet)->toArray()),
-            'total' => $resultSet->getTotalHits(),
-        ];
+        return $this->changes->search(self::latest($query, [['updated_on' => 'desc']]));
     }
 
     /**
-     * The first documents of a list, and how many the list has.
+     * The request of the first documents of a list, which counts all documents of the list.
      *
      * @param array<string, mixed>       $query
      * @param list<array<string, mixed>> $sort
+     *
+     * @return array<string, mixed>
      */
-    private function latest(Index $index, array $query, array $sort): ResultSet
+    private static function latest(array $query, array $sort): array
     {
-        return $index->createSearch([
+        return [
             'query' => $query,
             'sort' => $sort,
             'size' => self::LIST_SIZE,
             'track_total_hits' => true,
-        ])->search();
+        ];
     }
 
     /**
      * @param list<array<string, mixed>> $filter
      * @param list<array<string, mixed>> $mustNot
+     *
+     * @return array<string, mixed>
      */
-    private function count(Index $index, array $filter, array $mustNot = []): int
+    private static function filtered(array $filter, array $mustNot = []): array
     {
-        return $index->count(['query' => ['bool' => ['filter' => $filter, 'must_not' => $mustNot]]]);
+        return ['query' => ['bool' => ['filter' => $filter, 'must_not' => $mustNot]]];
     }
 
     /**

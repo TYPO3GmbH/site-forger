@@ -11,8 +11,6 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Elastic\Bucket;
-use App\Elastic\Indices;
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewSortEnum;
@@ -37,7 +35,8 @@ use T3G\Bundle\Keycloak\Security\KeyCloakUser;
 class MyWorkController extends AbstractController
 {
     public function __construct(
-        private readonly Indices $indices,
+        private readonly ChangeRepository $changes,
+        private readonly IssueRepository $issues,
         private readonly UserRepository $users,
     ) {
     }
@@ -66,10 +65,10 @@ class MyWorkController extends AbstractController
         // Only search words rank the changes, so only then they can be sorted by relevance
         $sort = ReviewSortEnum::fromRequest($request->query->getString('sort'), '' !== $searchTerms);
         $query = $this->query($includeClosed, $searchTerms, reviewState: $reviewState, reviewSort: $sort);
-        $reviews = $this->indices->reviews()->createSearch($query->reviews())->search();
+        $changes = $this->changes->search($query->reviews());
 
         $counts = array_filter(
-            Bucket::countsOf($reviews->getAggregation('status')),
+            $changes->counts('status'),
             static fn (int $count): bool => $count > 0,
         );
         $counts = $this->sortByOrder($counts, self::reviewStateOrder());
@@ -81,9 +80,9 @@ class MyWorkController extends AbstractController
         return $this->render('my/changes.html.twig', [
             ...$this->viewData($query, 'changes', $includeClosed, $searchTerms),
             'openChanges' => array_sum(array_diff_key($counts, array_flip($closedStates))),
-            'changes' => ChangeRepository::fromResultSet($reviews),
-            'shown' => count($reviews->getResults()),
-            'total' => $reviews->getTotalHits(),
+            'changes' => $changes,
+            'shown' => count($changes),
+            'total' => $changes->total,
             'selected' => $reviewState?->value,
             'labels' => array_combine(self::reviewStateOrder(), array_map(static fn (ReviewStateEnum $state): string => $state->label(), ReviewStateEnum::cases())),
             'counts' => $counts,
@@ -106,18 +105,18 @@ class MyWorkController extends AbstractController
         // Only search words rank the issues, so only then they can be sorted by relevance
         $sort = IssueSortEnum::fromRequest($request->query->getString('sort'), '' !== $searchTerms);
         $query = $this->query($includeClosed, $searchTerms, issueStatus: $issueStatus, issueSort: $sort);
-        $issues = $this->indices->issues()->createSearch($query->issues())->search();
+        $issues = $this->issues->search($query->issues());
 
-        $counts = Bucket::countsOf($issues->getAggregation('status'));
+        $counts = $issues->counts('status');
         // In the order of the workflow, not by count
         $counts = $this->sortByOrder($counts, self::issueStatusOrder());
 
         return $this->render('my/issues.html.twig', [
             ...$this->viewData($query, 'issues', $includeClosed, $searchTerms),
             'openIssues' => array_sum(array_diff_key($counts, array_flip(IssueStatusEnum::closedLabels()))),
-            'issues' => IssueRepository::fromResultSet($issues),
-            'shown' => count($issues->getResults()),
-            'total' => $issues->getTotalHits(),
+            'issues' => $issues,
+            'shown' => count($issues),
+            'total' => $issues->total,
             'selected' => $issueStatus?->label(),
             'selectedId' => $issueStatus?->value,
             // Name => Forge id, for the links of the filter
@@ -167,9 +166,9 @@ class MyWorkController extends AbstractController
             'query' => $searchTerms,
         ];
         if ('changes' === $view) {
-            $data['openIssues'] = $this->indices->issues()->count($query->openIssuesCount());
+            $data['openIssues'] = $this->issues->count($query->openIssuesCount());
         } else {
-            $data['openChanges'] = $this->indices->reviews()->count($query->openReviewsCount());
+            $data['openChanges'] = $this->changes->count($query->openReviewsCount());
         }
 
         return $data;

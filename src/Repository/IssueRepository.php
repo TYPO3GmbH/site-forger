@@ -13,9 +13,10 @@ namespace App\Repository;
 
 use App\Document\Issue;
 use App\Elastic\Indices;
+use App\Elastic\SearchResult;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\ReadableCollection;
 use Elastica\Exception\NotFoundException;
-use Elastica\Result;
 use Elastica\ResultSet;
 
 /**
@@ -40,9 +41,9 @@ final readonly class IssueRepository
     /**
      * @param list<int> $ids
      *
-     * @return ArrayCollection<int, Issue> by id, the ones the index does not have left out
+     * @return ReadableCollection<int, Issue> by id, the ones the index does not have left out
      */
-    public function byIds(array $ids): ArrayCollection
+    public function byIds(array $ids): ReadableCollection
     {
         $ids = array_values(array_unique($ids));
         if ([] === $ids) {
@@ -59,21 +60,26 @@ final readonly class IssueRepository
     /**
      * @param array<string, mixed> $request
      *
-     * @return ArrayCollection<int, Issue> in the order of the response
+     * @return SearchResult<Issue>
      */
-    public function search(array $request): ArrayCollection
+    public function search(array $request): SearchResult
     {
         return self::fromResultSet($this->indices->issues()->createSearch($request)->search());
     }
 
     /**
-     * @return ArrayCollection<int, Issue>
+     * @param array<string, mixed> $query
      */
-    public static function fromResultSet(ResultSet $resultSet): ArrayCollection
+    public function count(array $query): int
     {
-        return new ArrayCollection(array_map(
-            static fn (Result $result): Issue => Issue::fromDocument($result->getData()),
-            $resultSet->getResults(),
-        ));
+        return $this->indices->issues()->count($query);
+    }
+
+    /**
+     * @return SearchResult<Issue>
+     */
+    public static function fromResultSet(ResultSet $resultSet): SearchResult
+    {
+        return SearchResult::of($resultSet, Issue::fromDocument(...));
     }
 }

@@ -13,6 +13,7 @@ namespace App\Tests\Templates;
 
 use App\Document\Change;
 use App\Document\Issue;
+use App\Elastic\SearchResult;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Twig\Environment;
 
@@ -56,7 +57,10 @@ final class DashboardListsTemplateTest extends KernelTestCase
 
     public function testNewIssues(): void
     {
-        $html = $this->twig->render('dashboard/_new_issues.html.twig', ['issues' => ['documents' => [Issue::fromDocument(self::ISSUE)], 'total' => 1]]);
+        $html = $this->twig->render(
+            'dashboard/_new_issues.html.twig',
+            ['issues' => SearchResult::ofDocuments([Issue::fromDocument(self::ISSUE)], 1)],
+        );
 
         self::assertStringContainsString('href="/issue/91089"', $html);
         self::assertStringContainsString('Something is broken', $html);
@@ -76,7 +80,10 @@ final class DashboardListsTemplateTest extends KernelTestCase
             'category' => ['id' => 1, 'name' => 'Backend'],
             'typo3_version' => '13',
         ];
-        $html = $this->twig->render('dashboard/_new_issues.html.twig', ['issues' => ['documents' => [Issue::fromDocument($issue)], 'total' => 1]]);
+        $html = $this->twig->render(
+            'dashboard/_new_issues.html.twig',
+            ['issues' => SearchResult::ofDocuments([Issue::fromDocument($issue)], 1)],
+        );
 
         // The priority is not of interest in a list, the page of the issue has it
         self::assertStringNotContainsString('Must have', $html);
@@ -99,7 +106,10 @@ final class DashboardListsTemplateTest extends KernelTestCase
             'insertions' => 12,
             'deletions' => 3,
         ];
-        $html = $this->twig->render('dashboard/_ready_to_merge.html.twig', ['changes' => ['documents' => [Change::fromDocument($change)], 'total' => 1]]);
+        $html = $this->twig->render(
+            'dashboard/_ready_to_merge.html.twig',
+            ['changes' => SearchResult::ofDocuments([Change::fromDocument($change)], 1)],
+        );
 
         self::assertStringContainsString('status-pill-vote-approved" title="Code review: +2 by a merger · 3 for, 0 against">CR +2</span>', $html);
         self::assertStringContainsString('status-pill-vote-recommended" title="Verified: +1 · 2 for, 0 against">V +1</span>', $html);
@@ -111,12 +121,20 @@ final class DashboardListsTemplateTest extends KernelTestCase
 
     public function testNoNewIssues(): void
     {
-        self::assertStringContainsString('There are no open issues.', $this->twig->render('dashboard/_new_issues.html.twig', ['issues' => ['documents' => [], 'total' => 0]]));
+        $html = $this->twig->render(
+            'dashboard/_new_issues.html.twig',
+            ['issues' => SearchResult::ofDocuments([], 0)],
+        );
+
+        self::assertStringContainsString('There are no open issues.', $html);
     }
 
     public function testReadyToMerge(): void
     {
-        $html = $this->twig->render('dashboard/_ready_to_merge.html.twig', ['changes' => ['documents' => [Change::fromDocument(self::CHANGE)], 'total' => 7]]);
+        $html = $this->twig->render(
+            'dashboard/_ready_to_merge.html.twig',
+            ['changes' => SearchResult::ofDocuments([Change::fromDocument(self::CHANGE)], 7)],
+        );
 
         self::assertStringContainsString('href="/change/12345"', $html);
         self::assertStringContainsString('[BUGFIX] Repair the cache', $html);
@@ -131,6 +149,11 @@ final class DashboardListsTemplateTest extends KernelTestCase
 
     public function testNothingReadyToMerge(): void
     {
-        self::assertStringContainsString('No changes are ready to merge.', $this->twig->render('dashboard/_ready_to_merge.html.twig', ['changes' => ['documents' => [], 'total' => 0]]));
+        $html = $this->twig->render(
+            'dashboard/_ready_to_merge.html.twig',
+            ['changes' => SearchResult::ofDocuments([], 0)],
+        );
+
+        self::assertStringContainsString('No changes are ready to merge.', $html);
     }
 }

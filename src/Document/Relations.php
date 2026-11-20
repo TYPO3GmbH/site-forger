@@ -11,11 +11,10 @@ declare(strict_types=1);
 
 namespace App\Document;
 
-use App\Elastic\Indices;
+use App\Elastic\SearchResult;
 use App\Enum\IssueStatusEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
-use Elastica\ResultSet;
 
 /**
  * How issues and changes belong together, for the pages of an issue and of a change.
@@ -35,7 +34,6 @@ final readonly class Relations
     private const string LINKED = 'Linked';
 
     public function __construct(
-        private Indices $indices,
         private ChangeRepository $changes,
         private IssueRepository $issues,
     ) {
@@ -102,8 +100,10 @@ final readonly class Relations
 
     /**
      * The open issues most like the issue, all issues with $includeClosed.
+     *
+     * @return SearchResult<Issue>
      */
-    public function duplicatesOf(int $id, bool $includeClosed): ResultSet
+    public function duplicatesOf(int $id, bool $includeClosed): SearchResult
     {
         $bool = [
             'must' => [[
@@ -120,7 +120,7 @@ final readonly class Relations
             $bool['must_not'] = [['terms' => ['status.name' => IssueStatusEnum::closedLabels()]]];
         }
 
-        return $this->indices->issues()->search([
+        return $this->issues->search([
             'query' => ['bool' => $bool],
             'size' => self::DUPLICATES,
         ]);

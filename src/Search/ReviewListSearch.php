@@ -59,9 +59,9 @@ final readonly class ReviewListSearch
         // Selected owners show in the filter, also when they are not among those with the most changes
         $owners = PeopleFacet::selection('Owner', FacetSelection::keys($filters, 'owner'), $this->users);
         $request['aggregations'] = FacetSelection::withSelected($aggregations, 'Owner', array_keys($owners));
-        $resultSet = $this->indices->reviews()->createSearch($request)->search();
+        $changes = ChangeRepository::fromResultSet($this->indices->reviews()->createSearch($request)->search());
 
-        $merged = FacetSelection::merge($resultSet->getAggregations(), 'Owner');
+        $merged = FacetSelection::merge($changes->aggregations(), 'Owner');
         $found = FacetSelection::inOrderOf($merged, array_keys($request['aggregations']));
         // The checkboxes of the owners send their keys
         if (isset($found['Owner'])) {
@@ -74,8 +74,8 @@ final readonly class ReviewListSearch
             $found['Size'] = ReviewSizeEnum::buckets($found['Size']);
         }
 
-        return $page->withTotal($resultSet->getTotalHits())->viewData() + [
-            'changes' => ChangeRepository::fromResultSet($resultSet),
+        return $page->withTotal($changes->total)->viewData() + [
+            'changes' => $changes,
             'aggregations' => $found,
         ];
     }

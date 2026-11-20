@@ -75,8 +75,8 @@ final readonly class IssueListSearch
         $query->setFrom($page->from());
         $selection = $this->addAggregations($query, $filters);
 
-        $resultSet = $search->search();
-        $aggregations = $resultSet->getAggregations();
+        $issues = IssueRepository::fromResultSet($search->search());
+        $aggregations = $issues->aggregations();
         foreach ([...self::PEOPLE_FILTERS, 'Tags'] as $title) {
             $aggregations = FacetSelection::merge($aggregations, $title);
         }
@@ -95,9 +95,9 @@ final readonly class IssueListSearch
             $aggregations['Activity'] = ActivityEnum::buckets($aggregations['Activity']);
         }
 
-        return $page->withTotal($resultSet->getTotalHits())->viewData() + [
-            'issues' => IssueRepository::fromResultSet($resultSet),
-            'maxScore' => $resultSet->getMaxScore(),
+        return $page->withTotal($issues->total)->viewData() + [
+            'issues' => $issues,
+            'maxScore' => $issues->maxScore,
             'aggs' => $aggregations,
         ];
     }

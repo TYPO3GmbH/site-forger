@@ -13,9 +13,10 @@ namespace App\Repository;
 
 use App\Document\Change;
 use App\Elastic\Indices;
+use App\Elastic\SearchResult;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\ReadableCollection;
 use Elastica\Exception\NotFoundException;
-use Elastica\Result;
 use Elastica\ResultSet;
 
 /**
@@ -40,9 +41,9 @@ final readonly class ChangeRepository
     /**
      * @param list<int> $numbers
      *
-     * @return ArrayCollection<int, Change> by number, the ones the index does not have left out
+     * @return ReadableCollection<int, Change> by number, the ones the index does not have left out
      */
-    public function byNumbers(array $numbers): ArrayCollection
+    public function byNumbers(array $numbers): ReadableCollection
     {
         $numbers = array_values(array_unique($numbers));
         if ([] === $numbers) {
@@ -59,21 +60,26 @@ final readonly class ChangeRepository
     /**
      * @param array<string, mixed> $request
      *
-     * @return ArrayCollection<int, Change> in the order of the response
+     * @return SearchResult<Change>
      */
-    public function search(array $request): ArrayCollection
+    public function search(array $request): SearchResult
     {
         return self::fromResultSet($this->indices->reviews()->createSearch($request)->search());
     }
 
     /**
-     * @return ArrayCollection<int, Change>
+     * @param array<string, mixed> $query
      */
-    public static function fromResultSet(ResultSet $resultSet): ArrayCollection
+    public function count(array $query): int
     {
-        return new ArrayCollection(array_map(
-            static fn (Result $result): Change => Change::fromDocument($result->getData()),
-            $resultSet->getResults(),
-        ));
+        return $this->indices->reviews()->count($query);
+    }
+
+    /**
+     * @return SearchResult<Change>
+     */
+    public static function fromResultSet(ResultSet $resultSet): SearchResult
+    {
+        return SearchResult::of($resultSet, Change::fromDocument(...));
     }
 }

@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace App\Sprint;
 
 use App\Document\Change;
-use App\Elastic\Indices;
 use App\Enum\ReviewStatusEnum;
 use App\Repository\ChangeRepository;
 
@@ -27,7 +26,7 @@ final readonly class ReviewBoards
     private const int MAX_CHANGES = 500;
 
     public function __construct(
-        private Indices $indices,
+        private ChangeRepository $changes,
     ) {
     }
 
@@ -40,12 +39,12 @@ final readonly class ReviewBoards
             return [];
         }
         $cards = array_fill_keys(self::GROUPS, []);
-        $resultSet = $this->indices->reviews()->createSearch([
+        $found = $this->changes->search([
             'query' => self::query($type),
             'size' => self::MAX_CHANGES,
             'sort' => [['updated_on' => ['order' => 'asc']]],
-        ])->search();
-        foreach (ChangeRepository::fromResultSet($resultSet) as $change) {
+        ]);
+        foreach ($found as $change) {
             $cards[self::group($change)][] = $change;
         }
 
@@ -59,7 +58,7 @@ final readonly class ReviewBoards
     {
         $menu = [];
         foreach (self::TYPES as $type => $name) {
-            $count = $this->indices->reviews()->createSearch(['query' => self::query($type), 'size' => 0])->search()->getTotalHits();
+            $count = $this->changes->count(['query' => self::query($type)]);
             $menu[] = ['id' => $type, 'count' => $count, 'name' => $name, 'active' => $type === $active];
         }
 

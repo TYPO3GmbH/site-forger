@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Elastic;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\ReadableCollection;
 
 /**
  * One bucket of an aggregation in a response of Elasticsearch: its key, how many documents it has, and its
@@ -49,9 +50,9 @@ final readonly class Bucket
      *
      * @param array<string, mixed>|null $aggregation
      *
-     * @return ArrayCollection<string, Bucket>
+     * @return ReadableCollection<string, Bucket>
      */
-    public static function listOf(?array $aggregation): ArrayCollection
+    public static function listOf(?array $aggregation): ReadableCollection
     {
         $buckets = [];
         foreach ((array) ($aggregation['buckets'] ?? []) as $name => $bucket) {
@@ -73,9 +74,9 @@ final readonly class Bucket
     }
 
     /**
-     * @return ArrayCollection<string, Bucket> the buckets of a sub-aggregation
+     * @return ReadableCollection<string, Bucket> the buckets of a sub-aggregation
      */
-    public function buckets(string $name): ArrayCollection
+    public function buckets(string $name): ReadableCollection
     {
         return self::listOf(is_array($this->bucket[$name] ?? null) ? $this->bucket[$name] : null);
     }
