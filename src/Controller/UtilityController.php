@@ -109,11 +109,10 @@ class UtilityController extends AbstractController
         EntityManagerInterface $entityManager
     ): Response {
         $entry = $this->backportBlacklistEntryRepository->find($entryId);
-        $form = $this->createForm(\App\Form\BackPortBlacklistEntry::class, $entry);
-
         if (null === $entry) {
-            $this->redirectToRoute('utilities_backport_create');
+            return $this->redirectToRoute('utilities_backport_create');
         }
+        $form = $this->createForm(\App\Form\BackPortBlacklistEntry::class, $entry);
 
         $form->handleRequest($request);
 
