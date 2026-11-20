@@ -102,7 +102,9 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('<input type="hidden" name="sort" value="smallest">', $html);
         self::assertStringContainsString('<option value="smallest" selected>Smallest first</option>', $html);
         self::assertStringContainsString('<option value="relevance">Relevance</option>', $html);
-        self::assertStringContainsString('No change in this list matches &quot;cache&quot;.', $html);
+        // The filters find nothing: they stay, with the way back to the list without them, its words and order kept
+        self::assertStringContainsString('No change in this list matches &quot;cache&quot; with the filters.', $html);
+        self::assertStringContainsString('Untick a filter, or <a href="/gerrit/status?query=cache&amp;sort=smallest">remove the filters.</a>', $html);
         // The search in the "Owner" filter asks with the search words of the list
         self::assertStringContainsString('/gerrit/owners?list=gerrit_index&amp;query=cache', $html);
     }
@@ -113,7 +115,10 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
         self::assertStringNotContainsString('value="relevance"', $html);
         self::assertStringContainsString('<option value="updated" selected>Recently updated</option>', $html);
-        self::assertStringContainsString('This list is empty.', $html);
+        self::assertStringContainsString('No change in this list matches the filters.', $html);
+        self::assertStringContainsString('<a href="/gerrit/status">remove the filters.</a>', $html);
+        $data = ['filters' => ['file' => ['path' => '']]] + $this->listData('');
+        self::assertStringContainsString('This list is empty.', $this->twig->render('_partials/review_view.html.twig', $data));
     }
 
     public function testTheCountStandsAboveTheListAndThePagesBelowIt(): void
@@ -147,7 +152,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('href="/search?query=cache&amp;searchClosed=1"', $html);
         self::assertStringContainsString('href="/search/changes?query=cache&amp;searchClosed=1" aria-current="page"', $html);
         // The tabs of My Work: each with its icon and color
-        self::assertMatchesRegularExpression('~class="view-tab is-issues" href="/search\\?query=cache&amp;searchClosed=1">.*?<span>Issues</span>\\s*<span class="view-tab-count" title="Issues found">4</span>~s', $html);
+        self::assertMatchesRegularExpression('~class="view-tab is-issues"[^>]* href="/search\\?query=cache&amp;searchClosed=1">.*?<span>Issues</span>\\s*<span class="view-tab-count" title="Issues found">4</span>~s', $html);
         self::assertStringContainsString('class="view-tab is-changes is-active"', $html);
     }
 

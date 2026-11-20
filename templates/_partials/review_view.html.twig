@@ -58,7 +58,14 @@
                     {{ sortField }}
                 </div>
             {% endif %}
-            {% if results is empty %}
+            {% if results is empty and has_active_filters(filters) %}
+                {% include '_partials/alert.html.twig' with {
+                    'title': query is not empty ? 'No change in this list matches "' ~ query ~ '" with the filters.' : 'No change in this list matches the filters.',
+                    'message': 'Untick a filter, or',
+                    'action': {'url': path(routeName, listParameters|merge(sortParameter)), 'label': 'remove the filters.'},
+                    'style': 'info'
+                } only %}
+            {% elseif results is empty %}
                 {% include '_partials/alert.html.twig' with {
                     'message': query is not empty ? 'No change in this list matches "' ~ query ~ '".' : 'This list is empty.',
                     'style': 'info'

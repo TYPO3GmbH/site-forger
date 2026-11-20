@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
+use App\Elastic\GlobalSearch;
 use App\Renderer\RedmineTextileRenderer;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -42,6 +43,34 @@ class ForgerTwigExtension
      *
      * @param list<array<string, mixed>> $buckets the values of the filter, as its aggregation has them
      */
+    /**
+     * The filters the link to a tab of the search takes along from the page, see GlobalSearch::tabFilters().
+     *
+     * @return array<string, array<string, string>>
+     */
+    #[AsTwigFunction(name: 'search_tab_filters')]
+    public function searchTabFilters(string $tab): array
+    {
+        return GlobalSearch::tabFilters($tab, $this->requestStack->getMainRequest()?->query->all('filters') ?? []);
+    }
+
+    /**
+     * Whether any filter of the list is set: a value ticked, a path or days typed in.
+     */
+    #[AsTwigFunction(name: 'has_active_filters')]
+    public function hasActiveFilters(mixed $filters): bool
+    {
+        foreach (is_array($filters) ? $filters : [] as $values) {
+            foreach (is_array($values) ? $values : [$values] as $value) {
+                if (is_scalar($value) && '' !== trim((string) $value) && 'false' !== $value) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     #[AsTwigFunction(name: 'activeFilterCount')]
     public function activeFilterCount(string $category, array $buckets): int
     {

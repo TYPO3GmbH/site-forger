@@ -84,7 +84,12 @@ class SearchController extends AbstractController
         $viewData['sortOptions'] = IssueSortEnum::options($withRelevance);
         // Links leave out the default, so a changed search keeps its own default
         $viewData['sortParameter'] = $sort === IssueSortEnum::default($withRelevance) ? [] : ['sort' => $sort->value];
-        $viewData['tabs'] = GlobalSearch::tabs($query, $searchClosed);
+        $viewData['tabs'] = GlobalSearch::tabs(
+            $query,
+            $searchClosed,
+            [GlobalSearch::CHANGES => GlobalSearch::peopleQuery(GlobalSearch::CHANGES, $this->filters, $this->users)],
+            [GlobalSearch::ISSUES => (int) $viewData['totalResults']],
+        );
         $viewData['exactMatches'] = GlobalSearch::exactMatches($query);
         $viewData['query'] = $query;
         if ($searchClosed) {

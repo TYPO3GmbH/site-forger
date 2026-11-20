@@ -115,7 +115,12 @@ class ReviewController extends AbstractController
             ReviewSortEnum::UPDATED,
             '' !== trim($searchTerms),
         );
-        $viewData['tabs'] = GlobalSearch::tabs($searchTerms, $searchClosed);
+        $viewData['tabs'] = GlobalSearch::tabs(
+            $searchTerms,
+            $searchClosed,
+            [GlobalSearch::ISSUES => GlobalSearch::peopleQuery(GlobalSearch::ISSUES, $this->query()->all('filters'), $this->users)],
+            [GlobalSearch::CHANGES => (int) $viewData['totalResults']],
+        );
         $viewData['exactMatches'] = GlobalSearch::exactMatches($searchTerms);
 
         return $this->render('search/changes.html.twig', $viewData);

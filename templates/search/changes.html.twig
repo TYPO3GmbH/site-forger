@@ -7,12 +7,13 @@
             {% include '_partials/search_form.html.twig' with {'route': 'search_changes'} %}
             {% include '_partials/search_tabs.html.twig' with {'active': 'changes'} %}
             {% include '_partials/exact_matches.html.twig' %}
-            {% if totalResults > 0 or filters is not empty %}
+            {# Filters that find nothing stay, to untick them #}
+            {% if totalResults > 0 or has_active_filters(filters) %}
                 {% include '_partials/review_view.html.twig' %}
             {% else %}
                 {% include '_partials/alert.html.twig' with {
                     'message': tabs.issues > 0 ? 'The tab "Issues" has ' ~ tabs.issues ~ ' issues for it.' : 'Try other words, or tick "Include closed" for the merged and abandoned ones.',
-                    'title': 'No change was found for "' ~ query ~ '".',
+                    'title': query is not empty ? 'No change was found for "' ~ query ~ '".' : 'No change was found.',
                     'style': tabs.issues > 0 ? 'info' : 'danger'
                 } %}
             {% endif %}
