@@ -16,14 +16,14 @@ use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
 use App\Enum\ReviewStatusEnum;
-use App\People\Users;
+use App\Repository\UserRepository;
 
 /**
  * Builds the search requests for the issues and Gerrit changes of one person.
  *
  * A person is matched by email address or by name: Forge hides the email address
  * of many authors, and people often use different addresses in Forge and Gerrit. On Forge by the numbers of the
- * Forge users of the account, see Users::accountsOf(): the issues keep no emails. On Gerrit also by the number of its
+ * Forge users of the account, see UserRepository::accountsOf(): the issues keep no emails. On Gerrit also by the number of its
  * account.
  */
 final readonly class UserWorkQuery

@@ -17,7 +17,8 @@ use App\Http\ApiFailure;
 use App\Import\ForgeIssueImporter;
 use App\Import\ForgeIssueList;
 use App\Import\ProjectIssues;
-use App\People\Users;
+use App\People\UserDirectory;
+use App\Repository\UserRepository;
 use App\Tests\Http\MockApi;
 use Doctrine\DBAL\Connection;
 use Elastica\Client;
@@ -122,7 +123,11 @@ final class ForgeIssueImporterTest extends TestCase
             new Indices(new Client()),
             $forge,
             new ForgeIssueList($forge, 27),
-            new Users(new Indices(new Client()), new ArrayAdapter(), new NullLogger()),
+            new UserRepository(
+                new Indices(new Client()),
+                new UserDirectory(new Indices(new Client()), new ArrayAdapter(), new NullLogger()),
+                new NullLogger(),
+            ),
             new ProjectIssues(new Indices(new Client()), 27),
             $recorder,
         );

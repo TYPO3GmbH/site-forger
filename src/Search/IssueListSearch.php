@@ -15,7 +15,7 @@ use App\DTO\Pagination;
 use App\Elastic\Indices;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
-use App\People\Users;
+use App\People\UserDirectory;
 use App\Report\CategoryOverview;
 use App\Report\MonthOverview;
 use Elastica\Aggregation\Filters;
@@ -46,7 +46,7 @@ final readonly class IssueListSearch
 
     public function __construct(
         private Indices $indices,
-        private Users $users,
+        private UserDirectory $users,
         private PersonSuggestions $suggestions,
     ) {
     }

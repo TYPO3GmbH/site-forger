@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Search;
 
 use App\Elastic\Indices;
-use App\People\Users;
+use App\People\UserDirectory;
 use App\Search\PeopleFacet;
 use Elastica\Client;
 use PHPUnit\Framework\TestCase;
@@ -25,7 +25,7 @@ use Symfony\Component\Cache\Adapter\ArrayAdapter;
  */
 final class PeopleKeysTest extends TestCase
 {
-    private Users $users;
+    private UserDirectory $users;
 
     protected function setUp(): void
     {
@@ -42,7 +42,7 @@ final class PeopleKeysTest extends TestCase
                 'forge:38237' => ['name' => 'Benjamin Kott', 'username' => null, 'forge' => 38237, 'gerrit' => null],
             ],
         ]);
-        $this->users = new Users(new Indices(new Client()), $cache, new NullLogger());
+        $this->users = new UserDirectory(new Indices(new Client()), $cache, new NullLogger());
     }
 
     public function testAPersonIsTheUsernameOnForgeAndGerritAlike(): void

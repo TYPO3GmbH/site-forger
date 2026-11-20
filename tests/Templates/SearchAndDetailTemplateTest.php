@@ -589,7 +589,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
             'tags' => ['preview'],
             'complexity' => 'easy',
         ];
-        // The author is "benni" to the index "user", see Users::keyOf()
+        // The author is "benni" to the index "user", see UserDirectory::keyOf()
         $cache = self::getContainer()->get('cache.app');
         $cache->delete('user_people');
         $cache->get('user_people', static fn (): array => ['keys' => ['forge:1' => 'benni'], 'people' => ['benni' => ['name' => 'Benni Mack', 'username' => 'benni', 'forge' => 1, 'gerrit' => null]]]);

@@ -16,7 +16,8 @@ use App\Elastic\Indices;
 use App\Import\ChangeRefreshResult;
 use App\Import\GerritChangeImporter;
 use App\Import\ProjectChanges;
-use App\People\Users;
+use App\People\UserDirectory;
+use App\Repository\UserRepository;
 use App\Tests\Http\MockApi;
 use Doctrine\DBAL\Connection;
 use Elastica\Client;
@@ -187,7 +188,11 @@ final class GerritChangeImporterTest extends TestCase
             $api->client,
             $recorder,
             $projectChanges ?? $this->createStub(ProjectChanges::class),
-            new Users(new Indices(new Client()), new ArrayAdapter(), new NullLogger()),
+            new UserRepository(
+                new Indices(new Client()),
+                new UserDirectory(new Indices(new Client()), new ArrayAdapter(), new NullLogger()),
+                new NullLogger(),
+            ),
         );
     }
 }

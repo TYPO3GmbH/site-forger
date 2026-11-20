@@ -18,7 +18,7 @@ use App\Enum\IssueStatusEnum;
 use App\Http\ApiClient;
 use App\Http\ApiFailure;
 use App\People\User;
-use App\People\Users;
+use App\Repository\UserRepository;
 use Elastica\Document;
 
 /**
@@ -32,7 +32,7 @@ final class ForgeIssueImporter
         private readonly Indices $indices,
         private readonly ApiClient $forge,
         private readonly ForgeIssueList $forgeIssues,
-        private readonly Users $users,
+        private readonly UserRepository $users,
         private readonly ProjectIssues $projectIssues,
         private readonly CommandRunRecorder $recorder,
     ) {

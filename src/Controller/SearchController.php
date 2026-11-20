@@ -13,7 +13,7 @@ namespace App\Controller;
 
 use App\DTO\Pagination;
 use App\Enum\IssueSortEnum;
-use App\People\Users;
+use App\People\UserDirectory;
 use App\Search\GlobalSearch;
 use App\Search\IssueListSearch;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -28,7 +28,7 @@ class SearchController extends AbstractController
     public function __construct(
         private readonly IssueListSearch $issueListSearch,
         private readonly GlobalSearch $globalSearch,
-        private readonly Users $users,
+        private readonly UserDirectory $users,
     ) {
     }
 

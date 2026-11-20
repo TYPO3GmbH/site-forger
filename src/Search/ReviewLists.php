@@ -14,7 +14,7 @@ namespace App\Search;
 use App\Enum\ActivityEnum;
 use App\Enum\ReviewSizeEnum;
 use App\Enum\ReviewStatusEnum;
-use App\People\Users;
+use App\People\UserDirectory;
 use App\Report\MonthOverview;
 use Elastica\Query\BoolQuery;
 use Elastica\Query\Range;
@@ -165,7 +165,7 @@ final class ReviewLists
      *
      * @param array<string, mixed> $filters
      */
-    public static function filterQuery(array $filters, Users $users): BoolQuery
+    public static function filterQuery(array $filters, UserDirectory $users): BoolQuery
     {
         $query = new BoolQuery();
         foreach ($filters as $key => $values) {

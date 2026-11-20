@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Search;
 
-use App\People\Users;
+use App\People\UserDirectory;
 
 /**
  * People in a list whose name contains what was typed, for the search in a filter of people, see PeopleFacet:
@@ -83,14 +83,14 @@ final class PersonSuggestion
     }
 
     /**
-     * The people from the response, with their key in the filter (see Users::keyOf()), how many documents of the list
+     * The people from the response, with their key in the filter (see UserDirectory::keyOf()), how many documents of the list
      * they have and their avatar, null without one: the search shows the initials then. Keys, names and avatars
      * only, no email addresses.
      *
      * @param array<string, mixed>                    $aggregations
      * @param \Closure(array<string, mixed>): ?string $avatar       the address of the avatar of a user, of size AVATAR_SIZE,
-     *                                                              see Users::avatarOfUser()
-     * @param \Closure(string, int): string           $keyOf        see Users::keyOf()
+     *                                                              see UserDirectory::avatarOfUser()
+     * @param \Closure(string, int): string           $keyOf        see UserDirectory::keyOf()
      *
      * @return list<array{key: string, name: string, count: int, avatar: string|null}>
      */

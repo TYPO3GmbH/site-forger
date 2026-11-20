@@ -141,13 +141,13 @@ warning: run the full import once, by hand. The comparison with Forge would fill
 
 ### The users
 
-The index `user` holds the people of Forge and Gerrit, one document per TYPO3 account (`App\People\Users`,
+The index `user` holds the people of Forge and Gerrit, one document per TYPO3 account (`App\Repository\UserRepository`,
 `App\People\User`): the username, the number on Forge (`forge_id`) and on Gerrit (`gerrit_id`), the name, the known
 emails. Forge and Gerrit both log in with the TYPO3 account: the Forge login and the Gerrit username
 are its username, the id of the document. A person of Forge is `forge:<forge_id>` until Forge told it.
 
 **Gerrit** tells all of the owner of a change with the change (`DETAILED_ACCOUNTS`): number, name, username and
-email. The import of the changes writes the owners the index `user` lacks at once (`Users::ensureGerrit()`),
+email. The import of the changes writes the owners the index `user` lacks at once (`UserRepository::ensureGerrit()`),
 and adds the number on Gerrit to a person it has by the username. When Forge tells the username of a person later,
 "Update users" joins the two documents. A change shows its owner, who uploaded it, with the account of Gerrit
 (`owner_id`, `owner_username`), not the author of its commit, who has no account.
@@ -160,7 +160,7 @@ says what it keeps, not where from: the source of the users is Forge for now (`A
 may be another one later under the same command:
 
 * **The importer** writes the author and the assignee of every issue it writes to the index `user`, if it lacks
-  them: empty but for the number and the name (`Users::ensure()`). The job fills them.
+  them: empty but for the number and the name (`UserRepository::ensure()`). The job fills them.
 * **First** the job takes the authors and assignees of the issues already in the index over that the index `user`
   lacks, without a request, with the email the import kept there before the index `user` existed. So the index
   `user` gets complete again by itself, also when it was lost.

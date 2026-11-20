@@ -11,21 +11,21 @@ declare(strict_types=1);
 
 namespace App\Subscriber;
 
-use App\People\Users;
+use App\Repository\UserRepository;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
 use T3G\Bundle\Keycloak\Security\KeyCloakUser;
 
 /**
- * Notes every login with the TYPO3 account in the index "user", see Users::recordLogin(): the username of
+ * Notes every login with the TYPO3 account in the index "user", see UserRepository::recordLogin(): the username of
  * my.typo3.org is the Forge login and the Gerrit username, its email gives the avatar to those Forge shows none of.
  * A login never fails for it: without the index, the person is noted at the next login.
  */
 final readonly class Typo3LoginSubscriber implements EventSubscriberInterface
 {
     public function __construct(
-        private Users $users,
+        private UserRepository $users,
         private LoggerInterface $logger,
     ) {
     }

@@ -17,7 +17,7 @@ use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
 use App\People\User;
-use App\People\Users;
+use App\Repository\UserRepository;
 use App\Search\UserWorkQuery;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -35,7 +35,7 @@ class MyWorkController extends AbstractController
 {
     public function __construct(
         private readonly Indices $indices,
-        private readonly Users $users,
+        private readonly UserRepository $users,
     ) {
     }
 
@@ -135,7 +135,7 @@ class MyWorkController extends AbstractController
     private function query(bool $includeClosed, string $searchTerms, ?IssueStatusEnum $issueStatus = null, ?ReviewStateEnum $reviewState = null, IssueSortEnum $issueSort = IssueSortEnum::UPDATED, ReviewSortEnum $reviewSort = ReviewSortEnum::UPDATED): UserWorkQuery
     {
         $user = $this->getUser();
-        // The people of the account on Forge and Gerrit, see Users
+        // The people of the account on Forge and Gerrit, see UserRepository
         $accounts = $user instanceof KeyCloakUser ? $this->users->accountsOf($user->getUserIdentifier(), (string) $user->getEmail()) : [];
 
         return new UserWorkQuery(

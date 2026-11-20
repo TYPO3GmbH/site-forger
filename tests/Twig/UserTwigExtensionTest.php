@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Twig;
 
 use App\Elastic\Indices;
-use App\People\Users;
+use App\People\UserDirectory;
 use App\Twig\UserTwigExtension;
 use Elastica\Client;
 use PHPUnit\Framework\TestCase;
@@ -47,6 +47,6 @@ final class UserTwigExtensionTest extends TestCase
 
     private function extension(): UserTwigExtension
     {
-        return new UserTwigExtension(new Users(new Indices(new Client()), new ArrayAdapter(), new NullLogger()));
+        return new UserTwigExtension(new UserDirectory(new Indices(new Client()), new ArrayAdapter(), new NullLogger()));
     }
 }

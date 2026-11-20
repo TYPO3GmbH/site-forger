@@ -19,7 +19,7 @@ use App\Enum\ReviewVoteEnum;
 use App\Http\ApiClient;
 use App\Http\ApiFailure;
 use App\People\User;
-use App\People\Users;
+use App\Repository\UserRepository;
 use Elastica\Document;
 
 /**
@@ -55,7 +55,7 @@ final class GerritChangeImporter
         private readonly ApiClient $gerrit,
         private readonly CommandRunRecorder $recorder,
         private readonly ProjectChanges $projectChanges,
-        private readonly Users $users,
+        private readonly UserRepository $users,
     ) {
     }
 

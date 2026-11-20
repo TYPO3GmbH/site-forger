@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace App\Twig;
 
 use App\People\User;
-use App\People\Users;
+use App\People\UserDirectory;
 use App\Search\PeopleFacet;
 use Twig\Attribute\AsTwigFunction;
 use Twig\Markup;
@@ -30,7 +30,7 @@ final readonly class UserTwigExtension
     private const string PLACEHOLDER = 'd41d8cd98f00b204e9800998ecf8427e';
 
     public function __construct(
-        private Users $users,
+        private UserDirectory $users,
     ) {
     }
 
@@ -55,7 +55,7 @@ final readonly class UserTwigExtension
 
     /**
      * The key of a person in the filters of people, for the links to the issues and changes of the person, see
-     * Users::keyOfUser().
+     * UserDirectory::keyOfUser().
      *
      * @param array<string, mixed>|null $user
      */

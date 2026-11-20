@@ -14,7 +14,7 @@ namespace App\Controller;
 use App\DTO\Pagination;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewSortEnum;
-use App\People\Users;
+use App\People\UserDirectory;
 use App\Report\StaleIssues;
 use App\Search\GlobalSearch;
 use App\Search\ReviewLists;
@@ -34,7 +34,7 @@ class ReviewController extends AbstractController
         private readonly StaleIssues $staleIssues,
         private readonly GlobalSearch $globalSearch,
         private readonly RequestStack $requestStack,
-        private readonly Users $users,
+        private readonly UserDirectory $users,
     ) {
     }
 

@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace App\People;
 
 /**
- * A person of the index "user", see App\People\Users: a TYPO3 account with its numbers on Forge and Gerrit.
+ * A person of the index "user", see UserRepository: a TYPO3 account with its numbers on Forge and Gerrit.
  * Forge and Gerrit both log in with the TYPO3 account: the Forge login and the Gerrit username are its username.
  *
  * Taken over from the issue index (fromIssue()) a user has no username and was never asked for
@@ -20,7 +20,7 @@ namespace App\People;
  * change with the change (fromGerrit()). A person of Gerrit only has no Forge number.
  *
  * Logging in here with the TYPO3 account (my.typo3.org) adds its email and the time to the person of the username,
- * see loggedIn() and App\People\Users::recordLogin().
+ * see loggedIn() and App\Repository\UserRepository::recordLogin().
  */
 final readonly class User
 {
@@ -133,6 +133,22 @@ final readonly class User
     public function id(): string
     {
         return $this->username ?? (null === $this->forgeId ? 'gerrit:' . $this->gerritId : 'forge:' . $this->forgeId);
+    }
+
+    /**
+     * @return list<string> "forge:<number>" and "gerrit:<number>", as far as the person has the numbers
+     */
+    public function keys(): array
+    {
+        $keys = [];
+        if (null !== $this->forgeId) {
+            $keys[] = 'forge:' . $this->forgeId;
+        }
+        if (null !== $this->gerritId) {
+            $keys[] = 'gerrit:' . $this->gerritId;
+        }
+
+        return $keys;
     }
 
     /**

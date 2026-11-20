@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Search;
 
-use App\People\Users;
+use App\People\UserDirectory;
 use Elastica\Index;
 
 /**
@@ -20,7 +20,7 @@ use Elastica\Index;
 final readonly class PersonSuggestions
 {
     public function __construct(
-        private Users $users,
+        private UserDirectory $users,
     ) {
     }
 

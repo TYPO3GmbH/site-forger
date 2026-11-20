@@ -17,7 +17,7 @@ use App\Elastic\Indices;
 use App\Enum\SystemCheckEnum;
 use App\Import\PendingImport;
 use App\People\UserHealth;
-use App\People\Users;
+use App\Repository\UserRepository;
 use Elastica\Cluster\Health;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,7 +37,7 @@ class SystemController extends AbstractController
         private readonly Indices $indices,
         private readonly IndexSetup $indexSetup,
         private readonly KernelInterface $kernel,
-        private readonly Users $users,
+        private readonly UserRepository $users,
     ) {
     }
 

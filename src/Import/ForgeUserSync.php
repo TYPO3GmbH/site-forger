@@ -16,13 +16,13 @@ use App\Elastic\Indices;
 use App\Http\ApiClient;
 use App\Http\ApiFailure;
 use App\People\User;
-use App\People\Users;
+use App\Repository\UserRepository;
 
 /**
- * Fills the index "user" from Forge, see App\People\Users, in the job "Update users" (App\Command\ImportUsersCommand):
+ * Fills the index "user" from Forge, see App\Repository\UserRepository, in the job "Update users" (App\Command\ImportUsersCommand):
  * the source of the users for now.
  * The importer writes the authors and assignees of the issues it writes, empty but for number and name
- * (Users::ensure()); this fills them:
+ * (UserRepository::ensure()); this fills them:
  *
  * 1. takes the people of the issues already in the index over that the index "user" lacks, without a request:
  *    their number, their name, and their email, if the import kept it there before the index "user". So the index
@@ -43,7 +43,7 @@ final readonly class ForgeUserSync
     public const int REFRESH_AFTER_DAYS = 30;
 
     /**
-     * Users each Forge import asks for: some seconds, thousands of users in a day.
+     * UserRepository each Forge import asks for: some seconds, thousands of users in a day.
      */
     public const int PER_RUN = 30;
 
@@ -61,7 +61,7 @@ final readonly class ForgeUserSync
     public function __construct(
         private Indices $indices,
         private ApiClient $forge,
-        private Users $users,
+        private UserRepository $users,
         private CommandRunRecorder $recorder,
     ) {
     }
@@ -169,7 +169,7 @@ final readonly class ForgeUserSync
     /**
      * The users with what the index knows of them from Gerrit: Forge told the username, a change may have written the
      * person under it before, with the number on Gerrit. Also with a login with the TYPO3 account since the run read
-     * the users, see App\People\Users::recordLogin().
+     * the users, see App\Repository\UserRepository::recordLogin().
      *
      * @param list<User> $users
      *

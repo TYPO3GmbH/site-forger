@@ -16,7 +16,7 @@ use App\Elastic\Indices;
 use App\Enum\ActivityEnum;
 use App\Enum\ReviewSizeEnum;
 use App\Enum\ReviewSortEnum;
-use App\People\Users;
+use App\People\UserDirectory;
 
 /**
  * The review lists and the search of the changes with their filters, see ReviewLists and ReviewController.
@@ -25,7 +25,7 @@ final readonly class ReviewListSearch
 {
     public function __construct(
         private Indices $indices,
-        private Users $users,
+        private UserDirectory $users,
         private PersonSuggestions $suggestions,
     ) {
     }

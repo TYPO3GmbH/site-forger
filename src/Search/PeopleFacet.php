@@ -12,11 +12,11 @@ declare(strict_types=1);
 namespace App\Search;
 
 use App\Import\ImportSchema;
-use App\People\Users;
+use App\People\UserDirectory;
 
 /**
  * The filters of people, of the issues and of the changes alike. A person is "filters[<key>][<person>]", by the id
- * of its document in the index "user", see Users::keyOf(): the username, the same on Forge and Gerrit, so a person
+ * of its document in the index "user", see UserDirectory::keyOf(): the username, the same on Forge and Gerrit, so a person
  * is one key in both; "forge:<number>" or "gerrit:<number>" while the index knows no username. A name, as the links
  * had them before, still filters by the name.
  *
@@ -72,7 +72,7 @@ final class PeopleFacet
     }
 
     /**
-     * The selected people of the filter by their numbers, see Users::numbersOf(): each number with the key it was
+     * The selected people of the filter by their numbers, see UserDirectory::numbersOf(): each number with the key it was
      * selected by. The aggregation of those the filter does not show among the most asks for the numbers, see
      * FacetSelection::withSelected(); their checkboxes are those of the keys, see keyed().
      *
@@ -80,7 +80,7 @@ final class PeopleFacet
      *
      * @return array<int, string>
      */
-    public static function selection(string $title, array $keys, Users $users): array
+    public static function selection(string $title, array $keys, UserDirectory $users): array
     {
         $selection = [];
         foreach ($keys as $key) {
@@ -93,7 +93,7 @@ final class PeopleFacet
     }
 
     /**
-     * The buckets of the filter with the keys of their people instead of the numbers, see Users::keyOf(): what the
+     * The buckets of the filter with the keys of their people instead of the numbers, see UserDirectory::keyOf(): what the
      * checkboxes send. A selected person keeps the key it was selected by, so its checkbox is ticked.
      *
      * @param array<string, mixed> $aggregation the aggregation of the filter in the response
@@ -101,7 +101,7 @@ final class PeopleFacet
      *
      * @return array<string, mixed>
      */
-    public static function keyed(array $aggregation, string $title, Users $users, array $selection = []): array
+    public static function keyed(array $aggregation, string $title, UserDirectory $users, array $selection = []): array
     {
         foreach ($aggregation['buckets'] ?? [] as $index => $bucket) {
             if (is_int($bucket['key'] ?? null)) {
@@ -113,7 +113,7 @@ final class PeopleFacet
     }
 
     /**
-     * The query of the selected people of the filter, any of them: by their numbers, see Users::numbersOf(), and by
+     * The query of the selected people of the filter, any of them: by their numbers, see UserDirectory::numbersOf(), and by
      * the username where the documents have one. A key the index knows nobody of is a name, as the links had them
      * before ("_" for the spaces).
      *
@@ -124,7 +124,7 @@ final class PeopleFacet
      *
      * @return array<string, mixed>|null null without keys; a query that finds nothing for people without documents
      */
-    public static function query(string $title, array $keys, Users $users): ?array
+    public static function query(string $title, array $keys, UserDirectory $users): ?array
     {
         if ([] === $keys) {
             return null;

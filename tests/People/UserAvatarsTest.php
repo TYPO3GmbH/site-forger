@@ -12,17 +12,17 @@ declare(strict_types=1);
 namespace App\Tests\People;
 
 use App\People\User;
-use App\People\Users;
+use App\People\UserDirectory;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The avatars of the pages, by the numbers of the people on Forge and Gerrit, see Users::avatarMap().
+ * The avatars of the pages, by the numbers of the people on Forge and Gerrit, see UserDirectory::avatarMap().
  */
 final class UserAvatarsTest extends TestCase
 {
     public function testAPersonForgeWasNotAskedForYetHasTheAvatarOfTheOneOfTheSameName(): void
     {
-        $avatars = Users::avatarMap([
+        $avatars = UserDirectory::avatarMap([
             new User(null, 'Benni Mack', 'benni', 7059, ['benni@example.org']),
             new User(320, 'Benni Mack'),
             // Asked for: what Forge told counts

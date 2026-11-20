@@ -15,7 +15,7 @@ use App\Enum\SystemCheckEnum;
 use App\Import\ForgeUserSync;
 
 /**
- * The users on the system page in one line: whether "Update users" does its work, see ForgeUserSync. Users
+ * The users on the system page in one line: whether "Update users" does its work, see ForgeUserSync. UserRepository
  * still waiting for Forge are no problem, the job asks for them run by run. It needs attention only when it does
  * not get on, or when Forge does not know the users it asks for.
  */
@@ -34,7 +34,7 @@ final class UserHealth
     private const int GONE_MINIMUM = 20;
 
     /**
-     * @param array{total: int, withAvatar: int, waiting: int, gone: int, lastFetched: \DateTimeImmutable|null} $statistics see Users::statistics()
+     * @param array{total: int, withAvatar: int, waiting: int, gone: int, lastFetched: \DateTimeImmutable|null} $statistics see UserRepository::statistics()
      *
      * @return array{result: SystemCheckEnum, summary: string, hint: string|null}
      */

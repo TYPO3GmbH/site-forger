@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace App\Search;
 
 use App\Elastic\Indices;
-use App\People\Users;
+use App\People\UserDirectory;
 use Elastica\Exception\NotFoundException;
 use Elastica\Query;
 
@@ -97,7 +97,7 @@ final readonly class GlobalSearch
      *
      * @return array<string, mixed>|null
      */
-    public static function peopleQuery(string $tab, array $filters, Users $users): ?array
+    public static function peopleQuery(string $tab, array $filters, UserDirectory $users): ?array
     {
         foreach (self::tabFilters($tab, $filters) as $key => $people) {
             $title = PeopleFacet::titleOf($key);
