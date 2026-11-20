@@ -11,21 +11,23 @@ declare(strict_types=1);
 
 namespace App\Tests\Report;
 
+use App\Elastic\Bucket;
 use App\Report\MonthOverview;
+use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\TestCase;
 
 final class MonthOverviewTest extends TestCase
 {
     public function testARowPerYearTheNewestFirstEveryMonthInIt(): void
     {
-        $rows = MonthOverview::rows([
+        $rows = MonthOverview::rows(self::buckets([
             ['key_as_string' => '2025/01/01 00:00:00', 'doc_count' => 3, 'month' => ['buckets' => [
                 ['key_as_string' => '2025/03/01 00:00:00', 'doc_count' => 3, 'status' => ['buckets' => [['key' => 'New', 'doc_count' => 2], ['key' => 'Under Review', 'doc_count' => 1]]]],
             ]]],
             ['key_as_string' => '2026/01/01 00:00:00', 'doc_count' => 1, 'month' => ['buckets' => [
                 ['key_as_string' => '2026/11/01 00:00:00', 'doc_count' => 1, 'status' => ['buckets' => [['key' => 'New', 'doc_count' => 1]]]],
             ]]],
-        ]);
+        ]));
 
         self::assertSame(['2026', '2025'], array_column($rows, 'year'));
         self::assertCount(12, $rows[1]['months']);
@@ -84,5 +86,18 @@ final class MonthOverviewTest extends TestCase
         self::assertSame(3, MonthOverview::shade(26, 370));
         self::assertSame(MonthOverview::SHADES, MonthOverview::shade(370, 370));
         self::assertSame(MonthOverview::SHADES, MonthOverview::shade(1, 1));
+    }
+
+    /**
+     * @param list<array<string, mixed>> $buckets
+     *
+     * @return ArrayCollection<int, Bucket>
+     */
+    private static function buckets(array $buckets): ArrayCollection
+    {
+        return new ArrayCollection(array_map(
+            static fn (array $bucket): Bucket => Bucket::fromArray($bucket),
+            $buckets,
+        ));
     }
 }

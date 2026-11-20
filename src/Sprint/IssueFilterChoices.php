@@ -11,8 +11,7 @@ declare(strict_types=1);
 
 namespace App\Sprint;
 
-use App\Elastic\Bucket;
-use App\Elastic\Indices;
+use App\Repository\IssueRepository;
 
 /**
  * The values the issue index holds for each filter of the sprint board wizard, with their issue count.
@@ -25,7 +24,7 @@ class IssueFilterChoices
     private ?array $values = null;
 
     public function __construct(
-        private readonly Indices $indices,
+        private readonly IssueRepository $issues,
     ) {
     }
 
@@ -49,15 +48,13 @@ class IssueFilterChoices
         foreach ($fields as $field) {
             $aggregations[$field] = ['terms' => ['field' => $field, 'size' => self::MAX_VALUES]];
         }
-        $resultSet = $this->indices->issues()
-            ->createSearch(['size' => 0, 'aggregations' => $aggregations])
-            ->search();
+        $found = $this->issues->search(['size' => 0, 'aggregations' => $aggregations]);
 
         $values = [];
         foreach ($fields as $field) {
             // Issues without a value, e.g. without focus, cannot be filtered for
             $counts = array_filter(
-                Bucket::countsOf($resultSet->getAggregation($field)),
+                $found->counts($field),
                 static fn (int|string $key): bool => '' !== trim((string) $key),
                 ARRAY_FILTER_USE_KEY,
             );

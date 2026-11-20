@@ -12,11 +12,10 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\DTO\TrackerFilters;
-use App\Elastic\Bucket;
-use App\Elastic\Indices;
 use App\Enum\TrackerEnum;
 use App\Report\CategoryOverview;
 use App\Report\MonthOverview;
+use App\Repository\IssueRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,7 +24,7 @@ use Symfony\Component\Routing\Attribute\Route;
 class ManagementController extends AbstractController
 {
     public function __construct(
-        private readonly Indices $indices,
+        private readonly IssueRepository $issues,
     ) {
     }
 
@@ -37,15 +36,15 @@ class ManagementController extends AbstractController
         $trackerFilters = new TrackerFilters($request);
         $viewData['trackerFilters'] = $trackerFilters;
         $request = MonthOverview::request($trackerFilters->excludedLabels());
-        $aggregations = $this->indices->issues()->createSearch($request)->search()->getAggregations();
-        $rows = MonthOverview::rows($aggregations['year']['buckets'] ?? []);
+        $issues = $this->issues->search($request);
+        $rows = MonthOverview::rows($issues->buckets('year'));
         $viewData['rows'] = $rows;
         $viewData['maximum'] = MonthOverview::maximum($rows);
         $viewData['total'] = array_sum(array_column($rows, 'total'));
         // Nothing left out: no filter of the trackers in the search, the issues of every tracker count
         $trackerNames = array_map(
             static fn (string $name): string => str_replace(' ', '_', $name),
-            array_keys(Bucket::countsOf($aggregations['tracker'] ?? null)),
+            array_keys($issues->counts('tracker')),
         );
         $viewData['trackerFilter'] = [] === $trackerFilters->excluded ? [] : array_fill_keys($trackerNames, 'true');
         // The chips of the trackers
@@ -64,10 +63,9 @@ class ManagementController extends AbstractController
     #[Route(path: '/management/bycategory', name: 'management_bycategory')]
     public function byCategory(): Response
     {
-        $resultSet = $this->indices->issues()->createSearch(CategoryOverview::request())->search();
-        $aggregations = $resultSet->getAggregations();
-        $rows = CategoryOverview::rows($aggregations['category']['buckets'] ?? []);
-        $withoutCategory = CategoryOverview::withoutCategory($aggregations['without_category'] ?? null);
+        $issues = $this->issues->search(CategoryOverview::request());
+        $rows = CategoryOverview::rows($issues->buckets('category'));
+        $withoutCategory = CategoryOverview::withoutCategory($issues->aggregation('without_category'));
 
         return $this->render('management/bycategory.html.twig', [
             'rows' => $rows,

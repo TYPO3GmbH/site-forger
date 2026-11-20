@@ -13,10 +13,10 @@ namespace App\Charts\Types;
 
 use App\Charts\TimeSeries;
 use App\Elastic\Indices;
+use App\Elastic\SearchResult;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStatusEnum;
 use Elastica\Index;
-use Elastica\ResultSet;
 
 abstract class AbstractChart
 {
@@ -37,12 +37,15 @@ abstract class AbstractChart
 
     /**
      * @param array<string, mixed> $query
+     *
+     * @return SearchResult<array<string, mixed>>
      */
-    protected function fetchData(array $query): ResultSet
+    protected function fetchData(array $query): SearchResult
     {
-        $search = $this->getIndex()->createSearch($query);
-
-        return $search->search();
+        return SearchResult::of(
+            $this->getIndex()->createSearch($query)->search(),
+            static fn (array $source): array => $source,
+        );
     }
 
     /**
@@ -82,7 +85,7 @@ abstract class AbstractChart
             'aggregations' => ['over_time' => TimeSeries::histogram($field, $interval, $from)],
         ]);
 
-        return TimeSeries::counts($result->getAggregation('over_time'));
+        return TimeSeries::counts($result->aggregation('over_time'));
     }
 
     /**

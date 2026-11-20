@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace App\Charts\Types;
 
 use App\Charts\Colors;
-use App\Elastic\Bucket;
 use App\Enum\IssueStatusEnum;
 
 class TrackerTypes extends IssueChart
@@ -45,8 +44,7 @@ class TrackerTypes extends IssueChart
                 ],
             ],
         ];
-        $resultSet = $this->fetchData($fullRequest);
-        $trackers = Bucket::listOf($resultSet->getAggregation('trackerType'));
+        $trackers = $this->fetchData($fullRequest)->buckets('trackerType');
 
         $typeColors = [
             IssueStatusEnum::NEW->label() => Colors::getAsRgb(Colors::RED),

@@ -14,6 +14,7 @@ namespace App\Report;
 use App\Elastic\Bucket;
 use App\Enum\IssueStatusEnum;
 use App\Enum\TrackerEnum;
+use Doctrine\Common\Collections\ReadableCollection;
 
 /**
  * The table of "Issues by category": per category its open issues, how many of them each tracker has.
@@ -76,13 +77,13 @@ final class CategoryOverview
      * The rows of the table, the categories with the most open issues first, the same counts by name. The counts by the
      * label of each of TRACKERS, 0 for none. The buckets are those of the aggregation "category" of request().
      *
-     * @param list<array<string, mixed>> $buckets
+     * @param ReadableCollection<array-key, Bucket> $categories
      *
      * @return list<array{name: string, total: int, counts: array<string, int>, other: array{count: int, labels: list<string>}}>
      */
-    public static function rows(array $buckets): array
+    public static function rows(ReadableCollection $categories): array
     {
-        $rows = array_map(self::row(...), $buckets);
+        $rows = array_values($categories->map(self::row(...))->toArray());
         usort($rows, static fn (array $a, array $b): int => [$b['total'], $a['name']] <=> [$a['total'], $b['name']]);
 
         return $rows;
@@ -98,23 +99,21 @@ final class CategoryOverview
      */
     public static function withoutCategory(?array $bucket): ?array
     {
-        if (null === $bucket || 0 === Bucket::fromArray($bucket)->count) {
+        $category = null === $bucket ? null : Bucket::fromArray($bucket, self::WITHOUT);
+        if (null === $category || 0 === $category->count) {
             return null;
         }
 
-        return self::row(['key' => self::WITHOUT] + $bucket);
+        return self::row($category);
     }
 
     /**
-     * @param array<string, mixed> $bucket
-     *
      * @return array{name: string, total: int, counts: array<string, int>, other: array{count: int, labels: list<string>}}
      */
-    private static function row(array $bucket): array
+    private static function row(Bucket $category): array
     {
         $counts = array_fill_keys(array_map(static fn (TrackerEnum $tracker): string => $tracker->label(), self::TRACKERS), 0);
         $other = ['count' => 0, 'labels' => []];
-        $category = Bucket::fromArray($bucket);
         foreach ($category->buckets('tracker') as $tracker) {
             if (array_key_exists($tracker->key, $counts)) {
                 $counts[$tracker->key] = $tracker->count;

@@ -13,6 +13,7 @@ namespace App\Tests\Templates;
 
 use App\Document\Change;
 use App\Document\Issue;
+use App\Elastic\Bucket;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
@@ -20,6 +21,7 @@ use App\Enum\TrackerEnum;
 use App\Report\CategoryOverview;
 use App\Report\MonthOverview;
 use App\Report\StaleIssues;
+use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Finder\Finder;
 use Twig\Environment;
@@ -261,7 +263,13 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
     public function testTheCategoriesAreATableWhoseRowsAddUp(): void
     {
-        $rows = CategoryOverview::rows([['key' => 'Form Framework', 'doc_count' => 4, 'tracker' => ['buckets' => [['key' => 'Bug', 'doc_count' => 2], ['key' => 'Support', 'doc_count' => 1], ['key' => 'Topic', 'doc_count' => 1]]]]]);
+        $rows = CategoryOverview::rows(self::buckets([
+            ['key' => 'Form Framework', 'doc_count' => 4, 'tracker' => ['buckets' => [
+                ['key' => 'Bug', 'doc_count' => 2],
+                ['key' => 'Support', 'doc_count' => 1],
+                ['key' => 'Topic', 'doc_count' => 1],
+            ]]],
+        ]));
         $without = CategoryOverview::withoutCategory(['doc_count' => 1, 'tracker' => ['buckets' => [['key' => 'Bug', 'doc_count' => 1]]]]);
         $template = $this->twig->load('management/bycategory.html.twig');
         $html = $template->renderBlock('body', [
@@ -324,9 +332,14 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
     public function testTheMonthsAsAHeatmapAndTheTrackersAsChips(): void
     {
-        $rows = MonthOverview::rows([['key_as_string' => '2025/01/01 00:00:00', 'doc_count' => 3, 'month' => ['buckets' => [
-            ['key_as_string' => '2025/03/01 00:00:00', 'doc_count' => 3, 'status' => ['buckets' => [['key' => 'New', 'doc_count' => 2], ['key' => 'Under Review', 'doc_count' => 1]]]],
-        ]]]]);
+        $rows = MonthOverview::rows(self::buckets([
+            ['key_as_string' => '2025/01/01 00:00:00', 'doc_count' => 3, 'month' => ['buckets' => [
+                ['key_as_string' => '2025/03/01 00:00:00', 'doc_count' => 3, 'status' => ['buckets' => [
+                    ['key' => 'New', 'doc_count' => 2],
+                    ['key' => 'Under Review', 'doc_count' => 1],
+                ]]],
+            ]]],
+        ]));
         $template = $this->twig->load('management/index.html.twig');
         $html = $template->renderBlock('body', [
             'rows' => $rows, 'maximum' => 3, 'total' => 3, 'trackerFilter' => [],
@@ -712,5 +725,18 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         $html = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::CHANGE + ['insertions' => 40, 'deletions' => 20]), 'detailed' => true]);
 
         self::assertStringContainsString('status-pill-size-normal" title="Normal: +40 −20 lines, up to 250 lines changed">Normal</span>', $html);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $buckets
+     *
+     * @return ArrayCollection<int, Bucket>
+     */
+    private static function buckets(array $buckets): ArrayCollection
+    {
+        return new ArrayCollection(array_map(
+            static fn (array $bucket): Bucket => Bucket::fromArray($bucket),
+            $buckets,
+        ));
     }
 }

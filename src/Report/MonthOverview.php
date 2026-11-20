@@ -13,6 +13,7 @@ namespace App\Report;
 
 use App\Elastic\Bucket;
 use App\Enum\IssueStatusEnum;
+use Doctrine\Common\Collections\ReadableCollection;
 use Twig\Attribute\AsTwigFunction;
 
 /**
@@ -170,15 +171,15 @@ final class MonthOverview
      * terms aggregation in it. Months without issues count 0. The range of a year or a month in the filter "Created" of
      * the search: its first and its last day, see yearFilter() and monthFilter().
      *
-     * @param list<array<string, mixed>> $years the buckets of the aggregation "year", their keys "yyyy/MM/dd ..."
+     * @param ReadableCollection<array-key, Bucket> $years the buckets of the aggregation "year", their keys
+     *                                                     "yyyy/MM/dd ..."
      *
      * @return list<array{year: string, filter: string, total: int, months: list<array{month: string, filter: string, total: int, statuses: array<string, int>}>}>
      */
-    public static function rows(array $years): array
+    public static function rows(ReadableCollection $years): array
     {
         $rows = [];
-        foreach ($years as $yearBucket) {
-            $year = Bucket::fromArray($yearBucket);
+        foreach ($years as $year) {
             $yearName = explode('/', (string) $year->keyAsString)[0];
             $months = [];
             for ($number = 1; $number <= 12; ++$number) {

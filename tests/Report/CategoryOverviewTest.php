@@ -11,18 +11,20 @@ declare(strict_types=1);
 
 namespace App\Tests\Report;
 
+use App\Elastic\Bucket;
 use App\Report\CategoryOverview;
+use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\TestCase;
 
 final class CategoryOverviewTest extends TestCase
 {
     public function testTheCategoriesWithTheMostOpenIssuesComeFirst(): void
     {
-        $rows = CategoryOverview::rows([
+        $rows = CategoryOverview::rows(self::buckets([
             ['key' => 'Caching', 'doc_count' => 1, 'tracker' => ['buckets' => [['key' => 'Bug', 'doc_count' => 1]]]],
             ['key' => 'Workspaces', 'doc_count' => 4, 'tracker' => ['buckets' => [['key' => 'Bug', 'doc_count' => 4]]]],
             ['key' => 'Fluid', 'doc_count' => 4, 'tracker' => ['buckets' => [['key' => 'Feature', 'doc_count' => 4]]]],
-        ]);
+        ]));
 
         // The same counts by name
         self::assertSame(['Fluid', 'Workspaces', 'Caching'], array_column($rows, 'name'));
@@ -30,7 +32,7 @@ final class CategoryOverviewTest extends TestCase
 
     public function testEveryRowAddsUpTheRareTrackersInOther(): void
     {
-        [$row] = CategoryOverview::rows([
+        [$row] = CategoryOverview::rows(self::buckets([
             ['key' => 'Form Framework', 'doc_count' => 10, 'tracker' => ['buckets' => [
                 ['key' => 'Task', 'doc_count' => 4],
                 ['key' => 'Support', 'doc_count' => 1],
@@ -38,7 +40,7 @@ final class CategoryOverviewTest extends TestCase
                 ['key' => 'Retired tracker', 'doc_count' => 1],
                 ['key' => 'Epic', 'doc_count' => 2],
             ]]],
-        ]);
+        ]));
 
         self::assertSame(['Bug' => 2, 'Feature' => 0, 'Task' => 4, 'Story' => 0, 'Epic' => 2], $row['counts']);
         // None left out: a tracker Forge does not know any more counts, too
@@ -48,10 +50,10 @@ final class CategoryOverviewTest extends TestCase
 
     public function testTheSumsOfTheColumns(): void
     {
-        $sums = CategoryOverview::sums(CategoryOverview::rows([
+        $sums = CategoryOverview::sums(CategoryOverview::rows(self::buckets([
             ['key' => 'Fluid', 'doc_count' => 3, 'tracker' => ['buckets' => [['key' => 'Bug', 'doc_count' => 2], ['key' => 'Topic', 'doc_count' => 1]]]],
             ['key' => 'SEO', 'doc_count' => 2, 'tracker' => ['buckets' => [['key' => 'Bug', 'doc_count' => 1], ['key' => 'Task', 'doc_count' => 1]]]],
-        ]));
+        ])));
 
         self::assertSame(['total' => 5, 'counts' => ['Bug' => 3, 'Feature' => 0, 'Task' => 1, 'Story' => 0, 'Epic' => 0], 'other' => 1], $sums);
     }
@@ -73,5 +75,18 @@ final class CategoryOverviewTest extends TestCase
     {
         self::assertSame(CategoryOverview::WITHOUT, CategoryOverview::withoutCategory(['doc_count' => 1, 'tracker' => ['buckets' => []]])['name']);
         self::assertSame(['bool' => ['must_not' => [['exists' => ['field' => 'category.name']]]]], CategoryOverview::withoutCategoryQuery());
+    }
+
+    /**
+     * @param list<array<string, mixed>> $buckets
+     *
+     * @return ArrayCollection<int, Bucket>
+     */
+    private static function buckets(array $buckets): ArrayCollection
+    {
+        return new ArrayCollection(array_map(
+            static fn (array $bucket): Bucket => Bucket::fromArray($bucket),
+            $buckets,
+        ));
     }
 }

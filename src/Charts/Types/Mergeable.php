@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace App\Charts\Types;
 
-use App\Elastic\Bucket;
 use App\Enum\ReviewStatusEnum;
 
 /**
@@ -71,7 +70,7 @@ class Mergeable extends ReviewChart
                 ]]],
             ],
         ]);
-        $counts = Bucket::countsOf($result->getAggregation('state'));
+        $counts = $result->counts('state');
 
         // Keyed by state: Elasticsearch orders terms buckets by count, which mixed up the states before
         return [

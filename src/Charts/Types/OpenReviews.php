@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace App\Charts\Types;
 
 use App\Charts\ChartStyle;
-use App\Elastic\Bucket;
 use App\Enum\ReviewStatusEnum;
 
 /**
@@ -45,7 +44,7 @@ class OpenReviews extends ReviewChart
             'size' => 0,
             'aggregations' => ['age' => ['date_range' => ['field' => 'updated_on', 'ranges' => $ranges]]],
         ]);
-        $counts = Bucket::countsOf($result->getAggregation('age'));
+        $counts = $result->counts('age');
 
         $values = array_map(static fn (string $label): int => $counts[$label] ?? 0, array_keys(self::AGES));
 
