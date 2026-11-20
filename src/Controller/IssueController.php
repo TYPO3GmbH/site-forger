@@ -35,13 +35,13 @@ class IssueController extends AbstractController
     public function show(int $id): Response
     {
         $issue = $this->issue($id);
-        $found = $this->relations->changesOf($issue);
+        $changes = $this->relations->changesOf($issue);
 
         return $this->render('issue/show.html.twig', [
             'issue' => $issue,
-            'changes' => $found['changes'],
+            'changes' => $changes,
             // Linked in a comment, but not imported: closed long ago, or in another project
-            'unknownChanges' => $found['unknown'],
+            'unknownChanges' => Relations::unknownChanges($issue, $changes),
         ]);
     }
 

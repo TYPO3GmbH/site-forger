@@ -14,11 +14,12 @@ namespace App\Report;
 use App\Document\Change;
 use App\Document\GerritLinks;
 use App\Document\Issue;
+use App\Elastic\SearchResult;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
-use App\Enum\ReviewStateEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
+use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * The open Forge issues nobody works on: those in the stage "Stale" or "Orphaned" of ActivityEnum, by default the
@@ -54,9 +55,9 @@ final readonly class StaleIssues
     /**
      * A page of the issues, each with its changes, see withChanges().
      *
-     * @return array{issues: list<array{issue: Issue, changes: list<array{id: int, state: ReviewStateEnum|null}>}>, total: int}
+     * @return SearchResult<StaleIssue>
      */
-    public function page(int $page, int $perPage, IssueSortEnum $sort): array
+    public function page(int $page, int $perPage, IssueSortEnum $sort): SearchResult
     {
         $request = self::issuesRequest($page, $perPage, $sort);
         $found = $this->issues->search($request);
@@ -64,10 +65,7 @@ final readonly class StaleIssues
         $changesRequest = self::changesRequest($issues);
         $changes = null === $changesRequest ? [] : $this->changes->search($changesRequest)->getValues();
 
-        return [
-            'issues' => self::withChanges($issues, $changes),
-            'total' => $found->total,
-        ];
+        return SearchResult::ofDocuments(self::withChanges($issues, $changes), $found->total);
     }
 
     /**
@@ -127,7 +125,7 @@ final readonly class StaleIssues
      * @param list<Issue>  $issues
      * @param list<Change> $changes the changes of changesRequest()
      *
-     * @return list<array{issue: Issue, changes: list<array{id: int, state: ReviewStateEnum|null}>}>
+     * @return list<StaleIssue>
      */
     public static function withChanges(array $issues, array $changes): array
     {
@@ -147,11 +145,11 @@ final readonly class StaleIssues
                 $own[$number] = $byNumber[$number] ?? null;
             }
             ksort($own);
-            $changeRows = [];
+            $linked = [];
             foreach ($own as $number => $change) {
-                $changeRows[] = ['id' => $number, 'state' => $change?->state()];
+                $linked[] = new LinkedChange($number, $change?->state());
             }
-            $rows[] = ['issue' => $issue, 'changes' => $changeRows];
+            $rows[] = new StaleIssue($issue, new ArrayCollection($linked));
         }
 
         return $rows;

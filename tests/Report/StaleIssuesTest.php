@@ -16,6 +16,8 @@ use App\Document\Issue;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewStateEnum;
+use App\Report\LinkedChange;
+use App\Report\StaleIssue;
 use App\Report\StaleIssues;
 use PHPUnit\Framework\TestCase;
 
@@ -62,21 +64,24 @@ final class StaleIssuesTest extends TestCase
         $rows = StaleIssues::withChanges($issues, array_map(Change::fromDocument(...), $changes));
 
         // An open change does not keep an issue out: it lies still all the same
-        self::assertSame([1, 2, 3, 4], array_map(static fn (array $row): int => $row['issue']->id, $rows));
-        self::assertSame([['id' => 81234, 'state' => ReviewStateEnum::READY]], $rows[0]['changes']);
-        self::assertSame([['id' => 81235, 'state' => ReviewStateEnum::WORK_IN_PROGRESS]], $rows[1]['changes']);
-        self::assertSame(
-            [['id' => 81236, 'state' => ReviewStateEnum::MERGED], ['id' => 81237, 'state' => ReviewStateEnum::ABANDONED]],
-            $rows[2]['changes'],
+        self::assertSame([1, 2, 3, 4], array_map(static fn (StaleIssue $row): int => $row->issue->id, $rows));
+        self::assertEquals([new LinkedChange(81234, ReviewStateEnum::READY)], $rows[0]->changes->toArray());
+        self::assertEquals(
+            [new LinkedChange(81235, ReviewStateEnum::WORK_IN_PROGRESS)],
+            $rows[1]->changes->toArray(),
         );
-        self::assertSame([], $rows[3]['changes']);
+        self::assertEquals(
+            [new LinkedChange(81236, ReviewStateEnum::MERGED), new LinkedChange(81237, ReviewStateEnum::ABANDONED)],
+            $rows[2]->changes->toArray(),
+        );
+        self::assertTrue($rows[3]->changes->isEmpty());
     }
 
     public function testAChangeForgerDoesNotHaveHasNoState(): void
     {
         $rows = StaleIssues::withChanges([self::issue(1, 67256)], []);
 
-        self::assertSame([['id' => 67256, 'state' => null]], $rows[0]['changes']);
+        self::assertEquals([new LinkedChange(67256, null)], $rows[0]->changes->toArray());
     }
 
     public function testOneSearchForTheChangesOfAllIssues(): void

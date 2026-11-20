@@ -14,6 +14,8 @@ namespace App\Sprint;
 use App\Document\Change;
 use App\Enum\ReviewStatusEnum;
 use App\Repository\ChangeRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\ReadableCollection;
 
 /**
  * The open changes of a type ("[BUGFIX]", "[TASK]", "[FEATURE]"), grouped by the votes they still need.
@@ -31,7 +33,7 @@ final readonly class ReviewBoards
     }
 
     /**
-     * @return array<string, list<Change>> by group, empty for an unknown type
+     * @return array<string, ReadableCollection<int, Change>> by group, empty for an unknown type
      */
     public function cards(string $type): array
     {
@@ -48,7 +50,7 @@ final readonly class ReviewBoards
             $cards[self::group($change)][] = $change;
         }
 
-        return $cards;
+        return array_map(static fn (array $group): ArrayCollection => new ArrayCollection($group), $cards);
     }
 
     /**

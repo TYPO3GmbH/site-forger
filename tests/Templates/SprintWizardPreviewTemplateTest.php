@@ -12,6 +12,9 @@ declare(strict_types=1);
 namespace App\Tests\Templates;
 
 use App\Document\Issue;
+use App\Sprint\BoardColumnEnum;
+use App\Sprint\Card;
+use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Twig\Environment;
 
@@ -38,7 +41,7 @@ final class SprintWizardPreviewTemplateTest extends KernelTestCase
             'hasFilter' => true,
             'total' => 1,
             'columns' => ['Review' => 1],
-            'issues' => [['issue' => $issue, 'column' => 'Review']],
+            'issues' => new ArrayCollection([new Card($issue, BoardColumnEnum::REVIEW)]),
         ]);
 
         self::assertStringContainsString('#91089 Something is broken</a>', $html);

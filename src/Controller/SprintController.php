@@ -162,7 +162,14 @@ class SprintController extends AbstractController
             return $this->render('sprint/_wizard_preview.html.twig', ['hasFilter' => false]);
         }
 
-        return $this->render('sprint/_wizard_preview.html.twig', ['hasFilter' => true] + $this->sprintBoards->preview($filter));
+        $preview = $this->sprintBoards->preview($filter);
+
+        return $this->render('sprint/_wizard_preview.html.twig', [
+            'hasFilter' => true,
+            'columns' => $preview->columns,
+            'total' => $preview->total,
+            'issues' => $preview->cards,
+        ]);
     }
 
     /**
@@ -262,7 +269,7 @@ class SprintController extends AbstractController
             'menu' => $this->menu($boards, $activeId),
             'cards' => $cards,
             'boardInfo' => $active?->getName() ?? [],
-            'progress' => null === $active ? [] : SprintBoards::progress($cards),
+            'progress' => null === $active ? [] : SprintBoards::progress(array_map(count(...), $cards)),
             'category' => $category,
             'categoryName' => (string) $sprintCategory->getName(),
             'sprintId' => $activeId,

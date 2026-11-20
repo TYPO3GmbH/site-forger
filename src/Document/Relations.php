@@ -15,6 +15,8 @@ use App\Elastic\SearchResult;
 use App\Enum\IssueStatusEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\ReadableCollection;
 
 /**
  * How issues and changes belong together, for the pages of an issue and of a change.
@@ -31,7 +33,7 @@ final readonly class Relations
      */
     private const int DUPLICATES = 25;
 
-    private const string LINKED = 'Linked';
+    public const string LINKED = 'Linked';
 
     public function __construct(
         private ChangeRepository $changes,
@@ -41,11 +43,10 @@ final readonly class Relations
 
     /**
      * The changes whose footer resolves or names the issue, and those its comments link.
-     * "unknown" has the numbers the comments link that are not imported.
      *
-     * @return array{changes: list<array{change: Change, relation: string}>, unknown: list<int>}
+     * @return ReadableCollection<int, RelatedChange> the ones updated last first
      */
-    public function changesOf(Issue $issue): array
+    public function changesOf(Issue $issue): ReadableCollection
     {
         $id = $issue->id;
         $numbers = $issue->changeNumbers();
@@ -58,26 +59,34 @@ final readonly class Relations
             'sort' => [['updated_on' => 'desc']],
             'size' => self::CHANGES,
         ]);
-        $changes = [];
-        foreach ($found as $change) {
-            $changes[] = ['change' => $change, 'relation' => match (true) {
-                in_array($id, $change->resolves, true) => CommitMessage::RESOLVES,
-                in_array($id, $change->related, true) => CommitMessage::RELATED,
-                default => self::LINKED,
-            }];
-        }
-        $foundNumbers = $found->map(static fn (Change $change): int => $change->id)->toArray();
 
-        return ['changes' => $changes, 'unknown' => array_values(array_diff($numbers, $foundNumbers))];
+        return $found->map(static fn (Change $change): RelatedChange => new RelatedChange($change, match (true) {
+            in_array($id, $change->resolves, true) => CommitMessage::RESOLVES,
+            in_array($id, $change->related, true) => CommitMessage::RELATED,
+            default => self::LINKED,
+        }));
+    }
+
+    /**
+     * The numbers of the changes the comments of the issue link that Forger has not imported.
+     *
+     * @param ReadableCollection<int, RelatedChange> $changes the changes of changesOf()
+     *
+     * @return list<int>
+     */
+    public static function unknownChanges(Issue $issue, ReadableCollection $changes): array
+    {
+        $found = $changes->map(static fn (RelatedChange $related): int => $related->change->id)->toArray();
+
+        return array_values(array_diff($issue->changeNumbers(), $found));
     }
 
     /**
      * The issues of the footer of a change, in its order: those it resolves first.
-     * An issue that is not imported comes as null: it is in another project, or private.
      *
-     * @return list<array{id: int, relation: string, issue: Issue|null}>
+     * @return ReadableCollection<int, RelatedIssue>
      */
-    public function issuesOf(Change $change): array
+    public function issuesOf(Change $change): ReadableCollection
     {
         $relations = [];
         $footer = [
@@ -92,10 +101,10 @@ final readonly class Relations
         $found = $this->issues->byIds(array_keys($relations));
         $issues = [];
         foreach ($relations as $id => $relation) {
-            $issues[] = ['id' => $id, 'relation' => $relation, 'issue' => $found->get($id)];
+            $issues[] = new RelatedIssue($id, $relation, $found->get($id));
         }
 
-        return $issues;
+        return new ArrayCollection($issues);
     }
 
     /**

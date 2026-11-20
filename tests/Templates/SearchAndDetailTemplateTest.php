@@ -13,13 +13,18 @@ namespace App\Tests\Templates;
 
 use App\Document\Change;
 use App\Document\Issue;
+use App\Document\RelatedChange;
+use App\Document\RelatedIssue;
 use App\Elastic\Bucket;
+use App\Elastic\SearchResult;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
 use App\Enum\TrackerEnum;
 use App\Report\CategoryOverview;
+use App\Report\LinkedChange;
 use App\Report\MonthOverview;
+use App\Report\StaleIssue;
 use App\Report\StaleIssues;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -298,11 +303,21 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         $template = $this->twig->load('review/stale_issues.html.twig');
         $page = ['stages' => StaleIssues::STAGES, 'totalResults' => 30, 'startingAtItem' => 26, 'endingAtItem' => 28, 'pagesToLinkTo' => [0 => 1, 1 => 2], 'currentPage' => 2,
             'sort' => IssueSortEnum::PRIORITY, 'sortOptions' => IssueSortEnum::options(false), 'sortParameter' => ['sort' => 'priority']];
-        $html = $template->renderBlock('body', $page + ['issues' => [
-            ['issue' => Issue::fromDocument(['id' => 91089, 'status' => ['name' => 'Under Review']] + self::ISSUE), 'changes' => []],
-            ['issue' => Issue::fromDocument(['id' => 91090] + self::ISSUE), 'changes' => [['id' => 81234, 'state' => ReviewStateEnum::MERGED], ['id' => 81240, 'state' => ReviewStateEnum::ABANDONED], ['id' => 67256, 'state' => null]]],
-            ['issue' => Issue::fromDocument(['id' => 91091, 'status' => ['name' => 'New']] + self::ISSUE), 'changes' => []],
-        ]]);
+        $html = $template->renderBlock('body', $page + ['issues' => SearchResult::ofDocuments([
+            new StaleIssue(
+                Issue::fromDocument(['id' => 91089, 'status' => ['name' => 'Under Review']] + self::ISSUE),
+                new ArrayCollection(),
+            ),
+            new StaleIssue(Issue::fromDocument(['id' => 91090] + self::ISSUE), new ArrayCollection([
+                new LinkedChange(81234, ReviewStateEnum::MERGED),
+                new LinkedChange(81240, ReviewStateEnum::ABANDONED),
+                new LinkedChange(67256, null),
+            ])),
+            new StaleIssue(
+                Issue::fromDocument(['id' => 91091, 'status' => ['name' => 'New']] + self::ISSUE),
+                new ArrayCollection(),
+            ),
+        ], 30)]);
 
         self::assertFalse($template->hasBlock('headline'));
         self::assertStringContainsString('<h1 class="page-intro-title">Stale issues</h1>', $html);
@@ -487,7 +502,14 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
     public function testChangePage(): void
     {
-        $html = $this->twig->load('change/show.html.twig')->renderBlock('body', ['change' => Change::fromDocument(self::CHANGE), 'message' => "The cache is cleared.\n\nResolves: #91089\nRelated: #12", 'issues' => [['id' => 91089, 'relation' => 'Resolves', 'issue' => Issue::fromDocument(self::ISSUE)], ['id' => 12, 'relation' => 'Related', 'issue' => null]]]);
+        $html = $this->twig->load('change/show.html.twig')->renderBlock('body', [
+            'change' => Change::fromDocument(self::CHANGE),
+            'message' => "The cache is cleared.\n\nResolves: #91089\nRelated: #12",
+            'issues' => new ArrayCollection([
+                new RelatedIssue(91089, 'Resolves', Issue::fromDocument(self::ISSUE)),
+                new RelatedIssue(12, 'Related', null),
+            ]),
+        ]);
 
         self::assertStringContainsString('[BUGFIX] Clear the cache', $html);
         self::assertStringContainsString('href="https://review.typo3.org/c/Packages/TYPO3.CMS/+/81234/"', $html);
@@ -658,7 +680,11 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
     public function testIssuePageTellsHowAChangeBelongsToIt(): void
     {
-        $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', ['issue' => Issue::fromDocument(self::ISSUE), 'changes' => [['change' => Change::fromDocument(self::CHANGE), 'relation' => 'Resolves']], 'unknownChanges' => []]);
+        $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', [
+            'issue' => Issue::fromDocument(self::ISSUE),
+            'changes' => new ArrayCollection([new RelatedChange(Change::fromDocument(self::CHANGE), 'Resolves')]),
+            'unknownChanges' => [],
+        ]);
 
         self::assertStringContainsString('<span class="overview-list-relation">Resolves this issue</span>', $html);
         self::assertStringContainsString('href="/change/81234"', $html);

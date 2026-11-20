@@ -17,6 +17,8 @@ use App\Entity\SprintBoard;
 use App\Enum\IssueStatusEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\ReadableCollection;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -67,7 +69,7 @@ final readonly class SprintBoards
     /**
      * The cards of a board by column. An issue under review shows its Gerrit change, if the index has it.
      *
-     * @return array<string, list<array{issue: Issue, change: Change|null}>>
+     * @return array<string, ReadableCollection<int, Card>> by column
      */
     public function cards(SprintBoard $board): array
     {
@@ -79,18 +81,16 @@ final readonly class SprintBoards
         foreach ($found as $issue) {
             $column = BoardColumnEnum::ofIssue($issue);
             $change = BoardColumnEnum::REVIEW === $column ? $this->changeOf($issue) : null;
-            $cards[$column->value][] = ['issue' => $issue, 'change' => $change];
+            $cards[$column->value][] = new Card($issue, $column, $change);
         }
 
-        return $cards;
+        return array_map(static fn (array $column): ArrayCollection => new ArrayCollection($column), $cards);
     }
 
     /**
      * The issues a filter of the wizard selects: how many per column, and the latest of them.
-     *
-     * @return array{columns: array<string, int>, total: int, issues: list<array{issue: Issue, column: string}>}
      */
-    public function preview(BoardFilter $filter): array
+    public function preview(BoardFilter $filter): BoardPreview
     {
         $found = $this->issues->search([
             'query' => $filter->toQuery(),
@@ -99,24 +99,27 @@ final readonly class SprintBoards
             'sort' => [['updated_on' => ['order' => 'desc']]],
         ]);
         $columns = BoardColumnEnum::each(0);
-        $issues = [];
+        $cards = [];
         foreach ($found as $issue) {
-            $column = BoardColumnEnum::ofIssue($issue)->value;
-            ++$columns[$column];
-            $issues[] = ['issue' => $issue, 'column' => $column];
+            $column = BoardColumnEnum::ofIssue($issue);
+            ++$columns[$column->value];
+            $cards[] = new Card($issue, $column);
         }
 
-        return ['columns' => $columns, 'total' => count($issues), 'issues' => array_slice($issues, 0, self::PREVIEW_SIZE)];
+        return new BoardPreview(
+            $columns,
+            count($cards),
+            new ArrayCollection(array_slice($cards, 0, self::PREVIEW_SIZE)),
+        );
     }
 
     /**
-     * @param array<string, list<mixed>> $cards see cards()
+     * @param array<string, int> $counts how many cards each column has
      *
      * @return array{sections: array<string, array{classes: string, value: float, label: string}>, total: int}
      */
-    public static function progress(array $cards): array
+    public static function progress(array $counts): array
     {
-        $counts = array_map(count(...), $cards);
         $total = array_sum($counts);
         $sections = [];
         foreach ($counts as $column => $count) {

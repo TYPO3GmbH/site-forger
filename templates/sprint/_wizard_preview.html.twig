@@ -26,7 +26,7 @@
                 <a href="{{ issue_path(issue.id) }}" target="issue{{ issue.id }}">#{{ issue.id }} {{ issue.subject|default('') }}</a></td>
                 <td>{{ issue.tracker.name|default('') }}</td>
                 <td>{{ issue.status.name|default('') }}</td>
-                <td>{{ row.column }}</td>
+                <td>{{ row.column.value }}</td>
             </tr>
         {% endfor %}
         </tbody>

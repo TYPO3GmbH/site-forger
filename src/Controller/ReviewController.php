@@ -202,10 +202,10 @@ class ReviewController extends AbstractController
         $page = $this->page();
         $found = $this->staleIssues->page($page->page, $page->perPage, $sort);
 
-        $pageData = $page->withTotal($found['total'])->viewData();
+        $pageData = $page->withTotal($found->total)->viewData();
 
         return $this->render('review/stale_issues.html.twig', $pageData + [
-            'issues' => $found['issues'],
+            'issues' => $found,
             'stages' => StaleIssues::STAGES,
             'sort' => $sort,
             'sortOptions' => IssueSortEnum::options(false),
