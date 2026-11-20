@@ -18,6 +18,7 @@ use App\Enum\ReviewStateEnum;
 use App\Enum\ReviewStatusEnum;
 use App\Enum\ReviewTypeEnum;
 use App\Enum\ReviewVoteEnum;
+use App\People\Person;
 
 /**
  * A Gerrit change as the review index has it, see GerritChangeImporter::documents().
@@ -190,15 +191,13 @@ final readonly class Change
     }
 
     /**
-     * The owner as the user macros take a person, see templates/_macros/user.html.twig. Null without an owner.
-     *
-     * @return array{name: string, email: string|null, gerrit_id: int|null}|null
+     * The owner as a Person. Null without an owner.
      */
-    public function ownerAsUser(): ?array
+    public function ownerPerson(): ?Person
     {
         $name = trim((string) $this->owner);
 
-        return '' === $name ? null : ['name' => $name, 'email' => $this->ownerEmail, 'gerrit_id' => $this->ownerId];
+        return '' === $name ? null : new Person($name, gerritId: $this->ownerId, email: $this->ownerEmail);
     }
 
     private static function stringOrNull(mixed $value): ?string

@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Document;
 
 use App\Document\Change;
+use App\People\Person;
 use PHPUnit\Framework\TestCase;
 
 final class ChangeTest extends TestCase
@@ -24,16 +25,13 @@ final class ChangeTest extends TestCase
             'owner_id' => 52917,
         ]);
 
-        self::assertSame(
-            ['name' => 'Ingo Hollmann', 'email' => 'ingo@example.org', 'gerrit_id' => 52917],
-            $owner->ownerAsUser(),
+        self::assertEquals(
+            new Person('Ingo Hollmann', gerritId: 52917, email: 'ingo@example.org'),
+            $owner->ownerPerson(),
         );
-        self::assertSame(
-            ['name' => 'Benni Mack', 'email' => null, 'gerrit_id' => null],
-            Change::fromDocument(['owner' => 'Benni Mack'])->ownerAsUser(),
-        );
-        self::assertNull(Change::fromDocument(['owner' => ' '])->ownerAsUser());
-        self::assertNull(Change::fromDocument([])->ownerAsUser());
+        self::assertEquals(new Person('Benni Mack'), Change::fromDocument(['owner' => 'Benni Mack'])->ownerPerson());
+        self::assertNull(Change::fromDocument(['owner' => ' '])->ownerPerson());
+        self::assertNull(Change::fromDocument([])->ownerPerson());
     }
 
     public function testAConflictNeedsAnOpenChangeGerritCannotMerge(): void

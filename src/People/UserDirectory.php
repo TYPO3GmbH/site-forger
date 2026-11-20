@@ -57,21 +57,18 @@ class UserDirectory
     }
 
     /**
-     * The address of the avatar of a user as a document has the person, see templates/_macros/user.html.twig.
-     * The avatar is found by the number on Forge ("id") or on Gerrit ("gerrit_id"). Changes imported before the
-     * number of their owner have only the "email". Null if no avatar is known.
-     *
-     * @param array<string, mixed>|null $user
+     * The address of the avatar of a person, found by the number on Forge or on Gerrit. Changes imported before the
+     * number of their owner have only the email. Null if no avatar is known.
      */
-    public function avatarOfUser(?array $user, int $size): ?string
+    public function avatarOfPerson(?Person $person, int $size): ?string
     {
-        if (isset($user['id'])) {
-            return $this->avatarOf((int) $user['id'], $size);
+        if (null !== $person?->forgeId) {
+            return $this->avatarOf($person->forgeId, $size);
         }
-        if (isset($user['gerrit_id']) && null !== ($url = $this->gerritAvatarOf((int) $user['gerrit_id'], $size))) {
+        if (null !== ($url = $this->gerritAvatarOf($person?->gerritId, $size))) {
             return $url;
         }
-        $email = mb_strtolower(trim((string) ($user['email'] ?? '')));
+        $email = mb_strtolower(trim((string) $person?->email));
 
         return str_contains($email, '@') ? User::avatarUrl(User::avatarHash($email), $size) : null;
     }
@@ -101,46 +98,41 @@ class UserDirectory
     }
 
     /**
-     * The key of a person as a document has the person, see templates/_macros/user.html.twig.
-     * Without a number on Forge ("id") or Gerrit ("gerrit_id") it is the name with "_" for the spaces, as the
-     * filters had it before.
-     *
-     * @param array<string, mixed>|null $user
+     * The key of a person in the filters of people, see keyOf(). Without a number on Forge or Gerrit it is the name
+     * with "_" for the spaces, as the filters had it before.
      */
-    public function keyOfUser(?array $user): string
+    public function keyOfPerson(?Person $person): string
     {
-        if (isset($user['id'])) {
-            return $this->keyOf('forge', (int) $user['id']);
+        if (null !== $person?->forgeId) {
+            return $this->keyOf('forge', $person->forgeId);
         }
-        if (isset($user['gerrit_id'])) {
-            return $this->keyOf('gerrit', (int) $user['gerrit_id']);
+        if (null !== $person?->gerritId) {
+            return $this->keyOf('gerrit', $person->gerritId);
         }
 
-        return str_replace(' ', '_', trim((string) ($user['name'] ?? '')));
+        return str_replace(' ', '_', trim((string) $person?->name));
     }
 
     /**
      * The person of a key of the filters of people, see keyOf().
      * A key "forge:<number>" without a document gives the number alone. A key that is no person's is a name, as
      * the links had them before: then it is null.
-     *
-     * @return array{name: string, username: string|null, forge: int|null, gerrit: int|null}|null
      */
-    public function personOf(string $key): ?array
+    public function personOf(string $key): ?Person
     {
         $people = $this->people();
         if (1 === preg_match('/^(forge|gerrit):(\d+)$/', $key, $matches)) {
             $id = $people['keys'][$key] ?? null;
+            if (null !== $id) {
+                return self::person($people['people'][$id]);
+            }
+            $number = (int) $matches[2];
 
-            return null === $id ? [
-                'name' => '',
-                'username' => null,
-                'forge' => 'forge' === $matches[1] ? (int) $matches[2] : null,
-                'gerrit' => 'gerrit' === $matches[1] ? (int) $matches[2] : null,
-            ] : $people['people'][$id];
+            return 'forge' === $matches[1] ? new Person('', forgeId: $number) : new Person('', gerritId: $number);
         }
+        $person = $people['people'][mb_strtolower($key)] ?? null;
 
-        return $people['people'][mb_strtolower($key)] ?? null;
+        return null === $person ? null : self::person($person);
     }
 
     /**
@@ -156,10 +148,11 @@ class UserDirectory
     public function numbersOf(string $key, string $system): array
     {
         $person = $this->personOf($key);
-        if (null !== ($person[$system] ?? null)) {
-            return [(int) $person[$system]];
+        $number = 'forge' === $system ? $person?->forgeId : $person?->gerritId;
+        if (null !== $number) {
+            return [$number];
         }
-        $name = null === $person ? str_replace('_', ' ', $key) : $person['name'];
+        $name = null === $person ? str_replace('_', ' ', $key) : $person->name;
         if ('' === $name) {
             return [];
         }
@@ -221,6 +214,19 @@ class UserDirectory
         }
 
         return $avatars;
+    }
+
+    /**
+     * @param array{name: string, username: string|null, forge: int|null, gerrit: int|null} $person see people()
+     */
+    private static function person(array $person): Person
+    {
+        return new Person(
+            $person['name'],
+            forgeId: $person['forge'],
+            gerritId: $person['gerrit'],
+            username: $person['username'],
+        );
     }
 
     private function avatarBy(string $key, int $size): ?string

@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Twig;
 
 use App\Elastic\Indices;
+use App\People\Person;
 use App\People\UserDirectory;
 use App\Twig\UserTwigExtension;
 use Elastica\Client;
@@ -27,11 +28,12 @@ final class UserTwigExtensionTest extends TestCase
 
         self::assertSame(
             '<img src="https://www.gravatar.com/avatar/' . md5('ingo@example.org') . '?s=40&amp;d=mp&amp;r=g" class="avatar" height="40" width="40" alt=""/>',
-            (string) $extension->avatar(['name' => 'Ingo Hollmann', 'email' => ' Ingo@Example.org'], 40),
+            (string) $extension->avatar(new Person('Ingo Hollmann', email: ' Ingo@Example.org'), 40),
         );
         // Without an email the placeholder, every person alike
-        self::assertStringContainsString(md5('') . '?s=40', (string) $extension->avatar(['name' => 'Somebody', 'email' => 'Unknown'], 40));
-        self::assertStringContainsString(md5('') . '?s=40', (string) $extension->avatar(['name' => 'Somebody'], 40));
+        $unknown = $extension->avatar(new Person('Somebody', email: 'Unknown'), 40);
+        self::assertStringContainsString(md5('') . '?s=40', (string) $unknown);
+        self::assertStringContainsString(md5('') . '?s=40', (string) $extension->avatar(new Person('Somebody'), 40));
         self::assertStringContainsString(md5('') . '?s=36', (string) $extension->avatar(null));
     }
 

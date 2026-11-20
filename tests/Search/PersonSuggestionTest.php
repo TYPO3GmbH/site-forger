@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Search;
 
 use App\Elastic\Bucket;
+use App\People\Person;
 use App\Search\FacetSelection;
 use App\Search\PeopleFacet;
 use App\Search\PersonSuggestion;
@@ -61,10 +62,10 @@ final class PersonSuggestionTest extends TestCase
         ]]];
         $keyOf = static fn (string $system, int $number): string => 52917 === $number ? 'ingoholl' : $system . ':' . $number;
         $asked = [];
-        $avatar = static function (array $user) use (&$asked): ?string {
-            $asked[] = $user;
+        $avatar = static function (?Person $person) use (&$asked): ?string {
+            $asked[] = $person;
 
-            return isset($user['gerrit_id']) ? 'https://www.gravatar.com/avatar/abc?s=48&d=mp&r=g' : null;
+            return null !== $person?->gerritId ? 'https://www.gravatar.com/avatar/abc?s=48&d=mp&r=g' : null;
         };
 
         $people = PersonSuggestion::fromBuckets(Bucket::listOf($aggregations['people']), 'Owner', $avatar, $keyOf);
@@ -74,10 +75,10 @@ final class PersonSuggestionTest extends TestCase
             ['key' => 'ingoholl', 'name' => 'Ingo Hollmann', 'count' => 16, 'avatar' => 'https://www.gravatar.com/avatar/abc?s=48&d=mp&r=g'],
             ['key' => 'gerrit:7', 'name' => 'Somebody', 'count' => 1, 'avatar' => 'https://www.gravatar.com/avatar/abc?s=48&d=mp&r=g'],
         ], $people);
-        // The users of the filter: name, number and email, as the macros of the users take them
-        self::assertSame([
-            ['name' => 'Ingo Hollmann', 'gerrit_id' => 52917, 'email' => 'ingo@example.org'],
-            ['name' => 'Somebody', 'gerrit_id' => 7, 'email' => 'Unknown'],
+        // The people of the filter: name, number and email
+        self::assertEquals([
+            new Person('Ingo Hollmann', gerritId: 52917, email: 'ingo@example.org'),
+            new Person('Somebody', gerritId: 7, email: 'Unknown'),
         ], $asked);
         self::assertStringNotContainsString('@', (string) json_encode($people));
         self::assertSame([], PersonSuggestion::fromBuckets(Bucket::listOf(null), 'Owner', $avatar, $keyOf));
@@ -94,15 +95,15 @@ final class PersonSuggestionTest extends TestCase
         self::assertSame(['author.id', 'author.name'], $author['aggs']['user']['top_hits']['_source']['includes']);
         self::assertSame(['owner_id', 'ownerEmail', 'owner'], $owner['aggs']['user']['top_hits']['_source']['includes']);
         $latest = ['hits' => ['hits' => [['_source' => ['author' => ['id' => 320, 'name' => 'Benni Mack']]]]]];
-        self::assertSame(
-            ['name' => 'Benni Mack', 'id' => 320],
-            PeopleFacet::user('Author', Bucket::fromArray(['key' => 320, 'user' => $latest])),
+        self::assertEquals(
+            new Person('Benni Mack', forgeId: 320),
+            PeopleFacet::person('Author', Bucket::fromArray(['key' => 320, 'user' => $latest])),
         );
-        self::assertSame(
-            ['name' => 'Benni Mack'],
-            PeopleFacet::user('Author', Bucket::fromArray(['key' => 'Benni Mack'])),
+        self::assertEquals(
+            new Person('Benni Mack'),
+            PeopleFacet::person('Author', Bucket::fromArray(['key' => 'Benni Mack'])),
         );
-        self::assertNull(PeopleFacet::user('Tags', Bucket::fromArray(['key' => 'cache'])));
+        self::assertNull(PeopleFacet::person('Tags', Bucket::fromArray(['key' => 'cache'])));
         // The selected people of a filter come with their latest document too
         self::assertSame($author['aggs'], FacetSelection::withSelected(['Author' => $author], 'Author', [320])['Author (selected)']['aggs']);
     }

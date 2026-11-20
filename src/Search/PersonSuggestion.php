@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Search;
 
 use App\Elastic\Bucket;
+use App\People\Person;
 use App\People\UserDirectory;
 use Doctrine\Common\Collections\ReadableCollection;
 
@@ -89,10 +90,10 @@ final class PersonSuggestion
      * they have and their avatar, null without one: the search shows the initials then. Keys, names and avatars
      * only, no email addresses.
      *
-     * @param ReadableCollection<array-key, Bucket>   $people the buckets of the aggregation "people"
-     * @param \Closure(array<string, mixed>): ?string $avatar the address of the avatar of a user, of size AVATAR_SIZE,
-     *                                                        see UserDirectory::avatarOfUser()
-     * @param \Closure(string, int): string           $keyOf  see UserDirectory::keyOf()
+     * @param ReadableCollection<array-key, Bucket> $people the buckets of the aggregation "people"
+     * @param \Closure(?Person): ?string            $avatar the address of the avatar of a person, of size AVATAR_SIZE,
+     *                                                      see UserDirectory::avatarOfPerson()
+     * @param \Closure(string, int): string         $keyOf  see UserDirectory::keyOf()
      *
      * @return list<array{key: string, name: string, count: int, avatar: string|null}>
      */
@@ -104,13 +105,13 @@ final class PersonSuggestion
     ): array {
         return array_values($people->map(
             static function (Bucket $bucket) use ($title, $avatar, $keyOf): array {
-                $user = (array) PeopleFacet::user($title, $bucket);
+                $person = PeopleFacet::person($title, $bucket);
 
                 return [
                     'key' => $keyOf(PeopleFacet::FILTERS[$title]['system'], (int) $bucket->key),
-                    'name' => (string) ($user['name'] ?? ''),
+                    'name' => (string) $person?->name,
                     'count' => $bucket->count,
-                    'avatar' => $avatar($user),
+                    'avatar' => $avatar($person),
                 ];
             },
         )->toArray());

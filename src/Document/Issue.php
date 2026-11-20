@@ -13,12 +13,13 @@ namespace App\Document;
 
 use App\Enum\ActivityEnum;
 use App\Enum\IssueStatusEnum;
+use App\People\Person;
 
 /**
  * A Forge issue as the issue index has it, see ForgeIssueImporter.
  *
  * The status, tracker, project, priority, category and version are references as Forge sends them: an id and a
- * name. The author and the assignee are people as the user macros take them, see templates/_macros/user.html.twig.
+ * name. The author and the assignee are a Person.
  * Documents of older imports lack some fields. These fields are null or empty then.
  */
 final readonly class Issue
@@ -30,8 +31,6 @@ final readonly class Issue
      * @param array{id?: int, name?: string}|null $priority
      * @param array{id?: int, name?: string}|null $category
      * @param array{id?: int, name?: string}|null $fixedVersion
-     * @param array<string, mixed>|null           $author
-     * @param array<string, mixed>|null           $assignedTo
      * @param list<string>                        $tags
      * @param list<array<string, mixed>>          $customFields
      * @param list<array<string, mixed>>          $journals     the comments and changes, as Forge lists them
@@ -46,8 +45,8 @@ final readonly class Issue
         public ?array $priority = null,
         public ?array $category = null,
         public ?array $fixedVersion = null,
-        public ?array $author = null,
-        public ?array $assignedTo = null,
+        public ?Person $author = null,
+        public ?Person $assignedTo = null,
         public ?string $createdOn = null,
         public ?string $updatedOn = null,
         public array $tags = [],
@@ -74,8 +73,8 @@ final readonly class Issue
             priority: self::arrayOrNull($document['priority'] ?? null),
             category: self::arrayOrNull($document['category'] ?? null),
             fixedVersion: self::arrayOrNull($document['fixed_version'] ?? null),
-            author: self::arrayOrNull($document['author'] ?? null),
-            assignedTo: self::arrayOrNull($document['assigned_to'] ?? null),
+            author: Person::fromIssue($document['author'] ?? null),
+            assignedTo: Person::fromIssue($document['assigned_to'] ?? null),
             createdOn: self::stringOrNull($document['created_on'] ?? null),
             updatedOn: self::stringOrNull($document['updated_on'] ?? null),
             tags: array_values(array_map('strval', (array) ($document['tags'] ?? []))),

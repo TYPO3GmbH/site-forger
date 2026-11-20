@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Search;
 
 use App\Elastic\Bucket;
+use App\People\Person;
 use App\People\UserDirectory;
 use Elastica\Index;
 
@@ -41,7 +42,7 @@ final readonly class PersonSuggestions
         return PersonSuggestion::fromBuckets(
             Bucket::listOf($index->search($request)->getAggregations()['people'] ?? null),
             $title,
-            fn (array $user): ?string => $this->users->avatarOfUser($user, PersonSuggestion::AVATAR_SIZE),
+            fn (?Person $person): ?string => $this->users->avatarOfPerson($person, PersonSuggestion::AVATAR_SIZE),
             $this->users->keyOf(...),
         );
     }

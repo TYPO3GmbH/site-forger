@@ -41,7 +41,7 @@
                     {% for index, bucket in buckets %}
                         {% if bucket.count > 0 %}
                             {# A person as everywhere, with the avatar, see PeopleFacet #}
-                            {% set person = facet_user(title, bucket) %}
+                            {% set person = facet_person(title, bucket) %}
                             {{ aggregationBucket(title, index, bucket, person is null ? null : user.inline(person, 32)) }}
                         {% endif %}
                     {% endfor %}

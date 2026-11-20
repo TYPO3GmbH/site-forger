@@ -13,6 +13,7 @@ namespace App\Search;
 
 use App\Elastic\Bucket;
 use App\Import\ImportSchema;
+use App\People\Person;
 use App\People\UserDirectory;
 use Doctrine\Common\Collections\ReadableCollection;
 
@@ -24,9 +25,9 @@ use Doctrine\Common\Collections\ReadableCollection;
  *
  * The filters count by the number of the person on Forge ("forge": the issues) or on Gerrit ("gerrit": the changes),
  * not by the name: two people of one name are two, one person with a new name one. The latest document of each
- * person comes along, with the name and the fields the person is found by in the index "user", as a user of
- * templates/_macros/user.html.twig has them: "id" the number on Forge, "gerrit_id" the number on Gerrit, "email".
- * See user(); the search in the filter finds the others the same way, see PersonSuggestion.
+ * person comes along, with the name and the fields the person is found by in the index "user": the number on
+ * Forge or on Gerrit and the email. See person(); the search in the filter finds the others the same way, see
+ * PersonSuggestion.
  */
 final class PeopleFacet
 {
@@ -34,12 +35,44 @@ final class PeopleFacet
      * key: in "filters[<key>]"; system: of the number; number: its field; username: the field of the username, if
      * the documents have one; name: the field of the name, to filter by; label: where the document has the name.
      *
-     * @var array<string, array{key: string, system: string, number: string, username: string|null, name: string, label: string, user: array<string, string>}>
+     * @var array<string, array{
+     *     key: string,
+     *     system: string,
+     *     number: string,
+     *     username: string|null,
+     *     name: string,
+     *     label: string,
+     *     person: array{forgeId?: string, gerritId?: string, email?: string},
+     * }>
      */
     public const array FILTERS = [
-        'Author' => ['key' => 'author', 'system' => 'forge', 'number' => 'author.id', 'username' => null, 'name' => 'author.name', 'label' => 'author.name', 'user' => ['id' => 'author.id']],
-        'Assigned to' => ['key' => 'assigned_to', 'system' => 'forge', 'number' => 'assigned_to.id', 'username' => null, 'name' => 'assigned_to.name.keyword', 'label' => 'assigned_to.name', 'user' => ['id' => 'assigned_to.id']],
-        'Owner' => ['key' => 'owner', 'system' => 'gerrit', 'number' => 'owner_id', 'username' => 'owner_username', 'name' => 'owner', 'label' => 'owner', 'user' => ['gerrit_id' => 'owner_id', 'email' => 'ownerEmail']],
+        'Author' => [
+            'key' => 'author',
+            'system' => 'forge',
+            'number' => 'author.id',
+            'username' => null,
+            'name' => 'author.name',
+            'label' => 'author.name',
+            'person' => ['forgeId' => 'author.id'],
+        ],
+        'Assigned to' => [
+            'key' => 'assigned_to',
+            'system' => 'forge',
+            'number' => 'assigned_to.id',
+            'username' => null,
+            'name' => 'assigned_to.name.keyword',
+            'label' => 'assigned_to.name',
+            'person' => ['forgeId' => 'assigned_to.id'],
+        ],
+        'Owner' => [
+            'key' => 'owner',
+            'system' => 'gerrit',
+            'number' => 'owner_id',
+            'username' => 'owner_username',
+            'name' => 'owner',
+            'label' => 'owner',
+            'person' => ['gerritId' => 'owner_id', 'email' => 'ownerEmail'],
+        ],
     ];
 
     /**
@@ -70,7 +103,13 @@ final class PeopleFacet
     {
         $filter = self::FILTERS[$title];
 
-        return ['top_hits' => ['size' => 1, '_source' => ['includes' => array_values(array_unique([...array_values($filter['user']), $filter['label']]))], 'sort' => [['updated_on' => 'desc']]]];
+        $fields = array_values(array_unique([...array_values($filter['person']), $filter['label']]));
+
+        return ['top_hits' => [
+            'size' => 1,
+            '_source' => ['includes' => $fields],
+            'sort' => [['updated_on' => 'desc']],
+        ]];
     }
 
     /**
@@ -154,11 +193,11 @@ final class PeopleFacet
                 continue;
             }
             if (null !== $filter['username']) {
-                if (null !== $person['username']) {
-                    $usernames[] = $person['username'];
+                if (null !== $person->username) {
+                    $usernames[] = $person->username;
                 }
-                if ('' !== $person['name']) {
-                    $namesWithoutNumber[] = $person['name'];
+                if ('' !== $person->name) {
+                    $namesWithoutNumber[] = $person->name;
                 }
             }
         }
@@ -183,27 +222,27 @@ final class PeopleFacet
     }
 
     /**
-     * The person of a bucket of the filter or of the search in it, as the macros of the users take it: the name of
-     * the latest document and what it has of the fields of the person. Null for a filter of no people.
-     *
-     * @return array<string, mixed>|null
+     * The person of a bucket of the filter or of the search in it: the name of the latest document and what it has
+     * of the fields of the person. Null for a filter of no people.
      */
-    public static function user(string $title, Bucket $bucket): ?array
+    public static function person(string $title, Bucket $bucket): ?Person
     {
         if (!isset(self::FILTERS[$title])) {
             return null;
         }
         $source = $bucket->topHit('user');
+        $fields = self::FILTERS[$title]['person'];
         $name = self::valueAt($source, self::FILTERS[$title]['label']);
-        $user = ['name' => is_string($name) && '' !== $name ? $name : $bucket->key];
-        foreach (self::FILTERS[$title]['user'] as $key => $field) {
-            $value = self::valueAt($source, $field);
-            if (null !== $value && '' !== $value) {
-                $user[$key] = $value;
-            }
-        }
+        $forgeId = self::valueAt($source, $fields['forgeId'] ?? '');
+        $gerritId = self::valueAt($source, $fields['gerritId'] ?? '');
+        $email = self::valueAt($source, $fields['email'] ?? '');
 
-        return $user;
+        return new Person(
+            is_string($name) && '' !== $name ? $name : $bucket->key,
+            forgeId: is_numeric($forgeId) ? (int) $forgeId : null,
+            gerritId: is_numeric($gerritId) ? (int) $gerritId : null,
+            email: is_string($email) && '' !== $email ? $email : null,
+        );
     }
 
     /**

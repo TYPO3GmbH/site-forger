@@ -13,6 +13,7 @@ namespace App\Tests\Search;
 
 use App\Elastic\Bucket;
 use App\Elastic\Indices;
+use App\People\Person;
 use App\People\UserDirectory;
 use App\Search\PeopleFacet;
 use Elastica\Client;
@@ -54,20 +55,26 @@ final class PeopleKeysTest extends TestCase
         // Unknown to the index: the number
         self::assertSame('forge:99', $this->users->keyOf('forge', 99));
 
-        self::assertSame('benni', $this->users->keyOfUser(['id' => 320, 'name' => 'Benni Mack']));
-        self::assertSame('benni', $this->users->keyOfUser(['gerrit_id' => 7059, 'name' => 'Benni']));
+        self::assertSame('benni', $this->users->keyOfPerson(new Person('Benni Mack', forgeId: 320)));
+        self::assertSame('benni', $this->users->keyOfPerson(new Person('Benni', gerritId: 7059)));
         // A change of before the number of its owner: the name, as the links had it
-        self::assertSame('Benni_Mack', $this->users->keyOfUser(['name' => 'Benni Mack', 'email' => 'benni@example.org']));
+        self::assertSame(
+            'Benni_Mack',
+            $this->users->keyOfPerson(new Person('Benni Mack', email: 'benni@example.org')),
+        );
     }
 
     public function testTheKeysLeadToThePeople(): void
     {
-        self::assertSame(['name' => 'Benni Mack', 'username' => 'benni', 'forge' => 320, 'gerrit' => 7059], $this->users->personOf('benni'));
+        self::assertEquals(
+            new Person('Benni Mack', forgeId: 320, gerritId: 7059, username: 'benni'),
+            $this->users->personOf('benni'),
+        );
         // A key of a number the index wrote under the username since
-        self::assertSame('benni', $this->users->personOf('forge:320')['username'] ?? null);
-        self::assertSame(['name' => '', 'username' => null, 'forge' => 99, 'gerrit' => null], $this->users->personOf('forge:99'));
+        self::assertSame('benni', $this->users->personOf('forge:320')?->username);
+        self::assertEquals(new Person('', forgeId: 99), $this->users->personOf('forge:99'));
         // A username has a "_" of its own
-        self::assertSame(5, $this->users->personOf('alex_schnitzler')['forge'] ?? null);
+        self::assertSame(5, $this->users->personOf('alex_schnitzler')?->forgeId);
         // A name, as the links had them before
         self::assertNull($this->users->personOf('Benni_Mack'));
     }

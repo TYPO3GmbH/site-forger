@@ -19,7 +19,7 @@
     {% endif %}
 {% endset %}
 {# The avatar beside the name, so it is clear whom it shows #}
-{% set owner %}{{ user.inline(change.ownerAsUser, role: 'Owner') }}{% endset %}
+{% set owner %}{{ user.inline(change.ownerPerson, role: 'Owner') }}{% endset %}
 {% set branch %}<span class="tag-label{{ (change.branch ?? 'main') != 'main' ? ' is-backport' }}" title="Branch">{{ change.branch ?? 'main' }}</span>{% endset %}
 <a class="overview-list-item kind-change{{ detailed ? ' overview-list-item-detailed' }}" href="{{ change_path(change.id) }}" title="{{ change.subject }}">
     {% if not detailed %}

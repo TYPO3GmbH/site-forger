@@ -14,7 +14,7 @@
     {% endif %}
 {% endmacro %}
 
-{# user: what the document has of the person, see _macros/user.html.twig; left out without #}
+{# user: a Person, see _macros/user.html.twig; left out without #}
 {% macro person(label, user, url = null, title = null) %}
     {% import '_macros/user.html.twig' as users %}
     {% if (user.name ?? '') is not empty %}
