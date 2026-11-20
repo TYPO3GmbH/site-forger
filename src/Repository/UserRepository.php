@@ -95,7 +95,10 @@ class UserRepository
             'size' => 10,
         ])->getResults();
 
-        return array_map(static fn (Result $result): User => User::fromDocument($result->getSource()), $results);
+        return array_values(array_map(
+            static fn (Result $result): User => User::fromDocument($result->getSource()),
+            $results,
+        ));
     }
 
     /**

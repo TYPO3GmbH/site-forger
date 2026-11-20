@@ -264,7 +264,7 @@ final readonly class ForgeUserSync
                     $person = $bucket['latest']['hits']['hits'][0]['_source'][$field] ?? [];
                     $person['email'] = $bucket['withEmail']['latest']['hits']['hits'][0]['_source'][$field]['email'] ?? null;
                     $user = User::fromIssue($person);
-                    if (null === $user) {
+                    if (null === $user?->forgeId) {
                         continue;
                     }
                     // An email the other field knows stays

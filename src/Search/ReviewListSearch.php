@@ -46,11 +46,13 @@ final readonly class ReviewListSearch
         Pagination $page,
     ): array {
         $request = [
-            'query' => $listQuery,
             'sort' => $sort->sort(),
             'size' => $page->perPage,
             'from' => $page->from(),
         ];
+        if (null !== $listQuery) {
+            $request['query'] = $listQuery;
+        }
         $filterQuery = ReviewLists::filterQuery($filters, $this->users);
         // A BoolQuery without clauses cannot be turned into an array
         if ($filterQuery->count() > 0 && [] !== $filterQuery->toArray()) {

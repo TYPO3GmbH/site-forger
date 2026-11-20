@@ -117,7 +117,10 @@ final readonly class ProjectIssues
     {
         $results = $this->indices->issues()->search(new Query(['query' => self::range($from, $to), '_source' => false, 'size' => 1000]));
 
-        return array_map(static fn (Result $result): int => (int) $result->getId(), $results->getResults());
+        return array_values(array_map(
+            static fn (Result $result): int => (int) $result->getId(),
+            $results->getResults(),
+        ));
     }
 
     /**

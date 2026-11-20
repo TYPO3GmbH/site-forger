@@ -83,7 +83,7 @@ class CommandRunController extends AbstractController
         $jobs = [];
         // In the order of the schedule, the jobs that need a look first
         foreach ($scheduled as $job => $scheduledJob) {
-            if (isset($recent[$job])) {
+            if ([] !== ($recent[$job] ?? [])) {
                 $jobs[] = new CommandJobOverview($job, $recent[$job], $now, $scheduledJob['trigger'], $blockedBy[$job] ?? null);
             }
         }

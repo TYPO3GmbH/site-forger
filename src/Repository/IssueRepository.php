@@ -32,10 +32,12 @@ final readonly class IssueRepository
     public function byId(int $id): ?Issue
     {
         try {
-            return Issue::fromDocument($this->indices->issues()->getDocument((string) $id)->getData());
+            $source = $this->indices->issues()->getDocument((string) $id)->getData();
         } catch (NotFoundException) {
             return null;
         }
+
+        return is_array($source) ? Issue::fromDocument($source) : null;
     }
 
     /**

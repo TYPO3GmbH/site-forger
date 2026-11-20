@@ -72,7 +72,7 @@ final readonly class SearchResult implements ReadableCollection
     }
 
     /**
-     * @return ReadableCollection<string, Bucket>
+     * @return ReadableCollection<array-key, Bucket>
      */
     public function buckets(string $aggregation): ReadableCollection
     {
@@ -80,7 +80,7 @@ final readonly class SearchResult implements ReadableCollection
     }
 
     /**
-     * @return array<string, int> how many documents each bucket has, by its key
+     * @return array<array-key, int> how many documents each bucket has, by its key
      */
     public function counts(string $aggregation): array
     {
@@ -124,12 +124,12 @@ final readonly class SearchResult implements ReadableCollection
 
     public function containsKey(string|int $key): bool
     {
-        return $this->documents->containsKey($key);
+        return is_int($key) && $this->documents->containsKey($key);
     }
 
     public function get(string|int $key): mixed
     {
-        return $this->documents->get($key);
+        return is_int($key) ? $this->documents->get($key) : null;
     }
 
     public function getKeys(): array

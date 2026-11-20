@@ -32,10 +32,12 @@ final readonly class ChangeRepository
     public function byNumber(int $number): ?Change
     {
         try {
-            return Change::fromDocument($this->indices->reviews()->getDocument((string) $number)->getData());
+            $source = $this->indices->reviews()->getDocument((string) $number)->getData();
         } catch (NotFoundException) {
             return null;
         }
+
+        return is_array($source) ? Change::fromDocument($source) : null;
     }
 
     /**

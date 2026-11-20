@@ -23,6 +23,7 @@ use Elastica\Exception\InvalidException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -296,6 +297,6 @@ class ReviewController extends AbstractController
      */
     private function query(): InputBag
     {
-        return $this->requestStack->getCurrentRequest()->query ?? new InputBag();
+        return ($this->requestStack->getCurrentRequest() ?? new Request())->query;
     }
 }

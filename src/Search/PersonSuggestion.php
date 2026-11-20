@@ -89,7 +89,7 @@ final class PersonSuggestion
      * they have and their avatar, null without one: the search shows the initials then. Keys, names and avatars
      * only, no email addresses.
      *
-     * @param ReadableCollection<string, Bucket>      $people the buckets of the aggregation "people"
+     * @param ReadableCollection<array-key, Bucket>   $people the buckets of the aggregation "people"
      * @param \Closure(array<string, mixed>): ?string $avatar the address of the avatar of a user, of size AVATAR_SIZE,
      *                                                        see UserDirectory::avatarOfUser()
      * @param \Closure(string, int): string           $keyOf  see UserDirectory::keyOf()

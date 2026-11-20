@@ -73,7 +73,7 @@ final class CommandRunRecorder
      * The steps of the run so far, in the order they started: a step the command comes back to keeps its start,
      * so the speed of the page counts the time in between in. Written as "steps", see CommandRun::steps().
      *
-     * @var list<array{name: string, startedAt: \DateTimeImmutable, endedAt: ?\DateTimeImmutable, current: ?int, total: ?int}>
+     * @var list<RecordedStep>
      */
     private array $steps = [];
     /** What the current step waits for, a rate limit for example, until it goes on */
@@ -171,10 +171,10 @@ final class CommandRunRecorder
         $this->progressCurrent = $current;
         $this->progressTotal = $total;
         $this->waiting = null;
-        if (null !== $phase) {
-            $last = array_key_last($this->steps);
-            $this->steps[$last]['current'] = $current;
-            $this->steps[$last]['total'] = $total;
+        $step = array_last($this->steps);
+        if (null !== $phase && null !== $step) {
+            $step->current = $current;
+            $step->total = $total;
         }
         // A new step shows right away
         $this->heartbeat($phaseChanged);
@@ -287,7 +287,7 @@ final class CommandRunRecorder
         $now = new \DateTimeImmutable();
         $this->endStep($now);
         $this->waiting = null;
-        $this->write(fn (): int => $this->connection->update('command_run', [
+        $this->write(fn (): int|string => $this->connection->update('command_run', [
             'status' => $status->value,
             'heartbeat_at' => $now,
             'finished_at' => $now,
@@ -328,7 +328,7 @@ final class CommandRunRecorder
             return;
         }
         $this->lastHeartbeat = time();
-        $this->write(fn (): int => $this->connection->update('command_run', [
+        $this->write(fn (): int|string => $this->connection->update('command_run', [
             'heartbeat_at' => new \DateTimeImmutable(),
             'phase' => $this->phase,
             'phase_started_at' => $this->phaseStartedAt(),
@@ -371,8 +371,8 @@ final class CommandRunRecorder
     private function phaseStartedAt(): ?\DateTimeImmutable
     {
         foreach ($this->steps as $step) {
-            if ($step['name'] === $this->phase) {
-                return $step['startedAt'];
+            if ($step->name === $this->phase) {
+                return $step->startedAt;
             }
         }
 
@@ -384,22 +384,19 @@ final class CommandRunRecorder
      */
     private function startStep(string $name, \DateTimeImmutable $now): void
     {
-        $startedAt = $now;
-        foreach ($this->steps as $position => $step) {
-            if ($step['name'] === $name) {
-                $startedAt = $step['startedAt'];
-                unset($this->steps[$position]);
-            }
-        }
-        $this->steps = array_values($this->steps);
-        $this->steps[] = ['name' => $name, 'startedAt' => $startedAt, 'endedAt' => null, 'current' => null, 'total' => null];
+        $before = array_find($this->steps, static fn (RecordedStep $step): bool => $step->name === $name);
+        $this->steps = array_values(array_filter(
+            $this->steps,
+            static fn (RecordedStep $step): bool => $step->name !== $name,
+        ));
+        $this->steps[] = new RecordedStep($name, $before->startedAt ?? $now);
     }
 
     private function endStep(\DateTimeImmutable $now): void
     {
-        $last = array_key_last($this->steps);
-        if (null !== $last && null === $this->steps[$last]['endedAt']) {
-            $this->steps[$last]['endedAt'] = $now;
+        $step = array_last($this->steps);
+        if (null !== $step && null === $step->endedAt) {
+            $step->endedAt = $now;
         }
     }
 
@@ -469,14 +466,7 @@ final class CommandRunRecorder
         }
         $steps = [];
         foreach ($this->steps as $step) {
-            $steps[] = [
-                'name' => $step['name'],
-                'startedAt' => $step['startedAt']->format(\DATE_ATOM),
-                'endedAt' => $step['endedAt']?->format(\DATE_ATOM),
-                'current' => $step['current'],
-                'total' => $step['total'],
-                'waiting' => null === $step['endedAt'] ? $this->waiting : null,
-            ];
+            $steps[] = $step->toArray() + ['waiting' => null === $step->endedAt ? $this->waiting : null];
         }
 
         return json_encode($steps, \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_UNICODE);

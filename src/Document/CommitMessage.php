@@ -234,7 +234,8 @@ final class CommitMessage
                 return null;
             }
             $loose = $loose || !preg_match('/^[ \t]/', $line);
-            $trailers[array_key_last($trailers)]['value'] .= ' ' . trim($line);
+            $previous = array_pop($trailers);
+            $trailers[] = ['key' => $previous['key'], 'value' => $previous['value'] . ' ' . trim($line)];
         }
         $keys = array_map(static fn (array $trailer): string => strtolower($trailer['key']), $trailers);
         // Lines that are no trailers only with the Change-Id, which Gerrit asks every author for

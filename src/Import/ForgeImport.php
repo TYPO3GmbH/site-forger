@@ -59,11 +59,11 @@ final readonly class ForgeImport
         $this->removeOtherProjects($run);
         $offset = max(0, $startAt);
         $page = $this->forgeIssues->page($offset);
-        $total = (int) ($page['total_count'] ?? 0);
+        $total = $page['total_count'];
         $bar = $run->progressBar(max(0, $total - $offset));
         $skipped = 0;
         $listed = [];
-        while ($offset < $total && [] !== ($page['issues'] ?? [])) {
+        while ($offset < $total && [] !== $page['issues']) {
             foreach ($page['issues'] as $issue) {
                 $listed[(string) $issue['id']] = true;
             }
@@ -103,14 +103,14 @@ final readonly class ForgeImport
         $since = $this->watermark->since(Indices::ISSUE);
         if (null === $since) {
             $this->recorder->note('The issue index is empty: this run imported the latest issues only. "app:import:forge --full" fills it.');
-            $this->importIssues($run, $this->forgeIssues->page(0)['issues'] ?? [], self::STEP_LATEST, null, false);
+            $this->importIssues($run, $this->forgeIssues->page(0)['issues'], self::STEP_LATEST, null, false);
 
             return false;
         }
 
         $filter = ImportWatermark::redmineFilter($since);
         $page = $this->forgeIssues->page(0, $filter);
-        $total = (int) ($page['total_count'] ?? 0);
+        $total = $page['total_count'];
         $limit = min($total, self::DELTA_LIMIT);
         $run->writeln(sprintf('%d issues changed since %s, importing %d', $total, $since->format('Y-m-d H:i:s'), $limit));
         if ($total > self::DELTA_LIMIT) {
@@ -124,7 +124,7 @@ final readonly class ForgeImport
 
         $bar = $run->progressBar($limit);
         $unchanged = 0;
-        for ($offset = 0; $offset < $limit && [] !== ($page['issues'] ?? []); $offset += ForgeIssueList::PAGE_SIZE) {
+        for ($offset = 0; $offset < $limit && [] !== $page['issues']; $offset += ForgeIssueList::PAGE_SIZE) {
             $unchanged += $this->importIssues($run, array_slice($page['issues'], 0, $limit - $offset), self::STEP_DELTA, $bar, true);
             if ($offset + ForgeIssueList::PAGE_SIZE < $limit) {
                 $page = $this->forgeIssues->page($offset + ForgeIssueList::PAGE_SIZE, $filter);

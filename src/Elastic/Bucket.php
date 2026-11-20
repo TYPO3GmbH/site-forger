@@ -50,7 +50,7 @@ final readonly class Bucket
      *
      * @param array<string, mixed>|null $aggregation
      *
-     * @return ReadableCollection<string, Bucket>
+     * @return ReadableCollection<array-key, Bucket>
      */
     public static function listOf(?array $aggregation): ReadableCollection
     {
@@ -66,7 +66,7 @@ final readonly class Bucket
     /**
      * @param array<string, mixed>|null $aggregation
      *
-     * @return array<string, int> how many documents each bucket has, by its key
+     * @return array<array-key, int> how many documents each bucket has, by its key
      */
     public static function countsOf(?array $aggregation): array
     {
@@ -101,7 +101,7 @@ final readonly class Bucket
     }
 
     /**
-     * @return ReadableCollection<string, Bucket> the buckets of a sub-aggregation
+     * @return ReadableCollection<array-key, Bucket> the buckets of a sub-aggregation
      */
     public function buckets(string $name): ReadableCollection
     {

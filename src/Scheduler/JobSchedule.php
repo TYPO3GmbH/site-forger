@@ -98,6 +98,9 @@ final readonly class JobSchedule implements ScheduleProviderInterface
         return isset($job['weekly'])
             ? new WeeklyTrigger(...$job['weekly'])
             // From midnight: at :00, :05, :10, ..., whenever the worker starts
-            : new PeriodicalTrigger($job['every'], new \DateTimeImmutable('today'));
+            : new PeriodicalTrigger(
+                $job['every'] ?? throw new \LogicException('A job of the schedule needs "every" or "weekly"'),
+                new \DateTimeImmutable('today'),
+            );
     }
 }

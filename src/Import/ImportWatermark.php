@@ -65,7 +65,10 @@ final class ImportWatermark
         ]);
 
         return [
-            'ids' => array_map(static fn (Result $result): int => (int) $result->getId(), $results->getResults()),
+            'ids' => array_values(array_map(
+                static fn (Result $result): int => (int) $result->getId(),
+                $results->getResults(),
+            )),
             'total' => $results->getTotalHits(),
         ];
     }

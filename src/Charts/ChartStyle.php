@@ -144,7 +144,7 @@ final class ChartStyle
 
     private static function transparent(string $hex, float $alpha): string
     {
-        [$red, $green, $blue] = sscanf($hex, '#%02x%02x%02x');
+        [$red, $green, $blue] = array_map(hexdec(...), str_split(ltrim($hex, '#'), 2));
 
         return sprintf('rgba(%d,%d,%d,%s)', $red, $green, $blue, $alpha);
     }

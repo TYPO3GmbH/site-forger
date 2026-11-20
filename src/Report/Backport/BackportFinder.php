@@ -61,10 +61,10 @@ final readonly class BackportFinder
     public function find(array $excluded): array
     {
         $candidates = $this->candidates($excluded);
-        $related = $this->changesByChangeId(array_map(
+        $related = $this->changesByChangeId(array_values(array_map(
             static fn (Result $result): string => (string) $result->getSource()['change_id'],
             $candidates,
-        ));
+        )));
         $backports = [];
         foreach ($candidates as $candidate) {
             $source = $candidate->getSource();

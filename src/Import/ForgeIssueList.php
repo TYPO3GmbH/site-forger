@@ -46,7 +46,9 @@ final readonly class ForgeIssueList
     {
         $answer = $this->get(self::path($this->projectId, $from, $to, null, 1, 'id:desc'));
 
-        return ['count' => (int) ($answer['total_count'] ?? 0), 'highest' => isset($answer['issues'][0]['id']) ? (int) $answer['issues'][0]['id'] : null];
+        $highest = $answer['issues'][0]['id'] ?? null;
+
+        return ['count' => $answer['total_count'], 'highest' => null === $highest ? null : (int) $highest];
     }
 
     /**
@@ -54,13 +56,13 @@ final readonly class ForgeIssueList
      *
      * @param string|null $updatedOn see ImportWatermark::redmineFilter()
      *
-     * @return array<string, mixed>
+     * @return array{issues: list<array<string, mixed>>, total_count: int}
      *
      * @throws ApiFailure
      */
     public function page(int $offset, ?string $updatedOn = null): array
     {
-        return $this->forge->object('/issues.json', [
+        return self::issueList($this->forge->object('/issues.json', [
             'limit' => self::PAGE_SIZE,
             'offset' => $offset,
             'project_id' => $this->projectId,
@@ -68,7 +70,7 @@ final readonly class ForgeIssueList
             'sort' => null === $updatedOn ? 'updated_on:desc' : 'updated_on',
             'include' => 'relations',
             'updated_on' => $updatedOn,
-        ], 'a list of issues');
+        ], 'a list of issues'));
     }
 
     /**
@@ -78,7 +80,7 @@ final readonly class ForgeIssueList
      */
     public function range(int $from, int $to): array
     {
-        return $this->get(self::path($this->projectId, $from, $to, null, self::PAGE_SIZE, 'id'))['issues'] ?? [];
+        return $this->get(self::path($this->projectId, $from, $to, null, self::PAGE_SIZE, 'id'))['issues'];
     }
 
     /**
@@ -93,7 +95,8 @@ final readonly class ForgeIssueList
     {
         $issues = [];
         foreach (array_chunk(array_values(array_unique($ids)), self::PAGE_SIZE) as $chunk) {
-            array_push($issues, ...$this->get(self::path($this->projectId, null, null, $chunk, self::PAGE_SIZE, 'id'))['issues'] ?? []);
+            $path = self::path($this->projectId, null, null, $chunk, self::PAGE_SIZE, 'id');
+            array_push($issues, ...$this->get($path)['issues']);
         }
 
         return $issues;
@@ -121,7 +124,7 @@ final readonly class ForgeIssueList
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{issues: list<array<string, mixed>>, total_count: int}
      *
      * @throws ApiFailure Forge could not be asked
      */
@@ -132,6 +135,23 @@ final readonly class ForgeIssueList
             throw ApiFailure::unexpected($this->forge->name, 'a list of issues', json_encode($answer));
         }
 
-        return $answer;
+        return self::issueList($answer);
+    }
+
+    /**
+     * @param array<string, mixed> $answer a list of issues as Forge sends it
+     *
+     * @return array{issues: list<array<string, mixed>>, total_count: int}
+     */
+    private static function issueList(array $answer): array
+    {
+        $issues = [];
+        foreach ((array) ($answer['issues'] ?? []) as $issue) {
+            if (is_array($issue)) {
+                $issues[] = $issue;
+            }
+        }
+
+        return ['issues' => $issues, 'total_count' => (int) ($answer['total_count'] ?? 0)];
     }
 }

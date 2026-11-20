@@ -51,6 +51,6 @@ final class IssueSearch
         $replace = '\\\$1';
         $escapedString = preg_replace($pattern, $replace, $value);
 
-        return str_replace('/', '\/', $escapedString);
+        return str_replace('/', '\/', $escapedString ?? $value);
     }
 }

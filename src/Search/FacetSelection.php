@@ -135,6 +135,13 @@ final class FacetSelection
      */
     public static function inOrderOf(array $facets, array $titles): array
     {
-        return array_replace(array_intersect_key(array_flip($titles), $facets), $facets);
+        $ordered = [];
+        foreach ($titles as $title) {
+            if (array_key_exists($title, $facets)) {
+                $ordered[$title] = $facets[$title];
+            }
+        }
+
+        return $ordered + $facets;
     }
 }
