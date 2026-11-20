@@ -95,7 +95,8 @@ bin/console app:import:users 320
 
 Other commands:
 
-* `app:backports` writes the list of the backport view (`var/backports.json`)
+* `app:backports` writes the list of the backport view (`var/backports.json`), for the releases of the
+  parameter `backport_releases`
 * `app:truncate-type <issue|review>` deletes all documents of an index type
 * `app:elasticsearch:setup`, see [Elasticsearch indices](#elasticsearch-indices)
 

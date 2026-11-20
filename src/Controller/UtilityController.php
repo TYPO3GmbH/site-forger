@@ -11,13 +11,11 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Elastic\Indices;
 use App\Entity\BackportBlacklistEntry;
-use App\Report\Backports;
+use App\Report\Backport\BackportList;
 use App\Repository\BackportBlacklistEntryRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -27,8 +25,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class UtilityController extends AbstractController
 {
     public function __construct(
-        private readonly Indices $indices,
-        private readonly ParameterBagInterface $parameters,
+        private readonly BackportList $backportList,
         private readonly BackportBlacklistEntryRepository $backportBlacklistEntryRepository
     ) {
     }
@@ -43,38 +40,12 @@ class UtilityController extends AbstractController
     }
 
     /**
-     * The changes merged into main whose backports are missing or wait for their review, from var/backports.json,
-     * which app:backport writes; the excluded ones left out. See Backports.
+     * The changes merged into main whose backports are missing or wait for their review, see BackportList.
      */
     #[Route(path: '/backport', name: 'backport')]
     public function backport(): Response
     {
-        $backports = [];
-        $finalFilePath = $this->parameters->get('kernel.project_dir') . '/var/backports.json';
-        if (is_file($finalFilePath)) {
-            $backports = (array) json_decode((string) file_get_contents($finalFilePath), true, 512, JSON_THROW_ON_ERROR);
-        }
-        foreach (array_keys($backports) as $changeId) {
-            if (null !== $this->backportBlacklistEntryRepository->findOneBy(['changeId' => $changeId])) {
-                unset($backports[$changeId]);
-            }
-        }
-        $changes = [];
-        $numbers = Backports::mainNumbers($backports);
-        if ([] !== $numbers) {
-            $results = $this->indices->reviews()->createSearch([
-                'query' => ['terms' => ['id' => $numbers]],
-                'size' => count($numbers),
-            ])->search()->getResults();
-            foreach ($results as $result) {
-                $changes[(int) $result->getData()['id']] = $result->getData();
-            }
-        }
-
-        return $this->render('utility/backport.html.twig', [
-            'rows' => Backports::rows($backports, $changes),
-            'fileExists' => is_file($finalFilePath),
-        ]);
+        return $this->render('utility/backport.html.twig', $this->backportList->rows());
     }
 
     #[Route(path: '/backport/create', name: 'backport_create')]

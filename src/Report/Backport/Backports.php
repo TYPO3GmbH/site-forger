@@ -9,13 +9,12 @@ declare(strict_types=1);
  * LICENSE file that was distributed with this source code.
  */
 
-namespace App\Report;
+namespace App\Report\Backport;
 
-use App\Command\BackportCommand;
 use App\Enum\ReviewStateEnum;
 
 /**
- * The rows of "Backports" from var/backports.json, which BackportCommand writes: per change merged into main, the
+ * The rows of "Backports" from the file BackportFinder fills, see BackportFile: per change merged into main, the
  * versions of its "Releases:" footer and how far each one's backport is.
  *
  * A version is "missing" without a backport in Gerrit, else it has the backport change and its state. Versions the
@@ -25,6 +24,22 @@ use App\Enum\ReviewStateEnum;
 final class Backports
 {
     /**
+     * The versions of the footer "Releases:" and their branches in Gerrit.
+     */
+    public const array VERSION_BRANCHES = [
+        'main' => 'main',
+        '6.2' => 'TYPO3_6-2',
+        '7.6' => 'TYPO3_7-6',
+        '8.7' => 'TYPO3_8-7',
+        '9.5' => '9.5',
+        '10.4' => '10.4',
+        '11.5' => '11.5',
+        '12.4' => '12.4',
+        '13.4' => '13.4',
+        '14.3' => '14.3',
+    ];
+
+    /**
      * The versions by their key in the file: "t3_134" => "13.4".
      *
      * @return array<string, string>
@@ -32,7 +47,7 @@ final class Backports
     public static function versions(): array
     {
         $versions = [];
-        foreach (array_keys(BackportCommand::VERSION_BRANCHES) as $version) {
+        foreach (array_keys(self::VERSION_BRANCHES) as $version) {
             $versions['t3_' . str_replace('.', '', (string) $version)] = (string) $version;
         }
 

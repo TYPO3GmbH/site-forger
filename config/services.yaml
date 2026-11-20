@@ -7,6 +7,8 @@ parameters:
   router.request_context.host: '%env(APP_URL)%'
   router.request_context.scheme: 'https'
   redmine_project_id: 27
+  # The releases whose backports the backport view watches
+  backport_releases: ['13.4', '14.3']
 
 services:
   # default configuration for services in *this* file

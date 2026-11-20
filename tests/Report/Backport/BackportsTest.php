@@ -9,10 +9,10 @@ declare(strict_types=1);
  * LICENSE file that was distributed with this source code.
  */
 
-namespace App\Tests\Report;
+namespace App\Tests\Report\Backport;
 
 use App\Enum\ReviewStateEnum;
-use App\Report\Backports;
+use App\Report\Backport\Backports;
 use PHPUnit\Framework\TestCase;
 
 final class BackportsTest extends TestCase

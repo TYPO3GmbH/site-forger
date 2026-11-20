@@ -24,4 +24,15 @@ class BackportBlacklistEntryRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, BackportBlacklistEntry::class);
     }
+
+    /**
+     * @return list<string> the Change-Ids of all excluded changes
+     */
+    public function changeIds(): array
+    {
+        return array_map(
+            static fn (BackportBlacklistEntry $entry): string => (string) $entry->getChangeId(),
+            $this->findAll(),
+        );
+    }
 }
