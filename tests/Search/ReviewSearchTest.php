@@ -24,7 +24,7 @@ final class ReviewSearchTest extends TestCase
 
     public function testWordsAreSearchedInTheSubjectTopicAndOwner(): void
     {
-        $should = ReviewSearch::query(' form (editor) ')['bool']['should'];
+        $should = self::query(' form (editor) ')['bool']['should'];
 
         self::assertSame(['query_string' => ['query' => 'form \\(editor\\)', 'fields' => ['subject^3', 'commit_text^2', 'commit_message'], 'default_operator' => 'AND']], $should[0]);
         self::assertSame(['term' => ['topic' => 'form (editor)']], $should[1]);
@@ -34,12 +34,15 @@ final class ReviewSearchTest extends TestCase
 
     public function testANumberFindsItsChange(): void
     {
-        self::assertContains(['term' => ['id' => ['value' => 81234, 'boost' => 10]]], ReviewSearch::query('81234')['bool']['should']);
+        self::assertContains(
+            ['term' => ['id' => ['value' => 81234, 'boost' => 10]]],
+            self::query('81234')['bool']['should'],
+        );
     }
 
     public function testAnIssueNumberFindsTheChangesOfItsFooter(): void
     {
-        $should = ReviewSearch::query('#105123')['bool']['should'];
+        $should = self::query('#105123')['bool']['should'];
 
         self::assertContains(['term' => ['resolves' => ['value' => 105123, 'boost' => 5]]], $should);
         self::assertContains(['term' => ['related' => 105123]], $should);
@@ -49,12 +52,23 @@ final class ReviewSearchTest extends TestCase
     {
         self::assertContains(
             ['prefix' => ['change_id' => ['value' => 'I0123abcdef', 'boost' => 10]]],
-            ReviewSearch::query('I0123ABCDEF')['bool']['should']
+            self::query('I0123ABCDEF')['bool']['should']
         );
     }
 
     public function testOneOfThemIsEnough(): void
     {
-        self::assertSame(1, ReviewSearch::query('cache')['bool']['minimum_should_match']);
+        self::assertSame(1, self::query('cache')['bool']['minimum_should_match']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function query(string $words): array
+    {
+        $query = ReviewSearch::query($words);
+        self::assertNotNull($query);
+
+        return $query;
     }
 }

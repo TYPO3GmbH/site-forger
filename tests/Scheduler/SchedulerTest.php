@@ -159,6 +159,7 @@ final class SchedulerTest extends TestCase
         // echo instead of PHP: it writes the command line to the log
         $commandLine = StartJobHandler::commandLine('echo', new StartJob('test', 'Test', ['app:import', '--mode=a b', '$HOME', '"; touch /tmp/x; "']), $log);
         $shell = proc_open($commandLine, [['file', '/dev/null', 'r'], ['file', '/dev/null', 'w'], ['file', '/dev/null', 'w']], $pipes);
+        self::assertIsResource($shell);
 
         self::assertSame(0, proc_close($shell));
         // The shell ended, the job may still run: wait for its output
@@ -177,11 +178,17 @@ final class SchedulerTest extends TestCase
         // The worker holds the lock of the schedule, a flock, as the scheduler does as long as the worker runs
         $lockFile = tempnam(sys_get_temp_dir(), 'lock');
         $lock = fopen($lockFile, 'r+');
+        self::assertIsResource($lock);
         self::assertTrue(flock($lock, \LOCK_EX | \LOCK_NB));
         $log = tempnam(sys_get_temp_dir(), 'job');
 
         // ls instead of PHP: the job lists the files it has open
-        $shell = proc_open(StartJobHandler::commandLine('ls', new StartJob('test', 'Test', ['/proc/self/fd']), $log), [['file', '/dev/null', 'r'], ['file', '/dev/null', 'w'], ['file', '/dev/null', 'w']], $pipes);
+        $shell = proc_open(
+            StartJobHandler::commandLine('ls', new StartJob('test', 'Test', ['/proc/self/fd']), $log),
+            [['file', '/dev/null', 'r'], ['file', '/dev/null', 'w'], ['file', '/dev/null', 'w']],
+            $pipes,
+        );
+        self::assertIsResource($shell);
         self::assertSame(0, proc_close($shell));
         for ($i = 0; $i < 50 && !str_contains((string) file_get_contents($log), "\n2\n"); ++$i) {
             usleep(20000);

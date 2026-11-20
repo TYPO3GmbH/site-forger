@@ -67,7 +67,7 @@ final class ForgeUserSyncTest extends TestCase
 
         $due = ForgeUserSync::due($users, $now, 10);
 
-        self::assertSame([6, 4, 3, 5, 2], array_map(static fn (User $user): int => $user->forgeId, $due));
+        self::assertSame([6, 4, 3, 5, 2], array_map(static fn (User $user): ?int => $user->forgeId, $due));
         self::assertCount(2, ForgeUserSync::due($users, $now, 2));
         self::assertSame([], ForgeUserSync::due($users, $now, 0));
     }

@@ -37,7 +37,7 @@ final class CommandRunRecorderTest extends TestCase
         }
         $recorder->finish(1);
 
-        $last = array_last($this->updates);
+        $last = $this->lastUpdate();
         self::assertSame(CommandRunStatusEnum::INTERRUPTED->value, $last['status']);
         self::assertSame('Interrupted: a deployment', $last['message']);
         // Where it got, and since when it was in its phase
@@ -72,7 +72,7 @@ final class CommandRunRecorderTest extends TestCase
         $recorder->note('Catching up: 17,809 issues changed since 8 Jun 2022, more than a run imports.');
         $recorder->finish(0);
 
-        $last = array_last($this->updates);
+        $last = $this->lastUpdate();
         self::assertSame(CommandRunStatusEnum::SUCCESS->value, $last['status']);
         $log = json_decode((string) $last['log'], true);
         self::assertSame('info', $log[0]['level']);
@@ -89,7 +89,7 @@ final class CommandRunRecorderTest extends TestCase
         $recorder->skipped('issue', '98765', new \RuntimeException('Timeout after 30 s', 0, new \LogicException('cURL error 28')));
         $recorder->finish(0);
 
-        $last = array_last($this->updates);
+        $last = $this->lastUpdate();
         self::assertSame(CommandRunStatusEnum::WARNING->value, $last['status']);
         self::assertSame(1, $last['warnings']);
         self::assertSame('Skipped Forge issue #98765: Timeout after 30 s', $last['message']);
@@ -110,7 +110,7 @@ final class CommandRunRecorderTest extends TestCase
         $recorder->fail(\RuntimeException::class . ': no such index [review_english]', $exception);
         $recorder->finish(1);
 
-        $entry = json_decode((string) array_last($this->updates)['log'], true)[0];
+        $entry = json_decode((string) $this->lastUpdate()['log'], true)[0];
         self::assertSame('error', $entry['level']);
         self::assertSame('no such index [review_english]', $entry['exception']['message']);
     }
@@ -123,7 +123,7 @@ final class CommandRunRecorderTest extends TestCase
         $recorder->progress('Importing changed Forge issues', 1, 10);
         $recorder->finish(0);
 
-        self::assertSame(CommandRunStatusEnum::SUCCESS->value, array_last($this->updates)['status']);
+        self::assertSame(CommandRunStatusEnum::SUCCESS->value, $this->lastUpdate()['status']);
     }
 
     public function testAWaitForARateLimitIsANoteOnTheStepNotAStepOfItsOwn(): void
@@ -132,18 +132,18 @@ final class CommandRunRecorderTest extends TestCase
         $recorder->start('app:import:forge --full');
 
         $recorder->progress('Going through all Forge issues', 100, 1000);
-        $start = array_last($this->updates)['phase_started_at'];
+        $start = $this->lastUpdate()['phase_started_at'];
         $recorder->waiting('Forge rate limit, waiting 30 s (attempt 1 of 6)');
 
         $waiting = $this->steps();
         self::assertCount(1, $waiting);
         self::assertSame('Forge rate limit, waiting 30 s (attempt 1 of 6)', $waiting[0]['waiting']);
-        self::assertSame('Going through all Forge issues', array_last($this->updates)['phase']);
+        self::assertSame('Going through all Forge issues', $this->lastUpdate()['phase']);
 
         // Going on ends the wait, the step keeps its start
         $recorder->progress('Going through all Forge issues', 101, 1000);
         $recorder->finish(0);
-        self::assertSame($start, array_last($this->updates)['phase_started_at']);
+        self::assertSame($start, $this->lastUpdate()['phase_started_at']);
         self::assertNull($this->steps()[0]['waiting']);
     }
 
@@ -174,7 +174,7 @@ final class CommandRunRecorderTest extends TestCase
      */
     private function steps(): array
     {
-        $json = array_last($this->updates)['steps'];
+        $json = $this->lastUpdate()['steps'];
         self::assertIsString($json);
 
         return json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
@@ -196,5 +196,16 @@ final class CommandRunRecorderTest extends TestCase
         });
 
         return new CommandRunRecorder($connection, new NullLogger(), $projectDir);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function lastUpdate(): array
+    {
+        $last = array_last($this->updates);
+        self::assertNotNull($last);
+
+        return $last;
     }
 }

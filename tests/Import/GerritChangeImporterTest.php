@@ -28,8 +28,7 @@ use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 final class GerritChangeImporterTest extends TestCase
 {
-    /** @var \ArrayObject<int, array{request: \Psr\Http\Message\RequestInterface}> */
-    private \ArrayObject $requests;
+    private MockApi $api;
 
     public function testSumsAndTheLowestAndHighestSingleVote(): void
     {
@@ -102,7 +101,7 @@ final class GerritChangeImporterTest extends TestCase
         $importer = $this->importer([new Response(200, [], ")]}'\n[]")]);
 
         self::assertSame(ChangeRefreshResult::NOT_FOUND, $importer->refresh(95026));
-        parse_str($this->requests[0]['request']->getUri()->getQuery(), $query);
+        parse_str($this->api->request(0)->getUri()->getQuery(), $query);
         self::assertSame('project:Packages/TYPO3.CMS (change:95026)', $query['q']);
     }
 
@@ -112,7 +111,7 @@ final class GerritChangeImporterTest extends TestCase
 
         self::assertSame([], $importer->find('change:1', 1));
         // The query was lost on a retry once
-        self::assertSame($this->requests[0]['request']->getUri()->getQuery(), $this->requests[1]['request']->getUri()->getQuery());
+        self::assertSame($this->api->request(0)->getUri()->getQuery(), $this->api->request(1)->getUri()->getQuery());
     }
 
     public function testTheRefreshOfAChangeAsksForTheDetailsOfTheImport(): void
@@ -121,7 +120,7 @@ final class GerritChangeImporterTest extends TestCase
 
         $importer->refresh(81234);
 
-        parse_str(str_replace('o=', 'o[]=', $this->requests[0]['request']->getUri()->getQuery()), $query);
+        parse_str(str_replace('o=', 'o[]=', $this->api->request(0)->getUri()->getQuery()), $query);
         // The same details as the full import and the delta, see GerritImport
         self::assertSame(GerritChangeImporter::DETAIL_OPTIONS, $query['o']);
         // Only the current patch set
@@ -181,7 +180,7 @@ final class GerritChangeImporterTest extends TestCase
     {
         $recorder = new CommandRunRecorder($this->createStub(Connection::class), new NullLogger());
         $api = new MockApi($responses, $recorder, 'Gerrit');
-        $this->requests = $api->requests;
+        $this->api = $api;
 
         return new GerritChangeImporter(
             new Indices(new Client()),

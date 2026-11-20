@@ -80,11 +80,17 @@ final class PeopleKeysTest extends TestCase
             ['terms' => ['author.id' => [320, 41]]],
             ['terms' => ['author.name' => ['Oli Bartsch']]],
         ], 'minimum_should_match' => 1]], $query);
-        self::assertSame(['terms' => ['assigned_to.id' => [5]]], PeopleFacet::query('Assigned to', ['alex_schnitzler'], $this->users)['bool']['should'][0]);
+        self::assertSame(
+            ['terms' => ['assigned_to.id' => [5]]],
+            $this->peopleQuery('Assigned to', ['alex_schnitzler'])['bool']['should'][0],
+        );
         self::assertNull(PeopleFacet::query('Author', [], $this->users));
         // Known from Gerrit only, Forge not asked yet: by the number of the document of the issues of the same name
         self::assertSame([38237], $this->users->numbersOf('benjaminkott', 'forge'));
-        self::assertSame(['terms' => ['author.id' => [38237]]], PeopleFacet::query('Author', ['benjaminkott'], $this->users)['bool']['should'][0]);
+        self::assertSame(
+            ['terms' => ['author.id' => [38237]]],
+            $this->peopleQuery('Author', ['benjaminkott'])['bool']['should'][0],
+        );
         // And the old links by the name
         self::assertSame([320], $this->users->numbersOf('Benni_Mack', 'forge'));
         // Nobody of the name has issues
@@ -102,7 +108,10 @@ final class PeopleKeysTest extends TestCase
             ['bool' => ['must_not' => [['exists' => ['field' => 'owner_id']]], 'filter' => [['terms' => ['owner' => ['Benni Mack']]]]]],
         ], 'minimum_should_match' => 1]], $query);
         // A person of Forge only is found by the username, too
-        self::assertSame(['terms' => ['owner_username' => ['alex_schnitzler']]], PeopleFacet::query('Owner', ['alex_schnitzler'], $this->users)['bool']['should'][0]);
+        self::assertSame(
+            ['terms' => ['owner_username' => ['alex_schnitzler']]],
+            $this->peopleQuery('Owner', ['alex_schnitzler'])['bool']['should'][0],
+        );
         // A number of Forge has no changes
         self::assertEquals(['match_none' => new \stdClass()], PeopleFacet::query('Owner', ['forge:99'], $this->users));
     }
@@ -135,5 +144,18 @@ final class PeopleKeysTest extends TestCase
         );
         self::assertSame('Assigned to', PeopleFacet::titleOf('assigned_to'));
         self::assertNull(PeopleFacet::titleOf('status'));
+    }
+
+    /**
+     * @param list<string> $keys
+     *
+     * @return array<string, mixed>
+     */
+    private function peopleQuery(string $title, array $keys): array
+    {
+        $query = PeopleFacet::query($title, $keys, $this->users);
+        self::assertNotNull($query);
+
+        return $query;
     }
 }

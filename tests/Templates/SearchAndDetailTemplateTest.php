@@ -277,7 +277,10 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
                 ['key' => 'Topic', 'doc_count' => 1],
             ]]],
         ]));
-        $without = CategoryOverview::withoutCategory(['doc_count' => 1, 'tracker' => ['buckets' => [['key' => 'Bug', 'doc_count' => 1]]]]);
+        $without = CategoryOverview::withoutCategory(['doc_count' => 1, 'tracker' => ['buckets' => [
+            ['key' => 'Bug', 'doc_count' => 1],
+        ]]]);
+        self::assertNotNull($without);
         $template = $this->twig->load('management/bycategory.html.twig');
         $html = $template->renderBlock('body', [
             'rows' => $rows, 'withoutCategory' => $without, 'sums' => CategoryOverview::sums([...$rows, $without]), 'trackers' => CategoryOverview::TRACKERS,
@@ -489,7 +492,10 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('<a class="status-pill status-pill-ready" href="/change/97836" title="97836 on 14.3: Ready for review">14.3 ready for review</a>', $html);
         self::assertStringContainsString('<span class="status-pill status-pill-backport-missing" title="No backport for 13.4 in Gerrit">13.4 missing</span>', $html);
         self::assertTrue($template->hasBlock('page_title'));
-        self::assertStringContainsString('<strong>1</strong> has a backport missing.', preg_replace('/\s+/', ' ', $template->renderBlock('page_summary', ['rows' => $rows, 'fileExists' => true])));
+        $summary = $template->renderBlock('page_summary', ['rows' => $rows, 'fileExists' => true]);
+        $summary = preg_replace('/\s+/', ' ', $summary);
+        self::assertNotNull($summary);
+        self::assertStringContainsString('<strong>1</strong> has a backport missing.', $summary);
         self::assertStringContainsString('No list of backports yet', $template->renderBlock('page_summary', ['rows' => [], 'fileExists' => false]));
     }
 

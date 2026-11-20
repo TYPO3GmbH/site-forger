@@ -60,7 +60,11 @@ final class CategoryOverviewTest extends TestCase
 
     public function testTheIssuesWithoutCategoryInARowOfTheirOwn(): void
     {
-        $row = CategoryOverview::withoutCategory(['doc_count' => 3, 'tracker' => ['buckets' => [['key' => 'Bug', 'doc_count' => 2], ['key' => 'Support', 'doc_count' => 1]]]]);
+        $row = CategoryOverview::withoutCategory(['doc_count' => 3, 'tracker' => ['buckets' => [
+            ['key' => 'Bug', 'doc_count' => 2],
+            ['key' => 'Support', 'doc_count' => 1],
+        ]]]);
+        self::assertNotNull($row);
 
         self::assertSame('Without category', $row['name']);
         self::assertSame(3, $row['total']);
@@ -73,7 +77,9 @@ final class CategoryOverviewTest extends TestCase
 
     public function testTheIssuesWithoutCategoryAreAValueOfTheFilter(): void
     {
-        self::assertSame(CategoryOverview::WITHOUT, CategoryOverview::withoutCategory(['doc_count' => 1, 'tracker' => ['buckets' => []]])['name']);
+        $row = CategoryOverview::withoutCategory(['doc_count' => 1, 'tracker' => ['buckets' => []]]);
+        self::assertNotNull($row);
+        self::assertSame(CategoryOverview::WITHOUT, $row['name']);
         self::assertSame(['bool' => ['must_not' => [['exists' => ['field' => 'category.name']]]]], CategoryOverview::withoutCategoryQuery());
     }
 

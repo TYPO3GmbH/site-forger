@@ -34,7 +34,7 @@ final class ApiClientTest extends TestCase
         $api = $this->api([new Response(200, [], '{"issue":{"id":91089}}')]);
 
         self::assertSame(['issue' => ['id' => 91089]], $api->client->get('/issues/91089.json', ['include' => 'relations']));
-        self::assertSame('include=relations', $api->requests[0]['request']->getUri()->getQuery());
+        self::assertSame('include=relations', $api->request(0)->getUri()->getQuery());
     }
 
     public function testTheJsonOfGerritWithoutThePrefixAgainstXssi(): void
@@ -52,7 +52,7 @@ final class ApiClientTest extends TestCase
         $api = $this->api([new Response(200, [], '{}')]);
 
         $api->client->get('/issues.json?f[]=id', ['limit' => 1]);
-        self::assertSame('f[]=id&limit=1', urldecode($api->requests[0]['request']->getUri()->getQuery()));
+        self::assertSame('f[]=id&limit=1', urldecode($api->request(0)->getUri()->getQuery()));
     }
 
     public function testAnErrorStatusIsAFailureWithTheStatusAsCode(): void
@@ -91,7 +91,7 @@ final class ApiClientTest extends TestCase
         // The job keeps its lock while it waits
         self::assertSame(1, $kept);
         // The retry asks the same
-        self::assertSame((string) $api->requests[0]['request']->getUri(), (string) $api->requests[1]['request']->getUri());
+        self::assertSame((string) $api->request(0)->getUri(), (string) $api->request(1)->getUri());
     }
 
     public function testTheLastFailureIsThrownWhenNoRetriesAreLeft(): void

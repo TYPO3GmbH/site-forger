@@ -43,7 +43,7 @@ final class ReviewListsTest extends TestCase
     #[DataProvider('openLists')]
     public function testListsLeaveOutClosedChangesAndWorkInProgress(string $list): void
     {
-        self::assertSame([self::CLOSED, self::WORK_IN_PROGRESS], ReviewLists::query($list)['bool']['must_not']);
+        self::assertSame([self::CLOSED, self::WORK_IN_PROGRESS], self::listQuery($list)['bool']['must_not']);
     }
 
     public function testReadyToMergeHasPositiveAndNoNegativeVotes(): void
@@ -70,7 +70,7 @@ final class ReviewListsTest extends TestCase
     {
         self::assertSame(
             [['range' => ['negative_reviews' => ['gte' => 1]]], ['range' => ['negative_verifications' => ['gte' => 1]]]],
-            ReviewLists::query(ReviewLists::NEGATIVE_VOTES)['bool']['should']
+            self::listQuery(ReviewLists::NEGATIVE_VOTES)['bool']['should']
         );
     }
 
@@ -105,8 +105,8 @@ final class ReviewListsTest extends TestCase
 
     public function testSearchWordsNarrowDownAList(): void
     {
-        $list = ReviewLists::query(ReviewLists::NEGATIVE_VOTES);
-        $query = ReviewLists::query(ReviewLists::NEGATIVE_VOTES, false, 'cache');
+        $list = self::listQuery(ReviewLists::NEGATIVE_VOTES);
+        $query = self::listQuery(ReviewLists::NEGATIVE_VOTES, false, 'cache');
 
         // Kept apart, so the "should" of the negative votes stays required
         self::assertSame($list, $query['bool']['must'][0]);
@@ -118,5 +118,16 @@ final class ReviewListsTest extends TestCase
     {
         self::assertSame(['bool' => ['must_not' => [self::CLOSED]]], ReviewLists::query(ReviewLists::SEARCH));
         self::assertEquals(['match_all' => new \stdClass()], ReviewLists::query(ReviewLists::SEARCH, true));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function listQuery(string $list, bool $includeClosed = false, string $searchTerms = ''): array
+    {
+        $query = ReviewLists::query($list, $includeClosed, $searchTerms);
+        self::assertNotNull($query);
+
+        return $query;
     }
 }

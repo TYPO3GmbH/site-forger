@@ -18,6 +18,8 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
+use PHPUnit\Framework\Assert;
+use Psr\Http\Message\RequestInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 
@@ -26,7 +28,7 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
  */
 final class MockApi
 {
-    /** @var \ArrayObject<int, array{request: \Psr\Http\Message\RequestInterface}> */
+    /** @var \ArrayObject<int, RequestInterface> the requests sent, retries too */
     public readonly \ArrayObject $requests;
 
     /** @var list<int> one entry per second */
@@ -46,9 +48,12 @@ final class MockApi
     {
         $stack = HandlerStack::create(new MockHandler($responses));
         $this->paused = new \ArrayObject();
-        $history = new \ArrayObject();
-        $stack->push(Middleware::history($history));
-        $this->requests = $history;
+        $this->requests = new \ArrayObject();
+        $stack->push(Middleware::mapRequest(function (RequestInterface $request): RequestInterface {
+            $this->requests->append($request);
+
+            return $request;
+        }));
         $this->apiRequests = new ApiRequests(
             $recorder,
             new NullLogger(),
@@ -60,5 +65,13 @@ final class MockApi
             },
         );
         $this->client = new ApiClient($name, new Client(['handler' => $stack, 'base_uri' => 'https://api.example.org']), $this->apiRequests, $rateLimiter, $minPauseMs);
+    }
+
+    public function request(int $position): RequestInterface
+    {
+        $request = $this->requests[$position] ?? null;
+        Assert::assertNotNull($request, sprintf('No request %d was sent', $position));
+
+        return $request;
     }
 }

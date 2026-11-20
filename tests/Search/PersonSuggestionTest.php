@@ -30,6 +30,7 @@ final class PersonSuggestionTest extends TestCase
     public function testFindsPeopleOfTheListContainingTheTermInAnyCase(): void
     {
         $request = PersonSuggestion::request(' benni ', self::LIST_QUERY, 'Assigned to');
+        self::assertNotNull($request);
 
         self::assertSame(0, $request['size']);
         self::assertSame(self::LIST_QUERY, $request['query']['bool']['filter'][0]);
@@ -45,6 +46,7 @@ final class PersonSuggestionTest extends TestCase
     public function testWildcardsInTheTermAreTakenLiterally(): void
     {
         $request = PersonSuggestion::request('a*b?c\\', self::LIST_QUERY, 'Owner');
+        self::assertNotNull($request);
 
         self::assertSame('*a\\*b\\?c\\\\*', $request['query']['bool']['filter'][1]['wildcard']['owner']['value']);
     }

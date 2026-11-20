@@ -82,7 +82,11 @@ final class ActivityEnumTest extends TestCase
 
         $cases = ActivityEnum::cases();
         for ($i = 1, $count = count($cases); $i < $count; ++$i) {
-            self::assertSame($cases[$i - 1]->range()['gte'], $cases[$i]->range()['lt']);
+            $younger = $cases[$i - 1]->range();
+            $older = $cases[$i]->range();
+            self::assertArrayHasKey('gte', $younger);
+            self::assertArrayHasKey('lt', $older);
+            self::assertSame($younger['gte'], $older['lt']);
         }
     }
 

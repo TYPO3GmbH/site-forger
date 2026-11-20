@@ -397,8 +397,14 @@ final class CommandRunTest extends TestCase
         foreach ($starts as $position => $start) {
             $runs[] = $this->commandRun($start, $statuses[$position] ?? CommandRunStatusEnum::SUCCESS);
         }
+        self::assertNotEmpty($runs);
 
-        return new CommandJobOverview('app:import:review', $runs, $this->now, new PeriodicalTrigger('5 minutes', new \DateTimeImmutable('2026-11-19 00:00')));
+        return new CommandJobOverview(
+            'app:import:review',
+            $runs,
+            $this->now,
+            new PeriodicalTrigger('5 minutes', new \DateTimeImmutable('2026-11-19 00:00')),
+        );
     }
 
     /**

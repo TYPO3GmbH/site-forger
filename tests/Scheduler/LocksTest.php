@@ -26,8 +26,7 @@ final class LocksTest extends KernelTestCase
 {
     public function testTheLocksAreInVarLockOfTheInstallation(): void
     {
-        self::bootKernel();
-        $lockDirectory = self::$kernel->getProjectDir() . '/var/lock';
+        $lockDirectory = self::bootKernel()->getProjectDir() . '/var/lock';
         $lock = self::getContainer()->get(LockFactory::class)->createLock('forger-locks-test');
 
         self::assertTrue($lock->acquire());

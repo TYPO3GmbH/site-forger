@@ -89,6 +89,7 @@ final class StaleIssuesTest extends TestCase
         self::assertNull(StaleIssues::changesRequest([]));
 
         $request = StaleIssues::changesRequest([self::issue(1, 81234, 81235), self::issue(2, 81235)]);
+        self::assertNotNull($request);
         self::assertSame(
             [['terms' => ['resolves' => [1, 2]]], ['terms' => ['related' => [1, 2]]], ['terms' => ['id' => [81234, 81235]]]],
             $request['query']['bool']['should'],

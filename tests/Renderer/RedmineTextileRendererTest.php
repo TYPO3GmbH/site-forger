@@ -20,8 +20,11 @@ final class RedmineTextileRendererTest extends KernelTestCase
     public function testRedmineTicketsAreRenderedAsExpected(string $fixture): void
     {
         $input = file_get_contents(__DIR__ . '/fixtures/' . $fixture . '.txt');
+        $expected = file_get_contents(__DIR__ . '/fixtures/' . $fixture . '.html');
+        self::assertIsString($input);
+        self::assertIsString($expected);
         // The expectation is trimmed to circumvent the automatically added empty line by IDEs
-        $expectedOutput = trim(file_get_contents(__DIR__ . '/fixtures/' . $fixture . '.html'));
+        $expectedOutput = trim($expected);
 
         $renderer = self::getContainer()->get('renderer.redmineTextile');
         $output = $renderer->render($input);
