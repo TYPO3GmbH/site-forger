@@ -17,6 +17,7 @@ use App\CommandRun\CommandRunRecorder;
 use App\Elastic\IndexSetup;
 use App\Http\ApiRequests;
 use App\Import\ForgeUserSync;
+use App\Import\GerritAccountLookup;
 use App\Import\ImportRun;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
@@ -32,6 +33,7 @@ final class ImportUsersCommand extends ImportJobCommand
 
     public function __construct(
         private readonly ForgeUserSync $userSync,
+        private readonly GerritAccountLookup $gerritLookup,
         IndexSetup $indexSetup,
         CommandRunRecorder $recorder,
         ApiRequests $apiRequests,
@@ -75,8 +77,17 @@ final class ImportUsersCommand extends ImportJobCommand
         $this->recorder->progress(self::STEP_TAKE_OVER, $taken, $taken);
         $run->writeln(sprintf('Took %d users over from the issues', $taken));
 
+        $limit = max(0, (int) $input->getOption('limit'));
         $this->recorder->progress(ForgeUserSync::STEP, 0, null);
-        $this->report($run, $this->userSync->fetchDue(max(0, (int) $input->getOption('limit')), new \DateTimeImmutable()));
+        $this->report($run, $this->userSync->fetchDue($limit, new \DateTimeImmutable()));
+
+        $this->recorder->progress(GerritAccountLookup::STEP, 0, null);
+        $lookedUp = $this->gerritLookup->lookUpDue($limit, new \DateTimeImmutable());
+        $run->writeln(sprintf(
+            'Asked Gerrit for %d users without an email, %d of them have an account',
+            $lookedUp['asked'],
+            $lookedUp['found'],
+        ));
     }
 
     /**

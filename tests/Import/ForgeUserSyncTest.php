@@ -14,6 +14,7 @@ namespace App\Tests\Import;
 use App\CommandRun\CommandRunRecorder;
 use App\Elastic\Indices;
 use App\Import\ForgeUserSync;
+use App\Import\GerritAccountLookup;
 use App\People\User;
 use App\Repository\UserRepository;
 use App\Tests\Http\MockApi;
@@ -96,7 +97,7 @@ final class ForgeUserSyncTest extends TestCase
 
     public function testATokenThatMayNotSeeUsersMarksNobodyAsGone(): void
     {
-        $written = new \ArrayObject();
+        $written = self::written();
         $sync = $this->sync(array_fill(0, 6, new Response(403)), $written);
 
         $result = $sync->update([1, 2, 3, 4, 5, 6], new \DateTimeImmutable());
@@ -108,7 +109,7 @@ final class ForgeUserSyncTest extends TestCase
 
     public function testRefusedUsersAreGoneWithTheirStatusOnceForgeAnswersAnother(): void
     {
-        $written = new \ArrayObject();
+        $written = self::written();
         $sync = $this->sync([
             new Response(403),
             new Response(
@@ -117,7 +118,7 @@ final class ForgeUserSyncTest extends TestCase
                 (string) json_encode(['user' => ['id' => 2, 'firstname' => 'Two', 'login' => 'two']]),
             ),
             new Response(404),
-        ], $written);
+        ], $written, [new Response(404)]);
 
         $result = $sync->update([1, 2, 3], new \DateTimeImmutable());
 
@@ -129,11 +130,77 @@ final class ForgeUserSyncTest extends TestCase
         self::assertSame([2 => null, 3 => 404, 1 => 403], $status);
     }
 
+    public function testWithoutAnEmailOnForgeTheAccountOfTheUsernameOnGerritGivesIt(): void
+    {
+        $written = self::written();
+        $now = new \DateTimeImmutable('2026-11-20 18:00:00');
+        $forge = ['user' => ['id' => 7, 'firstname' => 'Markus', 'lastname' => 'Timtner', 'login' => 'mtness']];
+        $account = [
+            '_account_id' => 7029,
+            'name' => 'Markus Timtner',
+            'email' => 'markus@example.org',
+            'username' => 'mtness',
+        ];
+        $sync = $this->sync(
+            [new Response(200, [], (string) json_encode($forge))],
+            $written,
+            [new Response(200, [], ")]}'\n" . json_encode($account))],
+        );
+
+        $sync->update([7], $now);
+
+        [$user] = $written->getArrayCopy();
+        self::assertSame([7, 7029, ['markus@example.org']], [$user->forgeId, $user->gerritId, $user->emails]);
+        self::assertSame($now, $user->gerritLookedUpOn);
+    }
+
+    public function testAUsernameGerritDoesNotKnowIsLookedUpOnce(): void
+    {
+        $written = self::written();
+        $now = new \DateTimeImmutable('2026-11-20 18:00:00');
+        $forge = ['user' => ['id' => 8, 'firstname' => 'Only', 'lastname' => 'Forge', 'login' => 'onlyforge']];
+        $sync = $this->sync([new Response(200, [], (string) json_encode($forge))], $written, [new Response(404)]);
+
+        $sync->update([8], $now);
+
+        [$user] = $written->getArrayCopy();
+        self::assertSame([], $user->emails);
+        self::assertNull($user->gerritId);
+        self::assertSame([], GerritAccountLookup::due([8 => $user], $now->modify('+1 day'), 10));
+        self::assertCount(1, GerritAccountLookup::due([8 => $user], $now->modify('+31 days'), 10));
+    }
+
+    public function testOnlyUsersWithAUsernameAndWithoutAnEmailAreLookedUpInGerrit(): void
+    {
+        $now = new \DateTimeImmutable('2026-11-20 18:00:00');
+        $users = [
+            1 => new User(1, 'Without email', 'one', fetchedOn: $now),
+            2 => new User(2, 'With email', 'two', emails: ['two@example.org'], fetchedOn: $now),
+            3 => new User(3, 'Without username', fetchedOn: $now),
+            4 => new User(4, 'Not asked for yet', 'four'),
+            5 => new User(5, 'Gone', 'five', fetchedOn: $now, gone: true, goneStatus: 404),
+            6 => new User(6, 'On Gerrit already', 'six', gerritId: 6, fetchedOn: $now),
+        ];
+
+        $due = GerritAccountLookup::due($users, $now, 10);
+
+        self::assertSame([1], array_map(static fn (User $user): ?int => $user->forgeId, $due));
+    }
+
+    /**
+     * @return \ArrayObject<int, User> for the users written to the index, see sync()
+     */
+    private static function written(): \ArrayObject
+    {
+        return new \ArrayObject();
+    }
+
     /**
      * @param list<Response>          $responses of Forge
      * @param \ArrayObject<int, User> $written   gets the users written to the index
+     * @param list<Response>          $gerrit    of Gerrit, for the accounts of the users without an email
      */
-    private function sync(array $responses, \ArrayObject $written): ForgeUserSync
+    private function sync(array $responses, \ArrayObject $written, array $gerrit = []): ForgeUserSync
     {
         $recorder = new CommandRunRecorder($this->createStub(Connection::class), new NullLogger());
         $users = $this->createStub(UserRepository::class);
@@ -147,6 +214,7 @@ final class ForgeUserSyncTest extends TestCase
             (new MockApi($responses, $recorder))->client,
             $users,
             $recorder,
+            new GerritAccountLookup((new MockApi($gerrit, $recorder, 'Gerrit'))->client, $users, $recorder),
         );
     }
 }

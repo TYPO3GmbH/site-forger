@@ -31,12 +31,15 @@ final readonly class User
     public ?string $username;
 
     /**
-     * @param list<string>            $emails       the addresses known of the user, in lower case: the one Forge shows, the ones the
-     *                                              issues had
-     * @param bool                    $gone         Forge does not know the user (any more): deleted, locked, or a group
-     * @param \DateTimeImmutable|null $typo3LoginOn when the person logged in here with the TYPO3 account last
-     * @param int|null                $goneStatus   the HTTP status Forge answered for a gone user, null for the users
-     *                                              marked as gone before it was stored
+     * @param list<string>            $emails           the addresses known of the user, in lower case: the one
+     *                                                  Forge shows, the ones the issues had
+     * @param bool                    $gone             Forge does not know the user (any more): deleted, locked, or
+     *                                                  a group
+     * @param \DateTimeImmutable|null $typo3LoginOn     when the person logged in here with the TYPO3 account last
+     * @param int|null                $goneStatus       the HTTP status Forge answered for a gone user, null for the
+     *                                                  users marked as gone before it was stored
+     * @param \DateTimeImmutable|null $gerritLookedUpOn when Gerrit was asked for the account of the username, see
+     *                                                  App\Import\GerritAccountLookup
      */
     public function __construct(
         public ?int $forgeId,
@@ -48,6 +51,7 @@ final readonly class User
         public bool $gone = false,
         public ?\DateTimeImmutable $typo3LoginOn = null,
         public ?int $goneStatus = null,
+        public ?\DateTimeImmutable $gerritLookedUpOn = null,
     ) {
         $username = mb_strtolower(trim((string) $username));
         $this->username = '' === $username ? null : $username;
@@ -128,6 +132,7 @@ final readonly class User
             gone: (bool) ($source['gone'] ?? false),
             typo3LoginOn: self::date($source['typo3_login_on'] ?? null),
             goneStatus: isset($source['gone_status']) ? (int) $source['gone_status'] : null,
+            gerritLookedUpOn: self::date($source['gerrit_looked_up_on'] ?? null),
         );
     }
 
@@ -172,6 +177,7 @@ final readonly class User
             gone: $this->gone,
             typo3LoginOn: null === $this->typo3LoginOn || $other->typo3LoginOn > $this->typo3LoginOn ? $other->typo3LoginOn : $this->typo3LoginOn,
             goneStatus: $this->goneStatus,
+            gerritLookedUpOn: $this->gerritLookedUpOn ?? $other->gerritLookedUpOn,
         );
     }
 
@@ -190,6 +196,7 @@ final readonly class User
             'gone' => $this->gone,
             'typo3_login_on' => self::formatted($this->typo3LoginOn),
             'gone_status' => $this->goneStatus,
+            'gerrit_looked_up_on' => self::formatted($this->gerritLookedUpOn),
         ];
     }
 
@@ -210,6 +217,29 @@ final readonly class User
             gone: true,
             typo3LoginOn: $this->typo3LoginOn,
             goneStatus: $status,
+            gerritLookedUpOn: $this->gerritLookedUpOn,
+        );
+    }
+
+    /**
+     * The same user after Gerrit was asked for the account of its username: with the number and the email of the
+     * account, if Gerrit has one.
+     */
+    public function lookedUpInGerrit(\DateTimeImmutable $on, ?self $account): self
+    {
+        $user = null === $account ? $this : $this->mergedWith($account);
+
+        return new self(
+            forgeId: $user->forgeId,
+            name: $user->name,
+            username: $user->username,
+            gerritId: $user->gerritId,
+            emails: $user->emails,
+            fetchedOn: $user->fetchedOn,
+            gone: $user->gone,
+            typo3LoginOn: $user->typo3LoginOn,
+            goneStatus: $user->goneStatus,
+            gerritLookedUpOn: $on,
         );
     }
 
@@ -236,6 +266,7 @@ final readonly class User
             emails: self::emails([...$fromForge->emails, ...$this->emails]),
             fetchedOn: $fromForge->fetchedOn,
             typo3LoginOn: $this->typo3LoginOn,
+            gerritLookedUpOn: $this->gerritLookedUpOn,
         );
     }
 
@@ -255,6 +286,7 @@ final readonly class User
             gone: $this->gone,
             typo3LoginOn: $on,
             goneStatus: $this->goneStatus,
+            gerritLookedUpOn: $this->gerritLookedUpOn,
         );
     }
 

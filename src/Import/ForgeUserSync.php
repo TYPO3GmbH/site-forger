@@ -70,6 +70,7 @@ final readonly class ForgeUserSync
         private ApiClient $forge,
         private UserRepository $users,
         private CommandRunRecorder $recorder,
+        private GerritAccountLookup $gerritLookup,
     ) {
     }
 
@@ -153,7 +154,9 @@ final readonly class ForgeUserSync
         try {
             foreach ($users as $position => $user) {
                 try {
-                    $written[] = $user->updatedBy(User::fromForge($this->fetch((int) $user->forgeId), $now));
+                    $updatedUser = $user->updatedBy(User::fromForge($this->fetch((int) $user->forgeId), $now));
+                    // Without an email on Forge the account of the username on Gerrit may have one
+                    $written[] = $this->gerritLookup->lookUp($updatedUser, $now) ?? $updatedUser;
                     $replaced[] = $user->id();
                     ++$updated;
                 } catch (ApiFailure $e) {
