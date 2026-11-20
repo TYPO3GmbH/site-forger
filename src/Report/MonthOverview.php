@@ -174,38 +174,32 @@ final class MonthOverview
      * @param ReadableCollection<array-key, Bucket> $years the buckets of the aggregation "year", their keys
      *                                                     "yyyy/MM/dd ..."
      *
-     * @return list<array{year: string, filter: string, total: int, months: list<array{month: string, filter: string, total: int, statuses: array<string, int>}>}>
+     * @return list<YearRow> the newest year first
      */
     public static function rows(ReadableCollection $years): array
     {
         $rows = [];
         foreach ($years as $year) {
             $yearName = explode('/', (string) $year->keyAsString)[0];
+            $found = [];
+            foreach ($year->buckets('month') as $month) {
+                $found[explode('/', (string) $month->keyAsString)[1]] = $month;
+            }
             $months = [];
             for ($number = 1; $number <= 12; ++$number) {
                 $month = sprintf('%02d', $number);
-                $months[$number] = [
-                    'month' => $month,
-                    'filter' => self::monthFilter($yearName, $month),
-                    'total' => 0,
-                    'statuses' => [],
-                ];
+                $bucket = $found[$month] ?? null;
+                $statuses = $bucket?->buckets('status')->map(static fn (Bucket $status): int => $status->count);
+                $months[] = new MonthCell(
+                    $month,
+                    self::monthFilter($yearName, $month),
+                    $bucket->count ?? 0,
+                    $statuses?->toArray() ?? [],
+                );
             }
-            foreach ($year->buckets('month') as $month) {
-                $number = (int) explode('/', (string) $month->keyAsString)[1];
-                $months[$number]['total'] = $month->count;
-                $months[$number]['statuses'] = $month->buckets('status')
-                    ->map(static fn (Bucket $status): int => $status->count)
-                    ->toArray();
-            }
-            $rows[] = [
-                'year' => $yearName,
-                'filter' => self::yearFilter($yearName),
-                'total' => $year->count,
-                'months' => array_values($months),
-            ];
+            $rows[] = new YearRow($yearName, self::yearFilter($yearName), $year->count, $months);
         }
-        usort($rows, static fn (array $a, array $b): int => $b['year'] <=> $a['year']);
+        usort($rows, static fn (YearRow $a, YearRow $b): int => $b->year <=> $a->year);
 
         return $rows;
     }
@@ -213,14 +207,14 @@ final class MonthOverview
     /**
      * The largest count of a month, the darkest shade.
      *
-     * @param list<array{year: string, filter: string, total: int, months: list<array{month: string, filter: string, total: int, statuses: array<string, int>}>}> $rows
+     * @param list<YearRow> $rows
      */
     public static function maximum(array $rows): int
     {
         $maximum = 0;
         foreach ($rows as $row) {
-            foreach ($row['months'] as $month) {
-                $maximum = max($maximum, $month['total']);
+            foreach ($row->months as $month) {
+                $maximum = max($maximum, $month->total);
             }
         }
 

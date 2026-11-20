@@ -13,6 +13,7 @@ namespace App\Tests\Sprint;
 
 use App\Entity\SprintBoard;
 use App\Entity\SprintBoardCategory;
+use App\Sprint\BoardCount;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Twig\Environment;
 
@@ -38,7 +39,7 @@ final class OverviewBoardTemplateTest extends KernelTestCase
 
     public function testBoardWithIssues(): void
     {
-        $html = $this->render(['open' => 3, 'closed' => 5, 'blocked' => 0, 'review' => 2, 'total' => 10, 'percentage' => 50.0, 'reviewPercentage' => 20.0]);
+        $html = $this->render(new BoardCount(open: 3, closed: 5, blocked: 0, review: 2));
 
         self::assertStringContainsString('Sprint 42', $html);
         self::assertStringContainsString('/sprint/core/7', $html);
@@ -50,7 +51,7 @@ final class OverviewBoardTemplateTest extends KernelTestCase
 
     public function testBoardWithoutIssues(): void
     {
-        $html = $this->render(['open' => 0, 'closed' => 0, 'blocked' => 0, 'review' => 0, 'total' => 0]);
+        $html = $this->render(new BoardCount(0, 0, 0, 0));
 
         self::assertStringContainsString('No issues match this board.', $html);
         self::assertStringNotContainsString('overview-segments', $html);
@@ -61,10 +62,7 @@ final class OverviewBoardTemplateTest extends KernelTestCase
         self::assertStringContainsString('cannot be read', $this->render(null));
     }
 
-    /**
-     * @param array<string, int|float>|null $count
-     */
-    private function render(?array $count): string
+    private function render(?BoardCount $count): string
     {
         return $this->twig->render('sprint/_overview_board.html.twig', ['board' => $this->board, 'count' => $count]);
     }

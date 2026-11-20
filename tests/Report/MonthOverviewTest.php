@@ -12,7 +12,9 @@ declare(strict_types=1);
 namespace App\Tests\Report;
 
 use App\Elastic\Bucket;
+use App\Report\MonthCell;
 use App\Report\MonthOverview;
+use App\Report\YearRow;
 use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\TestCase;
 
@@ -29,14 +31,17 @@ final class MonthOverviewTest extends TestCase
             ]]],
         ]));
 
-        self::assertSame(['2026', '2025'], array_column($rows, 'year'));
-        self::assertCount(12, $rows[1]['months']);
+        self::assertSame(['2026', '2025'], array_map(static fn (YearRow $row): string => $row->year, $rows));
+        self::assertCount(12, $rows[1]->months);
         // The range of the whole year in the filter "Created" of the search
-        self::assertSame('2025-01-01 to 2025-12-31', $rows[1]['filter']);
+        self::assertSame('2025-01-01 to 2025-12-31', $rows[1]->filter);
         // The range of the month in the filter "Created" of the search
-        self::assertSame(['month' => '03', 'filter' => '2025-03-01 to 2025-03-31', 'total' => 3, 'statuses' => ['New' => 2, 'Under Review' => 1]], $rows[1]['months'][2]);
+        self::assertEquals(
+            new MonthCell('03', '2025-03-01 to 2025-03-31', 3, ['New' => 2, 'Under Review' => 1]),
+            $rows[1]->months[2],
+        );
         // A month without issues counts 0
-        self::assertSame(['month' => '01', 'filter' => '2025-01-01 to 2025-01-31', 'total' => 0, 'statuses' => []], $rows[1]['months'][0]);
+        self::assertEquals(new MonthCell('01', '2025-01-01 to 2025-01-31'), $rows[1]->months[0]);
         self::assertSame(3, MonthOverview::maximum($rows));
     }
 

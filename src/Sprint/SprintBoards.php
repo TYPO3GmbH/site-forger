@@ -36,34 +36,21 @@ final readonly class SprintBoards
     }
 
     /**
-     * @return array{open: int, closed: int, blocked: int, review: int, total: int, percentage?: float, reviewPercentage?: float, blockedPercentage?: float}
-     *
      * @throws \Symfony\Component\Yaml\Exception\ParseException
      */
-    public function counts(string $query): array
+    public function counts(string $query): BoardCount
     {
         $found = $this->issues->search([
             'query' => Yaml::parse($query),
             'size' => 0,
             'aggregations' => ['status' => ['terms' => ['field' => 'status.id']]],
         ]);
-        $count = ['open' => 0, 'closed' => 0, 'blocked' => 0, 'review' => 0, 'total' => 0];
+        $count = ['open' => 0, 'closed' => 0, 'blocked' => 0, 'review' => 0];
         foreach ($found->buckets('status') as $bucket) {
-            $group = self::group(IssueStatusEnum::tryFrom((int) $bucket->key));
-            $count[$group] += $bucket->count;
-            $count['total'] += $bucket->count;
-        }
-        if ($count['total'] > 0) {
-            // Shares below 1 % have no bar of their own
-            foreach (['reviewPercentage' => 'review', 'blockedPercentage' => 'blocked', 'percentage' => 'closed'] as $key => $group) {
-                $share = round($count[$group] * 100.0 / $count['total']);
-                if ($share >= 1 || 'percentage' === $key) {
-                    $count[$key] = $share;
-                }
-            }
+            $count[self::group(IssueStatusEnum::tryFrom((int) $bucket->key))] += $bucket->count;
         }
 
-        return $count;
+        return new BoardCount($count['open'], $count['closed'], $count['blocked'], $count['review']);
     }
 
     /**

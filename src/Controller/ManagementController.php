@@ -15,6 +15,7 @@ use App\DTO\TrackerFilters;
 use App\Enum\TrackerEnum;
 use App\Report\CategoryOverview;
 use App\Report\MonthOverview;
+use App\Report\YearRow;
 use App\Repository\IssueRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -40,7 +41,7 @@ class ManagementController extends AbstractController
         $rows = MonthOverview::rows($issues->buckets('year'));
         $viewData['rows'] = $rows;
         $viewData['maximum'] = MonthOverview::maximum($rows);
-        $viewData['total'] = array_sum(array_column($rows, 'total'));
+        $viewData['total'] = array_sum(array_map(static fn (YearRow $row): int => $row->total, $rows));
         // Nothing left out: no filter of the trackers in the search, the issues of every tracker count
         $trackerNames = array_map(
             static fn (string $name): string => str_replace(' ', '_', $name),

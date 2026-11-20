@@ -15,6 +15,7 @@ use App\Entity\SprintBoard;
 use App\Form\SprintBoardWizard;
 use App\Repository\SprintBoardCategoryRepository;
 use App\Repository\SprintBoardRepository;
+use App\Sprint\BoardCount;
 use App\Sprint\BoardFilter;
 use App\Sprint\ReviewBoards;
 use App\Sprint\SprintBoards;
@@ -182,13 +183,17 @@ class SprintController extends AbstractController
         $form = $this->createForm($formType, $sprint);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid() && null !== $sprint->getCategory()) {
+        $category = $form->isSubmitted() && $form->isValid() ? $sprint->getCategory() : null;
+        if (null !== $category) {
             $this->entityManager->persist($sprint);
             $this->entityManager->flush();
 
             $this->addFlash('success', $isNew ? 'Sprint board created.' : 'Sprint board edited.');
 
-            return $this->redirectToRoute('sprint', ['category' => $sprint->getCategory()->getIdentifier(), 'sprintId' => $sprint->getId()]);
+            return $this->redirectToRoute('sprint', [
+                'category' => $category->getIdentifier(),
+                'sprintId' => $sprint->getId(),
+            ]);
         }
 
         if (SprintBoardWizard::class === $formType) {
@@ -279,7 +284,7 @@ class SprintController extends AbstractController
     /**
      * @param list<SprintBoard> $boards
      *
-     * @return list<array{id: int|null, title: string|null, active: bool, count: array<string, int|float>}>
+     * @return list<array{id: int|null, title: string|null, active: bool, count: BoardCount}>
      */
     private function menu(array $boards, int $activeId): array
     {
