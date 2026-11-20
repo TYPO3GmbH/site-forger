@@ -232,21 +232,21 @@
      * Success hides by itself, the others stay until closed.
      */
     function notice(type, text) {
-        let container = document.querySelector('.runs-notices');
+        let container = document.querySelector('.runs-toasts');
         if (!container) {
             container = document.createElement('div');
-            container.className = 'runs-notices';
+            container.className = 'runs-toasts';
             container.setAttribute('aria-live', 'polite');
             document.body.append(container);
         }
         const item = document.createElement('div');
-        item.className = 'runs-notice runs-notice-' + type;
+        item.className = 'runs-toast runs-toast-' + type;
         item.setAttribute('role', type === 'danger' ? 'alert' : 'status');
         const message = document.createElement('span');
         message.textContent = text;
         const close = document.createElement('button');
         close.type = 'button';
-        close.className = 'runs-notice-close';
+        close.className = 'runs-toast-close';
         close.setAttribute('aria-label', 'Close');
         close.textContent = '×';
         close.addEventListener('click', function () {
