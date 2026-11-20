@@ -11,7 +11,13 @@ declare(strict_types=1);
 
 namespace App\Elastic;
 
+use App\Enum\ActivityEnum;
+use App\Enum\ReviewSizeEnum;
 use App\Enum\ReviewStatusEnum;
+use Elastica\Query\BoolQuery;
+use Elastica\Query\Range;
+use Elastica\Query\Simple;
+use Elastica\Query\Term;
 
 /**
  * Which Gerrit changes each review list shows, by the name of its route.
@@ -123,6 +129,121 @@ final class ReviewLists
             'should' => [['term' => ['files' => $path]], ['prefix' => ['files' => $path . '/']]],
             'minimum_should_match' => 1,
         ]];
+    }
+
+    /**
+     * The filters of the lists, by their title. The first ones are what reviewers pick by.
+     *
+     * @param list<string> $without the filters a list leaves out, because all of its changes have the same value
+     *
+     * @return array<string, mixed>
+     */
+    public static function aggregations(array $without = []): array
+    {
+        $aggregations = [
+            // Added and removed lines together, filtered as "filters[size][...]"
+            'Size' => ReviewSizeEnum::changeAggregation(),
+            'Releases' => ['terms' => ['field' => 'releases']],
+            'Affected Files' => ['terms' => ['field' => 'affected_files']],
+            'Topic' => ['terms' => ['field' => 'topic', 'order' => ['_term' => 'asc']]],
+            'Patchsets' => ['terms' => ['field' => 'patchsets']],
+            'Mergeable' => ['terms' => ['field' => 'mergeable']],
+            // The owners with the most changes. The search in the filter finds the others.
+            'Owner' => PeopleFacet::aggregation('Owner'),
+            // The tags in the subject, like "BUGFIX" or "!!!", filtered as "filters[type][...]"
+            'Type' => ['terms' => ['field' => 'reviewtags', 'size' => 50]],
+            'Activity' => ActivityEnum::changeAggregation(),
+        ];
+
+        return array_diff_key($aggregations, array_flip($without));
+    }
+
+    /**
+     * The query of the selected filters: "filters[<key>][<value>]=true", any value of a filter and all filters.
+     *
+     * @param array<string, mixed> $filters
+     */
+    public static function filterQuery(array $filters, Users $users): BoolQuery
+    {
+        $query = new BoolQuery();
+        foreach ($filters as $key => $values) {
+            $filter = match ((string) $key) {
+                'file' => self::simple(self::fileQuery(is_array($values) ? (string) ($values['path'] ?? '') : '')),
+                'updated' => self::simple(self::updatedQuery(is_array($values) ? $values : [])),
+                'owner' => self::simple(PeopleFacet::query('Owner', FacetSelection::keys($filters, 'owner'), $users)),
+                default => is_array($values) ? self::anyOf((string) $key, $values) : null,
+            };
+            if (null !== $filter) {
+                $query->addMust($filter);
+            }
+        }
+
+        return $query;
+    }
+
+    /**
+     * @param array<string, mixed>|null $query
+     */
+    private static function simple(?array $query): ?Simple
+    {
+        return null === $query ? null : new Simple($query);
+    }
+
+    /**
+     * @param array<string, mixed> $range the days of the datepicker
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function updatedQuery(array $range): ?array
+    {
+        $days = MonthOverview::days($range);
+
+        return MonthOverview::rangeQuery($days['from'], $days['to'], 'updated_on');
+    }
+
+    /**
+     * @param array<int|string, mixed> $values
+     */
+    private static function anyOf(string $key, array $values): ?BoolQuery
+    {
+        $any = new BoolQuery();
+        $count = 0;
+        foreach ($values as $value => $selected) {
+            if ('true' !== $selected) {
+                continue;
+            }
+            $filter = self::valueQuery($key, str_replace('_', ' ', (string) $value));
+            if (null !== $filter) {
+                $any->addShould($filter);
+                ++$count;
+            }
+        }
+
+        return $count > 0 ? $any : null;
+    }
+
+    private static function valueQuery(string $key, string $value): Simple|Range|Term|null
+    {
+        switch ($key) {
+            case 'activity':
+                // Only open changes have a stage, also when closed ones are searched
+                $stage = ActivityEnum::tryFromLabel($value);
+
+                return null === $stage ? null : new Simple($stage->changeQuery());
+            case 'size':
+                $size = ReviewSizeEnum::tryFromLabel($value);
+
+                return null === $size ? null : new Simple($size->changeQuery());
+            case 'updated_on':
+                // A month of the filter "Updated on" ticked before the datepicker, in links shared then
+                $start = new \DateTimeImmutable('@' . intdiv((int) $value, 1000));
+
+                return new Range($key, ['gte' => $start->format('Y/m/d H:i:s'), 'lte' => $start->modify('+1 month -1 second')->format('Y/m/d H:i:s')]);
+            case 'type':
+                return new Term(['reviewtags' => $value]);
+            default:
+                return new Term([$key => $value]);
+        }
     }
 
     /**

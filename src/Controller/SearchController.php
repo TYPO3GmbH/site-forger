@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\DTO\Pagination;
 use App\Elastic\CategoryOverview;
 use App\Elastic\FacetSelection;
 use App\Elastic\GlobalSearch;
@@ -46,9 +47,7 @@ class SearchController extends AbstractController
      */
     private const int TAGS_SHOWN = 30;
 
-    protected int $perPage = 25;
-    protected int $currentPage = 1;
-    protected int $totalHits = 0;
+    private Pagination $page;
 
     /** @var array<string, array<string, string>> */
     private array $filters = [];
@@ -73,7 +72,7 @@ class SearchController extends AbstractController
     #[Route(name: 'search')]
     public function searchAction(Request $request): Response
     {
-        $this->currentPage = (int) $request->query->get('page', 1);
+        $this->page = new Pagination($request->query->getInt('page', 1));
         $query = (string) $request->query->get('query');
         $this->filters = array_filter($request->query->all('filters'), is_array(...));
 
@@ -146,8 +145,8 @@ class SearchController extends AbstractController
         }
 
         $search = $this->indices->get('issue')->createSearch($query);
-        $search->getQuery()->setSize($this->perPage);
-        $search->getQuery()->setFrom(($this->currentPage * $this->perPage) - $this->perPage);
+        $search->getQuery()->setSize($this->page->perPage);
+        $search->getQuery()->setFrom($this->page->from());
 
         $this->addAggregations($search->getQuery());
 
@@ -167,25 +166,12 @@ class SearchController extends AbstractController
         if (isset($aggs['Activity'])) {
             $aggs['Activity'] = ActivityEnum::buckets($aggs['Activity']);
         }
-        $this->totalHits = $elasticaResultSet->getTotalHits();
 
-        $out = [
-            'pagesToLinkTo' => $this->getPages(),
-            'currentPage' => $this->currentPage,
-            'prev' => $this->currentPage - 1,
-            'next' => $this->currentPage < ceil($this->totalHits / $this->perPage) ? $this->currentPage + 1 : 0,
-            'totalResults' => $this->totalHits,
-            'startingAtItem' => ($this->currentPage * $this->perPage) - ($this->perPage - 1),
-            'endingAtItem' => $this->currentPage * $this->perPage,
+        return $this->page->withTotal($elasticaResultSet->getTotalHits())->viewData() + [
             'results' => $results,
             'maxScore' => $maxScore,
             'aggs' => $aggs,
         ];
-        if ((int) $this->totalHits <= (int) $out['endingAtItem']) {
-            $out['endingAtItem'] = (int) $this->totalHits;
-        }
-
-        return $out;
     }
 
     /**
@@ -342,36 +328,5 @@ class SearchController extends AbstractController
             }
             $elasticaQuery->addAggregation($terms);
         }
-    }
-
-    protected function getPages(): array
-    {
-        $numPages = ceil($this->totalHits / $this->perPage);
-        $i = 0;
-
-        $maxPages = $numPages;
-        if ($numPages > 15 && $this->currentPage <= 7) {
-            $numPages = 15;
-        }
-        if ($this->currentPage > 7) {
-            $i = $this->currentPage - 7;
-            $numPages = $this->currentPage + 6;
-        }
-        if ($numPages > $maxPages) {
-            $numPages = $maxPages;
-            $i = $maxPages - 15;
-        }
-
-        if ($i < 0) {
-            $i = 0;
-        }
-
-        $out = [];
-        while ($i < $numPages) {
-            $out[(int) $i] = ($i + 1);
-            ++$i;
-        }
-
-        return $out;
     }
 }

@@ -120,4 +120,18 @@ final class FacetSelection
 
         return $keys;
     }
+
+    /**
+     * Elasticsearch answers the aggregations in an order of its own. This puts them in the order of their titles,
+     * the others after them.
+     *
+     * @param array<string, mixed> $aggregations
+     * @param list<string>         $titles
+     *
+     * @return array<string, mixed>
+     */
+    public static function inOrderOf(array $aggregations, array $titles): array
+    {
+        return array_replace(array_intersect_key(array_flip($titles), $aggregations), $aggregations);
+    }
 }

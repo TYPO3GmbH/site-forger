@@ -11,10 +11,10 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\DTO\Pagination;
 use App\Elastic\FacetSelection;
 use App\Elastic\GlobalSearch;
 use App\Elastic\Indices;
-use App\Elastic\MonthOverview;
 use App\Elastic\PeopleFacet;
 use App\Elastic\PersonSuggestion;
 use App\Elastic\ReviewLists;
@@ -25,10 +25,6 @@ use App\Enum\IssueSortEnum;
 use App\Enum\ReviewSizeEnum;
 use App\Enum\ReviewSortEnum;
 use Elastica\Exception\InvalidException;
-use Elastica\Query\BoolQuery;
-use Elastica\Query\Range;
-use Elastica\Query\Simple;
-use Elastica\Query\Term;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -38,53 +34,48 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class ReviewController extends AbstractController
 {
-    private int $perPage = 25;
-    private int $currentPage = 1;
-    private ?int $totalHits = null;
-
     public function __construct(
         private readonly Indices $indices,
         private readonly GlobalSearch $globalSearch,
         private readonly RequestStack $requestStack,
         private readonly Users $users,
     ) {
-        $this->currentPage = $this->query()->getInt('page', 1);
     }
 
     #[Route(path: '/gerrit/status', name: 'gerrit_index')]
     public function status(): Response
     {
-        return $this->listView(ReviewLists::READY, 'Ready for review', $this->queryAggregations());
+        return $this->listView(ReviewLists::READY, 'Ready for review', ReviewLists::aggregations());
     }
 
     #[Route(path: '/gerrit/merge-ready', name: 'gerrit_hasverifications')]
     public function hasVerifications(): Response
     {
-        return $this->listView(ReviewLists::REVIEWED_AND_VERIFIED, 'Reviewed and verified', $this->queryAggregations());
+        return $this->listView(ReviewLists::REVIEWED_AND_VERIFIED, 'Reviewed and verified', ReviewLists::aggregations());
     }
 
     #[Route(path: '/gerrit/misses-verification', name: 'gerrit_missesverifications')]
     public function missesVerifications(): Response
     {
-        return $this->listView(ReviewLists::NEEDS_VERIFICATION, 'Needs verification', $this->queryAggregations());
+        return $this->listView(ReviewLists::NEEDS_VERIFICATION, 'Needs verification', ReviewLists::aggregations());
     }
 
     #[Route(path: '/gerrit/misses-review', name: 'gerrit_missesreview')]
     public function missesReview(): Response
     {
-        return $this->listView(ReviewLists::NEEDS_REVIEW, 'Needs review', $this->queryAggregations());
+        return $this->listView(ReviewLists::NEEDS_REVIEW, 'Needs review', ReviewLists::aggregations());
     }
 
     #[Route(path: '/gerrit/rebase', name: 'gerrit_rebase')]
     public function rebase(): Response
     {
-        return $this->listView(ReviewLists::NEEDS_REBASE, 'Needs rebase', $this->queryAggregations(without: ['Mergeable', 'Patchsets', 'Releases', 'Topic']));
+        return $this->listView(ReviewLists::NEEDS_REBASE, 'Needs rebase', ReviewLists::aggregations(without: ['Mergeable', 'Patchsets', 'Releases', 'Topic']));
     }
 
     #[Route(path: '/gerrit/negative-vote-cleanup', name: 'gerrit_negative_vote_cleanup')]
     public function negativeVoteCleanup(): Response
     {
-        return $this->listView(ReviewLists::NEGATIVE_VOTES, 'Negative votes', $this->queryAggregations(without: ['Mergeable', 'Patchsets', 'Affected Files', 'Topic', 'Owner']));
+        return $this->listView(ReviewLists::NEGATIVE_VOTES, 'Negative votes', ReviewLists::aggregations(without: ['Mergeable', 'Patchsets', 'Affected Files', 'Topic', 'Owner']));
     }
 
     /**
@@ -93,13 +84,13 @@ class ReviewController extends AbstractController
     #[Route(path: '/gerrit/wip', name: 'gerrit_wip')]
     public function wip(): Response
     {
-        return $this->listView(ReviewLists::WORK_IN_PROGRESS, 'Work in progress', $this->queryAggregations(without: ['Patchsets', 'Affected Files']), ReviewSortEnum::LEAST_UPDATED);
+        return $this->listView(ReviewLists::WORK_IN_PROGRESS, 'Work in progress', ReviewLists::aggregations(without: ['Patchsets', 'Affected Files']), ReviewSortEnum::LEAST_UPDATED);
     }
 
     #[Route(path: '/gerrit/core-team-merge', name: 'gerrit_coreteam_merge')]
     public function coreTeamActionRequired(): Response
     {
-        return $this->listView(ReviewLists::READY_TO_MERGE, 'Ready to merge', $this->queryAggregations(without: ['Mergeable', 'Patchsets', 'Affected Files']));
+        return $this->listView(ReviewLists::READY_TO_MERGE, 'Ready to merge', ReviewLists::aggregations(without: ['Mergeable', 'Patchsets', 'Affected Files']));
     }
 
     /**
@@ -113,7 +104,7 @@ class ReviewController extends AbstractController
         $viewData = $this->listData(
             ReviewLists::query(ReviewLists::SEARCH, $searchClosed, $searchTerms),
             ReviewLists::SEARCH,
-            $this->queryAggregations(),
+            ReviewLists::aggregations(),
             ReviewSortEnum::UPDATED,
             '' !== trim($searchTerms),
         );
@@ -170,24 +161,18 @@ class ReviewController extends AbstractController
     public function staleIssues(): Response
     {
         $sort = IssueSortEnum::fromRequest($this->query()->getString('sort'), false, StaleIssues::DEFAULT_SORT);
-        $resultSet = $this->indices->get('issue')->createSearch(StaleIssues::issuesRequest($this->currentPage, $this->perPage, $sort))->search();
+        $page = $this->page();
+        $resultSet = $this->indices->get('issue')->createSearch(StaleIssues::issuesRequest($page->page, $page->perPage, $sort))->search();
         $issues = array_map(static fn ($result): array => $result->getData(), $resultSet->getResults());
         $changesRequest = StaleIssues::changesRequest($issues);
         $changes = null === $changesRequest ? [] : array_map(
             static fn ($result): array => $result->getData(),
             $this->indices->get('review')->createSearch($changesRequest)->search()->getResults(),
         );
-        $this->totalHits = $resultSet->getTotalHits();
-        $from = ($this->currentPage - 1) * $this->perPage;
 
-        return $this->render('review/stale_issues.html.twig', [
+        return $this->render('review/stale_issues.html.twig', $page->withTotal($resultSet->getTotalHits())->viewData() + [
             'issues' => StaleIssues::withChanges($issues, $changes),
             'stages' => StaleIssues::STAGES,
-            'totalResults' => $this->totalHits,
-            'startingAtItem' => $from + 1,
-            'endingAtItem' => $from + count($issues),
-            'pagesToLinkTo' => $this->getPages(),
-            'currentPage' => $this->currentPage,
             'sort' => $sort,
             'sortOptions' => IssueSortEnum::options(false),
             // Links leave out the default
@@ -230,14 +215,14 @@ class ReviewController extends AbstractController
     private function listData(?array $listQuery, string $routeName, array $aggregations, ReviewSortEnum $listDefault = ReviewSortEnum::UPDATED, bool $withRelevance = false): array
     {
         $sort = ReviewSortEnum::fromRequest($this->query()->getString('sort'), $withRelevance, $listDefault);
-        $fullRequest = [
+        $page = $this->page();
+        $viewData = $this->search([
             'query' => $listQuery,
             'sort' => $sort->sort(),
-            'size' => $this->perPage,
-            'from' => $this->currentPage * $this->perPage - $this->perPage,
+            'size' => $page->perPage,
+            'from' => $page->from(),
             'aggregations' => $aggregations,
-        ];
-        $viewData = $this->search($fullRequest);
+        ], $page);
         $viewData['routeName'] = $routeName;
         $viewData['sort'] = $sort;
         $viewData['sortOptions'] = ReviewSortEnum::options($withRelevance);
@@ -257,270 +242,52 @@ class ReviewController extends AbstractController
     }
 
     /**
-     * @throws InvalidException
-     */
-    protected function search(array $fullRequest): array
-    {
-        $viewData = [];
-        $usedFilters = $this->addFilters();
-
-        /**
-         * The reason for this double check is:
-         * $usedFilters before converted to an array, count can be 0, and if so the ->toArray() function
-         * used in the second check is throwing an exception. With only the first check, the filtering with
-         * ->toArray() isn't working correct.
-         */
-        if ($usedFilters->count() > 0 && count($usedFilters->toArray()) > 0) {
-            $fullRequest['post_filter'] = $usedFilters;
-        }
-        // Selected owners show in the filter also when they are not among those with the most changes: by number
-        $owners = PeopleFacet::selection('Owner', FacetSelection::keys($this->query()->all('filters'), 'owner'), $this->users);
-        $fullRequest['aggregations'] = FacetSelection::withSelected($fullRequest['aggregations'] ?? [], 'Owner', array_keys($owners));
-        $query = $this->indices->get('review')->createSearch($fullRequest);
-        $resultSet = $query->search();
-        $this->totalHits = $resultSet->getTotalHits();
-        if ((int) $this->totalHits <= ($this->currentPage * $this->perPage)) {
-            $viewData['endingAtItem'] = (int) $this->totalHits;
-        } else {
-            $viewData['endingAtItem'] = $this->currentPage * $this->perPage;
-        }
-        $viewData['results'] = $resultSet->getResults();
-        $viewData['pagesToLinkTo'] = $this->getPages();
-        $viewData['currentPage'] = $this->currentPage;
-        $viewData['prev'] = $this->currentPage - 1;
-        $viewData['next'] = $this->currentPage < ceil($this->totalHits / $this->perPage) ? $this->currentPage + 1 : 0;
-        $viewData['totalResults'] = $this->totalHits;
-        $viewData['startingAtItem'] = ($this->currentPage * $this->perPage) - ($this->perPage - 1);
-        // Elasticsearch answers in an order of its own, the filters stand in the order they were asked for
-        $viewData['aggregations'] = self::inOrderOf(
-            FacetSelection::merge($resultSet->getAggregations(), 'Owner'),
-            array_keys($fullRequest['aggregations'])
-        );
-        // The owners by their keys, as their checkboxes send them
-        if (isset($viewData['aggregations']['Owner'])) {
-            $viewData['aggregations']['Owner'] = PeopleFacet::keyed($viewData['aggregations']['Owner'], 'Owner', $this->users, $owners);
-        }
-        if (isset($viewData['aggregations']['Activity'])) {
-            $viewData['aggregations']['Activity'] = ActivityEnum::buckets($viewData['aggregations']['Activity']);
-        }
-        if (isset($viewData['aggregations']['Size'])) {
-            $viewData['aggregations']['Size'] = ReviewSizeEnum::buckets($viewData['aggregations']['Size']);
-        }
-        $viewData['filters'] = $this->query()->all('filters');
-        $viewData['query'] = $this->query()->getString('query');
-
-        return $viewData;
-    }
-
-    /**
-     * The aggregations in the given order of their titles, those not in it after them.
-     *
-     * @param array<string, mixed> $aggregations
-     * @param list<string>         $titles
+     * @param array<string, mixed> $request
      *
      * @return array<string, mixed>
+     *
+     * @throws InvalidException
      */
-    public static function inOrderOf(array $aggregations, array $titles): array
+    private function search(array $request, Pagination $page): array
     {
-        return array_replace(array_intersect_key(array_flip($titles), $aggregations), $aggregations);
+        $filters = $this->query()->all('filters');
+        $filterQuery = ReviewLists::filterQuery($filters, $this->users);
+        // A BoolQuery without clauses cannot be turned into an array
+        if ($filterQuery->count() > 0 && [] !== $filterQuery->toArray()) {
+            $request['post_filter'] = $filterQuery;
+        }
+        // Selected owners show in the filter, also when they are not among those with the most changes
+        $owners = PeopleFacet::selection('Owner', FacetSelection::keys($filters, 'owner'), $this->users);
+        $request['aggregations'] = FacetSelection::withSelected($request['aggregations'] ?? [], 'Owner', array_keys($owners));
+        $resultSet = $this->indices->get('review')->createSearch($request)->search();
+
+        $aggregations = FacetSelection::inOrderOf(FacetSelection::merge($resultSet->getAggregations(), 'Owner'), array_keys($request['aggregations']));
+        // The owners by their keys, as their checkboxes send them
+        if (isset($aggregations['Owner'])) {
+            $aggregations['Owner'] = PeopleFacet::keyed($aggregations['Owner'], 'Owner', $this->users, $owners);
+        }
+        if (isset($aggregations['Activity'])) {
+            $aggregations['Activity'] = ActivityEnum::buckets($aggregations['Activity']);
+        }
+        if (isset($aggregations['Size'])) {
+            $aggregations['Size'] = ReviewSizeEnum::buckets($aggregations['Size']);
+        }
+
+        return $page->withTotal($resultSet->getTotalHits())->viewData() + [
+            'results' => $resultSet->getResults(),
+            'aggregations' => $aggregations,
+            'filters' => $filters,
+            'query' => $this->query()->getString('query'),
+        ];
+    }
+
+    private function page(): Pagination
+    {
+        return new Pagination($this->query()->getInt('page', 1));
     }
 
     private function query(): InputBag
     {
         return $this->requestStack->getCurrentRequest()->query ?? new InputBag();
-    }
-
-    /**
-     * Makes the date string from elastic JS compatible.
-     */
-    protected function fixTime($in): string
-    {
-        return str_replace('/', '-', substr((string) $in, 0, 10));
-    }
-
-    protected function addFilters(): BoolQuery
-    {
-        $filters = new BoolQuery();
-
-        foreach ($this->query()->all('filters') as $key => $filterValue) {
-            if ('file' === $key) {
-                // A path typed in, not values to tick
-                $file = ReviewLists::fileQuery(is_array($filterValue) ? (string) ($filterValue['path'] ?? '') : '');
-                if (null !== $file) {
-                    $filters->addMust(new Simple($file));
-                }
-                continue;
-            }
-            if ('updated' === $key) {
-                // The days of the last update, from the datepicker, not values to tick
-                $days = is_array($filterValue) ? MonthOverview::days($filterValue) : ['from' => null, 'to' => null];
-                $range = MonthOverview::rangeQuery($days['from'], $days['to'], 'updated_on');
-                if (null !== $range) {
-                    $filters->addMust(new Simple($range));
-                }
-                continue;
-            }
-            if ('owner' === $key) {
-                // A person by the key, see PeopleFacet
-                $owner = PeopleFacet::query('Owner', FacetSelection::keys($this->query()->all('filters'), 'owner'), $this->users);
-                if (null !== $owner) {
-                    $filters->addMust(new Simple($owner));
-                }
-                continue;
-            }
-            $filterPart = new BoolQuery();
-            $filterCatCount = 0;
-            foreach ($filterValue as $term => $enabled) {
-                if ('true' === $enabled) {
-                    $term = str_replace('_', ' ', (string) $term);
-                    if ('activity' === $key) {
-                        $stage = ActivityEnum::tryFromLabel($term);
-                        if (null === $stage) {
-                            continue;
-                        }
-                        // Only open changes have a stage, also when closed ones are searched
-                        $filter = new Simple($stage->changeQuery());
-                    } elseif ('size' === $key) {
-                        $size = ReviewSizeEnum::tryFromLabel($term);
-                        if (null === $size) {
-                            continue;
-                        }
-                        $filter = new Simple($size->changeQuery());
-                    } elseif ('updated_on' === $key) {
-                        // A month of the filter "Updated on" ticked before the datepicker, in links shared then
-                        $filter = new Range();
-                        $startDate = new \DateTime('@' . intdiv((int) $term, 1000));
-                        $endDate = new \DateTime('@' . intdiv((int) $term, 1000))->modify('+1 month -1 second');
-                        $filter->addField(
-                            $key,
-                            [
-                                'gte' => $startDate->format('Y/m/d H:i:s'),
-                                'lte' => $endDate->format('Y/m/d H:i:s'),
-                            ]
-                        );
-                    } else {
-                        $filter = new Term();
-                        if ('tracker' === $key
-                            || 'project' === $key
-                            || 'category' === $key
-                            || 'status' === $key
-                            || 'author' === $key
-                            || 'priority' === $key
-                            || 'fixed_version' === $key
-                        ) {
-                            $filter->setTerm($key . '.name', $term);
-                        } elseif ('type' === $key) {
-                            $filter->setTerm('reviewtags', $term);
-                        } else {
-                            $filter->setTerm($key, $term);
-                        }
-                    }
-
-                    $filterPart->addShould($filter);
-                    ++$filterCatCount;
-                }
-            }
-            if ($filterCatCount > 0) {
-                $filters->addMust($filterPart);
-            }
-        }
-
-        return $filters;
-    }
-
-    /**
-     * The filters of the lists.
-     *
-     * @param list<string> $without the filters a list leaves out, because all of its changes have the same value
-     *
-     * @return array<string, mixed>
-     */
-    protected function queryAggregations(array $without = []): array
-    {
-        return array_diff_key($this->allAggregations(), array_flip($without));
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function allAggregations(): array
-    {
-        return [
-            // First: how long the review takes is what reviewers pick by.
-            // Added and removed lines together, see ReviewSizeEnum, filtered as "filters[size][...]"
-            'Size' => ReviewSizeEnum::changeAggregation(),
-            'Releases' => [
-                'terms' => [
-                    'field' => 'releases',
-                ],
-            ],
-            'Affected Files' => [
-                'terms' => [
-                    'field' => 'affected_files',
-                ],
-            ],
-            'Topic' => [
-                'terms' => [
-                    'field' => 'topic',
-                    'order' => [
-                        '_term' => 'asc',
-                    ],
-                ],
-            ],
-            'Patchsets' => [
-                'terms' => [
-                    'field' => 'patchsets',
-                ],
-            ],
-            'Mergeable' => [
-                'terms' => [
-                    'field' => 'mergeable',
-                ],
-            ],
-            // The owners with the most changes only, the others are found with the search in the filter
-            'Owner' => PeopleFacet::aggregation('Owner'),
-            // The tags in the subject, like "BUGFIX" or "!!!", filtered as "filters[type][...]"
-            'Type' => [
-                'terms' => [
-                    'field' => 'reviewtags',
-                    'size' => 50,
-                ],
-            ],
-            'Activity' => ActivityEnum::changeAggregation(),
-        ];
-    }
-
-    /**
-     * Returns an array of linkable pages.
-     */
-    protected function getPages(): array
-    {
-        $numPages = ceil($this->totalHits / $this->perPage);
-        $i = 0;
-
-        $maxPages = $numPages;
-        if ($numPages > 15 && $this->currentPage <= 7) {
-            $numPages = 15;
-        }
-        if ($this->currentPage > 7) {
-            $i = $this->currentPage - 7;
-            $numPages = $this->currentPage + 6;
-        }
-        if ($numPages > $maxPages) {
-            $numPages = $maxPages;
-            $i = $maxPages - 15;
-        }
-
-        if ($i < 0) {
-            $i = 0;
-        }
-
-        $out = [];
-        while ($i < $numPages) {
-            $out[(int) $i] = ($i + 1);
-            ++$i;
-        }
-
-        return $out;
     }
 }
