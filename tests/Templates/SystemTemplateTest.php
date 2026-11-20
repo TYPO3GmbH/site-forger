@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Templates;
 
 use App\Enum\SystemCheckEnum;
+use App\People\User;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Twig\Environment;
@@ -31,10 +32,38 @@ final class SystemTemplateTest extends KernelTestCase
         self::assertStringContainsString('of 100 changes older than version 3', $html);
     }
 
+    public function testThePeopleWithoutAnEmailAreListedInTheCardOfTheUsers(): void
+    {
+        $now = new \DateTimeImmutable('2026-11-20 18:34:00', new \DateTimeZone('UTC'));
+        $html = $this->render([], [
+            'users' => [
+                'result' => SystemCheckEnum::ATTENTION,
+                'summary' => '2,200 of 5,632 people cannot be mapped to an email.',
+                'reasons' => '1,375 not asked for yet · 54 unknown to Forge (54 refused (403))',
+                'hint' => null,
+            ],
+            'unmapped' => 825,
+            'unmappedUsers' => [
+                new User(45758, 'Andreas Lindner', fetchedOn: $now, gone: true, goneStatus: 403),
+                new User(45755, 'Adrian Widmer', 'awidmer', fetchedOn: $now),
+                new User(41, 'Old Group', fetchedOn: $now, gone: true),
+            ],
+        ]);
+
+        self::assertStringContainsString('825 people Forge was asked for, without an email', $html);
+        self::assertStringContainsString('<a href="https://forge.typo3.org/users/45758"', $html);
+        self::assertStringContainsString('refused (403)', $html);
+        self::assertStringContainsString('login awidmer', $html);
+        self::assertStringContainsString('answer not stored', $html);
+        // By why, with how many each
+        self::assertMatchesRegularExpression('/Unknown to Forge <span>2<\/span>.*No email on Forge <span>1<\/span>/s', $html);
+    }
+
     /**
      * @param list<array<string, mixed>> $pending
+     * @param array<string, mixed>       $users   the variables of the users, see SystemController
      */
-    private function render(array $pending): string
+    private function render(array $pending, array $users = []): string
     {
         self::bootKernel();
         $container = self::getContainer();
@@ -57,7 +86,7 @@ final class SystemTemplateTest extends KernelTestCase
             ],
             'indices' => [],
             'pending' => $pending,
-            'users' => null,
+            ...$users + ['users' => null, 'unmapped' => 0, 'unmappedUsers' => []],
             'application' => ['php' => PHP_VERSION, 'symfony' => '7.4', 'environment' => 'test', 'debug' => false],
             'overall' => SystemCheckEnum::ATTENTION,
             'minimumVersion' => '8.0',

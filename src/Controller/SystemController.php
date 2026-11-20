@@ -16,7 +16,9 @@ use App\Elastic\IndexSetup;
 use App\Elastic\Indices;
 use App\Enum\SystemCheckEnum;
 use App\Import\PendingImport;
+use App\People\User;
 use App\People\UserHealth;
+use App\People\UserStatistics;
 use App\Repository\UserRepository;
 use Elastica\Cluster\Health;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -47,13 +49,17 @@ class SystemController extends AbstractController
         $elasticsearch = $this->elasticsearch();
         $indices = $elasticsearch['reachable'] ? $this->indices() : [];
         $pending = $elasticsearch['reachable'] ? $this->pendingImport() : [];
-        $users = $elasticsearch['reachable'] ? $this->users() : null;
+        $statistics = $elasticsearch['reachable'] ? $this->userStatistics() : null;
+        $users = null === $statistics ? null : UserHealth::of($statistics, new \DateTimeImmutable());
+        $unmapped = null === $statistics ? 0 : $statistics->unknownToForge + $statistics->withoutEmail;
 
         return $this->render('management/system/index.html.twig', [
             'elasticsearch' => $elasticsearch,
             'indices' => $indices,
             'pending' => $pending,
             'users' => $users,
+            'unmapped' => $unmapped,
+            'unmappedUsers' => 0 === $unmapped ? [] : $this->unmappedUsers(),
             'application' => [
                 'php' => PHP_VERSION,
                 'symfony' => Kernel::VERSION,
@@ -135,16 +141,28 @@ class SystemController extends AbstractController
     }
 
     /**
-     * The users in one line, see UserHealth: null if the index "user" cannot be read, the indices show why.
-     *
-     * @return array{result: SystemCheckEnum, summary: string, hint: string|null}|null
+     * The statistics of the users for UserHealth: null if the index "user" cannot be read, the indices show why.
      */
-    private function users(): ?array
+    private function userStatistics(): ?UserStatistics
     {
         try {
-            return UserHealth::of($this->users->statistics(), new \DateTimeImmutable());
+            return $this->users->statistics();
         } catch (\Exception) {
             return null;
+        }
+    }
+
+    /**
+     * The people Forge was asked for that cannot be mapped to an email, in the card of the users.
+     *
+     * @return list<User>
+     */
+    private function unmappedUsers(): array
+    {
+        try {
+            return $this->users->unmapped();
+        } catch (\Exception) {
+            return [];
         }
     }
 

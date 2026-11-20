@@ -25,6 +25,7 @@ use Twig\Attribute\AsTwigFunction;
 final readonly class LinkTwigExtension
 {
     public const string FORGE_ISSUE = 'https://forge.typo3.org/issues/%d';
+    public const string FORGE_USER = 'https://forge.typo3.org/users/%d';
     public const string GERRIT_CHANGE = 'https://review.typo3.org/c/Packages/TYPO3.CMS/+/%d/';
 
     public function __construct(
@@ -42,6 +43,12 @@ final readonly class LinkTwigExtension
     public function changePath(int|string $number): string
     {
         return $this->urlGenerator->generate('change_show', ['number' => (int) $number]);
+    }
+
+    #[AsTwigFunction(name: 'forge_user_url')]
+    public function forgeUserUrl(int $id): string
+    {
+        return sprintf(self::FORGE_USER, $id);
     }
 
     #[AsTwigFunction(name: 'forge_issue_url')]

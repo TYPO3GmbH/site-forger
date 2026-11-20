@@ -11,9 +11,11 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Elastic\Bucket;
 use App\Elastic\Indices;
 use App\People\User;
 use App\People\UserDirectory;
+use App\People\UserStatistics;
 use Elastica\Document;
 use Elastica\Index;
 use Elastica\Query;
@@ -228,33 +230,79 @@ class UserRepository
     }
 
     /**
-     * How far the Forge users are, for the system page, see UserHealth.
-     * The people only Gerrit knows are complete with their change, so they do not count.
+     * All users Forge was asked for that have no email: first those unknown to Forge by its answer, then those Forge
+     * does not show the email of, each by name.
      *
-     * @return array{total: int, withAvatar: int, waiting: int, gone: int, lastFetched: \DateTimeImmutable|null}
+     * @return list<User>
      */
-    public function statistics(): array
+    public function unmapped(): array
     {
+        $result = $this->indices->users()->search([
+            // The most Elasticsearch returns at once, many more than the index has people without an email
+            'size' => 10000,
+            'query' => ['bool' => [
+                'filter' => [['exists' => ['field' => 'forge_id']], ['exists' => ['field' => 'fetched_on']]],
+                'must_not' => [['exists' => ['field' => 'email']]],
+            ]],
+            'sort' => [
+                ['gone' => 'desc'],
+                ['gone_status' => ['order' => 'asc', 'missing' => '_first']],
+                ['name' => 'asc'],
+            ],
+        ]);
+
+        return array_values(array_map(
+            static fn (Result $hit): User => User::fromDocument($hit->getSource()),
+            $result->getResults(),
+        ));
+    }
+
+    /**
+     * How far the Forge users are mapped to an email, for the system page, see UserHealth.
+     * The people only Gerrit knows are complete with their change, so they do not count.
+     */
+    public function statistics(): UserStatistics
+    {
+        $notAsked = ['bool' => ['must_not' => [['exists' => ['field' => 'fetched_on']]]]];
+        $gone = ['term' => ['gone' => true]];
         $result = $this->indices->users()->search([
             'size' => 0,
             'track_total_hits' => true,
             'query' => ['exists' => ['field' => 'forge_id']],
             'aggs' => [
-                'withAvatar' => ['filter' => ['exists' => ['field' => 'email']]],
-                'waiting' => ['filter' => ['bool' => ['must_not' => [['exists' => ['field' => 'fetched_on']]]]]],
-                'gone' => ['filter' => ['term' => ['gone' => true]]],
+                'mapped' => ['filter' => ['exists' => ['field' => 'email']]],
+                'unmapped' => ['filter' => ['bool' => ['must_not' => [['exists' => ['field' => 'email']]]]], 'aggs' => [
+                    'notAskedYet' => ['filter' => $notAsked],
+                    'unknownToForge' => ['filter' => $gone, 'aggs' => [
+                        'status' => ['terms' => ['field' => 'gone_status', 'missing' => 0, 'size' => 10]],
+                    ]],
+                    'withoutEmail' => ['filter' => ['bool' => [
+                        'filter' => [['exists' => ['field' => 'fetched_on']]],
+                        'must_not' => [$gone],
+                    ]]],
+                ]],
+                'gone' => ['filter' => $gone],
                 'lastFetched' => ['max' => ['field' => 'fetched_on']],
             ],
         ]);
         $aggregations = $result->getAggregations();
-        $statistics = ['total' => $result->getTotalHits()];
-        foreach (['withAvatar', 'waiting', 'gone'] as $name) {
-            $statistics[$name] = (int) ($aggregations[$name]['doc_count'] ?? 0);
+        $unmapped = $aggregations['unmapped'] ?? [];
+        $goneByStatus = [];
+        foreach (Bucket::listOf($unmapped['unknownToForge']['status'] ?? null) as $status) {
+            $goneByStatus[(int) $status->key] = $status->count;
         }
         $last = $aggregations['lastFetched']['value'] ?? null;
-        $statistics['lastFetched'] = null === $last ? null : new \DateTimeImmutable('@' . intdiv((int) $last, 1000));
 
-        return $statistics;
+        return new UserStatistics(
+            total: $result->getTotalHits(),
+            mapped: (int) ($aggregations['mapped']['doc_count'] ?? 0),
+            notAskedYet: (int) ($unmapped['notAskedYet']['doc_count'] ?? 0),
+            unknownToForge: (int) ($unmapped['unknownToForge']['doc_count'] ?? 0),
+            withoutEmail: (int) ($unmapped['withoutEmail']['doc_count'] ?? 0),
+            gone: (int) ($aggregations['gone']['doc_count'] ?? 0),
+            goneByStatus: $goneByStatus,
+            lastFetched: null === $last ? null : new \DateTimeImmutable('@' . intdiv((int) $last, 1000)),
+        );
     }
 
     /**
