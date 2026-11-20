@@ -11,9 +11,17 @@ declare(strict_types=1);
 
 namespace App\Tests\Import;
 
+use App\CommandRun\CommandRunRecorder;
+use App\Elastic\Indices;
 use App\Import\ForgeUserSync;
 use App\People\User;
+use App\Repository\UserRepository;
+use App\Tests\Http\MockApi;
+use Doctrine\DBAL\Connection;
+use Elastica\Client;
+use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 
 final class ForgeUserSyncTest extends TestCase
 {
@@ -70,5 +78,75 @@ final class ForgeUserSyncTest extends TestCase
         self::assertSame([6, 4, 3, 5, 2], array_map(static fn (User $user): ?int => $user->forgeId, $due));
         self::assertCount(2, ForgeUserSync::due($users, $now, 2));
         self::assertSame([], ForgeUserSync::due($users, $now, 0));
+    }
+
+    public function testUsersMarkedAsGoneBeforeTheStatusWasStoredAreAskedForFirst(): void
+    {
+        $now = new \DateTimeImmutable('2026-11-20 18:00:00');
+        $users = [
+            1 => new User(1, 'Never asked for'),
+            2 => new User(2, 'Gone, without status', fetchedOn: $now->modify('-1 day'), gone: true),
+            3 => new User(3, 'Gone with 404', fetchedOn: $now->modify('-1 day'), gone: true, goneStatus: 404),
+        ];
+
+        $due = ForgeUserSync::due($users, $now, 10);
+
+        self::assertSame([2, 1], array_map(static fn (User $user): ?int => $user->forgeId, $due));
+    }
+
+    public function testATokenThatMayNotSeeUsersMarksNobodyAsGone(): void
+    {
+        $written = new \ArrayObject();
+        $sync = $this->sync(array_fill(0, 6, new Response(403)), $written);
+
+        $result = $sync->update([1, 2, 3, 4, 5, 6], new \DateTimeImmutable());
+
+        self::assertSame(0, $result['gone']);
+        self::assertStringContainsString('the token may not see users', (string) $result['stopped']);
+        self::assertCount(0, $written);
+    }
+
+    public function testRefusedUsersAreGoneWithTheirStatusOnceForgeAnswersAnother(): void
+    {
+        $written = new \ArrayObject();
+        $sync = $this->sync([
+            new Response(403),
+            new Response(
+                200,
+                [],
+                (string) json_encode(['user' => ['id' => 2, 'firstname' => 'Two', 'login' => 'two']]),
+            ),
+            new Response(404),
+        ], $written);
+
+        $result = $sync->update([1, 2, 3], new \DateTimeImmutable());
+
+        self::assertSame(['updated' => 1, 'gone' => 2, 'stopped' => null], $result);
+        $status = [];
+        foreach ($written as $user) {
+            $status[(int) $user->forgeId] = $user->goneStatus;
+        }
+        self::assertSame([2 => null, 3 => 404, 1 => 403], $status);
+    }
+
+    /**
+     * @param list<Response>          $responses of Forge
+     * @param \ArrayObject<int, User> $written   gets the users written to the index
+     */
+    private function sync(array $responses, \ArrayObject $written): ForgeUserSync
+    {
+        $recorder = new CommandRunRecorder($this->createStub(Connection::class), new NullLogger());
+        $users = $this->createStub(UserRepository::class);
+        $users->method('all')->willReturn([]);
+        $users->method('write')->willReturnCallback(static function (array $users) use ($written): void {
+            $written->exchangeArray($users);
+        });
+
+        return new ForgeUserSync(
+            new Indices(new Client()),
+            (new MockApi($responses, $recorder))->client,
+            $users,
+            $recorder,
+        );
     }
 }

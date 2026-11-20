@@ -104,10 +104,14 @@ final class UserTest extends TestCase
         self::assertSame(7, $updated->gerritId);
         self::assertSame($now, $updated->fetchedOn);
 
-        $gone = $taken->asGone($now);
+        $gone = $taken->asGone($now, 403);
         self::assertTrue($gone->gone);
         self::assertSame($taken->emails, $gone->emails);
         self::assertSame('forge:1', $gone->id());
+        // The answer of Forge is kept in the index
+        self::assertSame(403, User::fromDocument($gone->toDocument())->goneStatus);
+        self::assertTrue($gone->wasAsked());
+        self::assertFalse((new User(1, 'Gone before', fetchedOn: $now, gone: true))->wasAsked());
     }
 
     public function testALoginTakesTheUsernameAndAddsTheEmail(): void
@@ -127,7 +131,7 @@ final class UserTest extends TestCase
 
         // Forge, the merge and the mark as gone keep the login
         self::assertSame($now, $loggedIn->updatedBy(User::fromForge(['id' => 1, 'login' => 'benni'], $now->modify('+1 hour')))->typo3LoginOn);
-        self::assertSame($now, $loggedIn->asGone($now)->typo3LoginOn);
+        self::assertSame($now, $loggedIn->asGone($now, 404)->typo3LoginOn);
         $later = $now->modify('+1 day');
         self::assertSame($later, $loggedIn->mergedWith($loggedIn->loggedIn('benni', 'benni@typo3.example', $later))->typo3LoginOn);
         self::assertSame($later, $loggedIn->loggedIn('benni', 'benni@typo3.example', $later)->mergedWith($loggedIn)->typo3LoginOn);

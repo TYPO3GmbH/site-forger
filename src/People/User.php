@@ -35,6 +35,8 @@ final readonly class User
      *                                              issues had
      * @param bool                    $gone         Forge does not know the user (any more): deleted, locked, or a group
      * @param \DateTimeImmutable|null $typo3LoginOn when the person logged in here with the TYPO3 account last
+     * @param int|null                $goneStatus   the HTTP status Forge answered for a gone user, null for the users
+     *                                              marked as gone before it was stored
      */
     public function __construct(
         public ?int $forgeId,
@@ -45,6 +47,7 @@ final readonly class User
         public ?\DateTimeImmutable $fetchedOn = null,
         public bool $gone = false,
         public ?\DateTimeImmutable $typo3LoginOn = null,
+        public ?int $goneStatus = null,
     ) {
         $username = mb_strtolower(trim((string) $username));
         $this->username = '' === $username ? null : $username;
@@ -124,6 +127,7 @@ final readonly class User
             fetchedOn: self::date($source['fetched_on'] ?? null),
             gone: (bool) ($source['gone'] ?? false),
             typo3LoginOn: self::date($source['typo3_login_on'] ?? null),
+            goneStatus: isset($source['gone_status']) ? (int) $source['gone_status'] : null,
         );
     }
 
@@ -167,6 +171,7 @@ final readonly class User
             fetchedOn: $this->fetchedOn ?? $other->fetchedOn,
             gone: $this->gone,
             typo3LoginOn: null === $this->typo3LoginOn || $other->typo3LoginOn > $this->typo3LoginOn ? $other->typo3LoginOn : $this->typo3LoginOn,
+            goneStatus: $this->goneStatus,
         );
     }
 
@@ -184,15 +189,37 @@ final readonly class User
             'fetched_on' => self::formatted($this->fetchedOn),
             'gone' => $this->gone,
             'typo3_login_on' => self::formatted($this->typo3LoginOn),
+            'gone_status' => $this->goneStatus,
         ];
     }
 
     /**
      * The same user, marked as unknown to Forge: what the index knew of it stays.
+     *
+     * @param int $status the HTTP status Forge answered
      */
-    public function asGone(\DateTimeImmutable $fetchedOn): self
+    public function asGone(\DateTimeImmutable $fetchedOn, int $status): self
     {
-        return new self($this->forgeId, $this->name, $this->username, $this->gerritId, $this->emails, $fetchedOn, true, $this->typo3LoginOn);
+        return new self(
+            forgeId: $this->forgeId,
+            name: $this->name,
+            username: $this->username,
+            gerritId: $this->gerritId,
+            emails: $this->emails,
+            fetchedOn: $fetchedOn,
+            gone: true,
+            typo3LoginOn: $this->typo3LoginOn,
+            goneStatus: $status,
+        );
+    }
+
+    /**
+     * Whether Forge was asked for the user. A user marked as gone before the status was stored counts as not asked:
+     * Forge may have refused it for the token only.
+     */
+    public function wasAsked(): bool
+    {
+        return null !== $this->fetchedOn && (!$this->gone || null !== $this->goneStatus);
     }
 
     /**
@@ -227,6 +254,7 @@ final readonly class User
             fetchedOn: $this->fetchedOn,
             gone: $this->gone,
             typo3LoginOn: $on,
+            goneStatus: $this->goneStatus,
         );
     }
 

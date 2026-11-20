@@ -53,6 +53,13 @@ final readonly class ForgeUserSync
     public const string STEP = 'Load the users from Forge';
 
     /**
+     * After this many users that Forge refused (403) in a run, without one it answered, the run stops. Forge refuses
+     * locked users, but it also refuses every user when the token may not see users. Then the users must not be
+     * marked as gone.
+     */
+    public const int REFUSED_TO_STOP = 5;
+
+    /**
      * The people of the issues, by the field of their number.
      */
     private const array PEOPLE_FIELDS = ['author', 'assigned_to'];
@@ -127,7 +134,8 @@ final readonly class ForgeUserSync
     }
 
     /**
-     * Stops at the first failure of Forge other than an unknown user. The users before it are written.
+     * Stops at the first failure of Forge other than an unknown user, and after REFUSED_TO_STOP refused users
+     * without one Forge answered. The users before it are written, the refused ones only after a user Forge answered.
      *
      * @param list<User>                 $users
      * @param (\Closure(int): void)|null $afterUser gets the number of users done
@@ -138,32 +146,58 @@ final readonly class ForgeUserSync
     {
         $written = [];
         $replaced = [];
-        $gone = 0;
+        $gone = [];
+        $refused = [];
+        $updated = 0;
         $stopped = null;
         try {
             foreach ($users as $position => $user) {
                 try {
                     $written[] = $user->updatedBy(User::fromForge($this->fetch((int) $user->forgeId), $now));
                     $replaced[] = $user->id();
+                    ++$updated;
                 } catch (ApiFailure $e) {
                     if (!$e->isNotFound()) {
                         $stopped = $e->getMessage();
                         break;
                     }
                     // Deleted, locked, or a group: Forge has no user for an assigned group
-                    $written[] = $user->asGone($now);
-                    ++$gone;
+                    if (403 !== $e->status) {
+                        $gone[] = $user->asGone($now, $e->status);
+                    } else {
+                        $refused[] = $user->asGone($now, $e->status);
+                    }
+                    if (0 === $updated && count($refused) >= self::REFUSED_TO_STOP) {
+                        $stopped = sprintf(
+                            'Forge refused %d users with 403 and answered none, the token may not see users',
+                            count($refused),
+                        );
+                        break;
+                    }
                 }
                 if (null !== $afterUser) {
                     $afterUser($position + 1);
                 }
             }
         } finally {
+            // Without a user Forge answered, a refusal may be the token's: the refused users stay due
+            if ($updated > 0 || null === $stopped) {
+                $gone = [...$gone, ...$refused];
+            }
+            foreach ($gone as $user) {
+                $this->recorder->note(sprintf(
+                    'Forge answered %d for user #%d (%s): marked as gone',
+                    (int) $user->goneStatus,
+                    (int) $user->forgeId,
+                    '' === $user->name ? 'no name' : $user->name,
+                ));
+            }
+            $written = [...$written, ...$gone];
             $this->users->write($this->withGerrit($written), $replaced);
             $this->recorder->document(count($written));
         }
 
-        return ['updated' => count($written) - $gone, 'gone' => $gone, 'stopped' => $stopped];
+        return ['updated' => $updated, 'gone' => count($gone), 'stopped' => $stopped];
     }
 
     /**
@@ -215,7 +249,8 @@ final readonly class ForgeUserSync
 
     /**
      * The users to ask Forge for next: never asked for, those without an email first, then those asked for longest
-     * ago, after REFRESH_AFTER_DAYS.
+     * ago, after REFRESH_AFTER_DAYS. The users marked as gone before the status was stored come first: they show
+     * whether Forge refused them for the token only, see User::wasAsked().
      *
      * @param array<int, User> $users
      *
@@ -224,11 +259,21 @@ final readonly class ForgeUserSync
     public static function due(array $users, \DateTimeImmutable $now, int $limit): array
     {
         $refreshBefore = $now->modify(sprintf('-%d days', self::REFRESH_AFTER_DAYS));
-        $due = array_filter($users, static fn (User $user): bool => null === $user->fetchedOn || $user->fetchedOn < $refreshBefore);
-        usort($due, static fn (User $a, User $b): int => [null !== $a->fetchedOn, [] !== $a->emails, $a->fetchedOn, -$a->forgeId]
-            <=> [null !== $b->fetchedOn, [] !== $b->emails, $b->fetchedOn, -$b->forgeId]);
+        $due = array_filter(
+            $users,
+            static fn (User $user): bool => !$user->wasAsked() || $user->fetchedOn < $refreshBefore,
+        );
+        usort($due, static fn (User $a, User $b): int => self::dueOrder($a) <=> self::dueOrder($b));
 
         return array_slice($due, 0, max(0, $limit));
+    }
+
+    /**
+     * @return list<mixed> what due() sorts by
+     */
+    private static function dueOrder(User $user): array
+    {
+        return [$user->wasAsked(), null === $user->fetchedOn, [] !== $user->emails, $user->fetchedOn, -$user->forgeId];
     }
 
     /**

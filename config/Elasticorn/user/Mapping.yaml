@@ -15,6 +15,9 @@ fetched_on:
   format: yyyy/MM/dd HH:mm:ss
 gone:
   type: boolean
+# The HTTP status Forge answered for a gone user, see App\Import\ForgeUserSync
+gone_status:
+  type: integer
 # When the person logged in here with the TYPO3 account last, see App\Repository\UserRepository::recordLogin()
 typo3_login_on:
   type: date
