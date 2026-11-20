@@ -1,3 +1,4 @@
+import { fetchJson } from './request.js';
 import { sprintf } from 'sprintf-js';
 import ace from 'ace-builds/src-noconflict/ace.js';
 import 'ace-builds/src-noconflict/mode-rst.js';
@@ -198,11 +199,7 @@ import 'ace-builds/src-noconflict/theme-github.js';
             trigger.disabled = true;
             document.querySelector(Selectors.flashMessageContainer).replaceChildren();
             try {
-                const response = await fetch('/api/issue/' + ticketId, {headers: {Accept: 'application/json'}});
-                const data = await response.json().catch(() => null);
-                if (!response.ok || data === null) {
-                    throw new Error(typeof data === 'string' ? data : 'Fetching the ticket failed with status ' + response.status);
-                }
+                const data = await fetchJson('/api/issue/' + ticketId);
                 titleField.value = data.subject;
                 Rst.render();
             } catch (error) {

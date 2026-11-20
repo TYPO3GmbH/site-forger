@@ -1,3 +1,5 @@
+import { fetchHtml } from './request.js';
+
 /*
  * Shows the sprint board wizard one step at a time and previews the issues its filters select.
  * Without JavaScript all steps are shown at once and the form still works.
@@ -119,17 +121,13 @@ class SprintWizard {
             textContent: 'Looking for matching issues …',
         }));
         try {
-            const response = await fetch(this.form.dataset.previewUrl, {
+            const html = await fetchHtml(this.form.dataset.previewUrl, {
                 method: 'POST',
                 body: new FormData(this.form),
-                headers: {'X-Requested-With': 'XMLHttpRequest'},
                 signal: this.previewRequest.signal,
             });
-            if (!response.ok) {
-                throw new Error('The preview failed with status ' + response.status + '.');
-            }
             // Markup rendered by forger itself, see templates/sprint/_wizard_preview.html.twig
-            this.preview.innerHTML = await response.text();
+            this.preview.innerHTML = html;
         } catch (error) {
             if (error.name === 'AbortError') {
                 return;

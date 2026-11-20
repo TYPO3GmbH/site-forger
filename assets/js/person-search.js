@@ -1,3 +1,5 @@
+import { fetchJson } from './request.js';
+
 /**
  * Search in a filter of people: the people of the review lists, the authors and assignees of the issue search.
  *
@@ -154,10 +156,7 @@
                 }
             });
             container.classList.add('is-loading');
-            const request = fetch(url, {headers: {'Accept': 'application/json'}})
-                .then(function (response) {
-                    return response.ok ? response.json() : [];
-                })
+            const request = fetchJson(url)
                 .catch(function () {
                     return [];
                 })

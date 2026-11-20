@@ -1,3 +1,5 @@
+import { fetchHtml, fetchJson } from './request.js';
+
 /**
  * The command runs page, see templates/management/commands/index.html.twig.
  *
@@ -175,13 +177,7 @@
             current.setAttribute('aria-busy', 'true');
         }
 
-        loading = window.fetch(url, {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
-            .then(function (response) {
-                if (!response.ok || response.redirected) {
-                    throw new Error('Unexpected response ' + response.status);
-                }
-                return response.text();
-            })
+        loading = fetchHtml(url)
             .then(function (html) {
                 const next = new DOMParser().parseFromString(html, 'text/html').querySelector('[data-runs-page]');
                 if (!next) {
@@ -312,18 +308,7 @@
             button.setAttribute('aria-busy', 'true');
             button.disabled = true;
         }
-        window.fetch(target.action, {
-            method: 'POST',
-            body: new FormData(target),
-            credentials: 'same-origin',
-            headers: {'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'},
-        })
-            .then(function (response) {
-                if (!response.ok || response.redirected || !(response.headers.get('Content-Type') || '').includes('json')) {
-                    throw new Error('Unexpected response ' + response.status);
-                }
-                return response.json();
-            })
+        fetchJson(target.action, {method: 'POST', body: new FormData(target)})
             .then(function (result) {
                 (result.messages || []).forEach(function (message) {
                     notice(message.type, message.text);
