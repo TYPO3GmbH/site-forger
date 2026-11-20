@@ -26,6 +26,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -253,7 +254,9 @@ class CommandRunController extends AbstractController
     {
         if ($request->isXmlHttpRequest()) {
             $messages = [];
-            foreach ($request->getSession()->getFlashBag()->all() as $type => $texts) {
+            $session = $request->getSession();
+            $flashes = $session instanceof FlashBagAwareSessionInterface ? $session->getFlashBag()->all() : [];
+            foreach ($flashes as $type => $texts) {
                 foreach ($texts as $text) {
                     $messages[] = ['type' => $type, 'text' => (string) $text];
                 }

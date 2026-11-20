@@ -83,7 +83,7 @@ final class GerritChangeImporter
      */
     public function write(array $document, bool $refresh = false): void
     {
-        $this->users->ensureGerrit(array_values(array_filter([self::owner($document)])));
+        $this->users->ensureGerrit(array_filter([self::owner($document)]));
         $index = ElasticUtility::getIndexByName('review');
         $index->addDocument(new Document((string) $document['id'], $document));
         if ($refresh) {

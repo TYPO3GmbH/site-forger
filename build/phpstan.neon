@@ -1,0 +1,12 @@
+parameters:
+    level: 5
+    paths:
+        - ../src
+        - ../tests
+    tmpDir: ../var/cache/phpstan
+    symfony:
+        containerXmlPath: ../var/cache/dev/App_KernelDevDebugContainer.xml
+    doctrine:
+        objectManagerLoader: ../tests/object-manager.php
+        # Forms create the entities empty and fill them afterwards
+        allowNullablePropertyForRequiredField: true

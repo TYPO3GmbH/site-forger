@@ -85,7 +85,6 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     public function testChangeWithoutNewFields(): void
     {
         $change = self::OLD_CHANGE;
-        unset($change['reviewtags']);
 
         $card = $this->twig->render('_partials/review_card.html.twig', ['card' => $change]);
         $full = $this->twig->render('_partials/row/change.html.twig', ['change' => $change, 'detailed' => true]);
@@ -153,9 +152,6 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         $issue = self::OLD_ISSUE;
         unset($issue['assigned_to']);
         yield 'no assignee' => [$issue];
-        $issue = self::OLD_ISSUE;
-        unset($issue['author']['email']);
-        yield 'author without email' => [$issue];
     }
 
     /**

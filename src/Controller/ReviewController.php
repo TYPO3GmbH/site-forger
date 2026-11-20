@@ -325,7 +325,7 @@ class ReviewController extends AbstractController
 
     private function query(): InputBag
     {
-        return $this->requestStack->getCurrentRequest()?->query ?? new InputBag();
+        return $this->requestStack->getCurrentRequest()->query ?? new InputBag();
     }
 
     /**
@@ -387,8 +387,8 @@ class ReviewController extends AbstractController
                     } elseif ('updated_on' === $key) {
                         // A month of the filter "Updated on" ticked before the datepicker, in links shared then
                         $filter = new Range();
-                        $startDate = new \DateTime('@' . (int) ($term / 1000));
-                        $endDate = new \DateTime('@' . (int) ($term / 1000))->modify('+1 month -1 second');
+                        $startDate = new \DateTime('@' . intdiv((int) $term, 1000));
+                        $endDate = new \DateTime('@' . intdiv((int) $term, 1000))->modify('+1 month -1 second');
                         $filter->addField(
                             $key,
                             [

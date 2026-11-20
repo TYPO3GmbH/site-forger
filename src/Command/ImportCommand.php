@@ -36,6 +36,7 @@ use Symfony\Component\Console\Command\LockableTrait;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -332,7 +333,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
             $this->refreshLock();
         }
 
-        return $this->projectIssues->remove(array_values($remove));
+        return $this->projectIssues->remove($remove);
     }
 
     /**
@@ -464,7 +465,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
             array_push($remove, ...array_diff($batch, array_keys($documents)));
         }
         if ([] !== $remove) {
-            $this->output->writeln(sprintf('Removed %d changes that Gerrit does not show any more', $this->projectChanges->remove(array_values($remove))));
+            $this->output->writeln(sprintf('Removed %d changes that Gerrit does not show any more', $this->projectChanges->remove($remove)));
         }
         $progressBar->finish();
         $this->output->writeln('');
@@ -563,7 +564,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $since = $this->watermark->since('review');
         if (null === $since) {
             $this->recorder->note('The review index is empty: this run imported the latest changes only. "Check all Gerrit changes" fills it.');
-            $progressBar = new ProgressBar($output->section());
+            $progressBar = self::progressBar($output);
             $this->changeImporter->writeAll($this->reviewBlock(GerritChangeImporter::PROJECT, self::PAGE_SIZE, $progressBar, self::STEP_GERRIT_LATEST));
 
             return;
@@ -587,7 +588,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
     {
         $delta = null !== $since;
         [$listStep, $loadStep] = $delta ? [self::STEP_GERRIT_DELTA_LIST, self::STEP_GERRIT_DELTA_LOAD] : [self::STEP_GERRIT_FULL_LIST, self::STEP_GERRIT_FULL_LOAD];
-        $progressBar = new ProgressBar($output->section());
+        $progressBar = self::progressBar($output);
         $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
 
         // Step 1: which changes are not up to date in the index, without their details
@@ -703,7 +704,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
             array_push($remove, ...array_diff($batch, $shown));
             $this->refreshLock();
         }
-        $removed = $this->projectChanges->remove(array_values($remove));
+        $removed = $this->projectChanges->remove($remove);
         $this->output->writeln(sprintf('Removed %d changes that Gerrit does not show any more', $removed));
     }
 
@@ -780,6 +781,11 @@ class ImportCommand extends Command implements LoggerAwareInterface
     /**
      * Refreshes the lock to avoid a too-early expiration of its TTL.
      */
+    private static function progressBar(OutputInterface $output): ProgressBar
+    {
+        return new ProgressBar($output instanceof ConsoleOutputInterface ? $output->section() : $output);
+    }
+
     private function refreshLock(): void
     {
         $this->lock?->refresh();

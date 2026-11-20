@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Elastic;
 
 use Elastica\Query;
+use Elastica\Query\MatchAll;
 use Elastica\Result;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -79,11 +80,7 @@ final readonly class ProjectIssues
      */
     public function indexedIds(): \Generator
     {
-        $search = ElasticUtility::getIndexByName('issue')->createSearch(new Query([
-            '_source' => false,
-            'size' => 1000,
-            'query' => ['match_all' => new \stdClass()],
-        ]));
+        $search = ElasticUtility::getIndexByName('issue')->createSearch(new Query(new MatchAll())->setSource(false)->setSize(1000));
         foreach ($search->scroll('2m') as $resultSet) {
             foreach ($resultSet as $result) {
                 yield (string) $result->getId();
@@ -140,7 +137,7 @@ final readonly class ProjectIssues
             return 0;
         }
         $response = ElasticUtility::getIndexByName('issue')->deleteByQuery(
-            new Query(['query' => ['ids' => ['values' => array_values(array_map('strval', $ids))]]]),
+            new Query(['query' => ['ids' => ['values' => array_map('strval', $ids)]]]),
             ['refresh' => 'true', 'conflicts' => 'proceed'],
         )->getData();
 

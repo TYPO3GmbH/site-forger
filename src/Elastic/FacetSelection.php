@@ -59,7 +59,7 @@ final class FacetSelection
         }
         // With the aggregations within, like the latest document of a person, see PeopleFacet
         $aggregations[$title . self::SELECTED] = [
-            'terms' => ['field' => $aggregations[$title]['terms']['field'], 'include' => array_values($selected), 'size' => count($selected)],
+            'terms' => ['field' => $aggregations[$title]['terms']['field'], 'include' => $selected, 'size' => count($selected)],
         ] + array_intersect_key($aggregations[$title], ['aggs' => true, 'aggregations' => true]);
 
         return $aggregations;

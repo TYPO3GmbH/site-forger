@@ -28,7 +28,7 @@ final class StatusEnumTest extends TestCase
         self::assertSame(IssueStatusEnum::UNDER_REVIEW, IssueStatusEnum::from(8));
         self::assertSame(IssueStatusEnum::IN_PROGRESS, IssueStatusEnum::from(11));
         self::assertSame(IssueStatusEnum::POSTPONED, IssueStatusEnum::tryFrom(9));
-        self::assertNull(IssueStatusEnum::tryFrom(10));
+        self::assertNotContains(10, array_column(IssueStatusEnum::cases(), 'value'));
     }
 
     public function testIssueStatesHaveTheForgeNamesAsLabels(): void

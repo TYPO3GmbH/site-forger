@@ -94,7 +94,7 @@ class RefreshController extends AbstractController
     /**
      * Back to the page the button was on. Only a path of this site is followed, else the given route.
      *
-     * @param array<string, string> $parameters
+     * @param array<string, int|string> $parameters
      */
     private function back(Request $request, string $route, array $parameters = []): RedirectResponse
     {

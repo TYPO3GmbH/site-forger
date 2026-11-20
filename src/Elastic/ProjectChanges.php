@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Elastic;
 
 use Elastica\Query;
+use Elastica\Query\MatchAll;
 
 /**
  * The Gerrit changes in the index. Forger shows only what Gerrit shows to everyone: a change that Gerrit does
@@ -29,11 +30,7 @@ readonly class ProjectChanges
      */
     public function indexedNumbers(): \Generator
     {
-        $search = ElasticUtility::getIndexByName('review')->createSearch(new Query([
-            '_source' => false,
-            'size' => 1000,
-            'query' => ['match_all' => new \stdClass()],
-        ]));
+        $search = ElasticUtility::getIndexByName('review')->createSearch(new Query(new MatchAll())->setSource(false)->setSize(1000));
         foreach ($search->scroll('2m') as $resultSet) {
             foreach ($resultSet as $result) {
                 yield (int) $result->getId();
@@ -62,7 +59,7 @@ readonly class ProjectChanges
             return 0;
         }
         $response = ElasticUtility::getIndexByName('review')->deleteByQuery(
-            new Query(['query' => ['ids' => ['values' => array_values(array_map('strval', $numbers))]]]),
+            new Query(['query' => ['ids' => ['values' => array_map('strval', $numbers)]]]),
             ['refresh' => 'true', 'conflicts' => 'proceed'],
         )->getData();
 

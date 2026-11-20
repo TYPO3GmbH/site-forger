@@ -21,6 +21,7 @@ Rules for everyone who works on this repository, people and coding agents.
 ## Checks
 - Tests: `bin/phpunit -c build/phpunit.xml`
 - Code style: `composer t3g:cgl`
+- Static analysis: `bin/phpstan analyse -c build/phpstan.neon`
 - Templates: `bin/console lint:twig templates`
 - Assets: `ddev exec npm run dev`
 

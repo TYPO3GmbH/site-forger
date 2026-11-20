@@ -73,7 +73,7 @@ class SearchController extends AbstractController
     {
         $this->currentPage = (int) $request->query->get('page', 1);
         $query = (string) $request->query->get('query');
-        $this->filters = $request->query->all('filters');
+        $this->filters = array_filter($request->query->all('filters'), is_array(...));
 
         $searchClosed = 1 === $request->query->getInt('searchClosed');
         // Without search words all issues score the same, so they are not sorted by relevance
@@ -189,14 +189,14 @@ class SearchController extends AbstractController
     /**
      * Adds filters based on get parameters.
      */
-    private function addFilters(): Query|Query\BoolQuery
+    private function addFilters(): Query\BoolQuery
     {
         $filters = new Query\BoolQuery();
 
         foreach ($this->filters as $key => $filterValue) {
             if ('created' === $key) {
                 // A range of months, not values to tick
-                $days = is_array($filterValue) ? MonthOverview::days($filterValue) : ['from' => null, 'to' => null];
+                $days = MonthOverview::days($filterValue);
                 $range = MonthOverview::rangeQuery($days['from'], $days['to']);
                 if (null !== $range) {
                     $filters->addMust(new Query\Simple($range));

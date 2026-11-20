@@ -48,7 +48,7 @@ final class ImportWatermark
      * @param 'issue'|'review' $index
      * @param list<int|string> $ids
      *
-     * @return array<string, string> keyed by id, documents not in the index or of an older import are missing
+     * @return array<int|string, string> keyed by id, documents not in the index or of an older import are missing
      */
     public function storedUpdates(string $index, array $ids): array
     {
@@ -58,7 +58,7 @@ final class ImportWatermark
         $response = ElasticUtility::getIndexByName($index)->request(
             '_mget',
             Request::POST,
-            ['ids' => array_values(array_map('strval', $ids))],
+            ['ids' => array_map('strval', $ids)],
             ['_source' => 'updated_on,' . ImportSchema::FIELD],
         )->getData();
 
@@ -76,7 +76,7 @@ final class ImportWatermark
      * The ids whose update time differs from the stored one, or that the index does not have.
      *
      * @param array<int|string, string> $updated update times by id, in the format of the index
-     * @param array<string, string>     $stored  see storedUpdates()
+     * @param array<int|string, string> $stored  see storedUpdates()
      *
      * @return list<string>
      */

@@ -225,7 +225,7 @@ final class RedmineTextileRenderer
             return null;
         }
         $first = strtok(trim($m[2]), " \t");
-        if (false === $first || '' === $first) {
+        if (false === $first) {
             return null;
         }
 
@@ -264,7 +264,7 @@ final class RedmineTextileRenderer
 
         return preg_replace_callback($pattern, static function (array $m): string {
             [$all, $leading, $proto, $url] = [$m[0], $m[1], $m[2], $m[3]];
-            $post = $m[6] ?? '';
+            $post = $m[6];
 
             // Already inside a link, or a Textile image modifier (! !> !< !=).
             if (1 === preg_match('/<a\s/i', $leading) || 1 === preg_match('/!$/', $leading)) {

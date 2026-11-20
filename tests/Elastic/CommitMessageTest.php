@@ -232,7 +232,7 @@ final class CommitMessageTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, list<string>}>
+     * @return iterable<string, array{string}>
      */
     public static function lineEndings(): iterable
     {
@@ -289,7 +289,6 @@ final class CommitMessageTest extends TestCase
         foreach (['', '[TASK] Only a subject', "\n\n\n", 'Releases:', 'Resolves:', "\xff\xfe", str_repeat('Releases: main, ', 2000)] as $message) {
             $fields = CommitMessage::fields($message);
             self::assertNotSame([], $fields['releases']);
-            self::assertIsArray($fields['resolves']);
         }
     }
 

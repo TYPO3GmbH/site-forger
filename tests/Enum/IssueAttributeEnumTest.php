@@ -24,7 +24,7 @@ final class IssueAttributeEnumTest extends TestCase
         self::assertSame(TrackerEnum::EPIC, TrackerEnum::from(10));
         self::assertSame('Work Package', TrackerEnum::WORK_PACKAGE->label());
         self::assertSame(TrackerEnum::MAJOR_FEATURE, TrackerEnum::tryFromLabel('Major Feature'));
-        self::assertNull(TrackerEnum::tryFrom(8));
+        self::assertNotContains(8, array_column(TrackerEnum::cases(), 'value'));
     }
 
     public function testTrackersWithoutOwnColorUseTheDefault(): void
