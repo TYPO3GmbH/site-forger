@@ -165,9 +165,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 'uri' => '#',
                 'extras' => ['icon' => 'actions-cog'],
             ]);
-            $this->addHeader($admin, 'Reports');
-            $this->addLink($admin, 'management-interactions', 'Core team interactions', 'management_interactions', 'actions-users');
-            $this->addLink($admin, 'management-docs-interactions', 'Docs team interactions', 'management_docs_interactions', 'actions-users');
             $this->addHeader($admin, 'Operations');
             $this->addLink($admin, 'management-command-runs', 'Command runs', 'management_command_runs', 'actions-history');
             $this->addLink($admin, 'management-system', 'System', 'management_system', 'actions-database');

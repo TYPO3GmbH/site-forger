@@ -18,7 +18,7 @@ use App\Enum\PriorityEnum;
 use App\Enum\TrackerEnum;
 
 /**
- * Builds Forge issues, Gerrit changes and interactions for local testing, shaped like the documents
+ * Builds Forge issues and Gerrit changes for local testing, shaped like the documents
  * the import writes.
  *
  * The values are the real ones of forge.typo3.org (project 27, "TYPO3 Core") and review.typo3.org
@@ -33,7 +33,6 @@ final readonly class MockDataGenerator
      */
     public const int ID_OFFSET = 900000;
     public const int ID_LIMIT = 999999;
-    public const string INTERACTION_PREFIX = 'mock-';
 
     /**
      * A selection of the 55 categories, null for issues without one.
@@ -169,55 +168,6 @@ final readonly class MockDataGenerator
         }
 
         return $reviews;
-    }
-
-    /**
-     * The interactions with the Gerrit changes: patch sets, comments, reviews, verifications, merges and abandons.
-     *
-     * @return list<array<string, mixed>>
-     */
-    public function interactions(): array
-    {
-        $interactions = [];
-        foreach ($this->reviews() as $index => $review) {
-            $owner = $this->personByName($review['owner']);
-            $reviewer = $this->people[($index + 1) % count($this->people)];
-            $created = $this->parseDate($review['created_on']);
-            $add = function (string $type, array $person, int $hours) use (&$interactions, $review, $created): void {
-                $interactions[] = [
-                    'interaction_id' => self::INTERACTION_PREFIX . $review['id'] . '-' . count($interactions),
-                    'interaction_type' => $type,
-                    'interaction_source' => 'Gerrit',
-                    'interaction_source_id' => $review['id'],
-                    'interacted_on' => $this->formatDate($created->modify('+' . $hours . ' hours')),
-                    'account' => $person['account'],
-                    'fullname' => $person['name'],
-                    'email' => $person['email'],
-                ];
-            };
-
-            for ($patchSet = 1; $patchSet <= min($review['patchsets'], 3); ++$patchSet) {
-                $add('core:review:patchset', $owner, $patchSet);
-            }
-            $add('core:review:comment', $reviewer, 4);
-            if ($review['positive_reviews'] + $review['negative_reviews'] > 0) {
-                $add('core:review:codereview', $reviewer, 5);
-            }
-            if ($review['positive_verifications'] + $review['negative_verifications'] > 0) {
-                $add('core:review:testing', $reviewer, 6);
-            }
-            if ('MERGED' === $review['reviewstatus']) {
-                $add('core:review:merge', $reviewer, 7);
-                if ($review['patchsets'] > 1) {
-                    $add('core:review:merge-author', $owner, 7);
-                }
-            }
-            if ('ABANDONED' === $review['reviewstatus']) {
-                $add('core:review:abandon', $owner, 8);
-            }
-        }
-
-        return $interactions;
     }
 
     /**
@@ -443,27 +393,8 @@ final readonly class MockDataGenerator
         return $values[$index % count($values)];
     }
 
-    /**
-     * @return array{name: string, email: string, account: string}
-     */
-    private function personByName(string $name): array
-    {
-        foreach ($this->people as $person) {
-            if ($person['name'] === $name) {
-                return $person;
-            }
-        }
-
-        return $this->people[0];
-    }
-
     private function formatDate(\DateTimeImmutable $date): string
     {
         return $date->format('Y/m/d H:i:s');
-    }
-
-    private function parseDate(string $date): \DateTimeImmutable
-    {
-        return \DateTimeImmutable::createFromFormat('Y/m/d H:i:s', $date) ?: $this->now;
     }
 }

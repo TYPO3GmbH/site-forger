@@ -110,47 +110,6 @@ class BackportCommand extends Command
     }
 
     /**
-     * @throws \RuntimeException
-     * @throws InvalidException
-     */
-    protected function getPersonWhoMergedTheChange(int $changeId): array
-    {
-        $fullRequest = [
-            'query' => [
-                'bool' => [
-                    'must' => [
-                        [
-                            'terms' => [
-                                'interaction_source_id' => [
-                                    $changeId,
-                                ],
-                            ],
-                        ],
-                        [
-                            'terms' => [
-                                'interaction_type' => [
-                                    'core:review:merge',
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-        ];
-        $query = ElasticUtility::getIndexByName('interactions')->createSearch($fullRequest);
-        $resultSet = $query->search();
-        $results = $resultSet->getResults();
-        if (count($results) > 1 && 57284 !== $results[0]->getData()['interaction_source_id']) {
-            throw new \RuntimeException('More than one merger found?');
-        }
-        if (count($results) > 0) {
-            return $results[0]->getSource();
-        }
-
-        return [];
-    }
-
-    /**
      * @throws InvalidException
      */
     protected function getPotentialBackports(): array
@@ -258,10 +217,6 @@ class BackportCommand extends Command
         $returnValue = 'missing';
         foreach ($relatedChanges as $relatedChange) {
             $relatedChange = $relatedChange->getSource();
-            if (ReviewStatusEnum::MERGED->value === $relatedChange['reviewstatus']) {
-                $mergingPerson = $this->getPersonWhoMergedTheChange($relatedChange['id']);
-                $relatedChange['owner'] = $mergingPerson['fullname'] ?? '';
-            }
             unset($relatedChange['mergeable']);
 
             $branchForRelease = self::VERSION_BRANCHES[$release] ?? null;

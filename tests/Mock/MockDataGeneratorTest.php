@@ -81,9 +81,6 @@ final class MockDataGeneratorTest extends TestCase
             self::assertGreaterThan(MockDataGenerator::ID_OFFSET, $document['id']);
             self::assertLessThanOrEqual(MockDataGenerator::ID_LIMIT, $document['id']);
         }
-        foreach ($this->generator->interactions() as $interaction) {
-            self::assertStringStartsWith(MockDataGenerator::INTERACTION_PREFIX, $interaction['interaction_id']);
-        }
     }
 
     public function testIssuesUnderReviewLinkAnExistingChange(): void
@@ -148,6 +145,6 @@ final class MockDataGeneratorTest extends TestCase
         $again = new MockDataGenerator(self::PEOPLE, new \DateTimeImmutable('2026-11-19 12:00:00'));
 
         self::assertSame($this->generator->issues(), $again->issues());
-        self::assertSame($this->generator->interactions(), $again->interactions());
+        self::assertSame($this->generator->reviews(), $again->reviews());
     }
 }

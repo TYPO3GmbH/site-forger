@@ -60,36 +60,32 @@ Put your personal tokens into `.env.local` (git-ignored, overrides `.env`):
 
 ```dotenv
 FORGE_ACCESS_TOKEN=...
-GITHUB_ACCESS_TOKEN=...
 ```
 
 | Variable | Needed for | How to get it |
 |---|---|---|
 | `FORGE_ACCESS_TOKEN` | `forgeFull`, `forgeDelta` imports. Works without, but anonymous requests hit Forge's rate limit quickly. | Log in at [forge.typo3.org](https://forge.typo3.org), open [My account](https://forge.typo3.org/my/account) and click **Show** below **API access key** in the sidebar. |
-| `GITHUB_ACCESS_TOKEN` | `github`, `githubDelta` imports | Create a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new) with repository access **Public repositories (read-only)**. No further permissions are needed. |
 
 Gerrit imports (`reviewFull`, `reviewDelta`) read the public API of review.typo3.org and need no token.
 
 ## Imports
 
-`bin/console app:import --mode=<mode>` reads Forge (Redmine), Gerrit and GitHub into Elasticsearch.
+`bin/console app:import --mode=<mode>` reads Forge (Redmine) and Gerrit into Elasticsearch.
 Prefix the commands with `ddev exec` in the dev environment.
 
 | Mode | Reads | Meant for |
 |---|---|---|
 | `forgeFull [--force]` | Every Forge issue of the TYPO3 Core project | An empty index, a weekly safety net |
 | `forgeDelta` | The Forge issues changed since the last import | Cron, every few minutes |
-| `reviewFull [--force]` | Every Gerrit change of `Packages/TYPO3.CMS` with its interactions | An empty index, a weekly safety net |
-| `reviewDelta` | The Gerrit changes updated since the last import, with their interactions | Cron, every few minutes |
-| `github --organization=<org> [--repository=<repo>]` | Every event of the repositories of an organization (or of one repository) | An empty index |
-| `githubDelta --organization=<org> [--repository=<repo>]` | The latest events (one page per repository) | Cron, every 30 minutes |
+| `reviewFull [--force]` | Every Gerrit change of `Packages/TYPO3.CMS` | An empty index, a weekly safety net |
+| `reviewDelta` | The Gerrit changes updated since the last import | Cron, every few minutes |
 
 An unknown mode ends with an error. `--startAt=<n>` lets a full import begin at the n-th issue or change.
 
 Other commands:
 
 * `app:backports` writes the list of the backport view (`var/backports.json`)
-* `app:truncate-type <issue|review|interactions>` deletes all documents of an index type
+* `app:truncate-type <issue|review>` deletes all documents of an index type
 * `app:elasticsearch:setup`, see [Elasticsearch indices](#elasticsearch-indices)
 
 ### The project
@@ -110,14 +106,11 @@ The deltas only read what changed, and only load details for what they do not ha
   with the same `updated_on`. Only changed issues are written, and only for those under review the journals
   are loaded. A run ends after 2000 issues and reports a warning, the next run goes on from there.
 * **Gerrit:** a light query lists the changes updated since the start (`after:`) with their update time,
-  the details (revisions, files, messages) are loaded only for the changes the index does not have in this
+  the details (votes, patch sets, files) are loaded only for the changes the index does not have in this
   state. Gerrit lists the newest first, so the changes are written once all of them are loaded: a run that
   fails half way leaves the index as it was, and the next run tries again. Beyond 3000 updated changes the
   older ones are missing until the next `reviewFull`, the run reports a warning.
-* **GitHub:** asks for every events page with the ETag of the last answer; GitHub answers an unchanged page
-  with `304 Not Modified`, for authenticated requests without using the rate limit. The ETag is stored once
-  all events of a page are written, so a page is read again after a failed run.
-* **Authors:** the emails of Forge users and the profiles of GitHub users are cached for a day.
+* **Authors:** the emails of Forge users are cached for a day.
 
 On an empty index `forgeDelta` and `reviewDelta` import the latest 100 issues or changes and report a
 warning: run the full import once.
@@ -133,9 +126,6 @@ A full import that ended early is simply started again: what it already wrote is
 `--force` imports every issue or change, also the up-to-date ones. It is needed after a change of what the
 import stores (a new field, another mapping), as an unchanged issue would keep its old document otherwise.
 
-`github` has no such comparison, it reads all events GitHub keeps (the last 90 days, at most 300 per
-repository) and writes them again; writing an event twice does no harm.
-
 ### Catching up, e.g. over night
 
 The deltas only go forward from the latest change in the index. To bring back what was missed before (an import
@@ -146,9 +136,6 @@ cd /srv/vhosts/forger.typo3.com/site/mage/current
 nohup sh -c '
     /usr/bin/php8.5 bin/console app:import --mode=forgeFull
     /usr/bin/php8.5 bin/console app:import --mode=reviewFull
-    for organization in TYPO3-Documentation friendsoftypo3 TYPO3; do
-        /usr/bin/php8.5 bin/console app:import --mode=github --organization=$organization
-    done
 ' > ../shared/var/log/catch-up.log 2>&1 &
 ```
 
@@ -159,8 +146,7 @@ could be removed.
 ### Locks
 
 Every import holds a lock, so two runs of the same kind do not write at the same time: `forge` (both Forge
-modes), `gerrit` (both Gerrit modes, `reviewFull` blocks `reviewDelta` for its run) and one per GitHub
-organization and repository, so the organizations can run at the same minute. A run that finds the lock
+modes) and `gerrit` (both Gerrit modes, `reviewFull` blocks `reviewDelta` for its run). A run that finds the lock
 taken ends right away as "Skipped, locked". The lock goes with the process holding it.
 
 ### Errors and the command runs page
@@ -175,9 +161,9 @@ by hand). Admins see the runs at **Admin → Command runs** (`/management/comman
 | Status | Meaning |
 |---|---|
 | Success | The run did its work |
-| Success with warnings | Single items were skipped, e.g. a Forge issue Forge did not answer for, or a GitHub repository answering with 5xx; the message lists the first of them |
+| Success with warnings | Single items were skipped, e.g. a Forge issue Forge did not answer for; the message lists the first of them |
 | Skipped, locked | Another run held the lock |
-| Failed | The run ended with an error: exception, exit code other than 0, Gerrit or Forge unavailable after the retries, invalid GitHub credentials (401, 403) |
+| Failed | The run ended with an error: exception, exit code other than 0, Gerrit or Forge unavailable after the retries |
 | Aborted | No end recorded and no heartbeat for 15 minutes: killed, out of memory, server restart |
 | Running | Running, with a heartbeat at least every 15 seconds |
 
@@ -204,9 +190,6 @@ repository. A setup that keeps the data current:
 # m  h  dom mon dow user              command
 */5  *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=forgeDelta > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/forgeimport_delta.lastrun 2>&1
 */5  *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=reviewDelta > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/forgeimport_gerritdelta.lastrun 2>&1
-*/30 *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=githubDelta --organization=TYPO3-Documentation > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/githubimport_typo3-documentation.lastrun 2>&1
-*/30 *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=githubDelta --organization=friendsoftypo3 > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/githubimport_friendsoftypo3.lastrun 2>&1
-*/30 *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=githubDelta --organization=TYPO3 > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/githubimport_typo3.lastrun 2>&1
 */5  *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:backports > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/forgeimport_backports.lastrun 2>&1
 # Safety nets, on different nights so the rate limits of Forge and Gerrit do not add up
 17   3  *   *   1   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=reviewFull > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/forgeimport_fullgerrit.lastrun 2>&1

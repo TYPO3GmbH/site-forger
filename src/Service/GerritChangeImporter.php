@@ -22,7 +22,7 @@ use GuzzleHttp\Exception\ServerException;
 use Psr\Http\Message\ResponseInterface;
 
 /**
- * Writes Gerrit changes and their interactions to the indices, as the import and the refresh of a single
+ * Writes Gerrit changes to the review index, as the import and the refresh of a single
  * change do.
  *
  * Gerrit rate-limits the heavy queries now and then (429) or fails (5xx). Without a handler, see onRetry(),
@@ -31,7 +31,11 @@ use Psr\Http\Message\ResponseInterface;
 final class GerritChangeImporter
 {
     public const string PROJECT = 'project:Packages/TYPO3.CMS';
-    public const array DETAIL_OPTIONS = ['DETAILED_LABELS', 'ALL_REVISIONS', 'ALL_FILES', 'CURRENT_COMMIT', 'MESSAGES', 'DETAILED_ACCOUNTS'];
+    /**
+     * The details of a change, the same for the refresh of one change, the full import and the delta: the votes,
+     * the patch sets with their files and the commit of the current one.
+     */
+    public const array DETAIL_OPTIONS = ['DETAILED_LABELS', 'ALL_REVISIONS', 'ALL_FILES', 'CURRENT_COMMIT'];
     /**
      * The accounts of the CI, their votes are no reviews.
      */
@@ -60,7 +64,7 @@ final class GerritChangeImporter
     }
 
     /**
-     * Loads a change of the project from Gerrit again and writes it and its interactions to the indices.
+     * Loads a change of the project from Gerrit again and writes it to the index, as the import does.
      * A change Gerrit does not find (any more) stays in the index as it is.
      *
      * @throws \RuntimeException Gerrit could not be asked, the index keeps the change as it is
@@ -89,17 +93,6 @@ final class GerritChangeImporter
         if ($refresh) {
             $index->refresh();
         }
-        $this->recorder->document();
-    }
-
-    /**
-     * Writes an interaction, of Gerrit or GitHub, to the interactions index.
-     *
-     * @param array<string, mixed> $interaction
-     */
-    public function writeInteraction(array $interaction): void
-    {
-        ElasticUtility::getIndexByName('interactions')->addDocument(new Document($interaction['interaction_id'] . '-' . $interaction['interaction_type'], $interaction));
         $this->recorder->document();
     }
 
@@ -167,8 +160,6 @@ final class GerritChangeImporter
 
     /**
      * The documents of the review index for changes as Gerrit sends them with DETAIL_OPTIONS, by their number.
-     * Their interactions (patch sets, comments, votes, merges, abandons) are written on the way, writing them
-     * twice does no harm.
      *
      * @param list<array<string, mixed>> $changes
      * @param (\Closure(): void)|null    $onChange called before each change, for the progress of the import
@@ -184,107 +175,10 @@ final class GerritChangeImporter
             if (null !== $onChange) {
                 $onChange();
             }
-            $labels = self::labels($change['labels']);
-            if (!array_key_exists('mergeable', $change)) {
-                $change['mergeable'] = false;
-            }
-
             if (!array_key_exists('current_revision', $change)) {
                 continue;
             }
-
-            $patchSetNumber = 0;
-            $interaction = [];
-            foreach ($change['messages'] as $message) {
-                $interaction['fullname'] = '';
-                $interaction['email'] = '';
-                try {
-                    $interaction['interaction_id'] = $message['id'];
-                    $messageId = $message['id'];
-                    $interaction['interaction_source'] = 'Gerrit';
-                    $interaction['interaction_source_id'] = $change['_number'];
-                    $interaction['interacted_on'] = self::gerritDate($message['date']);
-
-                    $message['_revision_number'] ??= $patchSetNumber;
-
-                    // Check if is merge-commit
-                    if ($this->checkIfMessageIsMerge($message['message'])) {
-                        $revisions = $change['revisions'];
-                        usort($revisions, function ($a, $b) {
-                            $a = new \DateTime(self::gerritDate($a['created']));
-                            $b = new \DateTime(self::gerritDate($b['created']));
-
-                            return $a->getTimestamp() <=> $b->getTimestamp();
-                        });
-
-                        $mergeRevision = array_last($revisions);
-                        $this->writeInteraction($this->buildRevisionArray($mergeRevision, 'core:review:merge', $messageId) + $interaction);
-
-                        // If there is more than one revision, we want to give credit to both the original author
-                        // and the person that patched this change with improvements (in case that is a different person)
-                        if ((is_countable($revisions) ? count($revisions) : 0) > 1) {
-                            $firstRevision = array_first($revisions);
-                            // Only applicable if the first and merge revision was done by different people
-                            if ($firstRevision['uploader']['_account_id'] !== $mergeRevision['uploader']['_account_id']) {
-                                $this->writeInteraction($this->buildRevisionArray($firstRevision, 'core:review:merge-author', $messageId) + $interaction);
-                            }
-
-                            $lastRevisionBeforeMerge = $revisions[array_key_last($revisions) - 1];
-                            // Only applicable if the first and last and merge revision was done by different people
-                            if (
-                                $lastRevisionBeforeMerge['uploader']['_account_id'] !== $mergeRevision['uploader']['_account_id']
-                                && $lastRevisionBeforeMerge['uploader']['_account_id'] !== $firstRevision['uploader']['_account_id']
-                            ) {
-                                $this->writeInteraction($this->buildRevisionArray($lastRevisionBeforeMerge, 'core:review:merge-lastpatchset', $messageId) + $interaction);
-                            }
-                        }
-                    } elseif ($this->checkIfMessageIsBackport($message['message'])) {
-                        // code intentionally left blank
-                    } else {
-                        $interaction['account'] = $message['author']['username'];
-                        $interaction['fullname'] = $message['author']['name'];
-                        if (isset($message['author']['email'])) {
-                            $interaction['email'] = $message['author']['email'];
-                        }
-                        // Is patchset, add as event
-                        if ($patchSetNumber < $message['_revision_number']) {
-                            $patchSetNumber = $message['_revision_number'];
-                            $interaction['interaction_type'] = 'core:review:patchset';
-                            $this->writeInteraction($interaction);
-                        }
-                        // Check if message is "just" a new patchset
-                        if ($this->checkIfMessageIsComment($message['message'])) {
-                            $interaction['interaction_type'] = 'core:review:comment';
-                            $this->writeInteraction($interaction);
-                        }
-                        // Check if message is a code review
-                        if ($this->checkIfMessageIsCodeReview($message['message'])) {
-                            $interaction['interaction_type'] = 'core:review:codereview';
-                            $this->writeInteraction($interaction);
-                        }
-                        // Check if message is a verification
-                        if ($this->checkIfMessageIsVerification($message['message'])) {
-                            $interaction['interaction_type'] = 'core:review:testing';
-                            $this->writeInteraction($interaction);
-                        }
-                        // Check if message is abandoning
-                        if ($this->checkIfMessageIsAbandoning($message['message'])) {
-                            $interaction['interaction_type'] = 'core:review:abandon';
-                            $this->writeInteraction($interaction);
-                        }
-                    }
-                } catch (\Exception $e) {
-                    if (
-                        !str_contains((string) $message['message'], 'Change could not be merged due to a path conflict')
-                        && !str_contains((string) $message['message'], 'The change could not be merged due to a path conflict')
-                        && !str_contains((string) $message['message'], 'Your change could not be merged due to a path conflict')
-                        && !str_contains((string) $message['message'], 'Change has been successfully pushed into branch sandbox')
-                        && !str_contains((string) $message['message'], 'Change could not be merged because of a missing dependency')
-                    ) {
-                        throw new \RuntimeException($e->getMessage());
-                    }
-                }
-            }
+            $labels = self::labels($change['labels']);
 
             $author = $change['revisions'][$change['current_revision']]['commit']['author']['name'];
             $authorEmail = $change['revisions'][$change['current_revision']]['commit']['author']['email'];
@@ -300,7 +194,7 @@ final class GerritChangeImporter
                 'subject' => $change['subject'],
                 'branch' => 'master' === $change['branch'] ? 'main' : $change['branch'],
                 'topic' => array_key_exists('topic', $change) ? $change['topic'] : 'no topic',
-                'mergeable' => (true === $change['mergeable']) ? 'yes' : 'no',
+                'mergeable' => true === ($change['mergeable'] ?? false) ? 'yes' : 'no',
                 'affected_files' => is_countable($change['revisions'][$change['current_revision']]['files']) ? count($change['revisions'][$change['current_revision']]['files']) : 0,
                 'insertions' => $change['insertions'],
                 'deletions' => $change['deletions'],
@@ -394,82 +288,5 @@ final class GerritChangeImporter
     private function decode(ResponseInterface $response): array
     {
         return json_decode(str_replace(")]}'", '', (string) $response->getBody()), true, 512, JSON_THROW_ON_ERROR);
-    }
-
-    private function checkIfMessageIsComment(string $message): bool
-    {
-        // Is just a Code Review
-        $pattern = '^Patch\sSet\s\d{1,4}:\s.*(Code-Review)(-|\+)(1|2)$';
-        $isCodeReview = $this->checkRegex($message, $pattern, '');
-        // Is just a Verification
-        $pattern = '^Patch\sSet\s\d{1,4}:\s.*(Verified)(-|\+)(1|2)$';
-        $isVerification = $this->checkRegex($message, $pattern, '');
-        // Is just a Verification
-        $pattern = '^Uploaded\spatch\sset\s\d{1,4}.$';
-        $isPatchset = $this->checkRegex($message, $pattern, '');
-
-        $pattern = '^Patch\sSet\s\d{1,4}:\sCommit message was updated\.$';
-        $isCommitMessageChange = $this->checkRegex($message, $pattern, '');
-
-        // Check all booleans and if one hits, return false
-        return !($isCodeReview || $isVerification || $isPatchset || $isCommitMessageChange || $this->checkIfMessageIsBackport($message) || $this->checkIfMessageIsMerge($message));
-    }
-
-    private function checkIfMessageIsCodeReview(string $message): bool
-    {
-        $pattern = '^Patch\sSet\s\d{1,4}:\s.*(Code-Review)(-|\+)(1|2)';
-
-        return $this->checkRegex($message, $pattern);
-    }
-
-    private function checkIfMessageIsVerification(string $message): bool
-    {
-        $pattern = '^Patch\sSet\s\d{1,4}:\s.*(Verified)(-|\+)(1|2)';
-
-        return $this->checkRegex($message, $pattern);
-    }
-
-    private function checkIfMessageIsAbandoning(string $message): bool
-    {
-        $pattern = '^Abandoned';
-
-        return $this->checkRegex($message, $pattern);
-    }
-
-    private function checkIfMessageIsMerge(string $message): bool
-    {
-        $pattern = 'Change has been successfully cherry-picked as \b[0-9a-f]{40}\b';
-
-        return $this->checkRegex($message, $pattern);
-    }
-
-    private function checkIfMessageIsBackport(string $message): bool
-    {
-        $pattern = 'This patchset was cherry picked to branch.*? as commit \b[0-9a-f]{40}\b';
-
-        return $this->checkRegex($message, $pattern);
-    }
-
-    private function checkRegex(string $string, string $pattern, $modifier = 'm'): bool
-    {
-        preg_match('/' . $pattern . '/' . $modifier, $string, $matches);
-
-        return isset($matches[0]);
-    }
-
-    private function buildRevisionArray(array $data, string $interactionType, string $messageId): array
-    {
-        $interaction = [];
-        $interaction['interaction_id'] = $messageId . '-' . $interactionType;
-        $interaction['interaction_type'] = $interactionType;
-        $interaction['account'] = $data['uploader']['username'];
-        $interaction['fullname'] = $data['uploader']['name'];
-        if (isset($data['uploader']['email'])) {
-            $interaction['email'] = $data['uploader']['email'];
-        } else {
-            $interaction['email'] = 'Unknown';
-        }
-
-        return $interaction;
     }
 }

@@ -54,7 +54,7 @@ final class SystemChecksTest extends TestCase
     public function testEveryCheckIsComplete(): void
     {
         foreach (PendingImport::checks() as $check) {
-            self::assertContains($check['index'], ['issue', 'review', 'interactions'], $check['label']);
+            self::assertContains($check['index'], ['issue', 'review'], $check['label']);
             self::assertContains($check['kind'], [PendingImport::MATCHES_WAIT, PendingImport::NONE_WAIT], $check['label']);
             self::assertStringContainsString('--force', $check['command'], 'Without --force the import skips unchanged documents: ' . $check['label']);
             self::assertNotSame('', $check['description']);

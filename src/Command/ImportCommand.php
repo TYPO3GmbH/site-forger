@@ -17,9 +17,7 @@ use App\Elastic\ProjectIssues;
 use App\Service\CommandRunRecorder;
 use App\Service\ForgeIssueImporter;
 use App\Service\GerritChangeImporter;
-use App\Service\GithubService;
 use Exception;
-use GuzzleHttp\Exception\ClientException;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Redmine\Client\Client;
@@ -33,7 +31,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
-#[AsCommand(name: 'app:import', description: 'Imports data from Redmine (forge.typo3.org), Gerrit (review.typo3.org) and Github')]
+#[AsCommand(name: 'app:import', description: 'Imports data from Redmine (forge.typo3.org) and Gerrit (review.typo3.org)')]
 class ImportCommand extends Command implements LoggerAwareInterface
 {
     use LockableTrait;
@@ -57,13 +55,12 @@ class ImportCommand extends Command implements LoggerAwareInterface
      * Retries of a Gerrit query that is rate-limited or fails, see waitForGerrit().
      */
     private const int GERRIT_RETRIES = 4;
-    protected static array $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta', 'github', 'githubDelta'];
+    protected static array $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta'];
     protected OutputInterface $output;
 
     public function __construct(
         private readonly ParameterBagInterface $parameters,
         private readonly Client $forgeClient,
-        private readonly GithubService $githubService,
         private readonly IndexSetup $indexSetup,
         private readonly CommandRunRecorder $recorder,
         private readonly ImportWatermark $watermark,
@@ -81,7 +78,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 'mode',
                 null,
                 InputOption::VALUE_REQUIRED,
-                'Import Mode: Allowed values are \'forgeFull\', \'forgeDelta\', \'reviewFull\', \'reviewDelta\', \'github\', \'githubDelta\''
+                'Import Mode: Allowed values are \'forgeFull\', \'forgeDelta\', \'reviewFull\', \'reviewDelta\''
             )
             ->addOption(
                 'startAt',
@@ -95,19 +92,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 null,
                 InputOption::VALUE_NONE,
                 '(mode=forgeFull, reviewFull only) Import every issue or change, also those the index has in their current state, e.g. after a change of what is imported'
-            )
-            ->addOption(
-                'organization',
-                null,
-                InputOption::VALUE_OPTIONAL,
-                '(mode=github only) Which Github organization to import - defaults to TYPO3-Documentation',
-                'TYPO3-Documentation'
-            )
-            ->addOption(
-                'repository',
-                null,
-                InputOption::VALUE_OPTIONAL,
-                '(mode=github only) Which Github repository to import - if not given complete organization will be imported'
             );
     }
 
@@ -194,24 +178,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
                         return Command::SUCCESS;
                     }
                     break;
-                case 'github':
-                case 'githubDelta':
-                    $organization = (string) $input->getOption('organization');
-                    $repo = $input->getOption('repository');
-                    // One lock per organization (and repository): cron starts the organizations at the same minute
-                    $lockName = 'github:' . strtolower($organization) . (null === $repo ? '' : '/' . strtolower((string) $repo));
-                    if ($this->lock($lockName)) {
-                        try {
-                            $this->importFromGithub($organization, $repo, $io, 'githubDelta' === $mode ? 1 : null);
-                        } finally {
-                            $this->release();
-                        }
-                    } else {
-                        $output->writeln(sprintf('Locked by another github import of %s', $organization . (null === $repo ? '' : '/' . $repo)));
-                        $this->recorder->locked();
-                    }
-
-                    return Command::SUCCESS;
             }
         } catch (\Exception $exception) {
             // If any exception occurs, release the lock, else the process will run never again.
@@ -423,7 +389,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
             $this->recorder->warning('The review index is empty, run --mode=reviewFull. Imported the latest changes only.');
             $progressBar = new ProgressBar($output->section());
             foreach ($this->reviewBlock(GerritChangeImporter::PROJECT, self::PAGE_SIZE, $progressBar) as $review) {
-                $this->addDocumentToElastic($review, 'review');
+                $this->changeImporter->write($review);
             }
 
             return;
@@ -439,7 +405,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
      * Gerrit lists the newest changes first. The delta writes the changes once all of them are loaded, so a run
      * that fails half way does not move the latest change in the index, and the next run tries again. The full
      * import writes them batch by batch, it handles far more changes than fit in memory.
-     * The interactions are written on the way, writing them twice does no harm.
      */
     private function importReviews(OutputInterface $output, ?\DateTimeImmutable $since, bool $force, int $startAt = 0): void
     {
@@ -485,12 +450,12 @@ class ImportCommand extends Command implements LoggerAwareInterface
                 continue;
             }
             foreach ($block as $review) {
-                $this->addDocumentToElastic($review, 'review');
+                $this->changeImporter->write($review);
             }
         }
 
         foreach ($reviews as $review) {
-            $this->addDocumentToElastic($review, 'review');
+            $this->changeImporter->write($review);
         }
     }
 
@@ -518,72 +483,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
         if ($removed > 0) {
             $this->output->writeln(sprintf('Removed %d issues of other projects from the index', $removed));
         }
-    }
-
-    protected function importFromGithub(string $organization, ?string $repository, SymfonyStyle $io, ?int $pageCount = null): void
-    {
-        if (null === $repository) {
-            $pageOfNames = $this->githubService->getListOfRepositoryNamesForOrganization($organization);
-            foreach ($pageOfNames as $repositories) {
-                foreach ($repositories as $repo) {
-                    // we don't want to import the core repo again (and no forks in other orgs either)
-                    if ('TYPO3.CMS' === $repo) {
-                        continue;
-                    }
-                    $this->importRepoFromGithub($io, $organization, $repo, $pageCount);
-                }
-            }
-        } else {
-            $this->importRepoFromGithub($io, $organization, $repository, $pageCount);
-        }
-    }
-
-    /**
-     * @throws \JsonException
-     */
-    protected function importRepoFromGithub(SymfonyStyle $io, string $organization, string $repo, ?int $pageCount): void
-    {
-        $io->title('Importing data from ' . $organization . ' - Repository: ' . $repo);
-        $io->writeln('');
-        $lastPageOfRepositoryEvents = $pageCount ?? $this->githubService->getLastPageOfRepositoryEvents($organization, $repo);
-        $lastPageOfRepositoryIssueEvents = $pageCount ?? $this->githubService->getLastPageOfRepositoryIssueEvents($organization, $repo);
-        $progressBar = new ProgressBar($io, $lastPageOfRepositoryEvents * 100 + $lastPageOfRepositoryIssueEvents * 100);
-        $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
-        try {
-            foreach ($this->githubService->getInteractionsForRepository($organization, $repo, $pageCount) as $interaction) {
-                $this->addDocumentToElastic($interaction, 'interactions');
-                $progressBar->advance();
-                $this->reportProgress('GitHub ' . $organization . '/' . $repo, $progressBar);
-            }
-            foreach ($this->githubService->getInteractionsForIssuesInRepository($organization, $repo, $pageCount) as $interaction) {
-                $this->addDocumentToElastic($interaction, 'interactions');
-                $progressBar->advance();
-                $this->reportProgress('GitHub ' . $organization . '/' . $repo, $progressBar);
-            }
-        } catch (ClientException $e) {
-            // Without valid credentials or with the rate limit used up no repository can be read: the run fails
-            if (in_array($e->getResponse()->getStatusCode(), [401, 403], true)) {
-                throw new \RuntimeException(sprintf('GitHub responded with %d for %s/%s: %s', $e->getResponse()->getStatusCode(), $organization, $repo, $e->getMessage()), 0, $e);
-            }
-            $io->error($e->getMessage());
-            $this->recorder->warning(sprintf('GitHub %s/%s: %s', $organization, $repo, $e->getMessage()));
-        } catch (\Exception $e) {
-            // GitHub respond sometimes with 500 errors, so we have to catch them and continue
-            // A very wired case is that page 3 and 4 throw 500 errors, but page 5 and higher work again.
-            // It looks like the GitHub API is not stable and have a bug 😳
-            $io->error($e->getMessage());
-            $this->recorder->warning(sprintf('GitHub %s/%s: %s', $organization, $repo, $e->getMessage()));
-        }
-        $progressBar->finish();
-        $io->newLine(1);
-    }
-
-    private function addDocumentToElastic(array $document, string $type): void
-    {
-        match ($type) {
-            'review' => $this->changeImporter->write($document),
-            'interactions' => $this->changeImporter->writeInteraction($document),
-        };
     }
 
     /**

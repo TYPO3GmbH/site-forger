@@ -3,4 +3,6 @@ languages:
 
 # Index types that were removed from the configuration. app:elasticsearch:setup deletes
 # their indices wherever they still exist. Keep a type here until every environment ran it.
-removed_types: []
+removed_types:
+  # The interactions of Gerrit and GitHub, for the team reports of the admins, removed in November 2026
+  - interactions

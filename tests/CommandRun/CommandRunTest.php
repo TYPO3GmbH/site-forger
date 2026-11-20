@@ -35,16 +35,15 @@ final class CommandRunTest extends TestCase
         $definition = new InputDefinition([
             new InputOption('mode', null, InputOption::VALUE_REQUIRED),
             new InputOption('startAt', null, InputOption::VALUE_OPTIONAL, '', 0),
-            new InputOption('organization', null, InputOption::VALUE_OPTIONAL, '', 'TYPO3-Documentation'),
-            new InputOption('repository', null, InputOption::VALUE_OPTIONAL),
+            new InputOption('force', null, InputOption::VALUE_NONE),
             new InputOption('verbose', 'v', InputOption::VALUE_NONE),
         ]);
 
-        $input = new ArrayInput(['--mode' => 'reviewDelta', '--startAt' => '0', '--organization' => 'TYPO3-Documentation', '--verbose' => true], $definition);
+        $input = new ArrayInput(['--mode' => 'reviewDelta', '--startAt' => '0', '--verbose' => true], $definition);
         self::assertSame('app:import --mode=reviewDelta', CommandRunSubscriber::job('app:import', $input, $definition, ['verbose']));
 
-        $input = new ArrayInput(['--mode' => 'githubDelta', '--organization' => 'TYPO3', '--repository' => 'TYPO3.Icons'], $definition);
-        self::assertSame('app:import --mode=githubDelta --organization=TYPO3 --repository=TYPO3.Icons', CommandRunSubscriber::job('app:import', $input, $definition));
+        $input = new ArrayInput(['--mode' => 'reviewFull', '--startAt' => '500', '--force' => true], $definition);
+        self::assertSame('app:import --force --mode=reviewFull --startAt=500', CommandRunSubscriber::job('app:import', $input, $definition));
     }
 
     public function testJobWithoutOptions(): void

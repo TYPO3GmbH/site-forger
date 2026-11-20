@@ -31,7 +31,7 @@ class TruncateTypeCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addArgument('type', InputArgument::REQUIRED, 'Type to truncate. Allowed values are "review", "interactions" and "issue"')
+            ->addArgument('type', InputArgument::REQUIRED, 'Type to truncate. Allowed values are "review" and "issue"')
         ;
     }
 
@@ -40,7 +40,7 @@ class TruncateTypeCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $type = $input->getArgument('type');
 
-        if ('review' === $type || 'issue' === $type || 'interactions' === $type) {
+        if ('review' === $type || 'issue' === $type) {
             $typeToWorkOn = ElasticUtility::getIndexByName($type);
             $query = new MatchAll();
             $typeToWorkOn->deleteByQuery($query);

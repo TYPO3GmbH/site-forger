@@ -55,14 +55,6 @@ services:
       $config:
         base_uri: 'https://review.typo3.org/'
 
-  guzzle.client.github:
-    class: GuzzleHttp\Client
-    arguments:
-      $config:
-        headers:
-          User-Agent: 'TYPO3 Forger'
-          Authorization: 'token %env(GITHUB_ACCESS_TOKEN)%'
-        base_uri: 'https://api.github.com/'
 
   renderer.redmineTextile:
     class: App\Renderer\RedmineTextileRenderer
@@ -120,10 +112,6 @@ services:
 
   App\Renderer\Factory\RedmineTextileRendererFactory: ~
 
-  App\Service\GithubService:
-    class: App\Service\GithubService
-    arguments:
-      $client: '@guzzle.client.github'
 
   App\Subscriber\HostAwareRouteSubscriber:
     class: App\Subscriber\HostAwareRouteSubscriber
