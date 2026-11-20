@@ -11,6 +11,10 @@ declare(strict_types=1);
 
 namespace App\Enum;
 
+use App\Elastic\Bucket;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\ReadableCollection;
+
 /**
  * How long ago an open Gerrit change or Forge issue was last updated.
  *
@@ -171,16 +175,24 @@ enum ActivityEnum: string
      * The result of changeAggregation() or issueAggregation() as the filter list shows aggregations: a bucket per
      * stage in the order of the stages, with the label as key.
      *
-     * @param array<string, mixed> $result
+     * @param ReadableCollection<int, Bucket> $facet the buckets of the aggregation, by the label
      *
-     * @return array{buckets: list<array{key: string, doc_count: int}>}
+     * @return ReadableCollection<int, Bucket>
      */
-    public static function buckets(array $result): array
+    public static function buckets(ReadableCollection $facet): ReadableCollection
     {
-        return ['buckets' => array_map(
-            static fn (self $stage): array => ['key' => $stage->label(), 'doc_count' => (int) ($result['buckets'][$stage->label()]['doc_count'] ?? 0)],
+        $counts = $facet->reduce(
+            static fn (array $counts, Bucket $bucket): array => [$bucket->key => $bucket->count] + $counts,
+            [],
+        );
+
+        return new ArrayCollection(array_map(
+            static fn (self $stage): Bucket => Bucket::fromArray([
+                'key' => $stage->label(),
+                'doc_count' => $counts[$stage->label()] ?? 0,
+            ]),
             self::cases(),
-        )];
+        ));
     }
 
     /**

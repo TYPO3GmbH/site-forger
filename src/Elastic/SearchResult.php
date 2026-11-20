@@ -88,6 +88,21 @@ final readonly class SearchResult implements ReadableCollection
     }
 
     /**
+     * The aggregations as the filters of a list show them, see Bucket::facetOf().
+     *
+     * @return array<string, ReadableCollection<int, Bucket>> by the title of the filter
+     */
+    public function facets(): array
+    {
+        $facets = [];
+        foreach (array_keys($this->aggregations) as $name) {
+            $facets[$name] = Bucket::facetOf($this->aggregation($name));
+        }
+
+        return $facets;
+    }
+
+    /**
      * @return array<string, mixed>|null the aggregation as Elasticsearch sends it
      */
     public function aggregation(string $name): ?array
@@ -95,14 +110,6 @@ final readonly class SearchResult implements ReadableCollection
         $aggregation = $this->aggregations[$name] ?? null;
 
         return is_array($aggregation) ? $aggregation : null;
-    }
-
-    /**
-     * @return array<string, mixed> all aggregations as Elasticsearch sends them
-     */
-    public function aggregations(): array
-    {
-        return $this->aggregations;
     }
 
     public function contains(mixed $element): bool

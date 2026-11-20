@@ -61,7 +61,7 @@ final readonly class ReviewListSearch
         $request['aggregations'] = FacetSelection::withSelected($aggregations, 'Owner', array_keys($owners));
         $changes = ChangeRepository::fromResultSet($this->indices->reviews()->createSearch($request)->search());
 
-        $merged = FacetSelection::merge($changes->aggregations(), 'Owner');
+        $merged = FacetSelection::merge($changes->facets(), 'Owner');
         $found = FacetSelection::inOrderOf($merged, array_keys($request['aggregations']));
         // The checkboxes of the owners send their keys
         if (isset($found['Owner'])) {

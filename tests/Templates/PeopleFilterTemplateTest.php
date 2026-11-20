@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Templates;
 
+use App\Elastic\Bucket;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -39,11 +40,11 @@ final class PeopleFilterTemplateTest extends KernelTestCase
         $latest = static fn (array $source): array => ['user' => ['hits' => ['hits' => [['_source' => $source]]]]];
         $html = self::getContainer()->get('twig')->render('_partials/aggregations.html.twig', [
             'facetScope' => 'issues',
-            'aggregations' => [
+            'aggregations' => array_map(Bucket::facetOf(...), [
                 'Author' => ['buckets' => [['key' => 'Benni Mack', 'doc_count' => 3] + $latest(['author' => ['id' => 320]])]],
                 'Owner' => ['buckets' => [['key' => '<b>Ingo</b>', 'doc_count' => 2] + $latest(['ownerEmail' => 'ingo@example.org'])]],
                 'Tags' => ['buckets' => [['key' => '<i>cache</i>', 'doc_count' => 1]]],
-            ],
+            ]),
         ]);
 
         // Of Forge by the number, of Gerrit by the email, the same markup

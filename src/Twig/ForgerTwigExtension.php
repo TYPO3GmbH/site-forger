@@ -11,8 +11,10 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
+use App\Elastic\Bucket;
 use App\Renderer\RedmineTextileRenderer;
 use App\Search\GlobalSearch;
+use Doctrine\Common\Collections\ReadableCollection;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Twig\Attribute\AsTwigFilter;
@@ -28,10 +30,10 @@ class ForgerTwigExtension
     }
 
     /**
-     * @param list<array<string, mixed>> $buckets the values of the filter, as its aggregation has them
+     * @param ReadableCollection<int, Bucket> $buckets the values of the filter
      */
     #[AsTwigFunction(name: 'bucketCounter', isSafe: ['html'])]
-    public function bucketCounter(string $category, array $buckets): string
+    public function bucketCounter(string $category, ReadableCollection $buckets): string
     {
         $activeCount = $this->activeFilterCount($category, $buckets);
         if (0 === $activeCount) {
@@ -72,16 +74,16 @@ class ForgerTwigExtension
     /**
      * How many values of a filter the request selects, e.g. 2 of "Tracker" for "Bug" and "Task".
      *
-     * @param list<array<string, mixed>> $buckets the values of the filter, as its aggregation has them
+     * @param ReadableCollection<int, Bucket> $buckets the values of the filter
      */
     #[AsTwigFunction(name: 'activeFilterCount')]
-    public function activeFilterCount(string $category, array $buckets): int
+    public function activeFilterCount(string $category, ReadableCollection $buckets): int
     {
         $category = $this->fixWording($category);
         $filters = $this->requestStack->getMainRequest()?->query->all('filters') ?? [];
         $activeCount = 0;
         foreach ($buckets as $bucket) {
-            $key = is_string($bucket['key']) ? $this->fixWording($bucket['key'], false) : $bucket['key'];
+            $key = $this->fixWording($bucket->key, false);
             if (isset($filters[$category][$key]) && 'true' === $filters[$category][$key]) {
                 ++$activeCount;
             }
@@ -93,20 +95,20 @@ class ForgerTwigExtension
     /**
      * A value of a filter as a checkbox, with its count. The value is escaped; $labelHtml shows instead, like a
      * person with the avatar, see templates/_partials/aggregations.html.twig.
-     *
-     * @param array<string, mixed> $bucket
      */
     #[AsTwigFunction(name: 'aggregationBucket', isSafe: ['html'])]
-    public function aggregationBucket(string $category, string $index, array $bucket, string|\Stringable|null $labelHtml = null): string
-    {
-        $label = null === $labelHtml ? htmlspecialchars((string) ($bucket['key_as_string'] ?? $bucket['key']), ENT_QUOTES) : (string) $labelHtml;
-        $docCount = $bucket['doc_count'];
+    public function aggregationBucket(
+        string $category,
+        string $index,
+        Bucket $bucket,
+        string|\Stringable|null $labelHtml = null,
+    ): string {
+        $label = null === $labelHtml
+            ? htmlspecialchars($bucket->keyAsString ?? $bucket->key, ENT_QUOTES)
+            : (string) $labelHtml;
+        $docCount = $bucket->count;
         $category = $this->fixWording($category);
-        if (is_string($bucket['key'])) {
-            $key = $this->fixWording($bucket['key'], false);
-        } else {
-            $key = $bucket['key'];
-        }
+        $key = $this->fixWording($bucket->key, false);
 
         $filters = $this->requestStack->getMainRequest()?->query->all('filters') ?? [];
         if (isset($filters[$category][$key]) && 'true' === $filters[$category][$key]) {

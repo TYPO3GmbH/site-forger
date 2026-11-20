@@ -13,6 +13,7 @@ namespace App\Tests\Enum;
 
 use App\Document\Change;
 use App\Document\Issue;
+use App\Elastic\Bucket;
 use App\Enum\ActivityEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -118,14 +119,11 @@ final class ActivityEnumTest extends TestCase
         // Elasticsearch answers a keyed "filters" aggregation, in any order
         $result = ['buckets' => ['Stale' => ['doc_count' => 3], 'Fresh' => ['doc_count' => 7], 'Orphaned' => ['doc_count' => 1]]];
 
+        $buckets = ActivityEnum::buckets(Bucket::facetOf($result));
+
         self::assertSame(
-            ['buckets' => [
-                ['key' => 'Fresh', 'doc_count' => 7],
-                ['key' => 'Quiet', 'doc_count' => 0],
-                ['key' => 'Stale', 'doc_count' => 3],
-                ['key' => 'Orphaned', 'doc_count' => 1],
-            ]],
-            ActivityEnum::buckets($result)
+            [['Fresh' => 7], ['Quiet' => 0], ['Stale' => 3], ['Orphaned' => 1]],
+            $buckets->map(static fn (Bucket $bucket): array => [$bucket->key => $bucket->count])->toArray(),
         );
     }
 

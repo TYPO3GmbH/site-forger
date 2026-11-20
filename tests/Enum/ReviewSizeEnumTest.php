@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Enum;
 
 use App\Document\Change;
+use App\Elastic\Bucket;
 use App\Enum\ReviewSizeEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -82,15 +83,13 @@ final class ReviewSizeEnumTest extends TestCase
     {
         self::assertSame(['Easy', 'Normal', 'Hard', 'Expert', 'Nightmare', 'Impossible'], array_keys(ReviewSizeEnum::changeAggregation()['filters']['filters']));
         self::assertSame(
-            ['buckets' => [
-                ['key' => 'Easy', 'doc_count' => 4],
-                ['key' => 'Normal', 'doc_count' => 0],
-                ['key' => 'Hard', 'doc_count' => 1],
-                ['key' => 'Expert', 'doc_count' => 0],
-                ['key' => 'Nightmare', 'doc_count' => 0],
-                ['key' => 'Impossible', 'doc_count' => 0],
-            ]],
-            ReviewSizeEnum::buckets(['buckets' => ['Hard' => ['doc_count' => 1], 'Easy' => ['doc_count' => 4]]])
+            [['Easy' => 4], ['Normal' => 0], ['Hard' => 1], ['Expert' => 0], ['Nightmare' => 0], ['Impossible' => 0]],
+            ReviewSizeEnum::buckets(Bucket::facetOf(['buckets' => [
+                'Hard' => ['doc_count' => 1],
+                'Easy' => ['doc_count' => 4],
+            ]]))
+                ->map(static fn (Bucket $bucket): array => [$bucket->key => $bucket->count])
+                ->toArray(),
         );
     }
 

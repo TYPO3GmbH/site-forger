@@ -11,8 +11,10 @@ declare(strict_types=1);
 
 namespace App\Search;
 
+use App\Elastic\Bucket;
 use App\Import\ImportSchema;
 use App\People\UserDirectory;
+use Doctrine\Common\Collections\ReadableCollection;
 
 /**
  * The filters of people, of the issues and of the changes alike. A person is "filters[<key>][<person>]", by the id
@@ -96,20 +98,27 @@ final class PeopleFacet
      * The buckets of the filter with the keys of their people instead of the numbers, see UserDirectory::keyOf(): what the
      * checkboxes send. A selected person keeps the key it was selected by, so its checkbox is ticked.
      *
-     * @param array<string, mixed> $aggregation the aggregation of the filter in the response
-     * @param array<int, string>   $selection   see selection()
+     * @param ReadableCollection<int, Bucket> $buckets   the values of the filter in the response
+     * @param array<int, string>              $selection see selection()
      *
-     * @return array<string, mixed>
+     * @return ReadableCollection<int, Bucket>
      */
-    public static function keyed(array $aggregation, string $title, UserDirectory $users, array $selection = []): array
-    {
-        foreach ($aggregation['buckets'] ?? [] as $index => $bucket) {
-            if (is_int($bucket['key'] ?? null)) {
-                $aggregation['buckets'][$index]['key'] = $selection[$bucket['key']] ?? $users->keyOf(self::FILTERS[$title]['system'], $bucket['key']);
-            }
-        }
+    public static function keyed(
+        ReadableCollection $buckets,
+        string $title,
+        UserDirectory $users,
+        array $selection = [],
+    ): ReadableCollection {
+        $system = self::FILTERS[$title]['system'];
 
-        return $aggregation;
+        return $buckets->map(static function (Bucket $bucket) use ($selection, $users, $system): Bucket {
+            if (!ctype_digit($bucket->key)) {
+                return $bucket;
+            }
+            $number = (int) $bucket->key;
+
+            return $bucket->withKey($selection[$number] ?? $users->keyOf($system, $number));
+        });
     }
 
     /**
@@ -177,18 +186,16 @@ final class PeopleFacet
      * The person of a bucket of the filter or of the search in it, as the macros of the users take it: the name of
      * the latest document and what it has of the fields of the person. Null for a filter of no people.
      *
-     * @param array<string, mixed> $bucket
-     *
      * @return array<string, mixed>|null
      */
-    public static function user(string $title, array $bucket): ?array
+    public static function user(string $title, Bucket $bucket): ?array
     {
         if (!isset(self::FILTERS[$title])) {
             return null;
         }
-        $source = $bucket['user']['hits']['hits'][0]['_source'] ?? [];
+        $source = $bucket->topHit('user');
         $name = self::valueAt($source, self::FILTERS[$title]['label']);
-        $user = ['name' => is_string($name) && '' !== $name ? $name : (string) ($bucket['key'] ?? '')];
+        $user = ['name' => is_string($name) && '' !== $name ? $name : $bucket->key];
         foreach (self::FILTERS[$title]['user'] as $key => $field) {
             $value = self::valueAt($source, $field);
             if (null !== $value && '' !== $value) {

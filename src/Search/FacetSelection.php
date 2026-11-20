@@ -11,6 +11,10 @@ declare(strict_types=1);
 
 namespace App\Search;
 
+use App\Elastic\Bucket;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\ReadableCollection;
+
 /**
  * A filter with many values, like people or tags, shows the few with the most results only, and the selected ones.
  *
@@ -68,25 +72,22 @@ final class FacetSelection
     /**
      * Moves the selected people of the response into the filter, those it does not show yet.
      *
-     * @param array<string, mixed> $aggregations
+     * @param array<string, ReadableCollection<int, Bucket>> $facets see SearchResult::facets()
      *
-     * @return array<string, mixed>
+     * @return array<string, ReadableCollection<int, Bucket>>
      */
-    public static function merge(array $aggregations, string $title): array
+    public static function merge(array $facets, string $title): array
     {
-        $selected = $aggregations[$title . self::SELECTED]['buckets'] ?? [];
-        unset($aggregations[$title . self::SELECTED]);
-        if (!isset($aggregations[$title]['buckets'])) {
-            return $aggregations;
+        $selected = $facets[$title . self::SELECTED] ?? new ArrayCollection();
+        unset($facets[$title . self::SELECTED]);
+        if (!isset($facets[$title])) {
+            return $facets;
         }
-        $shown = array_column($aggregations[$title]['buckets'], 'key');
-        foreach ($selected as $bucket) {
-            if (!in_array($bucket['key'], $shown, true)) {
-                $aggregations[$title]['buckets'][] = $bucket;
-            }
-        }
+        $shown = $facets[$title]->map(static fn (Bucket $bucket): string => $bucket->key)->toArray();
+        $missing = $selected->filter(static fn (Bucket $bucket): bool => !in_array($bucket->key, $shown, true));
+        $facets[$title] = new ArrayCollection([...$facets[$title]->getValues(), ...$missing->getValues()]);
 
-        return $aggregations;
+        return $facets;
     }
 
     /**
@@ -125,13 +126,15 @@ final class FacetSelection
      * Elasticsearch answers the aggregations in an order of its own. This puts them in the order of their titles,
      * the others after them.
      *
-     * @param array<string, mixed> $aggregations
-     * @param list<string>         $titles
+     * @template T
      *
-     * @return array<string, mixed>
+     * @param array<string, T> $facets
+     * @param list<string>     $titles
+     *
+     * @return array<string, T>
      */
-    public static function inOrderOf(array $aggregations, array $titles): array
+    public static function inOrderOf(array $facets, array $titles): array
     {
-        return array_replace(array_intersect_key(array_flip($titles), $aggregations), $aggregations);
+        return array_replace(array_intersect_key(array_flip($titles), $facets), $facets);
     }
 }

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Templates;
 
+use App\Elastic\Bucket;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Twig\Environment;
@@ -64,6 +65,10 @@ final class AggregationsTemplateTest extends KernelTestCase
         /** @var Environment $twig */
         $twig = $container->get('twig');
 
-        return $twig->render('_partials/aggregations.html.twig', ['aggregations' => self::AGGREGATIONS, 'facetScope' => $scope, 'query' => '']);
+        return $twig->render('_partials/aggregations.html.twig', [
+            'aggregations' => array_map(Bucket::facetOf(...), self::AGGREGATIONS),
+            'facetScope' => $scope,
+            'query' => '',
+        ]);
     }
 }

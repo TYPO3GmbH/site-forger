@@ -90,7 +90,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         return [
             'routeName' => 'gerrit_index',
             'changes' => [],
-            'aggregations' => ['Owner' => ['buckets' => [['key' => 'Benni Mack', 'doc_count' => 1]]]],
+            'aggregations' => ['Owner' => Bucket::facetOf(['buckets' => [['key' => 'Benni Mack', 'doc_count' => 1]]])],
             'query' => $query,
             'filters' => ['owner' => ['Benni Mack' => 'true']],
             'sort' => ReviewSortEnum::fromRequest($sortParameter['sort'] ?? '', '' !== $query),
@@ -386,7 +386,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
     {
         $render = fn (array $created): string => $this->twig->render('_partials/aggregations.html.twig', [
             'facetScope' => 'issues', 'dateFilters' => ['created' => ['title' => 'Created', 'value' => $created]],
-            'aggregations' => ['Tracker' => ['buckets' => [['key' => 'Bug', 'doc_count' => 2]]]],
+            'aggregations' => ['Tracker' => Bucket::facetOf(['buckets' => [['key' => 'Bug', 'doc_count' => 2]]])],
         ]);
 
         $html = $render(['range' => '2025-03-01 to 2025-03-31']);
@@ -411,7 +411,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
             'facetScope' => 'changes',
             'textFilters' => ['file' => ['title' => 'File', 'value' => $file, 'placeholder' => 'A path, or a folder']],
             'dateFilters' => ['updated' => ['title' => 'Updated', 'value' => []]],
-            'aggregations' => ['Size' => ['buckets' => [['key' => 'S', 'doc_count' => 2]]]],
+            'aggregations' => ['Size' => Bucket::facetOf(['buckets' => [['key' => 'S', 'doc_count' => 2]]])],
         ]);
 
         $html = $render(['path' => 'typo3/sysext/core']);
@@ -428,7 +428,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         $html = $this->twig->render('_partials/aggregations.html.twig', [
             'facetScope' => 'changes',
             'dateFilters' => ['updated' => ['title' => 'Updated', 'value' => ['range' => '2026-11-01 to 2026-11-20']]],
-            'aggregations' => ['Size' => ['buckets' => [['key' => 'S', 'doc_count' => 2]]]],
+            'aggregations' => ['Size' => Bucket::facetOf(['buckets' => [['key' => 'S', 'doc_count' => 2]]])],
         ]);
 
         self::assertStringContainsString('<span class="aggregation-title-text">Updated</span>', $html);

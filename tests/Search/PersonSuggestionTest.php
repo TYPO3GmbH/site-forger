@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Search;
 
+use App\Elastic\Bucket;
 use App\Search\FacetSelection;
 use App\Search\PeopleFacet;
 use App\Search\PersonSuggestion;
@@ -64,7 +65,7 @@ final class PersonSuggestionTest extends TestCase
             return isset($user['gerrit_id']) ? 'https://www.gravatar.com/avatar/abc?s=48&d=mp&r=g' : null;
         };
 
-        $people = PersonSuggestion::fromAggregations($aggregations, 'Owner', $avatar, $keyOf);
+        $people = PersonSuggestion::fromBuckets(Bucket::listOf($aggregations['people']), 'Owner', $avatar, $keyOf);
 
         // The key the checkbox of the person has: the username, the number while the index knows none
         self::assertSame([
@@ -77,7 +78,7 @@ final class PersonSuggestionTest extends TestCase
             ['name' => 'Somebody', 'gerrit_id' => 7, 'email' => 'Unknown'],
         ], $asked);
         self::assertStringNotContainsString('@', (string) json_encode($people));
-        self::assertSame([], PersonSuggestion::fromAggregations([], 'Owner', $avatar, $keyOf));
+        self::assertSame([], PersonSuggestion::fromBuckets(Bucket::listOf(null), 'Owner', $avatar, $keyOf));
     }
 
     public function testThePeopleOfIssuesAndChangesAreFoundAlike(): void
@@ -90,9 +91,16 @@ final class PersonSuggestionTest extends TestCase
         self::assertSame(['field' => 'owner_id', 'size' => FacetSelection::SIZE, 'shard_size' => FacetSelection::SHARD_SIZE], $owner['terms']);
         self::assertSame(['author.id', 'author.name'], $author['aggs']['user']['top_hits']['_source']['includes']);
         self::assertSame(['owner_id', 'ownerEmail', 'owner'], $owner['aggs']['user']['top_hits']['_source']['includes']);
-        self::assertSame(['name' => 'Benni Mack', 'id' => 320], PeopleFacet::user('Author', ['key' => 320, 'user' => ['hits' => ['hits' => [['_source' => ['author' => ['id' => 320, 'name' => 'Benni Mack']]]]]]]));
-        self::assertSame(['name' => 'Benni Mack'], PeopleFacet::user('Author', ['key' => 'Benni Mack']));
-        self::assertNull(PeopleFacet::user('Tags', ['key' => 'cache']));
+        $latest = ['hits' => ['hits' => [['_source' => ['author' => ['id' => 320, 'name' => 'Benni Mack']]]]]];
+        self::assertSame(
+            ['name' => 'Benni Mack', 'id' => 320],
+            PeopleFacet::user('Author', Bucket::fromArray(['key' => 320, 'user' => $latest])),
+        );
+        self::assertSame(
+            ['name' => 'Benni Mack'],
+            PeopleFacet::user('Author', Bucket::fromArray(['key' => 'Benni Mack'])),
+        );
+        self::assertNull(PeopleFacet::user('Tags', Bucket::fromArray(['key' => 'cache'])));
         // The selected people of a filter come with their latest document too
         self::assertSame($author['aggs'], FacetSelection::withSelected(['Author' => $author], 'Author', [320])['Author (selected)']['aggs']);
     }

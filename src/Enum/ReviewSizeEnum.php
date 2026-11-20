@@ -11,6 +11,10 @@ declare(strict_types=1);
 
 namespace App\Enum;
 
+use App\Elastic\Bucket;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\ReadableCollection;
+
 /**
  * How big a Gerrit change is, by the lines it adds and removes together, as Gerrit counts them.
  *
@@ -128,16 +132,24 @@ enum ReviewSizeEnum: string
      * The result of changeAggregation() as the filter list shows aggregations: a bucket per size, the smallest
      * first, with the label as key.
      *
-     * @param array<string, mixed> $result
+     * @param ReadableCollection<int, Bucket> $facet the buckets of the aggregation, by the label
      *
-     * @return array{buckets: list<array{key: string, doc_count: int}>}
+     * @return ReadableCollection<int, Bucket>
      */
-    public static function buckets(array $result): array
+    public static function buckets(ReadableCollection $facet): ReadableCollection
     {
-        return ['buckets' => array_map(
-            static fn (self $size): array => ['key' => $size->label(), 'doc_count' => (int) ($result['buckets'][$size->label()]['doc_count'] ?? 0)],
+        $counts = $facet->reduce(
+            static fn (array $counts, Bucket $bucket): array => [$bucket->key => $bucket->count] + $counts,
+            [],
+        );
+
+        return new ArrayCollection(array_map(
+            static fn (self $size): Bucket => Bucket::fromArray([
+                'key' => $size->label(),
+                'doc_count' => $counts[$size->label()] ?? 0,
+            ]),
             self::cases(),
-        )];
+        ));
     }
 
     public static function tryFromLabel(string $label): ?self

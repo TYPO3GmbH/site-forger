@@ -11,7 +11,9 @@ declare(strict_types=1);
 
 namespace App\Search;
 
+use App\Elastic\Bucket;
 use App\People\UserDirectory;
+use Doctrine\Common\Collections\ReadableCollection;
 
 /**
  * People in a list whose name contains what was typed, for the search in a filter of people, see PeopleFacet:
@@ -87,27 +89,30 @@ final class PersonSuggestion
      * they have and their avatar, null without one: the search shows the initials then. Keys, names and avatars
      * only, no email addresses.
      *
-     * @param array<string, mixed>                    $aggregations
-     * @param \Closure(array<string, mixed>): ?string $avatar       the address of the avatar of a user, of size AVATAR_SIZE,
-     *                                                              see UserDirectory::avatarOfUser()
-     * @param \Closure(string, int): string           $keyOf        see UserDirectory::keyOf()
+     * @param ReadableCollection<string, Bucket>      $people the buckets of the aggregation "people"
+     * @param \Closure(array<string, mixed>): ?string $avatar the address of the avatar of a user, of size AVATAR_SIZE,
+     *                                                        see UserDirectory::avatarOfUser()
+     * @param \Closure(string, int): string           $keyOf  see UserDirectory::keyOf()
      *
      * @return list<array{key: string, name: string, count: int, avatar: string|null}>
      */
-    public static function fromAggregations(array $aggregations, string $title, \Closure $avatar, \Closure $keyOf): array
-    {
-        return array_values(array_map(
-            static function (array $bucket) use ($title, $avatar, $keyOf): array {
+    public static function fromBuckets(
+        ReadableCollection $people,
+        string $title,
+        \Closure $avatar,
+        \Closure $keyOf,
+    ): array {
+        return array_values($people->map(
+            static function (Bucket $bucket) use ($title, $avatar, $keyOf): array {
                 $user = (array) PeopleFacet::user($title, $bucket);
 
                 return [
-                    'key' => $keyOf(PeopleFacet::FILTERS[$title]['system'], (int) $bucket['key']),
+                    'key' => $keyOf(PeopleFacet::FILTERS[$title]['system'], (int) $bucket->key),
                     'name' => (string) ($user['name'] ?? ''),
-                    'count' => (int) $bucket['doc_count'],
+                    'count' => $bucket->count,
                     'avatar' => $avatar($user),
                 ];
             },
-            $aggregations['people']['buckets'] ?? []
-        ));
+        )->toArray());
     }
 }

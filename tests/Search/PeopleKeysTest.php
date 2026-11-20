@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Search;
 
+use App\Elastic\Bucket;
 use App\Elastic\Indices;
 use App\People\UserDirectory;
 use App\Search\PeopleFacet;
@@ -108,15 +109,30 @@ final class PeopleKeysTest extends TestCase
 
     public function testTheBucketsAreThePeopleByTheirKeys(): void
     {
-        $owner = PeopleFacet::keyed(['buckets' => [['key' => 7059, 'doc_count' => 3], ['key' => 9, 'doc_count' => 1]]], 'Owner', $this->users);
+        $owner = PeopleFacet::keyed(
+            Bucket::facetOf(['buckets' => [['key' => 7059, 'doc_count' => 3], ['key' => 9, 'doc_count' => 1]]]),
+            'Owner',
+            $this->users,
+        );
 
-        self::assertSame(['benni', 'gerrit:9'], array_column($owner['buckets'], 'key'));
+        self::assertSame(
+            ['benni', 'gerrit:9'],
+            $owner->map(static fn (Bucket $bucket): string => $bucket->key)->toArray(),
+        );
         self::assertSame([320 => 'benni', 41 => 'forge:41'], PeopleFacet::selection('Author', ['benni', 'forge:41', 'Oli_Bartsch', 'benni'], $this->users));
         self::assertSame([7059 => 'benni'], PeopleFacet::selection('Owner', ['benni', 'forge:41'], $this->users));
         // A person selected by the username of Gerrit is ticked in the issues, where the index has its number apart
         $selection = PeopleFacet::selection('Author', ['benjaminkott'], $this->users);
-        $author = PeopleFacet::keyed(['buckets' => [['key' => 38237, 'doc_count' => 2], ['key' => 41, 'doc_count' => 1]]], 'Author', $this->users, $selection);
-        self::assertSame(['benjaminkott', 'forge:41'], array_column($author['buckets'], 'key'));
+        $author = PeopleFacet::keyed(
+            Bucket::facetOf(['buckets' => [['key' => 38237, 'doc_count' => 2], ['key' => 41, 'doc_count' => 1]]]),
+            'Author',
+            $this->users,
+            $selection,
+        );
+        self::assertSame(
+            ['benjaminkott', 'forge:41'],
+            $author->map(static fn (Bucket $bucket): string => $bucket->key)->toArray(),
+        );
         self::assertSame('Assigned to', PeopleFacet::titleOf('assigned_to'));
         self::assertNull(PeopleFacet::titleOf('status'));
     }

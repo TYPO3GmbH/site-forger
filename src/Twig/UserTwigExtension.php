@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
+use App\Elastic\Bucket;
 use App\People\User;
 use App\People\UserDirectory;
 use App\Search\PeopleFacet;
@@ -49,12 +50,10 @@ final readonly class UserTwigExtension
     /**
      * The person of a value of a filter of people, see PeopleFacet, null for a filter of no people.
      *
-     * @param array<string, mixed> $bucket
-     *
      * @return array<string, mixed>|null
      */
     #[AsTwigFunction(name: 'facet_user')]
-    public function facetUser(string $title, array $bucket): ?array
+    public function facetUser(string $title, Bucket $bucket): ?array
     {
         return PeopleFacet::user($title, $bucket);
     }

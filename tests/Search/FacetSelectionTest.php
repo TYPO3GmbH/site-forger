@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Search;
 
+use App\Elastic\Bucket;
 use App\Search\FacetSelection;
 use PHPUnit\Framework\TestCase;
 
@@ -45,19 +46,22 @@ final class FacetSelectionTest extends TestCase
 
     public function testAddsSelectedOnesTheFilterDoesNotShow(): void
     {
-        $aggregations = [
-            'Owner' => ['buckets' => [['key' => 'Benni Mack', 'doc_count' => 16]]],
-            'Owner (selected)' => ['buckets' => [['key' => 'Benni Mack', 'doc_count' => 16], ['key' => 'Lina Wolf', 'doc_count' => 1]]],
-            'Topic' => ['buckets' => []],
+        $facets = [
+            'Owner' => Bucket::facetOf(['buckets' => [['key' => 'Benni Mack', 'doc_count' => 16]]]),
+            'Owner (selected)' => Bucket::facetOf(['buckets' => [
+                ['key' => 'Benni Mack', 'doc_count' => 16],
+                ['key' => 'Lina Wolf', 'doc_count' => 1],
+            ]]),
+            'Topic' => Bucket::facetOf(null),
         ];
 
+        $merged = FacetSelection::merge($facets, 'Owner');
+
+        self::assertSame(['Owner', 'Topic'], array_keys($merged));
         self::assertSame(
-            [
-                'Owner' => ['buckets' => [['key' => 'Benni Mack', 'doc_count' => 16], ['key' => 'Lina Wolf', 'doc_count' => 1]]],
-                'Topic' => ['buckets' => []],
-            ],
-            FacetSelection::merge($aggregations, 'Owner')
+            [['Benni Mack' => 16], ['Lina Wolf' => 1]],
+            $merged['Owner']->map(static fn (Bucket $bucket): array => [$bucket->key => $bucket->count])->toArray(),
         );
-        self::assertSame(['Topic' => ['buckets' => []]], FacetSelection::merge(['Topic' => ['buckets' => []]], 'Owner'));
+        self::assertSame(['Topic'], array_keys(FacetSelection::merge(['Topic' => Bucket::facetOf(null)], 'Owner')));
     }
 }

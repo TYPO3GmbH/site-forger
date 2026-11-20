@@ -74,6 +74,33 @@ final readonly class Bucket
     }
 
     /**
+     * The buckets of an aggregation as a filter lists its values: in the order of the response.
+     *
+     * @param array<string, mixed>|null $aggregation
+     *
+     * @return ReadableCollection<int, Bucket>
+     */
+    public static function facetOf(?array $aggregation): ReadableCollection
+    {
+        return new ArrayCollection(self::listOf($aggregation)->getValues());
+    }
+
+    public function withKey(string $key): self
+    {
+        return new self($key, $this->count, $this->keyAsString, $this->bucket);
+    }
+
+    /**
+     * @return array<string, mixed> the source of the first hit of a top_hits sub-aggregation, empty without one
+     */
+    public function topHit(string $name): array
+    {
+        $source = $this->bucket[$name]['hits']['hits'][0]['_source'] ?? [];
+
+        return is_array($source) ? $source : [];
+    }
+
+    /**
      * @return ReadableCollection<string, Bucket> the buckets of a sub-aggregation
      */
     public function buckets(string $name): ReadableCollection

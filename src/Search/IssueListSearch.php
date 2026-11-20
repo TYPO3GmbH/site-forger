@@ -76,29 +76,24 @@ final readonly class IssueListSearch
         $selection = $this->addAggregations($query, $filters);
 
         $issues = IssueRepository::fromResultSet($search->search());
-        $aggregations = $issues->aggregations();
+        $facets = $issues->facets();
         foreach ([...self::PEOPLE_FILTERS, 'Tags'] as $title) {
-            $aggregations = FacetSelection::merge($aggregations, $title);
+            $facets = FacetSelection::merge($facets, $title);
         }
         // The checkboxes of the people send their keys
         foreach (self::PEOPLE_FILTERS as $title) {
-            if (isset($aggregations[$title])) {
-                $aggregations[$title] = PeopleFacet::keyed(
-                    $aggregations[$title],
-                    $title,
-                    $this->users,
-                    $selection[$title],
-                );
+            if (isset($facets[$title])) {
+                $facets[$title] = PeopleFacet::keyed($facets[$title], $title, $this->users, $selection[$title]);
             }
         }
-        if (isset($aggregations['Activity'])) {
-            $aggregations['Activity'] = ActivityEnum::buckets($aggregations['Activity']);
+        if (isset($facets['Activity'])) {
+            $facets['Activity'] = ActivityEnum::buckets($facets['Activity']);
         }
 
         return $page->withTotal($issues->total)->viewData() + [
             'issues' => $issues,
             'maxScore' => $issues->maxScore,
-            'aggs' => $aggregations,
+            'aggs' => $facets,
         ];
     }
 
