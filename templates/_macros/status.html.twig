@@ -14,23 +14,24 @@
 {% endmacro %}
 
 {#
- # The vote that counts for a label of a Gerrit change, "review" or "verification": mergers' +2 and -2 filled,
+ # The vote that counts for a label of a Gerrit change, see App\Enum\ReviewLabelEnum: mergers' +2 and -2 filled,
  # +1 and -1 tinted. The title tells how many voted for and against.
  #}
 {% macro vote(change, label) %}
     {% set vote = change.vote(label) %}
-    {% set name = label == 'review' ? 'Code review' : 'Verified' %}
     {% set positive = change.positiveVotes(label) %}
     {% set negative = change.negativeVotes(label) %}
     {% set summary = vote.value == 0 ? 'no votes' : vote.label ~ (vote.strong ? ' by a merger' : '') %}
-    <span class="status-pill status-pill-vote status-pill-{{ vote.severity }}" title="{{ name }}: {{ summary }} · {{ positive }} for, {{ negative }} against">{{ label == 'review' ? 'CR' : 'V' }} {{ vote.label }}</span>
+    <span class="status-pill status-pill-vote status-pill-{{ vote.severity }}" title="{{ label.label }}: {{ summary }} · {{ positive }} for, {{ negative }} against">{{ label.abbreviation }} {{ vote.label }}</span>
 {% endmacro %}
 
 {#
  # Both votes of a Gerrit change, the way every list, card and page shows them.
  #}
 {% macro votes(change) %}
-    <span class="status-votes">{{ _self.vote(change, 'review') }}{{ _self.vote(change, 'verification') }}</span>
+    <span class="status-votes">
+        {%- for label in enum_cases('App\\Enum\\ReviewLabelEnum') %}{{ _self.vote(change, label) }}{% endfor -%}
+    </span>
 {% endmacro %}
 
 {#

@@ -15,7 +15,7 @@ use App\CommandRun\CommandRunRecorder;
 use App\Document\CommitMessage;
 use App\Document\ReviewSubject;
 use App\Elastic\Indices;
-use App\Enum\ReviewVoteEnum;
+use App\Enum\ReviewLabelEnum;
 use App\Http\ApiClient;
 use App\Http\ApiFailure;
 use App\People\User;
@@ -253,48 +253,29 @@ final class GerritChangeImporter
      */
     public static function labels(array $labels): array
     {
-        $out = [
-            'positive_reviews' => 0,
-            'negative_reviews' => 0,
-            'positive_verifications' => 0,
-            'negative_verifications' => 0,
-            'lowest_review_vote' => 0,
-            'highest_review_vote' => 0,
-            'lowest_verification_vote' => 0,
-            'highest_verification_vote' => 0,
-        ];
-        foreach ($labels as $labelType => $subRow) {
-            $key = match ($labelType) {
-                'Verified' => '_verifications',
-                'Code-Review' => '_reviews',
-                default => throw new \InvalidArgumentException('Unknown Label type ' . $labelType),
-            };
-            $voteKey = '_' . array_search($labelType, ReviewVoteEnum::LABELS, true) . '_vote';
-            if (array_key_exists('all', $subRow)) {
-                foreach ($subRow['all'] as $vote) {
-                    if (isset($vote['value']) && !in_array($vote['_account_id'], self::CI_ACCOUNTS, true)) {
-                        $out['lowest' . $voteKey] = min($out['lowest' . $voteKey], (int) $vote['value']);
-                        $out['highest' . $voteKey] = max($out['highest' . $voteKey], (int) $vote['value']);
-                        switch ($vote['value']) {
-                            case 1:
-                                ++$out['positive' . $key];
-                                break;
-                            case 2:
-                                $out['positive' . $key] += 2;
-                                break;
-                            case -1:
-                                ++$out['negative' . $key];
-                                break;
-                            case -2:
-                                $out['negative' . $key] += 2;
-                                break;
-                            case 0:
-                                // nothing to do here
-                                break;
-                            default:
-                                throw new \InvalidArgumentException('Unknown Vote Type');
-                        }
-                    }
+        $out = [];
+        foreach (ReviewLabelEnum::cases() as $label) {
+            $out += array_fill_keys($label->fields(), 0);
+        }
+        foreach ($labels as $name => $votes) {
+            $label = ReviewLabelEnum::tryFrom((string) $name);
+            if (null === $label) {
+                throw new \InvalidArgumentException('Unknown Label type ' . $name);
+            }
+            foreach ($votes['all'] ?? [] as $vote) {
+                if (!isset($vote['value']) || in_array($vote['_account_id'], self::CI_ACCOUNTS, true)) {
+                    continue;
+                }
+                $value = (int) $vote['value'];
+                if ($value < -2 || $value > 2) {
+                    throw new \InvalidArgumentException('Unknown Vote Type');
+                }
+                $out[$label->lowestField()] = min($out[$label->lowestField()], $value);
+                $out[$label->highestField()] = max($out[$label->highestField()], $value);
+                if ($value > 0) {
+                    $out[$label->positiveField()] += $value;
+                } elseif ($value < 0) {
+                    $out[$label->negativeField()] -= $value;
                 }
             }
         }

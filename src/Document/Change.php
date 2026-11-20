@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Document;
 
 use App\Enum\ActivityEnum;
+use App\Enum\ReviewLabelEnum;
 use App\Enum\ReviewSizeEnum;
 use App\Enum\ReviewStateEnum;
 use App\Enum\ReviewStatusEnum;
@@ -25,8 +26,6 @@ use App\Enum\ReviewVoteEnum;
  */
 final readonly class Change
 {
-    public const string LABEL_REVIEW = 'review';
-    public const string LABEL_VERIFICATION = 'verification';
     private const string NO_TOPIC = 'no topic';
 
     /**
@@ -72,14 +71,8 @@ final readonly class Change
     public static function fromDocument(array $document): self
     {
         $votes = [];
-        foreach ([self::LABEL_REVIEW, self::LABEL_VERIFICATION] as $label) {
-            $fields = [
-                'positive_' . $label . 's',
-                'negative_' . $label . 's',
-                'lowest_' . $label . '_vote',
-                'highest_' . $label . '_vote',
-            ];
-            foreach ($fields as $field) {
+        foreach (ReviewLabelEnum::cases() as $label) {
+            foreach ($label->fields() as $field) {
                 if (isset($document[$field])) {
                     $votes[$field] = (int) $document[$field];
                 }
@@ -155,13 +148,11 @@ final readonly class Change
 
     /**
      * The vote of a label, from its lowest and highest single vote. Documents of older imports have only the sums.
-     *
-     * @param string $label self::LABEL_REVIEW or self::LABEL_VERIFICATION
      */
-    public function vote(string $label): ReviewVoteEnum
+    public function vote(ReviewLabelEnum $label): ReviewVoteEnum
     {
-        $lowest = $this->votes['lowest_' . $label . '_vote'] ?? null;
-        $highest = $this->votes['highest_' . $label . '_vote'] ?? null;
+        $lowest = $this->votes[$label->lowestField()] ?? null;
+        $highest = $this->votes[$label->highestField()] ?? null;
         if (null !== $lowest && null !== $highest) {
             $value = $lowest < 0 ? max($lowest, -2) : min(max($highest, 0), 2);
 
@@ -174,14 +165,14 @@ final readonly class Change
         return $this->positiveVotes($label) > 0 ? ReviewVoteEnum::RECOMMENDED : ReviewVoteEnum::NONE;
     }
 
-    public function positiveVotes(string $label): int
+    public function positiveVotes(ReviewLabelEnum $label): int
     {
-        return $this->votes['positive_' . $label . 's'] ?? 0;
+        return $this->votes[$label->positiveField()] ?? 0;
     }
 
-    public function negativeVotes(string $label): int
+    public function negativeVotes(ReviewLabelEnum $label): int
     {
-        return $this->votes['negative_' . $label . 's'] ?? 0;
+        return $this->votes[$label->negativeField()] ?? 0;
     }
 
     /**

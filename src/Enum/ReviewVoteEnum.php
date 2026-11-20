@@ -24,14 +24,6 @@ enum ReviewVoteEnum: int
     case RECOMMENDED = 1;
     case APPROVED = 2;
 
-    /**
-     * The labels of the review index: the name used in its fields => the name in Gerrit.
-     */
-    public const array LABELS = [
-        'review' => 'Code-Review',
-        'verification' => 'Verified',
-    ];
-
     public function label(): string
     {
         return $this->value > 0 ? '+' . $this->value : (string) $this->value;

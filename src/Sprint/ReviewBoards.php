@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Sprint;
 
 use App\Document\Change;
+use App\Enum\ReviewLabelEnum;
 use App\Enum\ReviewStatusEnum;
 use App\Repository\ChangeRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -86,12 +87,13 @@ final readonly class ReviewBoards
         if (false === $change->mergeable) {
             return 'mergeConflict';
         }
-        $against = $change->negativeVotes(Change::LABEL_REVIEW) + $change->negativeVotes(Change::LABEL_VERIFICATION);
+        $against = $change->negativeVotes(ReviewLabelEnum::CODE_REVIEW)
+            + $change->negativeVotes(ReviewLabelEnum::VERIFIED);
         if ($against > 0) {
             return 'blocked';
         }
-        $reviewed = $change->positiveVotes(Change::LABEL_REVIEW) > 0;
-        $verified = $change->positiveVotes(Change::LABEL_VERIFICATION) > 0;
+        $reviewed = $change->positiveVotes(ReviewLabelEnum::CODE_REVIEW) > 0;
+        $verified = $change->positiveVotes(ReviewLabelEnum::VERIFIED) > 0;
 
         return match (true) {
             $reviewed && $verified => 'hasPlusOne',

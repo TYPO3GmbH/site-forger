@@ -50,10 +50,10 @@ final class GerritChangeImporterTest extends TestCase
         self::assertSame([
             'positive_reviews' => 3,
             'negative_reviews' => 0,
-            'positive_verifications' => 1,
-            'negative_verifications' => 1,
             'lowest_review_vote' => 0,
             'highest_review_vote' => 2,
+            'positive_verifications' => 1,
+            'negative_verifications' => 1,
             'lowest_verification_vote' => -1,
             'highest_verification_vote' => 1,
         ], $labels);
