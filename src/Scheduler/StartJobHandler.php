@@ -91,12 +91,21 @@ final readonly class StartJobHandler
     /**
      * The command line that starts the job in the background: the shell gets the log file as $0 and the
      * command as "$@", nothing of it goes through the shell unquoted. The job gets none of the files of the worker,
-     * see CLOSE_INHERITED_FILES.
+     * see CLOSE_INHERITED_FILES. The shell empties the log file before it starts the job. So the file is there
+     * when the shell ends, also if the job has not started yet.
      *
      * @return list<string>
      */
     public static function commandLine(string $php, StartJob $job, string $logFile): array
     {
-        return ['bash', '-c', self::CLOSE_INHERITED_FILES . 'nohup "$@" > "$0" 2>&1 < /dev/null &', $logFile, $php, 'bin/console', ...$job->command];
+        return [
+            'bash',
+            '-c',
+            self::CLOSE_INHERITED_FILES . ': > "$0"; nohup "$@" >> "$0" 2>&1 < /dev/null &',
+            $logFile,
+            $php,
+            'bin/console',
+            ...$job->command,
+        ];
     }
 }
