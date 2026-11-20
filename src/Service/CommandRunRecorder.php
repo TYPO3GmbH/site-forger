@@ -35,11 +35,16 @@ final class CommandRunRecorder
      */
     public const string RETENTION = '-14 days';
     public const int MAX_RUNS_PER_JOB = 500;
-    private const int MAX_WARNING_MESSAGES = 5;
+    public const int MAX_WARNING_MESSAGES = 5;
     private const int MAX_WARNING_LENGTH = 300;
     private const int MAX_ERROR_LENGTH = 1000;
     private const int MAX_MESSAGE_LENGTH = 2000;
     private const int HEARTBEAT_INTERVAL = 15;
+    /**
+     * How often a run reads whether it was asked to stop, more often than it writes its heartbeat: a cancel on the
+     * command runs page takes effect within seconds. Reading the row by its id costs little.
+     */
+    private const int STOP_CHECK_INTERVAL = 2;
 
     private ?int $runId = null;
     private int $documents = 0;
@@ -51,7 +56,20 @@ final class CommandRunRecorder
     private ?string $phase = null;
     private ?int $progressCurrent = null;
     private ?int $progressTotal = null;
+    /**
+     * The steps of the run so far, in the order they started: a step the command comes back to keeps its start,
+     * so the speed of the page counts the time in between in. Written as "steps", see CommandRun::steps().
+     *
+     * @var list<array{name: string, startedAt: \DateTimeImmutable, endedAt: ?\DateTimeImmutable, current: ?int, total: ?int}>
+     */
+    private array $steps = [];
+    /** What the current step waits for, a rate limit for example, until it goes on */
+    private ?string $waiting = null;
     private int $lastHeartbeat = 0;
+    private int $lastStopCheck = 0;
+    /** The status and the reason the run was asked to stop with, see heartbeat() */
+    private ?CommandRunStatusEnum $stoppedAs = null;
+    private ?string $stopReason = null;
 
     public function __construct(
         private readonly Connection $connection,
@@ -73,7 +91,12 @@ final class CommandRunRecorder
         $this->phase = null;
         $this->progressCurrent = null;
         $this->progressTotal = null;
+        $this->steps = [];
+        $this->waiting = null;
+        $this->stoppedAs = null;
+        $this->stopReason = null;
         $this->lastHeartbeat = time();
+        $this->lastStopCheck = time();
         $now = new \DateTimeImmutable();
 
         $job = mb_substr($job, 0, 255);
@@ -111,16 +134,65 @@ final class CommandRunRecorder
     }
 
     /**
-     * What the command is doing and how far it got, shown while it runs. Updates the run now and then.
+     * The step the command is in and how far it got, shown while it runs. Updates the run now and then.
+     *
+     * A new step ends the one before. The names of the steps of a job of the schedule are declared in
+     * App\Scheduler\JobSchedule::JOBS, so the page shows the steps still to come as well.
      */
     public function progress(?string $phase, ?int $current = null, ?int $total = null): void
     {
+        $phase = null === $phase ? null : self::shorten($phase, 255);
         $phaseChanged = $phase !== $this->phase;
-        $this->phase = null === $phase ? null : self::shorten($phase, 255);
+        $now = new \DateTimeImmutable();
+        if ($phaseChanged) {
+            $this->endStep($now);
+            if (null !== $phase) {
+                $this->startStep($phase, $now);
+            }
+        }
+        $this->phase = $phase;
         $this->progressCurrent = $current;
         $this->progressTotal = $total;
-        // A new phase shows right away
+        $this->waiting = null;
+        if (null !== $phase) {
+            $last = array_key_last($this->steps);
+            $this->steps[$last]['current'] = $current;
+            $this->steps[$last]['total'] = $total;
+        }
+        // A new step shows right away
         $this->heartbeat($phaseChanged);
+    }
+
+    /**
+     * The current step waits, for a rate limit for example: shown at once, until the step goes on.
+     */
+    public function waiting(string $reason): void
+    {
+        $this->waiting = self::shorten($reason, 255);
+        $this->heartbeat(true);
+    }
+
+    /**
+     * Sleeps, for a rate limit for example, a second at a time: a run asked to stop meanwhile stops within seconds
+     * instead of after the wait.
+     *
+     * @param \Closure(int): void|null $sleep sleeps the seconds given, sleep() if not given
+     *
+     * @throws JobStopped
+     */
+    public function sleep(int $seconds, ?\Closure $sleep = null): void
+    {
+        $sleep ??= static function (int $seconds): void {
+            sleep($seconds);
+        };
+        for ($slept = 1; $slept <= $seconds; ++$slept) {
+            $sleep(1);
+            $this->heartbeat();
+            // By the seconds slept, the clock may stand still for a sleep of a test
+            if (null !== $this->runId && 0 === $slept % self::STOP_CHECK_INTERVAL) {
+                $this->stopIfAsked();
+            }
+        }
     }
 
     /**
@@ -157,47 +229,150 @@ final class CommandRunRecorder
             return;
         }
         $status = match (true) {
+            null !== $this->stoppedAs => $this->stoppedAs,
             0 !== $exitCode || null !== $this->error => CommandRunStatusEnum::FAILED,
             $this->locked => CommandRunStatusEnum::LOCKED,
             $this->warnings > 0 => CommandRunStatusEnum::WARNING,
             default => CommandRunStatusEnum::SUCCESS,
         };
         $now = new \DateTimeImmutable();
+        $this->endStep($now);
+        $this->waiting = null;
         $this->write(fn (): int => $this->connection->update('command_run', [
             'status' => $status->value,
             'heartbeat_at' => $now,
             'finished_at' => $now,
             'exit_code' => $exitCode,
             'phase' => $this->phase,
+            'phase_started_at' => $this->phaseStartedAt(),
             'progress_current' => $this->progressCurrent,
             'progress_total' => $this->progressTotal,
+            'steps' => $this->stepsJson(),
             'documents' => $this->documents,
             'warnings' => $this->warnings,
             'message' => $this->message(),
         ], ['id' => $this->runId], [
             'heartbeat_at' => Types::DATETIME_IMMUTABLE,
             'finished_at' => Types::DATETIME_IMMUTABLE,
+            'phase_started_at' => Types::DATETIME_IMMUTABLE,
         ]));
         $this->runId = null;
     }
 
+    /**
+     * Writes how far the command got, and stops it if it was asked to, see JobStopped. Between two heartbeats it
+     * only reads whether it was asked to stop, every STOP_CHECK_INTERVAL seconds.
+     *
+     * @throws JobStopped
+     */
     private function heartbeat(bool $now = false): void
     {
-        if (null === $this->runId || (!$now && time() - $this->lastHeartbeat < self::HEARTBEAT_INTERVAL)) {
+        if (null === $this->runId) {
+            return;
+        }
+        if (!$now && time() - $this->lastHeartbeat < self::HEARTBEAT_INTERVAL) {
+            if (time() - $this->lastStopCheck >= self::STOP_CHECK_INTERVAL) {
+                $this->stopIfAsked();
+            }
+
             return;
         }
         $this->lastHeartbeat = time();
         $this->write(fn (): int => $this->connection->update('command_run', [
             'heartbeat_at' => new \DateTimeImmutable(),
             'phase' => $this->phase,
+            'phase_started_at' => $this->phaseStartedAt(),
             'progress_current' => $this->progressCurrent,
             'progress_total' => $this->progressTotal,
+            'steps' => $this->stepsJson(),
             'documents' => $this->documents,
             'warnings' => $this->warnings,
             'message' => $this->message(),
         ], ['id' => $this->runId], [
             'heartbeat_at' => Types::DATETIME_IMMUTABLE,
+            'phase_started_at' => Types::DATETIME_IMMUTABLE,
         ]));
+        $this->stopIfAsked();
+    }
+
+    /**
+     * @throws JobStopped
+     */
+    private function stopIfAsked(): void
+    {
+        if (null !== $this->stoppedAs) {
+            return;
+        }
+        $this->lastStopCheck = time();
+        $stop = null;
+        $this->write(function () use (&$stop): void {
+            $stop = $this->connection->fetchAssociative('SELECT stop_status, stop_reason FROM command_run WHERE id = ?', [$this->runId]);
+        });
+        $status = is_array($stop) && null !== $stop['stop_status'] ? CommandRunStatusEnum::tryFrom((string) $stop['stop_status']) : null;
+        if (null === $status) {
+            return;
+        }
+        $this->stoppedAs = $status;
+        $this->stopReason = (string) ($stop['stop_reason'] ?? '');
+        throw new JobStopped('' === $this->stopReason ? 'Asked to stop' : $this->stopReason);
+    }
+
+    private function phaseStartedAt(): ?\DateTimeImmutable
+    {
+        foreach ($this->steps as $step) {
+            if ($step['name'] === $this->phase) {
+                return $step['startedAt'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Starts a step, or goes on with it if the run was in it before: it keeps its start and moves to the end.
+     */
+    private function startStep(string $name, \DateTimeImmutable $now): void
+    {
+        $startedAt = $now;
+        foreach ($this->steps as $position => $step) {
+            if ($step['name'] === $name) {
+                $startedAt = $step['startedAt'];
+                unset($this->steps[$position]);
+            }
+        }
+        $this->steps = array_values($this->steps);
+        $this->steps[] = ['name' => $name, 'startedAt' => $startedAt, 'endedAt' => null, 'current' => null, 'total' => null];
+    }
+
+    private function endStep(\DateTimeImmutable $now): void
+    {
+        $last = array_key_last($this->steps);
+        if (null !== $last && null === $this->steps[$last]['endedAt']) {
+            $this->steps[$last]['endedAt'] = $now;
+        }
+    }
+
+    /**
+     * The steps as CommandRun::steps() reads them, the wait on the current one.
+     */
+    private function stepsJson(): ?string
+    {
+        if ([] === $this->steps) {
+            return null;
+        }
+        $steps = [];
+        foreach ($this->steps as $step) {
+            $steps[] = [
+                'name' => $step['name'],
+                'startedAt' => $step['startedAt']->format(\DATE_ATOM),
+                'endedAt' => $step['endedAt']?->format(\DATE_ATOM),
+                'current' => $step['current'],
+                'total' => $step['total'],
+                'waiting' => null === $step['endedAt'] ? $this->waiting : null,
+            ];
+        }
+
+        return json_encode($steps, \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_UNICODE);
     }
 
     private function message(): ?string
@@ -206,7 +381,9 @@ final class CommandRunRecorder
         if ($this->warnings > count($this->warningMessages)) {
             $parts[] = sprintf('... and %d more warnings', $this->warnings - count($this->warningMessages));
         }
-        if (null !== $this->error) {
+        if (null !== $this->stoppedAs) {
+            array_unshift($parts, $this->stopReason ?? 'Asked to stop');
+        } elseif (null !== $this->error) {
             array_unshift($parts, $this->error);
         }
 

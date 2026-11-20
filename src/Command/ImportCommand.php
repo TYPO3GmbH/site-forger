@@ -18,6 +18,7 @@ use App\Elastic\ProjectIssues;
 use App\Service\CommandRunRecorder;
 use App\Service\ForgeIssueImporter;
 use App\Service\GerritChangeImporter;
+use App\Service\JobStopped;
 use Exception;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
@@ -41,6 +42,24 @@ class ImportCommand extends Command implements LoggerAwareInterface
      * At most this many issues or changes per delta run. The rest follows in the next run (Forge),
      * or with the weekly reviewFull (Gerrit, which only lists the newest changes first).
      */
+    /**
+     * The locks of the imports: one run of each source at a time, see App\Scheduler\JobLocks.
+     */
+    public const string LOCK_FORGE = 'forge';
+    public const string LOCK_GERRIT = 'gerrit';
+    /**
+     * The steps of the imports as the command runs page shows them, see App\Scheduler\JobSchedule::JOBS.
+     */
+    public const string STEP_FORGE_FULL = 'Compare all Forge issues and update the outdated ones';
+    public const string STEP_FORGE_VANISHED = 'Remove issues gone from Forge';
+    public const string STEP_FORGE_DELTA = 'Import the issues changed since the last run';
+    public const string STEP_FORGE_LATEST = 'Import the latest issues, the index is empty';
+    public const string STEP_GERRIT_FULL_LIST = 'Compare all Gerrit changes with the index';
+    public const string STEP_GERRIT_FULL_LOAD = 'Load the outdated changes from Gerrit';
+    public const string STEP_GERRIT_VANISHED = 'Remove changes gone from Gerrit';
+    public const string STEP_GERRIT_DELTA_LIST = 'Find the changes updated since the last run';
+    public const string STEP_GERRIT_DELTA_LOAD = 'Load the updated changes from Gerrit';
+    public const string STEP_GERRIT_LATEST = 'Load the latest changes, the index is empty';
     private const int DELTA_LIMIT_FORGE = 2000;
     private const int DELTA_LIMIT_GERRIT = 3000;
     private const int PAGE_SIZE = 100;
@@ -126,7 +145,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         try {
             switch ($mode) {
                 case 'forgeFull':
-                    if ($this->lock('forge')) {
+                    if ($this->lock(self::LOCK_FORGE)) {
                         try {
                             $this->removeIssuesOfOtherProjects();
                             $this->importFromForge($startAt, $force);
@@ -141,7 +160,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     }
                     break;
                 case 'forgeDelta':
-                    if ($this->lock('forge')) {
+                    if ($this->lock(self::LOCK_FORGE)) {
                         try {
                             $this->removeIssuesOfOtherProjects();
                             $this->importForgeDelta();
@@ -157,7 +176,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
 
                     break;
                 case 'reviewDelta':
-                    if ($this->lock('gerrit')) {
+                    if ($this->lock(self::LOCK_GERRIT)) {
                         try {
                             $this->importReviewDelta($output);
                         } finally {
@@ -171,7 +190,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     }
                     break;
                 case 'reviewFull':
-                    if ($this->lock('gerrit')) {
+                    if ($this->lock(self::LOCK_GERRIT)) {
                         try {
                             $this->importReviews($output, null, $force, $startAt);
                         } finally {
@@ -185,6 +204,12 @@ class ImportCommand extends Command implements LoggerAwareInterface
                     }
                     break;
             }
+        } catch (JobStopped $stopped) {
+            // Asked to stop, by a pause or an admin: the recorder records it as such
+            $output->writeln('Stopped: ' . $stopped->getMessage());
+            $this->release();
+
+            return Command::FAILURE;
         } catch (\Exception $exception) {
             // If any exception occurs, release the lock, else the process will run never again.
             $this->logger->error($exception->getMessage());
@@ -227,7 +252,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
             foreach ($page['issues'] as $doc) {
                 $listed[(string) $doc['id']] = true;
             }
-            $skipped += $this->importIssues($page['issues'], 'Forge issues', $progressBar, !$force);
+            $skipped += $this->importIssues($page['issues'], self::STEP_FORGE_FULL, $progressBar, !$force);
             $offset += self::PAGE_SIZE;
         }
         $progressBar->finish();
@@ -258,7 +283,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
 
         $remove = [];
         foreach ($vanished as $position => $id) {
-            $this->recorder->progress('Checking issues Forge did not list', $position + 1, count($vanished));
+            $this->recorder->progress(self::STEP_FORGE_VANISHED, $position + 1, count($vanished));
             try {
                 $issue = $this->callRedmine(fn () => $this->forgeClient->getApi('issue')->show((int) $id));
             } catch (\RuntimeException $e) {
@@ -275,7 +300,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
             }
             if (is_array($issue) && isset($issue['issue'])) {
                 // importIssues() removes it if it is in another project, and imports it otherwise
-                $this->importIssues([$issue['issue']], 'Checking issues Forge did not list', null, false);
+                $this->importIssues([$issue['issue']], self::STEP_FORGE_VANISHED, null, false);
             }
         }
         $removed = $this->projectIssues->remove($remove);
@@ -292,7 +317,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         if (null === $since) {
             // An empty index needs forgeFull, until then the latest issues at least
             $this->recorder->warning('The issue index is empty, run --mode=forgeFull. Imported the latest issues only.');
-            $this->importIssues($this->getAllForgeIssuesPaginated(self::PAGE_SIZE, 0)['issues'] ?? [], 'Latest Forge issues', null, false);
+            $this->importIssues($this->getAllForgeIssuesPaginated(self::PAGE_SIZE, 0)['issues'] ?? [], self::STEP_FORGE_LATEST, null, false);
 
             return;
         }
@@ -317,7 +342,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
             if ([] === ($page['issues'] ?? [])) {
                 break;
             }
-            $unchanged += $this->importIssues(array_slice($page['issues'], 0, $limit - $offset), 'Changed Forge issues', $progressBar, true);
+            $unchanged += $this->importIssues(array_slice($page['issues'], 0, $limit - $offset), self::STEP_FORGE_DELTA, $progressBar, true);
         }
         $progressBar->finish();
         $this->output->writeln('');
@@ -368,6 +393,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
             try {
                 $this->issueImporter->import($doc);
                 $this->refreshLock();
+            } catch (JobStopped $stopped) {
+                throw $stopped;
             } catch (\Exception $e) {
                 // The import goes on with the next issue
                 $this->recorder->warning(sprintf('Forge issue #%s: %s', $doc['id'] ?? '?', $e->getMessage()));
@@ -394,7 +421,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         if (null === $since) {
             $this->recorder->warning('The review index is empty, run --mode=reviewFull. Imported the latest changes only.');
             $progressBar = new ProgressBar($output->section());
-            $this->changeImporter->writeAll($this->reviewBlock(GerritChangeImporter::PROJECT, self::PAGE_SIZE, $progressBar));
+            $this->changeImporter->writeAll($this->reviewBlock(GerritChangeImporter::PROJECT, self::PAGE_SIZE, $progressBar, self::STEP_GERRIT_LATEST));
 
             return;
         }
@@ -416,6 +443,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
     private function importReviews(OutputInterface $output, ?\DateTimeImmutable $since, bool $force, int $startAt = 0): void
     {
         $delta = null !== $since;
+        [$listStep, $loadStep] = $delta ? [self::STEP_GERRIT_DELTA_LIST, self::STEP_GERRIT_DELTA_LOAD] : [self::STEP_GERRIT_FULL_LIST, self::STEP_GERRIT_FULL_LOAD];
         $progressBar = new ProgressBar($output->section());
         $progressBar->setFormat('%current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
 
@@ -425,6 +453,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $numbers = [];
         $changed = [];
         $more = true;
+        // Gerrit does not say how many changes it lists: the full listing finds about as many as the index has
+        $expected = $delta ? null : $this->projectChanges->count();
         for ($start = max(0, $startAt); $more && (!$delta || $start < self::DELTA_LIMIT_GERRIT); $start += self::GERRIT_LIST_PAGE_SIZE) {
             $changes = $this->changeImporter->find($query, self::GERRIT_LIST_PAGE_SIZE, $start, []);
             $updated = [];
@@ -435,7 +465,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
             $listed += count($updated);
             array_push($changed, ...($force ? array_map('strval', array_keys($updated)) : ImportWatermark::changed($updated, $this->watermark->storedUpdates('review', array_keys($updated)))));
             $more = [] !== $changes && array_key_exists('_more_changes', array_last($changes));
-            $this->recorder->progress('Listing Gerrit changes', $listed);
+            // Past the expected number the end is unknown: no total, the bar does not stand at 100 % while it lists on
+            $this->recorder->progress($listStep, $listed, null !== $expected && $listed < $expected ? $expected : null);
             $this->refreshLock();
         }
         if ($delta && $more) {
@@ -453,7 +484,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
         $progressBar->setMaxSteps(count($changed));
         foreach (array_chunk($changed, self::GERRIT_DETAIL_BATCH) as $batch) {
             $batchQuery = implode(' OR ', array_map(static fn (string $number): string => 'change:' . $number, $batch));
-            $block = $this->reviewBlock($batchQuery, count($batch), $progressBar);
+            $block = $this->reviewBlock($batchQuery, count($batch), $progressBar, $loadStep);
             if ($delta) {
                 $reviews += $block;
                 continue;
@@ -487,14 +518,15 @@ class ImportCommand extends Command implements LoggerAwareInterface
 
         $remove = [];
         foreach (array_chunk($vanished, self::GERRIT_DETAIL_BATCH) as $position => $batch) {
-            $this->recorder->progress('Checking changes Gerrit did not list', $position * self::GERRIT_DETAIL_BATCH + count($batch), count($vanished));
+            $this->recorder->progress(self::STEP_GERRIT_VANISHED, $position * self::GERRIT_DETAIL_BATCH + count($batch), count($vanished));
             $query = GerritChangeImporter::PROJECT . ' (' . implode(' OR ', array_map(static fn (int $number): string => 'change:' . $number, $batch)) . ')';
             $shown = [];
             foreach ($this->changeImporter->find($query, count($batch), 0, []) as $change) {
                 $shown[] = (int) $change['_number'];
             }
             if ([] !== $shown) {
-                $this->changeImporter->writeAll($this->reviewBlock(implode(' OR ', array_map(static fn (int $number): string => 'change:' . $number, $shown)), count($shown), $progressBar));
+                // Within the step of the check: the batches count, not the changes loaded again
+                $this->changeImporter->writeAll($this->reviewBlock(implode(' OR ', array_map(static fn (int $number): string => 'change:' . $number, $shown)), count($shown), $progressBar, null));
             }
             array_push($remove, ...array_diff($batch, $shown));
             $this->refreshLock();
@@ -504,16 +536,18 @@ class ImportCommand extends Command implements LoggerAwareInterface
     }
 
     /**
-     * The documents of the changes a query finds, with the progress of the import.
+     * The documents of the changes a query finds, with the progress of the import in the step, if any.
      * Errors end the import: an empty result would silently skip the changes of this block.
      *
      * @return array<int, array<string, mixed>>
      */
-    private function reviewBlock(string $query, int $count, ProgressBar $progressBar): array
+    private function reviewBlock(string $query, int $count, ProgressBar $progressBar, ?string $step): array
     {
-        return $this->changeImporter->documents($this->changeImporter->find($query, $count), function () use ($progressBar): void {
+        return $this->changeImporter->documents($this->changeImporter->find($query, $count), function () use ($progressBar, $step): void {
             $progressBar->advance();
-            $this->reportProgress('Gerrit changes', $progressBar);
+            if (null !== $step) {
+                $this->reportProgress($step, $progressBar);
+            }
             $this->refreshLock();
         });
     }
@@ -566,8 +600,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
     {
         $sleepTime = min(10 * 2 ** ($attempt - 1), 300);
         $this->logger->warning(sprintf('[RECV] Failed to fetch data from Forge, response code 429, retrying in %d seconds, attempt #%d...', $sleepTime, $attempt));
-        $this->recorder->progress(sprintf('Forge rate limit, waiting %d s (attempt %d of %d)', $sleepTime, $attempt, self::FORGE_RETRIES));
-        sleep($sleepTime);
+        $this->recorder->waiting(sprintf('Forge rate limit, waiting %d s (attempt %d of %d)', $sleepTime, $attempt, self::FORGE_RETRIES));
+        $this->recorder->sleep($sleepTime);
         $this->refreshLock();
     }
 
@@ -596,7 +630,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
     private function waitForGerrit(int $status, int $seconds, int $attempt): void
     {
         $this->logger->warning(sprintf('Gerrit responded with %d, retrying in %d seconds (attempt %d)...', $status, $seconds, $attempt));
-        sleep($seconds);
+        $this->recorder->waiting(sprintf('Gerrit responded with %d, waiting %d s (attempt %d of %d)', $status, $seconds, $attempt, self::GERRIT_RETRIES));
+        $this->recorder->sleep($seconds);
         $this->refreshLock();
     }
 

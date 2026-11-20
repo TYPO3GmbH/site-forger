@@ -11,8 +11,10 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\DTO\CommandRunStep;
 use App\Enum\CommandRunStatusEnum;
 use App\Repository\CommandRunRepository;
+use App\Service\CommandRunRecorder;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -31,6 +33,11 @@ class CommandRun
      * Without a heartbeat for this long a run that did not end is considered aborted (killed, out of memory).
      */
     public const int HEARTBEAT_TIMEOUT = 900;
+
+    /**
+     * A phase needs to run this long before its speed is shown.
+     */
+    private const int MIN_SECONDS_FOR_SPEED = 20;
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -64,8 +71,33 @@ class CommandRun
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
     private ?string $phase = null;
 
+    /**
+     * Asked to stop, by a pause or an admin: the run stops at its next heartbeat with this status, see
+     * App\Service\CommandRunRecorder, and the reason as its message.
+     */
+    #[ORM\Column(type: Types::STRING, length: 20, nullable: true, enumType: CommandRunStatusEnum::class)]
+    private ?CommandRunStatusEnum $stopStatus = null;
+
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    private ?string $stopReason = null;
+
+    /**
+     * When the phase started, for the speed and the time left of the phase.
+     */
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $phaseStartedAt = null;
+
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
     private ?int $progressCurrent = null;
+
+    /**
+     * The steps so far as the recorder writes them, see App\Service\CommandRunRecorder::stepsJson(); null for the
+     * runs from before the steps were recorded.
+     *
+     * @var ?list<array{name: string, startedAt: string, endedAt: ?string, current: ?int, total: ?int, waiting: ?string}>
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $steps = null;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
     private ?int $progressTotal = null;
@@ -146,6 +178,128 @@ class CommandRun
         return $this->phase;
     }
 
+    /**
+     * Whether the run was asked to stop and has not yet.
+     */
+    public function isStopping(): bool
+    {
+        return null !== $this->stopStatus && CommandRunStatusEnum::RUNNING === $this->status;
+    }
+
+    public function getStopReason(): ?string
+    {
+        return $this->stopReason;
+    }
+
+    public function getPhaseStartedAt(): ?\DateTimeImmutable
+    {
+        return $this->phaseStartedAt;
+    }
+
+    /**
+     * Items per minute in the phase, as of the last heartbeat; null for the first seconds of a phase, which say
+     * little yet.
+     */
+    public function getProgressPerMinute(): ?float
+    {
+        if (null === $this->phaseStartedAt || null === $this->progressCurrent || $this->progressCurrent <= 0) {
+            return null;
+        }
+        $seconds = $this->heartbeatAt->getTimestamp() - $this->phaseStartedAt->getTimestamp();
+
+        return $seconds < self::MIN_SECONDS_FOR_SPEED ? null : $this->progressCurrent * 60 / $seconds;
+    }
+
+    /**
+     * When the phase will be done at its speed so far, null without a total or a speed.
+     */
+    public function getPhaseEndsAt(): ?\DateTimeImmutable
+    {
+        $perMinute = $this->getProgressPerMinute();
+        if (null === $perMinute || null === $this->progressTotal || null === $this->progressCurrent) {
+            return null;
+        }
+        $left = max(0, $this->progressTotal - $this->progressCurrent);
+
+        return $this->heartbeatAt->modify('+' . (int) ceil($left * 60 / $perMinute) . ' seconds');
+    }
+
+    /**
+     * The steps of the run in their order: those it went through, the one it is in or ended in, then those declared
+     * for its job it did not get to, each after the declared one before it, those still to come after the current
+     * one. A step the job does not declare shows where the run went through it; a run with none of the declared
+     * steps (the latest issues into an empty index, a run from before the names changed) shows its own only.
+     *
+     * @param list<string> $declared the steps of the job, see App\Scheduler\JobSchedule::JOBS
+     *
+     * @return list<CommandRunStep>
+     */
+    public function steps(array $declared = [], ?\DateTimeImmutable $now = null): array
+    {
+        $status = $this->getStatus($now);
+        $running = CommandRunStatusEnum::RUNNING === $status;
+        $recorded = $this->steps ?? [];
+        // A run from before the steps were recorded: its last phase
+        if ([] === $recorded && null !== $this->phase) {
+            $recorded = [[
+                'name' => $this->phase,
+                'startedAt' => ($this->phaseStartedAt ?? $this->startedAt)->format(\DATE_ATOM),
+                'endedAt' => $running ? null : ($this->finishedAt ?? $this->heartbeatAt)->format(\DATE_ATOM),
+                'current' => $this->progressCurrent,
+                'total' => $this->progressTotal,
+                'waiting' => null,
+            ]];
+        }
+
+        $steps = [];
+        $last = array_key_last($recorded);
+        foreach ($recorded as $position => $step) {
+            $start = new \DateTimeImmutable($step['startedAt']);
+            $end = null === $step['endedAt'] ? $this->heartbeatAt : new \DateTimeImmutable($step['endedAt']);
+            $state = match (true) {
+                $position !== $last => CommandRunStep::DONE,
+                $running => CommandRunStep::CURRENT,
+                $status->isSuccessful() => CommandRunStep::DONE,
+                default => CommandRunStep::STOPPED,
+            };
+            $steps[$step['name']] = new CommandRunStep(
+                $step['name'],
+                $state,
+                $step['current'],
+                $step['total'],
+                max(0, $end->getTimestamp() - $start->getTimestamp()),
+                CommandRunStep::CURRENT === $state ? ($step['waiting'] ?? null) : null,
+            );
+        }
+
+        // Steps of which the job declares none, of a run from before the names of its steps changed for example:
+        // which of the declared ones it went through is not known, so it shows its own only
+        if ([] !== $steps && [] === array_intersect($declared, array_keys($steps))) {
+            return array_values($steps);
+        }
+
+        // The declared steps it did not get to, each after the one declared before it. One the run went past is
+        // skipped, the others are still to come while it runs: after all it went through.
+        $names = array_keys($steps);
+        $recordedCount = count($names);
+        $after = null;
+        foreach ($declared as $index => $name) {
+            if (!isset($steps[$name])) {
+                $passed = [] !== array_intersect(array_slice($declared, $index + 1), array_keys($steps));
+                $upcoming = $running && !$passed;
+                $position = null === $after ? 0 : (int) array_search($after, $names, true) + 1;
+                if ($upcoming) {
+                    $position = max($position, $recordedCount);
+                }
+                array_splice($names, $position, 0, [$name]);
+                $steps[$name] = new CommandRunStep($name, $upcoming ? CommandRunStep::UPCOMING : CommandRunStep::SKIPPED);
+            }
+            $after = $name;
+        }
+
+        return array_map(static fn (string $name): CommandRunStep => $steps[$name], $names);
+    }
+
     public function getProgressCurrent(): ?int
     {
         return $this->progressCurrent;
@@ -166,6 +320,41 @@ class CommandRun
         }
 
         return (int) min(100, floor($this->progressCurrent * 100 / $this->progressTotal));
+    }
+
+    /**
+     * The message split as the recorder wrote it, see App\Service\CommandRunRecorder::message(): the error of a
+     * failed run (its exception in short, "ResponseException", and its text) or the reason a run was stopped,
+     * then the warnings, and how many more there were.
+     *
+     * @return array{error: ?string, errorType: ?string, reason: ?string, warnings: list<string>, moreWarnings: int}
+     */
+    public function getMessageParts(?\DateTimeImmutable $now = null): array
+    {
+        $lines = null === $this->message || '' === $this->message ? [] : explode("\n", $this->message);
+        $parts = ['error' => null, 'errorType' => null, 'reason' => null, 'warnings' => [], 'moreWarnings' => 0];
+        $status = $this->getStatus($now);
+        // The recorder lists the first warnings, and a line for the others
+        $warningLines = min($this->warnings, CommandRunRecorder::MAX_WARNING_MESSAGES) + ($this->warnings > CommandRunRecorder::MAX_WARNING_MESSAGES ? 1 : 0);
+        if ([] !== $lines && CommandRunStatusEnum::FAILED === $status && count($lines) > $warningLines) {
+            $error = (string) array_shift($lines);
+            if (preg_match('/^(?<class>[A-Za-z_][\w\\\\]*(?:Exception|Error)): (?<text>.*)$/s', $error, $match)) {
+                $parts['errorType'] = substr((string) strrchr('\\' . $match['class'], '\\'), 1);
+                $error = $match['text'];
+            }
+            $parts['error'] = $error;
+        } elseif ([] !== $lines && in_array($status, [CommandRunStatusEnum::INTERRUPTED, CommandRunStatusEnum::CANCELLED], true)) {
+            $parts['reason'] = array_shift($lines);
+        }
+        foreach ($lines as $line) {
+            if (preg_match('/^\.\.\. and (\d+) more warnings$/', $line, $match)) {
+                $parts['moreWarnings'] = (int) $match[1];
+            } else {
+                $parts['warnings'][] = $line;
+            }
+        }
+
+        return $parts;
     }
 
     public function getExitCode(): ?int

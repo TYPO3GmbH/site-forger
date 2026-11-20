@@ -24,6 +24,14 @@ enum CommandRunStatusEnum: string
     case LOCKED = 'locked';
     case FAILED = 'failed';
     case ABORTED = 'aborted';
+    /**
+     * Stopped for a pause, a deployment for instance: the job starts again once resumed, see App\Scheduler\JobControl.
+     */
+    case INTERRUPTED = 'interrupted';
+    /**
+     * Stopped by an admin, not to start again.
+     */
+    case CANCELLED = 'cancelled';
 
     public function label(): string
     {
@@ -34,6 +42,8 @@ enum CommandRunStatusEnum: string
             self::LOCKED => 'Skipped, locked',
             self::FAILED => 'Failed',
             self::ABORTED => 'Aborted',
+            self::INTERRUPTED => 'Interrupted',
+            self::CANCELLED => 'Cancelled',
         };
     }
 
@@ -49,6 +59,8 @@ enum CommandRunStatusEnum: string
             self::LOCKED => 'run-locked',
             self::FAILED => 'run-failed',
             self::ABORTED => 'run-aborted',
+            self::INTERRUPTED => 'run-interrupted',
+            self::CANCELLED => 'run-cancelled',
         };
     }
 
@@ -68,5 +80,14 @@ enum CommandRunStatusEnum: string
     public function isSuccessful(): bool
     {
         return self::SUCCESS === $this || self::WARNING === $this;
+    }
+
+    /**
+     * Whether the run ended on purpose without its work: skipped for a lock, interrupted or cancelled. No failure,
+     * and no reason for the job to be overdue yet.
+     */
+    public function isStoppedOnPurpose(): bool
+    {
+        return in_array($this, [self::LOCKED, self::INTERRUPTED, self::CANCELLED], true);
     }
 }

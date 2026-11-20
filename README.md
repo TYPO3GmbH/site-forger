@@ -76,9 +76,9 @@ Prefix the commands with `ddev exec` in the dev environment.
 | Mode | Reads | Meant for |
 |---|---|---|
 | `forgeFull [--force]` | Every Forge issue of the TYPO3 Core project | An empty index, a weekly safety net |
-| `forgeDelta` | The Forge issues changed since the last import | Cron, every few minutes |
+| `forgeDelta` | The Forge issues changed since the last import | The schedule, every 5 minutes |
 | `reviewFull [--force]` | Every Gerrit change of `Packages/TYPO3.CMS` | An empty index, a weekly safety net |
-| `reviewDelta` | The Gerrit changes updated since the last import | Cron, every few minutes |
+| `reviewDelta` | The Gerrit changes updated since the last import | The schedule, every 5 minutes |
 
 An unknown mode ends with an error. `--startAt=<n>` lets a full import begin at the n-th issue or change.
 
@@ -153,9 +153,13 @@ Every import holds a lock, so two runs of the same kind do not write at the same
 modes) and `gerrit` (both Gerrit modes, `reviewFull` blocks `reviewDelta` for its run). A run that finds the lock
 taken ends right away as "Skipped, locked". The lock goes with the process holding it.
 
+The schedule knows the lock of each job (`App\Scheduler\JobSchedule::JOBS`) and does not start a job whose lock
+another one holds: a delta during its full import waits in the queue and starts once the lock is free, the command
+runs page shows "waits for" the job holding it, and the waiting job is not overdue meanwhile.
+
 ### Errors and the command runs page
 
-Every run of an `app:*` command is recorded in the table `command_run`, whoever starts it (cron, a deployment,
+Every run of an `app:*` command is recorded in the table `command_run`, whoever starts it (the schedule, a deployment,
 by hand). Admins see the runs at **Admin → Command runs** (`/management/command-runs`):
 
 * the jobs (command with its options) with their last runs, overdue ones first
@@ -169,12 +173,19 @@ by hand). Admins see the runs at **Admin → Command runs** (`/management/comman
 | Skipped, locked | Another run held the lock |
 | Failed | The run ended with an error: exception, exit code other than 0, Gerrit or Forge unavailable after the retries |
 | Aborted | No end recorded and no heartbeat for 15 minutes: killed, out of memory, server restart |
+| Interrupted | Stopped for a pause, e.g. a deployment; it starts again once resumed |
+| Cancelled | Stopped by an admin, it does not start again |
 | Running | Running, with a heartbeat at least every 15 seconds |
 
-A job is **overdue** when its last start or its last successful run is more than three times its usual interval
-ago (at least 15 minutes), the interval being learned from its runs: cron no longer starts it, or every run
-fails. Runs skipped for a lock count as fine for up to 12 hours. A job needs three runs within the 14 days kept
-before it has an interval, a weekly job never becomes overdue.
+The page shows the jobs of the schedule only (`App\Scheduler\ScheduledJobs` reads them from the schedule); other
+runs, like `app:elasticsearch:setup` of a deployment, are recorded but not shown. **Next runs** lists what starts
+next: the jobs queued with **Run now** (the worker of the schedule starts them within a minute, the web request
+does not run a command itself), then the next planned run of every job. Every job of the schedule shows when it
+runs and its next run. A job of the schedule is **overdue** when the run
+planned after its last start did not start within 10 minutes (cron no longer starts the worker), or three planned
+runs in a row did not succeed (every run fails). Runs skipped for a lock count as fine for up to 12 hours. This
+holds for the weekly jobs too: a missing Monday run of `reviewFull` shows. A job the schedule does not start (a
+deployment, a run by hand) is never overdue.
 
 Rate limits are retried: Forge and Gerrit answer 429 now and then. Forge is retried up to six times with a
 pause doubling from 10 seconds to 5 minutes, Gerrit up to four times, honouring `Retry-After`.
@@ -185,20 +196,76 @@ job are deleted when a run starts, the message is cut at 2000 characters.
 What the page cannot show: a run that ends before the console starts (wrong PHP binary, a broken
 `.env.local.php`, the database down) leaves no row. The job then shows as overdue, or does not appear at all.
 
-### Cron
+### Schedule and cron
 
-The imports on production are started by a file in `/etc/cron.d` on the server, it is not part of this
-repository. A setup that keeps the data current:
+When the jobs run is part of the app, in `App\Scheduler\JobSchedule` (Symfony Scheduler):
+
+| Job | When (server time) |
+|---|---|
+| `app:import --mode=forgeDelta` | every 5 minutes |
+| `app:import --mode=reviewDelta` | every 5 minutes |
+| `app:backports` | every 5 minutes |
+| `app:import --mode=reviewFull` | Monday 03:17 |
+| `app:import --mode=forgeFull` | Thursday 03:17 |
+
+`bin/console debug:scheduler` lists them with their next run. Cron only starts the worker of the schedule, once a
+minute for less than a minute, with a file in `/etc/cron.d` on the server (not part of this repository):
 
 ```cron
 # m  h  dom mon dow user              command
-*/5  *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=forgeDelta > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/forgeimport_delta.lastrun 2>&1
-*/5  *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=reviewDelta > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/forgeimport_gerritdelta.lastrun 2>&1
-*/5  *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:backports > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/forgeimport_backports.lastrun 2>&1
-# Safety nets, on different nights so the rate limits of Forge and Gerrit do not add up
-17   3  *   *   1   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=reviewFull > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/forgeimport_fullgerrit.lastrun 2>&1
-17   3  *   *   4   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console app:import --mode=forgeFull > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/forgeimport_fullforge.lastrun 2>&1
+*    *  *   *   *   forger.typo3.com  /usr/bin/php8.5 /srv/vhosts/forger.typo3.com/site/mage/current/bin/console messenger:consume scheduler_jobs --time-limit=55 > /srv/vhosts/forger.typo3.com/site/mage/shared/var/log/scheduler.lastrun 2>&1
 ```
+
+The worker starts a due job as a process of its own and does not wait for it: a `reviewFull` running for hours
+keeps no delta waiting, the locks of the imports keep two runs of one kind apart. The schedule remembers what it
+started (`var/scheduler`, kept by the deployments): a job that fell due while no worker ran, e.g. during a
+deployment, runs once when the next worker starts. The output of a job goes to `var/log/jobs/<job>.lastrun`.
+
+#### Pause, resume, cancel
+
+Every job of the schedule can be paused, alone or all of them (`App\Scheduler\JobControl`): on the command runs
+page (**Pause all**, **Pause** and **Resume** at every job, **Pause** and **Cancel** at a running job) or with
+
+```sh
+bin/console app:jobs:pause [<job>] [--reason=...] [--wait=300]   # all jobs without <job>, e.g. forgeDelta
+bin/console app:jobs:resume [<job>]
+```
+
+A paused job does not start, its planned starts wait in the queue. A running job asked to stop stops at its next
+heartbeat (within about 15 seconds; one waiting for an answer of Forge or Gerrit takes until then) and releases its
+lock: paused, it ends as "Interrupted" and is queued, to start again once resumed; cancelled, it ends as
+"Cancelled" and stays so. Starting again costs little: a delta goes on from the index, a full import skips what it
+has in its current state. `app:jobs:pause` waits for the running jobs to stop, at most `--wait` seconds.
+
+A deployment migrates the database, then pauses all jobs before the setup of the indices and resumes them once the
+new release is live and its post release commands ran, or with the old one if it failed (`deploy.php`): no import
+writes while the indices are rebuilt, and the interrupted jobs start again with the new code and schema. The
+migrations run while the current release is still live, so a migration has to keep the schema usable for it: add
+tables and columns, do not rename or drop them in the same deployment.
+
+#### Locally
+
+ddev runs no cron and no worker: locally the schedule starts nothing until you start its worker. The jobs then read
+the real Forge and Gerrit into the local indices, `app:mock-data` brings back the mock documents afterwards.
+
+```sh
+# The jobs with their next run
+ddev exec bin/console debug:scheduler
+# The worker as cron starts it: starts the due jobs and those queued with "Run now", then stops
+ddev exec bin/console messenger:consume scheduler_jobs --time-limit=55 -vv
+# Or keep it running in a terminal, until Ctrl+C
+ddev exec bin/console messenger:consume scheduler_jobs -vv
+```
+
+A worker keeps the code it started with: after a change, stop it and start it again (cron does that every minute).
+A job queued with "Run now" starts at the next full minute, unless its lock is taken (a delta of the same source runs or
+is planned for this minute): then it waits in the queue and starts once the lock is free.
+
+The worker logs every job it starts (`Started the job "forgeDelta"`), the output of a job is in
+`var/log/jobs/<job>.lastrun`, its run on the command runs page (`/management/command-runs`, as Dev Admin via
+`/_dev/login`). To see a missed run catch up: let a five-minute mark pass without a worker, then start it, the
+deltas run once. `rm -rf var/scheduler` forgets what the schedule started. The tests of the schedule:
+`bin/phpunit -c build/phpunit.xml tests/Scheduler`.
 
 What happened is on the command runs page. The output of the last run of each job (`*.lastrun`, overwritten
 by every run) is still worth keeping: it is the only trace of a run that fails before the console starts.

@@ -42,6 +42,14 @@ readonly class ProjectChanges
     }
 
     /**
+     * How many changes the index has: about as many as a full listing of Gerrit finds, for its progress.
+     */
+    public function count(): int
+    {
+        return ElasticUtility::getIndexByName('review')->count();
+    }
+
+    /**
      * Removes changes from the index.
      *
      * @param list<int> $numbers
