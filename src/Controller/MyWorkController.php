@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Elastic\Bucket;
 use App\Elastic\Indices;
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
@@ -67,12 +68,10 @@ class MyWorkController extends AbstractController
         $query = $this->query($includeClosed, $searchTerms, reviewState: $reviewState, reviewSort: $sort);
         $reviews = $this->indices->reviews()->createSearch($query->reviews())->search();
 
-        $counts = [];
-        foreach ($reviews->getAggregation('status')['buckets'] ?? [] as $state => $bucket) {
-            if ((int) $bucket['doc_count'] > 0) {
-                $counts[(string) $state] = (int) $bucket['doc_count'];
-            }
-        }
+        $counts = array_filter(
+            Bucket::countsOf($reviews->getAggregation('status')),
+            static fn (int $count): bool => $count > 0,
+        );
         $counts = $this->sortByOrder($counts, self::reviewStateOrder());
         $closedStates = array_values(array_map(
             static fn (ReviewStateEnum $state): string => $state->value,
@@ -109,10 +108,7 @@ class MyWorkController extends AbstractController
         $query = $this->query($includeClosed, $searchTerms, issueStatus: $issueStatus, issueSort: $sort);
         $issues = $this->indices->issues()->createSearch($query->issues())->search();
 
-        $counts = [];
-        foreach ($issues->getAggregation('status')['buckets'] ?? [] as $bucket) {
-            $counts[(string) $bucket['key']] = (int) $bucket['doc_count'];
-        }
+        $counts = Bucket::countsOf($issues->getAggregation('status'));
         // In the order of the workflow, not by count
         $counts = $this->sortByOrder($counts, self::issueStatusOrder());
 

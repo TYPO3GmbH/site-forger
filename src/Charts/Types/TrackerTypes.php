@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Charts\Types;
 
 use App\Charts\Colors;
+use App\Elastic\Bucket;
 use App\Enum\IssueStatusEnum;
 
 class TrackerTypes extends IssueChart
@@ -45,8 +46,7 @@ class TrackerTypes extends IssueChart
             ],
         ];
         $resultSet = $this->fetchData($fullRequest);
-        $data = $resultSet->getAggregations();
-        $labelBuckets = $data['trackerType']['buckets'] ?? [];
+        $trackers = Bucket::listOf($resultSet->getAggregation('trackerType'));
 
         $typeColors = [
             IssueStatusEnum::NEW->label() => Colors::getAsRgb(Colors::RED),
@@ -61,18 +61,16 @@ class TrackerTypes extends IssueChart
         $labels = [];
         $datasets = [];
         $flatData = [];
-        foreach ($labelBuckets as $type) {
-            $flatData[$type['key']] = [];
-            $labels[] = $type['key'];
-            if (is_array($type['status']['buckets'])) {
-                foreach ($type['status']['buckets'] as $issueType) {
-                    $datasets[$issueType['key']] = [
-                        'label' => $issueType['key'],
-                        'data' => [],
-                        'backgroundColor' => $typeColors[$issueType['key']] ?? Colors::getAsRgb(Colors::GREY),
-                    ];
-                    $flatData[$type['key']][$issueType['key']] = $issueType['doc_count'];
-                }
+        foreach ($trackers as $tracker) {
+            $flatData[$tracker->key] = [];
+            $labels[] = $tracker->key;
+            foreach ($tracker->buckets('status') as $status) {
+                $datasets[$status->key] = [
+                    'label' => $status->key,
+                    'data' => [],
+                    'backgroundColor' => $typeColors[$status->key] ?? Colors::getAsRgb(Colors::GREY),
+                ];
+                $flatData[$tracker->key][$status->key] = $status->count;
             }
         }
 

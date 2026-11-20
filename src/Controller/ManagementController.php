@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\DTO\TrackerFilters;
+use App\Elastic\Bucket;
 use App\Elastic\Indices;
 use App\Enum\TrackerEnum;
 use App\Report\CategoryOverview;
@@ -43,8 +44,8 @@ class ManagementController extends AbstractController
         $viewData['total'] = array_sum(array_column($rows, 'total'));
         // Nothing left out: no filter of the trackers in the search, the issues of every tracker count
         $trackerNames = array_map(
-            static fn (array $bucket): string => str_replace(' ', '_', (string) $bucket['key']),
-            $aggregations['tracker']['buckets'] ?? [],
+            static fn (string $name): string => str_replace(' ', '_', $name),
+            array_keys(Bucket::countsOf($aggregations['tracker'] ?? null)),
         );
         $viewData['trackerFilter'] = [] === $trackerFilters->excluded ? [] : array_fill_keys($trackerNames, 'true');
         // The chips of the trackers

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Report;
 
+use App\Elastic\Bucket;
 use App\Enum\IssueStatusEnum;
 use Twig\Attribute\AsTwigFunction;
 
@@ -176,21 +177,32 @@ final class MonthOverview
     public static function rows(array $years): array
     {
         $rows = [];
-        foreach ($years as $year) {
-            $yearName = explode('/', (string) $year['key_as_string'])[0];
+        foreach ($years as $yearBucket) {
+            $year = Bucket::fromArray($yearBucket);
+            $yearName = explode('/', (string) $year->keyAsString)[0];
             $months = [];
             for ($number = 1; $number <= 12; ++$number) {
-                $months[$number] = ['month' => sprintf('%02d', $number), 'filter' => self::monthFilter($yearName, sprintf('%02d', $number)), 'total' => 0, 'statuses' => []];
+                $month = sprintf('%02d', $number);
+                $months[$number] = [
+                    'month' => $month,
+                    'filter' => self::monthFilter($yearName, $month),
+                    'total' => 0,
+                    'statuses' => [],
+                ];
             }
-            foreach ($year['month']['buckets'] ?? [] as $month) {
-                $number = (int) explode('/', (string) $month['key_as_string'])[1];
-                $statuses = [];
-                foreach ($month['status']['buckets'] ?? [] as $status) {
-                    $statuses[(string) $status['key']] = (int) $status['doc_count'];
-                }
-                $months[$number] = ['month' => sprintf('%02d', $number), 'filter' => $months[$number]['filter'], 'total' => (int) $month['doc_count'], 'statuses' => $statuses];
+            foreach ($year->buckets('month') as $month) {
+                $number = (int) explode('/', (string) $month->keyAsString)[1];
+                $months[$number]['total'] = $month->count;
+                $months[$number]['statuses'] = $month->buckets('status')
+                    ->map(static fn (Bucket $status): int => $status->count)
+                    ->toArray();
             }
-            $rows[] = ['year' => $yearName, 'filter' => self::yearFilter($yearName), 'total' => (int) $year['doc_count'], 'months' => array_values($months)];
+            $rows[] = [
+                'year' => $yearName,
+                'filter' => self::yearFilter($yearName),
+                'total' => $year->count,
+                'months' => array_values($months),
+            ];
         }
         usort($rows, static fn (array $a, array $b): int => $b['year'] <=> $a['year']);
 

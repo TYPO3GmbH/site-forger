@@ -13,6 +13,7 @@ namespace App\Sprint;
 
 use App\Document\Change;
 use App\Document\Issue;
+use App\Elastic\Bucket;
 use App\Elastic\Indices;
 use App\Entity\SprintBoard;
 use App\Enum\IssueStatusEnum;
@@ -47,10 +48,10 @@ final readonly class SprintBoards
             'aggregations' => ['status' => ['terms' => ['field' => 'status.id']]],
         ])->search();
         $count = ['open' => 0, 'closed' => 0, 'blocked' => 0, 'review' => 0, 'total' => 0];
-        foreach ((array) $resultSet->getAggregation('status')['buckets'] as $bucket) {
-            $group = self::group(IssueStatusEnum::tryFrom((int) $bucket['key']));
-            $count[$group] += $bucket['doc_count'];
-            $count['total'] += $bucket['doc_count'];
+        foreach (Bucket::listOf($resultSet->getAggregation('status')) as $bucket) {
+            $group = self::group(IssueStatusEnum::tryFrom((int) $bucket->key));
+            $count[$group] += $bucket->count;
+            $count['total'] += $bucket->count;
         }
         if ($count['total'] > 0) {
             // Shares below 1 % have no bar of their own

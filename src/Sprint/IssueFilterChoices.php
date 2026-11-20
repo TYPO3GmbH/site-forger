@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Sprint;
 
+use App\Elastic\Bucket;
 use App\Elastic\Indices;
 
 /**
@@ -54,13 +55,12 @@ class IssueFilterChoices
 
         $values = [];
         foreach ($fields as $field) {
-            $counts = [];
-            foreach ((array) ($resultSet->getAggregation($field)['buckets'] ?? []) as $bucket) {
-                // Issues without a value, e.g. without focus, cannot be filtered for
-                if ('' !== trim((string) $bucket['key'])) {
-                    $counts[(string) $bucket['key']] = (int) $bucket['doc_count'];
-                }
-            }
+            // Issues without a value, e.g. without focus, cannot be filtered for
+            $counts = array_filter(
+                Bucket::countsOf($resultSet->getAggregation($field)),
+                static fn (int|string $key): bool => '' !== trim((string) $key),
+                ARRAY_FILTER_USE_KEY,
+            );
             // Values such as "13" turn into integer keys
             uksort($counts, static fn (int|string $a, int|string $b): int => strnatcasecmp((string) $a, (string) $b));
             if (str_contains($field, 'version')) {

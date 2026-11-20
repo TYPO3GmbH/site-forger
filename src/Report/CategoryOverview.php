@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Report;
 
+use App\Elastic\Bucket;
 use App\Enum\IssueStatusEnum;
 use App\Enum\TrackerEnum;
 
@@ -97,7 +98,7 @@ final class CategoryOverview
      */
     public static function withoutCategory(?array $bucket): ?array
     {
-        if (null === $bucket || 0 === (int) ($bucket['doc_count'] ?? 0)) {
+        if (null === $bucket || 0 === Bucket::fromArray($bucket)->count) {
             return null;
         }
 
@@ -113,21 +114,21 @@ final class CategoryOverview
     {
         $counts = array_fill_keys(array_map(static fn (TrackerEnum $tracker): string => $tracker->label(), self::TRACKERS), 0);
         $other = ['count' => 0, 'labels' => []];
-        foreach ($bucket['tracker']['buckets'] ?? [] as $tracker) {
-            $label = (string) $tracker['key'];
-            if (array_key_exists($label, $counts)) {
-                $counts[$label] = (int) $tracker['doc_count'];
+        $category = Bucket::fromArray($bucket);
+        foreach ($category->buckets('tracker') as $tracker) {
+            if (array_key_exists($tracker->key, $counts)) {
+                $counts[$tracker->key] = $tracker->count;
                 continue;
             }
-            $other['count'] += (int) $tracker['doc_count'];
-            $other['labels'][] = $label;
+            $other['count'] += $tracker->count;
+            $other['labels'][] = $tracker->key;
         }
         sort($other['labels']);
 
         return [
-            'name' => (string) $bucket['key'],
+            'name' => $category->key,
             // All its open issues, also those without a tracker the aggregation lists
-            'total' => (int) $bucket['doc_count'],
+            'total' => $category->count,
             'counts' => $counts,
             'other' => $other,
         ];
