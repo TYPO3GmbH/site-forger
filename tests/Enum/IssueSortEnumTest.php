@@ -47,23 +47,4 @@ final class IssueSortEnumTest extends TestCase
         $labels = array_map(static fn (IssueSortEnum $sort): string => $sort->label(), IssueSortEnum::cases());
         self::assertSame($labels, array_values(array_unique($labels)));
     }
-
-    public function testDateOrders(): void
-    {
-        self::assertSame([['created_on' => 'desc']], IssueSortEnum::NEWEST->sort());
-        self::assertSame([['created_on' => 'asc']], IssueSortEnum::OLDEST->sort());
-        self::assertSame([['updated_on' => 'desc']], IssueSortEnum::UPDATED->sort());
-        self::assertSame([['updated_on' => 'asc']], IssueSortEnum::LEAST_UPDATED->sort());
-    }
-
-    public function testPriorityPutsMustHaveFirstAndIssuesWithoutPriorityLast(): void
-    {
-        self::assertSame(
-            [
-                ['priority.id' => ['order' => 'asc', 'missing' => '_last', 'unmapped_type' => 'long']],
-                ['updated_on' => 'desc'],
-            ],
-            IssueSortEnum::PRIORITY->sort()
-        );
-    }
 }

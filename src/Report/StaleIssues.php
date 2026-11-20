@@ -20,6 +20,7 @@ use App\Enum\IssueSortEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
 use App\Search\ActivityQuery;
+use App\Search\IssueSortQuery;
 use Doctrine\Common\Collections\ArrayCollection;
 
 /**
@@ -82,7 +83,7 @@ final readonly class StaleIssues
                 'minimum_should_match' => 1,
             ]],
             // The id last, so the pages keep their order among issues of the same value
-            'sort' => [...$sort->sort(), ['id' => 'asc']],
+            'sort' => [...IssueSortQuery::sort($sort), ['id' => 'asc']],
             'from' => (max(1, $page) - 1) * $perPage,
             'size' => $perPage,
             'track_total_hits' => true,

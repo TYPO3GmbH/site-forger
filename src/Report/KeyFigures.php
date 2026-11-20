@@ -19,6 +19,7 @@ use App\Enum\ReviewStatusEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
 use App\Search\IssueSearch;
+use App\Search\IssueSortQuery;
 use App\Search\ReviewLists;
 
 /**
@@ -88,7 +89,7 @@ final readonly class KeyFigures
      */
     public function newIssues(): SearchResult
     {
-        return $this->issues->search(self::latest(IssueSearch::query(''), IssueSortEnum::NEWEST->sort()));
+        return $this->issues->search(self::latest(IssueSearch::query(''), IssueSortQuery::sort(IssueSortEnum::NEWEST)));
     }
 
     /**

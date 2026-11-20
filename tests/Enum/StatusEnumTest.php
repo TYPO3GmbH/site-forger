@@ -72,15 +72,6 @@ final class StatusEnumTest extends TestCase
         self::assertFalse(ReviewStateEnum::WORK_IN_PROGRESS->isClosed());
     }
 
-    public function testReviewStateQueries(): void
-    {
-        self::assertSame(
-            ['bool' => ['filter' => [['term' => ['reviewstatus' => 'NEW']]], 'must_not' => [['term' => ['work_in_progress' => true]]]]],
-            ReviewStateEnum::READY->query()
-        );
-        self::assertSame(['term' => ['reviewstatus' => 'MERGED']], ReviewStateEnum::MERGED->query());
-    }
-
     public function testEveryStateHasItsOwnSeverity(): void
     {
         $issueSeverities = array_map(static fn (IssueStatusEnum $state): string => $state->severity(), IssueStatusEnum::cases());

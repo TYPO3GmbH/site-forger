@@ -39,28 +39,6 @@ enum IssueSortEnum: string
     }
 
     /**
-     * The "sort" of the search request.
-     *
-     * @return list<array<string, mixed>>
-     */
-    public function sort(): array
-    {
-        return match ($this) {
-            self::RELEVANCE => [['_score' => 'desc'], ['updated_on' => 'desc']],
-            self::NEWEST => [['created_on' => 'desc']],
-            self::OLDEST => [['created_on' => 'asc']],
-            self::UPDATED => [['updated_on' => 'desc']],
-            self::LEAST_UPDATED => [['updated_on' => 'asc']],
-            // The Redmine ids of the priorities go from "Must have" to "-- undefined --", see PriorityEnum.
-            // An issue without a priority comes last, and an index without one sorts without an error.
-            self::PRIORITY => [
-                ['priority.id' => ['order' => 'asc', 'missing' => '_last', 'unmapped_type' => 'long']],
-                ['updated_on' => 'desc'],
-            ],
-        };
-    }
-
-    /**
      * The orders a list offers. Relevance only means something when search words rank the issues.
      *
      * @return list<self>

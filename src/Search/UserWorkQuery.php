@@ -62,7 +62,7 @@ final readonly class UserWorkQuery
             ['author.name' => $this->names()],
             ['assigned_to.name.keyword' => $this->names()],
         ], '' === trim($this->searchTerms) ? null : IssueSearch::query($this->searchTerms, true));
-        $request['sort'] = $this->issueSort->sort();
+        $request['sort'] = IssueSortQuery::sort($this->issueSort);
         $request['aggs'] = [
             'status' => ['terms' => ['field' => 'status.id', 'size' => 20]],
         ];
@@ -86,10 +86,10 @@ final readonly class UserWorkQuery
             ['ownerEmail' => $this->emails()],
             ['owner' => $this->names()],
         ], ReviewSearch::query($this->searchTerms));
-        $request['sort'] = $this->reviewSort->sort();
+        $request['sort'] = ReviewSortQuery::sort($this->reviewSort);
         $states = [];
         foreach (ReviewStateEnum::cases() as $state) {
-            $states[$state->value] = $state->query();
+            $states[$state->value] = ReviewStateQuery::changes($state);
         }
         $request['aggs'] = [
             'status' => ['filters' => ['filters' => $states]],
@@ -98,7 +98,7 @@ final readonly class UserWorkQuery
         return $this->withPostFilter(
             $request,
             ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]],
-            $this->reviewState?->query(),
+            null === $this->reviewState ? null : ReviewStateQuery::changes($this->reviewState),
         );
     }
 

@@ -17,6 +17,7 @@ use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
 use App\Search\IssueSearch;
 use App\Search\ReviewSearch;
+use App\Search\ReviewSortQuery;
 use App\Search\UserWorkQuery;
 use PHPUnit\Framework\TestCase;
 
@@ -51,7 +52,10 @@ final class UserWorkQueryTest extends TestCase
         self::assertSame([['created_on' => 'desc']], $query->issues()['sort']);
         self::assertSame([['created_on' => 'asc']], $query->reviews()['sort']);
         // Without an order the recently updated first
-        self::assertSame(ReviewSortEnum::UPDATED->sort(), (new UserWorkQuery('jane@example.org', 'Jane Doe'))->reviews()['sort']);
+        self::assertSame(
+            ReviewSortQuery::sort(ReviewSortEnum::UPDATED),
+            (new UserWorkQuery('jane@example.org', 'Jane Doe'))->reviews()['sort'],
+        );
     }
 
     public function testClosedIssuesAreHiddenButCounted(): void

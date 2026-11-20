@@ -66,21 +66,4 @@ enum ReviewStateEnum: string
     {
         return $this->status()->isClosed();
     }
-
-    /**
-     * The Elasticsearch query matching the changes in this state.
-     *
-     * @return array<string, mixed>
-     */
-    public function query(): array
-    {
-        $status = ['term' => ['reviewstatus' => $this->status()->value]];
-        $workInProgress = ['term' => ['work_in_progress' => true]];
-
-        return match ($this) {
-            self::READY => ['bool' => ['filter' => [$status], 'must_not' => [$workInProgress]]],
-            self::WORK_IN_PROGRESS => ['bool' => ['filter' => [$status, $workInProgress]]],
-            self::MERGED, self::ABANDONED => $status,
-        };
-    }
 }

@@ -44,7 +44,7 @@ final readonly class ReviewListSearch
         Pagination $page,
     ): array {
         $request = [
-            'sort' => $sort->sort(),
+            'sort' => ReviewSortQuery::sort($sort),
             'size' => $page->perPage,
             'from' => $page->from(),
         ];

@@ -11,13 +11,11 @@ declare(strict_types=1);
 
 namespace App\Enum;
 
-use App\Search\ReviewSizeQuery;
-
 /**
  * The orders a list of Gerrit changes can be sorted in.
  *
  * No source system has ids for them: the value is the key in the URL ("?sort=smallest"), the label the name in the
- * list's sort field. Changes updated at the same time come smaller first, then those with more patch sets.
+ * list's sort field.
  */
 enum ReviewSortEnum: string
 {
@@ -30,8 +28,6 @@ enum ReviewSortEnum: string
     case OLDEST = 'oldest';
     case MOST_PATCHSETS = 'patchsets';
 
-    private const array TIE_BREAKERS = [['insertions' => 'asc'], ['deletions' => 'asc'], ['patchsets' => 'desc']];
-
     public function label(): string
     {
         return match ($this) {
@@ -42,33 +38,6 @@ enum ReviewSortEnum: string
             self::OLDEST => 'Oldest',
             self::SMALLEST => 'Smallest first',
             self::MOST_PATCHSETS => 'Most patch sets',
-        };
-    }
-
-    /**
-     * The "sort" of the search request.
-     *
-     * @return list<array<string, mixed>>
-     */
-    public function sort(): array
-    {
-        return match ($this) {
-            self::RELEVANCE => [['_score' => 'desc'], ['updated_on' => 'desc']],
-            self::UPDATED => [['updated_on' => 'desc'], ...self::TIE_BREAKERS],
-            self::LEAST_UPDATED => [['updated_on' => 'asc'], ...self::TIE_BREAKERS],
-            self::NEWEST => [['created_on' => 'desc']],
-            self::OLDEST => [['created_on' => 'asc']],
-            // The size is the lines added and removed together, as Gerrit shows it
-            self::SMALLEST => [
-                ['_script' => [
-                    'type' => 'number',
-                    'order' => 'asc',
-                    // Without lines, as imported before them, a change counts as empty instead of failing the search
-                    'script' => ['lang' => 'painless', 'source' => ReviewSizeQuery::LINES_SCRIPT],
-                ]],
-                ['updated_on' => 'desc'],
-            ],
-            self::MOST_PATCHSETS => [['patchsets' => 'desc'], ['updated_on' => 'desc']],
         };
     }
 
