@@ -11,17 +11,15 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Elastic\Indices;
 use App\Entity\SprintBoard;
-use App\Enum\IssueStatusEnum;
-use App\Enum\ReviewStatusEnum;
 use App\Form\SprintBoardWizard;
 use App\Repository\SprintBoardCategoryRepository;
 use App\Repository\SprintBoardRepository;
 use App\Sprint\BoardFilter;
+use App\Sprint\ReviewBoards;
+use App\Sprint\SprintBoards;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -32,11 +30,11 @@ use Symfony\Component\Yaml\Yaml;
 class SprintController extends AbstractController
 {
     public function __construct(
-        private readonly Indices $indices,
+        private readonly SprintBoards $sprintBoards,
+        private readonly ReviewBoards $reviewBoards,
         private readonly SprintBoardCategoryRepository $sprintBoardCategoryRepository,
         private readonly SprintBoardRepository $sprintBoardRepository,
-        private readonly ParameterBagInterface $parameters,
-        private readonly EntityManagerInterface $entityManager
+        private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -60,7 +58,7 @@ class SprintController extends AbstractController
             $boards = [];
             foreach ($this->sprintBoardRepository->findBy(['category' => $category], ['sorting' => 'ASC', 'name' => 'ASC']) as $board) {
                 try {
-                    $count = $this->getTicketByBoardQuery((string) $board->getQuery());
+                    $count = $this->sprintBoards->counts((string) $board->getQuery());
                 } catch (ParseException) {
                     $count = null;
                 }
@@ -77,11 +75,9 @@ class SprintController extends AbstractController
     #[Route(path: '/sprint/reviews/{reviewType}', name: 'sprint_reviews', defaults: ['reviewType' => 'bugfix'])]
     public function reviewSprintAction(string $reviewType): Response
     {
-        $reviewBoardData = $this->getReviewBoardData($reviewType);
-
         return $this->render('sprint/review.html.twig', [
-            'menu' => $this->makeReviewMenu($reviewType),
-            'cards' => $reviewBoardData,
+            'menu' => $this->reviewBoards->menu($reviewType),
+            'cards' => $this->reviewBoards->cards($reviewType),
         ]);
     }
 
@@ -166,28 +162,7 @@ class SprintController extends AbstractController
             return $this->render('sprint/_wizard_preview.html.twig', ['hasFilter' => false]);
         }
 
-        /** @var array<string, int|null> $columns */
-        $columns = $this->parameters->get('ColumnOrder');
-        $resultSet = $this->indices->get('issue')->createSearch([
-            'query' => $filter->toQuery(),
-            'size' => 10000,
-            '_source' => ['id', 'subject', 'status', 'tracker'],
-            'sort' => [['updated_on' => ['order' => 'desc']]],
-        ])->search();
-        $issues = [];
-        foreach ($resultSet->getResults() as $result) {
-            $issue = $result->getSource();
-            $issue['column'] = $this->defineBoardGroup((string) ($issue['status']['name'] ?? ''));
-            $columns[$issue['column']] = ($columns[$issue['column']] ?? 0) + 1;
-            $issues[] = $issue;
-        }
-
-        return $this->render('sprint/_wizard_preview.html.twig', [
-            'hasFilter' => true,
-            'columns' => array_map(static fn (?int $count): int => $count ?? 0, $columns),
-            'total' => count($issues),
-            'issues' => array_slice($issues, 0, 25),
-        ]);
+        return $this->render('sprint/_wizard_preview.html.twig', ['hasFilter' => true] + $this->sprintBoards->preview($filter));
     }
 
     /**
@@ -245,15 +220,12 @@ class SprintController extends AbstractController
 
     #[Route(path: '/sprint/delete/{sprintId}', name: 'sprint_delete')]
     #[IsGranted('ROLE_CORE_COMPONENT')]
-    public function deleteSprint(
-        int $sprintId,
-        EntityManagerInterface $entityManager
-    ): Response {
+    public function deleteSprint(int $sprintId): Response
+    {
         $sprint = $this->sprintBoardRepository->find($sprintId);
-
         if (null !== $sprint) {
-            $entityManager->remove($sprint);
-            $entityManager->flush();
+            $this->entityManager->remove($sprint);
+            $this->entityManager->flush();
             $this->addFlash('success', 'Sprint deleted.');
         }
 
@@ -262,11 +234,9 @@ class SprintController extends AbstractController
 
     #[Route(path: '/sprint/delete/{sprintId}/confirm', name: 'sprint_delete_confirm')]
     #[IsGranted('ROLE_CORE_COMPONENT')]
-    public function deleteSprintConfirm(
-        int $sprintId
-    ): Response {
+    public function deleteSprintConfirm(int $sprintId): Response
+    {
         $sprint = $this->sprintBoardRepository->find($sprintId);
-
         if (null !== $sprint) {
             return $this->render('sprint/delete_confirm.html.twig', [
                 'sprint' => $sprint,
@@ -276,333 +246,41 @@ class SprintController extends AbstractController
         return $this->redirectToRoute('dashboard_index');
     }
 
-    protected function getReviewBoardData(string $boardId = ''): array
-    {
-        if (in_array($boardId, ['bugfix', 'feature', 'task'], true)) {
-            $query = $this->getReviewBoardQuery($boardId);
-            $out = [
-                'missesBoth' => [],
-                'missesCodeReview' => [],
-                'missesTesting' => [],
-                'hasPlusOne' => [],
-                'mergeConflict' => [],
-                'blocked' => [],
-            ];
-            $fullRequest = [
-                'query' => $query,
-                'size' => 500,
-                'sort' => [
-                    [
-                        'updated_on' => [
-                            'order' => 'asc',
-                        ],
-                    ],
-                ],
-            ];
-            $resultSet = $this->indices->get('review')
-                ->createSearch($fullRequest)->search();
-            foreach ($resultSet->getResults() as $review) {
-                $getBoardGroup = $this->defineReviewBoardGroup($review->getSource());
-                $out[$getBoardGroup][] = $review->getSource();
-            }
-
-            return $out;
-        }
-
-        return [];
-    }
-
-    /**
-     * @throws \Exception
-     */
     #[Route(path: '/sprint/{category}/{sprintId}', name: 'sprint', defaults: ['category' => 'index'])]
     public function index(string $category, ?int $sprintId = null): Response
     {
-        $sprintCategory = $this->sprintBoardCategoryRepository->findOneBy([
-            'identifier' => $category,
-        ]);
-        // Exit early if no category could be found
-        if (!$sprintCategory) {
+        $sprintCategory = $this->sprintBoardCategoryRepository->findOneBy(['identifier' => $category]);
+        if (null === $sprintCategory) {
             return new Response('Sprint board not found', Response::HTTP_NOT_FOUND);
         }
-        $sprints = $this->sprintBoardRepository->findBy(
-            ['category' => $sprintCategory],
-            ['sorting' => 'ASC']
-        );
-        // Find active Sprint
-        $activeSprintId = $sprintId ?? 0;
-        $cards = [];
-        $boardInfo = [];
-        $progress = [];
-        $currentSprint = '';
-        if ($activeSprintId > 0) {
-            foreach ($sprints as $sprint) {
-                if ($sprint->getId() === $activeSprintId) {
-                    $currentSprint = $sprint;
-                }
-            }
-            if ($currentSprint instanceof SprintBoard) {
-                $cards = $this->getBoardData($currentSprint);
-                $boardInfo = $currentSprint->getName();
-                $ticketCount = [];
-                foreach ($cards as $status => $tickets) {
-                    $ticketCount[$status] = ($tickets ? is_countable($tickets) ? count($tickets) : 0 : 0);
-                }
-                $progress = $this->calculateProgressBars($ticketCount);
-            }
-        }
+        $boards = $this->sprintBoardRepository->findBy(['category' => $sprintCategory], ['sorting' => 'ASC']);
+        $activeId = $sprintId ?? 0;
+        $active = array_find($boards, static fn (SprintBoard $board): bool => $board->getId() === $activeId);
+        $cards = null === $active ? [] : $this->sprintBoards->cards($active);
 
         return $this->render('sprint/index.html.twig', [
-            'menu' => $this->createMenu($sprints, $activeSprintId),
+            'menu' => $this->menu($boards, $activeId),
             'cards' => $cards,
-            'boardInfo' => $boardInfo,
-            'progress' => $progress,
+            'boardInfo' => $active?->getName() ?? [],
+            'progress' => null === $active ? [] : SprintBoards::progress($cards),
             'category' => $category,
             'categoryName' => (string) $sprintCategory->getName(),
-            'sprintId' => $activeSprintId,
+            'sprintId' => $activeId,
         ]);
     }
 
-    protected function getReviewBoardQuery(string $boardId): array
-    {
-        return [
-            'bool' => [
-                'must' => [
-                    [
-                        'terms' => [
-                            'reviewtags' => [
-                                strtoupper($boardId),
-                            ],
-                        ],
-                    ],
-                    [
-                        'query_string' => [
-                            'default_field' => 'reviewstatus',
-                            'query' => ReviewStatusEnum::NEW->value,
-                        ],
-                    ],
-                ],
-                'must_not' => [
-                    [
-                        'term' => [
-                            'work_in_progress' => true,
-                        ],
-                    ],
-                ],
-
-            ],
-        ];
-    }
-
     /**
-     * Generates a list of boards to link to.
+     * @param list<SprintBoard> $boards
+     *
+     * @return list<array{id: int|null, title: string|null, active: bool, count: array<string, int|float>}>
      */
-    protected function makeReviewMenu(string $active = ''): array
+    private function menu(array $boards, int $activeId): array
     {
-        return [
-            [
-                'id' => 'bugfix',
-                'count' => $this->getReviewsByBoardQuery($this->getReviewBoardQuery('bugfix')),
-                'name' => 'Bugfixes',
-                'active' => 'bugfix' === $active,
-            ],
-            [
-                'id' => 'task',
-                'count' => $this->getReviewsByBoardQuery($this->getReviewBoardQuery('task')),
-                'name' => 'Tasks',
-                'active' => 'task' === $active,
-            ],
-            [
-                'id' => 'feature',
-                'count' => $this->getReviewsByBoardQuery($this->getReviewBoardQuery('feature')),
-                'name' => 'Features',
-                'active' => 'feature' === $active,
-            ],
-        ];
-    }
-
-    private function getReviewsByBoardQuery(array $query): int
-    {
-        $fullRequest = [
-            'query' => $query,
-            'size' => 0,
-        ];
-        $resultSet = $this->indices->get('review')
-            ->createSearch($fullRequest)->search();
-
-        return $resultSet->getTotalHits();
-    }
-
-    private function defineReviewBoardGroup(array $review): string
-    {
-        return match (true) {
-            'no' === $review['mergeable'] => 'mergeConflict',
-            0 === $review['positive_reviews']
-                && 0 === $review['positive_verifications']
-                && 0 === $review['negative_reviews']
-                && 0 === $review['negative_verifications'] => 'missesBoth',
-            $review['positive_reviews'] > 0
-                && 0 === $review['positive_verifications']
-                && 0 === $review['negative_reviews']
-                && 0 === $review['negative_verifications'] => 'missesTesting',
-            0 === $review['positive_reviews']
-                && $review['positive_verifications'] > 0
-                && 0 === $review['negative_reviews']
-                && 0 === $review['negative_verifications'] => 'missesCodeReview',
-            $review['positive_reviews'] > 0
-                && $review['positive_verifications'] > 0
-                && 0 === $review['negative_reviews']
-                && 0 === $review['negative_verifications'] => 'hasPlusOne',
-            default => 'blocked',
-        };
-    }
-
-    private function createMenu(array $sprints, int $activeId): array
-    {
-        $menu = [];
-        /** @var SprintBoard $sprint */
-        foreach ($sprints as $sprint) {
-            $resultCount = $this->getTicketByBoardQuery($sprint->getQuery());
-            $menuItem = [
-                'id' => $sprint->getId(),
-                'title' => $sprint->getName(),
-                'active' => $activeId === $sprint->getId(),
-                'count' => $resultCount,
-
-            ];
-            $menu[] = $menuItem;
-        }
-
-        return $menu;
-    }
-
-    private function getTicketByBoardQuery(string $query): array
-    {
-        $query = Yaml::parse($query);
-        $fullRequest = [
-            'query' => $query,
-            'size' => 0,
-            'aggregations' => [
-                'status' => [
-                    'terms' => [
-                        'field' => 'status.id',
-                    ],
-                ],
-            ],
-        ];
-        $resultSet = $this->indices->get('issue')
-            ->createSearch($fullRequest)->search();
-        $count = [
-            'open' => 0,
-            'closed' => 0,
-            'blocked' => 0,
-            'review' => 0,
-            'total' => 0,
-        ];
-        foreach ((array) $resultSet->getAggregation('status')['buckets'] as $bucket) {
-            $state = IssueStatusEnum::tryFrom((int) $bucket['key']);
-            $group = match (true) {
-                (bool) $state?->isClosed() => 'closed',
-                IssueStatusEnum::UNDER_REVIEW === $state => 'review',
-                IssueStatusEnum::NEEDS_FEEDBACK === $state, IssueStatusEnum::ON_HOLD === $state => 'blocked',
-                default => 'open',
-            };
-            $count[$group] += $bucket['doc_count'];
-            $count['total'] += $bucket['doc_count'];
-        }
-        if ($count['total'] > 0) {
-            $count['reviewPercentage'] = round($count['review'] * 100.0 / $count['total']);
-            if ($count['reviewPercentage'] < 1) {
-                unset($count['reviewPercentage']);
-            }
-            $count['blockedPercentage'] = round($count['blocked'] * 100.0 / $count['total']);
-            if ($count['blockedPercentage'] < 1) {
-                unset($count['blockedPercentage']);
-            }
-            $count['percentage'] = round($count['closed'] * 100.0 / $count['total']);
-            if ($count['percentage'] < 1 && $count['total'] < 1) {
-                unset($count['percentage']);
-            }
-        }
-
-        return $count;
-    }
-
-    private function getBoardData(SprintBoard $sprint): array
-    {
-        /** @var array $out */
-        $out = $this->parameters->get('ColumnOrder');
-        $fullRequest = [
-            'query' => Yaml::parse($sprint->getQuery()),
-            'size' => 10000,
-        ];
-        $resultSet = $this->indices->get('issue')
-            ->createSearch($fullRequest)->search();
-        foreach ($resultSet->getResults() as $ticket) {
-            $status = $ticket->getSource()['status'];
-            $getBoardGroup = $this->defineBoardGroup($status['name']);
-            // Issues in review show their Gerrit review, if it is known
-            $out[$getBoardGroup][] = ('Review' === $getBoardGroup ? $this->getReviewCard($ticket->getData()) : null) ?? $ticket->getData();
-        }
-
-        return $out;
-    }
-
-    /**
-     * The Gerrit review linked in the journal of an issue, null if there is none or it was not imported.
-     */
-    private function getReviewCard(array $ticket): ?array
-    {
-        $notes = '';
-        foreach ((array) ($ticket['journals'] ?? []) as $journalEntry) {
-            if (isset($journalEntry['notes'])
-                && (
-                    str_contains((string) $journalEntry['notes'], 'It is available at http://review.typo3.org/')
-                    || str_contains((string) $journalEntry['notes'], 'It is available at https://review.typo3.org/')
-                )
-            ) {
-                $notes = $journalEntry['notes'];
-            }
-        }
-        $pattern = '|.*https?:\/\/review\.typo3\.org\/(?>(c\/)?)(?>Packages\/TYPO3\.CMS\/\+\/)?(?<reviewId>[\d]{2,6})|';
-        if ('' === $notes || 1 !== preg_match($pattern, (string) $notes, $matches)) {
-            return null;
-        }
-
-        try {
-            $review = $this->indices->get('review')->getDocument($matches['reviewId'])->getData();
-        } catch (\Exception) {
-            return null;
-        }
-        $review['_redmine_issue_id'] = $ticket['id'];
-
-        return $review;
-    }
-
-    private function defineBoardGroup(string $status): string
-    {
-        return array_key_exists($status, $this->parameters->get('StatusMapping'))
-            ? $this->parameters->get('StatusMapping')[$status]
-            : $this->parameters->get('StatusMapping')['DefaultState'];
-    }
-
-    private function calculateProgressBars(array $data): array
-    {
-        $out = [];
-        $fullCount = array_sum($data);
-        $percentage = ($fullCount / 100) ?: 1;
-        foreach ($data as $key => $count) {
-            $lowerKey = strtolower($key);
-            $out['sections'][$lowerKey]['classes'] = $lowerKey;
-            if ('WIP' === $key) {
-                $out['sections'][$lowerKey]['classes'] = 'wip active progress-bar-striped';
-            }
-
-            $out['sections'][$lowerKey]['value'] = ($count / $percentage);
-            $out['sections'][$lowerKey]['label'] = $key;
-        }
-        $out['total'] = $fullCount;
-
-        return $out;
+        return array_map(fn (SprintBoard $board): array => [
+            'id' => $board->getId(),
+            'title' => $board->getName(),
+            'active' => $activeId === $board->getId(),
+            'count' => $this->sprintBoards->counts((string) $board->getQuery()),
+        ], $boards);
     }
 }

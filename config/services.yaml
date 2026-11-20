@@ -7,21 +7,7 @@ parameters:
   router.request_context.host: '%env(APP_URL)%'
   router.request_context.scheme: 'https'
   redmine_project_id: 27
-  'StatusMapping':
-    'Rejected': 'Done'
-    'Closed': 'Done'
-    'Resolved': 'Done'
-    'Under Review': 'Review'
-    'In Progress': 'WIP'
-    'On Hold': 'BLOCKED'
-    'Needs Feedback': 'BLOCKED'
-    'DefaultState': 'Open'
-  'ColumnOrder':
-    'BLOCKED':
-    'Open':
-    'WIP':
-    'Review':
-    'Done':
+
 services:
   # default configuration for services in *this* file
   _defaults:
