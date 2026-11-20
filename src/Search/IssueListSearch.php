@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Search;
 
+use App\Document\Issue;
 use App\DTO\Pagination;
 use App\Elastic\Indices;
 use App\Enum\ActivityEnum;
@@ -55,7 +56,7 @@ final readonly class IssueListSearch
     /**
      * @param array<string, array<string, string>> $filters the filters of the request
      *
-     * @return array<string, mixed> the data for the result list
+     * @return ListPage<Issue>
      */
     public function search(
         string $searchTerms,
@@ -63,7 +64,7 @@ final readonly class IssueListSearch
         IssueSortEnum $sort,
         array $filters,
         Pagination $page,
-    ): array {
+    ): ListPage {
         $request = ['query' => IssueSearch::query($searchTerms, $includeClosed), 'sort' => IssueSortQuery::sort($sort)];
         $filterQuery = $this->filterQuery($filters);
         if (count($filterQuery) > 0) {
@@ -90,11 +91,7 @@ final readonly class IssueListSearch
             $facets['Activity'] = ActivityQuery::facet($facets['Activity']);
         }
 
-        return $page->withTotal($issues->total)->viewData() + [
-            'issues' => $issues,
-            'maxScore' => $issues->maxScore,
-            'aggs' => $facets,
-        ];
+        return new ListPage($issues, $facets, $page->withTotal($issues->total));
     }
 
     /**

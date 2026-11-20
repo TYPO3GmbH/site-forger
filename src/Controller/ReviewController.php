@@ -265,7 +265,11 @@ class ReviewController extends AbstractController
         );
         $page = $this->page();
         $filters = $this->query()->all('filters');
-        $viewData = $this->reviewListSearch->search($listQuery, $sort, $aggregations, $filters, $page);
+        $changes = $this->reviewListSearch->search($listQuery, $sort, $aggregations, $filters, $page);
+        $viewData = $changes->page->viewData() + [
+            'changes' => $changes->results,
+            'aggregations' => $changes->facets,
+        ];
         $viewData['filters'] = $filters;
         $viewData['query'] = $this->query()->getString('query');
         $viewData['routeName'] = $routeName;

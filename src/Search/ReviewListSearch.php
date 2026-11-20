@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Search;
 
+use App\Document\Change;
 use App\DTO\Pagination;
 use App\Elastic\Indices;
 use App\Enum\ReviewSortEnum;
@@ -34,7 +35,7 @@ final readonly class ReviewListSearch
      * @param array<string, mixed>      $aggregations see ReviewLists::aggregations()
      * @param array<mixed>              $filters      the filters of the request
      *
-     * @return array<string, mixed> the data for the result list
+     * @return ListPage<Change>
      */
     public function search(
         ?array $listQuery,
@@ -42,7 +43,7 @@ final readonly class ReviewListSearch
         array $aggregations,
         array $filters,
         Pagination $page,
-    ): array {
+    ): ListPage {
         $request = [
             'sort' => ReviewSortQuery::sort($sort),
             'size' => $page->perPage,
@@ -74,10 +75,7 @@ final readonly class ReviewListSearch
             $found['Size'] = ReviewSizeQuery::facet($found['Size']);
         }
 
-        return $page->withTotal($changes->total)->viewData() + [
-            'changes' => $changes,
-            'aggregations' => $found,
-        ];
+        return new ListPage($changes, $found, $page->withTotal($changes->total));
     }
 
     /**

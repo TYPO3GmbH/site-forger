@@ -43,7 +43,12 @@ class SearchController extends AbstractController
         $sort = IssueSortEnum::fromRequest($request->query->getString('sort'), $withRelevance);
         $page = new Pagination($request->query->getInt('page', 1));
 
-        $viewData = $this->issueListSearch->search($query, $searchClosed, $sort, $filters, $page);
+        $issues = $this->issueListSearch->search($query, $searchClosed, $sort, $filters, $page);
+        $viewData = $issues->page->viewData() + [
+            'issues' => $issues->results,
+            'maxScore' => $issues->results->maxScore,
+            'aggs' => $issues->facets,
+        ];
         $viewData['sort'] = $sort;
         $viewData['sortOptions'] = IssueSortEnum::options($withRelevance);
         // Links leave out the default, so a changed search keeps its own default
@@ -56,7 +61,7 @@ class SearchController extends AbstractController
                 $filters,
                 $this->users,
             )],
-            [GlobalSearch::ISSUES => (int) $viewData['totalResults']],
+            [GlobalSearch::ISSUES => $issues->results->total],
         );
         $viewData['exactMatches'] = $this->globalSearch->exactMatches($query);
         $viewData['query'] = $query;
