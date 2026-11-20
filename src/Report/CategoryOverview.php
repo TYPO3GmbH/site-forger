@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace App\Report;
 
 use App\Elastic\Bucket;
-use App\Enum\IssueStatusEnum;
 use App\Enum\TrackerEnum;
+use App\Search\IssueSearch;
 use Doctrine\Common\Collections\ReadableCollection;
 
 /**
@@ -52,7 +52,7 @@ final class CategoryOverview
     {
         return [
             'query' => ['bool' => ['must_not' => [
-                ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]],
+                IssueSearch::closed(),
                 // Not an issue of the TYPO3 Core
                 ['terms' => ['project.id' => ['78']]],
             ]]],

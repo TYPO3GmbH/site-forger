@@ -64,13 +64,13 @@ final readonly class UserWorkQuery
         ], '' === trim($this->searchTerms) ? null : IssueSearch::query($this->searchTerms, true));
         $request['sort'] = $this->issueSort->sort();
         $request['aggs'] = [
-            'status' => ['terms' => ['field' => 'status.name', 'size' => 20]],
+            'status' => ['terms' => ['field' => 'status.id', 'size' => 20]],
         ];
 
         return $this->withPostFilter(
             $request,
-            ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]],
-            null === $this->issueStatus ? null : ['term' => ['status.name' => $this->issueStatus->label()]],
+            IssueSearch::closed(),
+            null === $this->issueStatus ? null : ['term' => ['status.id' => $this->issueStatus->value]],
         );
     }
 
@@ -109,7 +109,7 @@ final readonly class UserWorkQuery
      */
     public function openIssuesCount(): array
     {
-        return $this->openCount($this->issues(), ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]]);
+        return $this->openCount($this->issues(), IssueSearch::closed());
     }
 
     /**

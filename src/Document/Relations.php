@@ -12,9 +12,9 @@ declare(strict_types=1);
 namespace App\Document;
 
 use App\Elastic\SearchResult;
-use App\Enum\IssueStatusEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
+use App\Search\IssueSearch;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\ReadableCollection;
 
@@ -126,7 +126,7 @@ final readonly class Relations
             ]],
         ];
         if (!$includeClosed) {
-            $bool['must_not'] = [['terms' => ['status.name' => IssueStatusEnum::closedLabels()]]];
+            $bool['must_not'] = [IssueSearch::closed()];
         }
 
         return $this->issues->search([

@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Enum;
 
 use App\Elastic\Bucket;
+use App\Search\IssueSearch;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\ReadableCollection;
 
@@ -148,7 +149,7 @@ enum ActivityEnum: string
      */
     public function issueQuery(): array
     {
-        return $this->openQuery(['terms' => ['status.name' => IssueStatusEnum::closedLabels()]]);
+        return $this->openQuery(IssueSearch::closed());
     }
 
     /**

@@ -15,7 +15,6 @@ use App\Document\Change;
 use App\Document\Issue;
 use App\Elastic\SearchResult;
 use App\Enum\IssueSortEnum;
-use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStatusEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
@@ -138,7 +137,7 @@ final readonly class KeyFigures
      */
     private static function closedStatus(): array
     {
-        return ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]];
+        return IssueSearch::closed();
     }
 
     /**

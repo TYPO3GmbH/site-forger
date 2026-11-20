@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace App\Report;
 
 use App\Elastic\Bucket;
-use App\Enum\IssueStatusEnum;
+use App\Search\IssueSearch;
 use Doctrine\Common\Collections\ReadableCollection;
 use Twig\Attribute\AsTwigFunction;
 
@@ -49,7 +49,7 @@ final class MonthOverview
     public static function request(array $excludedTrackers): array
     {
         $mustNot = [
-            ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]],
+            IssueSearch::closed(),
             ['terms' => ['project.id' => [self::EXCLUDED_PROJECT]]],
         ];
         if ([] !== $excludedTrackers) {

@@ -88,15 +88,11 @@ final readonly class Issue
     }
 
     /**
-     * The status as IssueStatusEnum, by its id, else by its name. Null for a status Forger does not know.
+     * The status as IssueStatusEnum, null for a status Forger does not know.
      */
     public function statusEnum(): ?IssueStatusEnum
     {
-        if (isset($this->status['id'])) {
-            return IssueStatusEnum::tryFrom((int) $this->status['id']);
-        }
-
-        return IssueStatusEnum::tryFromLabel((string) ($this->status['name'] ?? ''));
+        return isset($this->status['id']) ? IssueStatusEnum::tryFrom((int) $this->status['id']) : null;
     }
 
     /**

@@ -28,6 +28,7 @@ use App\Report\LinkedChange;
 use App\Report\MonthOverview;
 use App\Report\StaleIssue;
 use App\Report\StaleIssues;
+use App\Search\IssueStatusCount;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Finder\Finder;
@@ -208,6 +209,31 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('href="/my/changes?review=wip&amp;sort=smallest"', $html);
         self::assertSame(2, substr_count($html, 'href="/change/'));
         self::assertStringNotContainsString('mywork-group', $html);
+    }
+
+    public function testMyIssuesHaveAChipPerStatusTheClosedOnesHidden(): void
+    {
+        $html = $this->twig->load('my/issues.html.twig')->renderBlock('view', [
+            'includeClosed' => false,
+            'query' => '',
+            'issues' => [Issue::fromDocument(self::ISSUE)],
+            'shown' => 1,
+            'total' => 1,
+            'selected' => null,
+            'statusCounts' => IssueStatusCount::listOf([5 => 2, 1 => 1, 8 => 3]),
+            'allCount' => 4,
+            'hidden' => 2,
+            'name' => 'Me',
+            'email' => 'me@example.org',
+            'sort' => IssueSortEnum::UPDATED,
+            'sortOptions' => IssueSortEnum::options(false),
+            'isDefaultSort' => true,
+        ]);
+
+        // In the order of the workflow, each linked by the id of its status
+        self::assertMatchesRegularExpression('~New.*Under Review.*Closed~s', $html);
+        self::assertStringContainsString('href="/my/issues?status=8"', $html);
+        self::assertStringContainsString('2 resolved, closed or rejected issues are hidden.', $html);
     }
 
     public function testMyWorkSearchKeepsFilterAndOrderAndTheTabsKeepTheWords(): void

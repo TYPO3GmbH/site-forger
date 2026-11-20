@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Search;
 
-use App\Enum\IssueStatusEnum;
 use App\Search\IssueSearch;
 use PHPUnit\Framework\TestCase;
 
@@ -22,7 +21,7 @@ final class IssueSearchTest extends TestCase
         self::assertSame(
             ['bool' => [
                 'must' => [['query_string' => ['query' => 'form \\(editor\\)']]],
-                'must_not' => [['terms' => ['status.name' => IssueStatusEnum::closedLabels()]]],
+                'must_not' => [['terms' => ['status.id' => [5, 6, 3]]]],
             ]],
             IssueSearch::query(' form (editor) ')
         );

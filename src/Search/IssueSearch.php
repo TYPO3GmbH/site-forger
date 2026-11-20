@@ -35,10 +35,23 @@ final class IssueSearch
             : ['query_string' => ['query' => self::escape($searchTerms)]];
         $bool = ['must' => [$match]];
         if (!$includeClosed) {
-            $bool['must_not'] = [['terms' => ['status.name' => IssueStatusEnum::closedLabels()]]];
+            $bool['must_not'] = [self::closed()];
         }
 
         return ['bool' => $bool];
+    }
+
+    /**
+     * The clause of the resolved, closed and rejected issues, by the id of their state.
+     *
+     * @return array<string, mixed>
+     */
+    public static function closed(): array
+    {
+        return ['terms' => ['status.id' => array_map(
+            static fn (IssueStatusEnum $state): int => $state->value,
+            IssueStatusEnum::closed(),
+        )]];
     }
 
     /**

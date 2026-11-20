@@ -19,6 +19,7 @@ use App\People\User;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
 use App\Repository\UserRepository;
+use App\Search\IssueStatusCount;
 use App\Search\UserWorkQuery;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -108,21 +109,23 @@ class MyWorkController extends AbstractController
         $issues = $this->issues->search($query->issues());
 
         $counts = $issues->counts('status');
-        // In the order of the workflow, not by count
-        $counts = $this->sortByOrder($counts, self::issueStatusOrder());
+        $statusCounts = IssueStatusCount::listOf($counts);
+        $closed = array_sum(array_map(
+            static fn (IssueStatusCount $item): int => $item->status->isClosed() ? $item->count : 0,
+            $statusCounts,
+        ));
+        $hidden = $includeClosed ? 0 : $closed;
 
         return $this->render('my/issues.html.twig', [
             ...$this->viewData($query, 'issues', $includeClosed, $searchTerms),
-            'openIssues' => array_sum(array_diff_key($counts, array_flip(IssueStatusEnum::closedLabels()))),
+            'openIssues' => array_sum($counts) - $closed,
             'issues' => $issues,
             'shown' => count($issues),
             'total' => $issues->total,
-            'selected' => $issueStatus?->label(),
-            'selectedId' => $issueStatus?->value,
-            // Name => Forge id, for the links of the filter
-            'statusIds' => array_combine(self::issueStatusOrder(), array_map(static fn (IssueStatusEnum $state): int => $state->value, IssueStatusEnum::cases())),
-            'counts' => $counts,
-            'closedStates' => IssueStatusEnum::closedLabels(),
+            'selected' => $issueStatus,
+            'statusCounts' => $statusCounts,
+            'allCount' => array_sum($counts) - $hidden,
+            'hidden' => $hidden,
             'sort' => $sort,
             'sortOptions' => IssueSortEnum::options('' !== $searchTerms),
             'isDefaultSort' => IssueSortEnum::default('' !== $searchTerms) === $sort,
@@ -180,14 +183,6 @@ class MyWorkController extends AbstractController
     private static function reviewStateOrder(): array
     {
         return array_map(static fn (ReviewStateEnum $state): string => $state->value, ReviewStateEnum::cases());
-    }
-
-    /**
-     * @return list<string>
-     */
-    private static function issueStatusOrder(): array
-    {
-        return array_map(static fn (IssueStatusEnum $state): string => $state->label(), IssueStatusEnum::cases());
     }
 
     /**

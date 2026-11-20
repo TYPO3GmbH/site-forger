@@ -14,8 +14,8 @@ namespace App\Charts\Types;
 use App\Charts\TimeSeries;
 use App\Elastic\Indices;
 use App\Elastic\SearchResult;
-use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStatusEnum;
+use App\Search\IssueSearch;
 use Elastica\Index;
 
 abstract class AbstractChart
@@ -67,7 +67,7 @@ abstract class AbstractChart
     {
         return Indices::REVIEW === $this->getDocumentType()
             ? ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]]
-            : ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]];
+            : IssueSearch::closed();
     }
 
     /**

@@ -13,6 +13,7 @@ namespace App\Charts\Types;
 
 use App\Charts\Colors;
 use App\Enum\IssueStatusEnum;
+use App\Search\IssueSearch;
 
 class TrackerTypes extends IssueChart
 {
@@ -21,11 +22,7 @@ class TrackerTypes extends IssueChart
         $fullRequest = [
             'query' => [
                 'bool' => [
-                    'must_not' => [
-                        'terms' => [
-                            'status.name' => IssueStatusEnum::closedLabels(),
-                        ],
-                    ],
+                    'must_not' => [IssueSearch::closed()],
                 ],
             ],
             'size' => 0,

@@ -4,8 +4,7 @@
 {% block view %}
     {% import 'my/_layout.html.twig' as my %}
     {% import '_macros/sort.html.twig' as sorting %}
-    {% set hidden = includeClosed ? 0 : counts|filter((count, state) => state in closedStates)|reduce((sum, count) => sum + count, 0) %}
-    {% set baseParams = (query is not empty ? {'query': query} : {})|merge(includeClosed ? {'state': 'all'} : {})|merge(selectedId is not null ? {'status': selectedId} : {}) %}
+    {% set baseParams = (query is not empty ? {'query': query} : {})|merge(includeClosed ? {'state': 'all'} : {})|merge(selected is not null ? {'status': selected.value} : {}) %}
     {# The links keep the order, the sort field sends the other parameters #}
     {% set filterParams = baseParams %}
     {% set baseParams = baseParams|merge(isDefaultSort ? {} : {'sort': sort.value}) %}
@@ -16,11 +15,11 @@
             <h2 id="issues-title" class="sr-only">Issues</h2>
             {{ my.search('my_issues', query, baseParams, 'Subject, number or description', includeClosed, 'Also resolved, closed and rejected issues') }}
             {{ sorting.select(path('my_issues'), sort, sortOptions, filterParams, 'my-issues-sort') }}
-            {% if counts is not empty %}
+            {% if statusCounts is not empty %}
                 <nav class="chips" aria-label="Issue status">
-                    {{ my.chip('All', counts|reduce((sum, count) => sum + count, 0) - hidden, path('my_issues', baseParams|filter((v, k) => k != 'status')), selected is null, false) }}
-                    {% for statusName, count in counts %}
-                        {{ my.chip(statusName, count, path('my_issues', baseParams|merge({'status': statusIds[statusName] ?? statusName})), selected == statusName, statusName in closedStates and not includeClosed) }}
+                    {{ my.chip('All', allCount, path('my_issues', baseParams|filter((v, k) => k != 'status')), selected is null, false) }}
+                    {% for item in statusCounts %}
+                        {{ my.chip(item.status.label, item.count, path('my_issues', baseParams|merge({'status': item.status.value})), selected == item.status, item.status.closed and not includeClosed) }}
                     {% endfor %}
                 </nav>
             {% endif %}
@@ -29,9 +28,9 @@
         {% if issues is empty %}
             <div class="mywork-empty">
                 {% if query is not empty %}
-                    None of your {{ includeClosed ? '' : 'open ' }}issues{{ selected is not null ? ' with the status “' ~ selected ~ '”' }} matches “{{ query }}”.
+                    None of your {{ includeClosed ? '' : 'open ' }}issues{{ selected is not null ? ' with the status “' ~ selected.label ~ '”' }} matches “{{ query }}”.
                 {% elseif selected is not null %}
-                    No issues have the status “{{ selected }}”.
+                    No issues have the status “{{ selected.label }}”.
                 {% else %}
                     {{ includeClosed ? 'You have no issues.' : 'You have no open issues.' }}
                     <p class="mywork-empty-hint">Forger looks for the Forge issues reported by or assigned to <strong>{{ name }}</strong>, or to the Forge account with <strong>{{ email }}</strong>.</p>

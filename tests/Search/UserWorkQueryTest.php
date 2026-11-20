@@ -59,10 +59,10 @@ final class UserWorkQueryTest extends TestCase
         $request = (new UserWorkQuery('jane@example.org', 'Jane Doe'))->issues();
 
         self::assertSame(
-            ['bool' => ['must_not' => [['terms' => ['status.name' => ['Closed', 'Rejected', 'Resolved']]]]]],
+            ['bool' => ['must_not' => [['terms' => ['status.id' => [5, 6, 3]]]]]],
             $request['post_filter']
         );
-        self::assertSame(['terms' => ['field' => 'status.name', 'size' => 20]], $request['aggs']['status']);
+        self::assertSame(['terms' => ['field' => 'status.id', 'size' => 20]], $request['aggs']['status']);
     }
 
     public function testReviewsMatchOwnerAndHideMergedAndAbandoned(): void
@@ -98,7 +98,7 @@ final class UserWorkQueryTest extends TestCase
     {
         $request = (new UserWorkQuery('jane@example.org', 'Jane Doe', true, issueStatus: IssueStatusEnum::IN_PROGRESS))->issues();
 
-        self::assertSame(['bool' => ['filter' => [['term' => ['status.name' => 'In Progress']]]]], $request['post_filter']);
+        self::assertSame(['bool' => ['filter' => [['term' => ['status.id' => 11]]]]], $request['post_filter']);
     }
 
     public function testReviewsCountEachStateAndFilterWorkInProgress(): void
@@ -117,7 +117,7 @@ final class UserWorkQueryTest extends TestCase
         $query = new UserWorkQuery('jane@example.org', 'Jane Doe', true);
 
         self::assertSame(
-            [['terms' => ['status.name' => ['Closed', 'Rejected', 'Resolved']]]],
+            [['terms' => ['status.id' => [5, 6, 3]]]],
             $query->openIssuesCount()['query']['bool']['must_not']
         );
         self::assertSame($query->reviews()['query'], $query->openReviewsCount()['query']['bool']['must'][0]);

@@ -68,9 +68,8 @@ final class ActivityEnumTest extends TestCase
 
         self::assertSame(ActivityEnum::STALE, Issue::fromDocument($old + ['status' => ['id' => 8, 'name' => 'Under Review']])->activity($now));
         self::assertNull(Issue::fromDocument($old + ['status' => ['id' => 3, 'name' => 'Resolved']])->activity($now));
-        // Without an id the name decides, statuses Forge does not know count as open
-        self::assertNull(Issue::fromDocument($old + ['status' => ['name' => 'Closed']])->activity($now));
-        self::assertSame(ActivityEnum::STALE, Issue::fromDocument($old + ['status' => ['name' => 'Something new']])->activity($now));
+        // Statuses Forge does not know count as open
+        self::assertSame(ActivityEnum::STALE, Issue::fromDocument($old + ['status' => ['id' => 99]])->activity($now));
         self::assertSame(ActivityEnum::STALE, Issue::fromDocument($old)->activity($now));
     }
 
@@ -102,7 +101,7 @@ final class ActivityEnumTest extends TestCase
         self::assertSame(
             ['bool' => [
                 'filter' => [['range' => ['updated_on' => ['lt' => 'now-180d']]]],
-                'must_not' => [['terms' => ['status.name' => ['Closed', 'Rejected', 'Resolved']]]],
+                'must_not' => [['terms' => ['status.id' => [5, 6, 3]]]],
             ]],
             ActivityEnum::ORPHANED->issueQuery()
         );
