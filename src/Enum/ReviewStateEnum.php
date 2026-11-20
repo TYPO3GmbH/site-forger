@@ -83,18 +83,4 @@ enum ReviewStateEnum: string
             self::MERGED, self::ABANDONED => $status,
         };
     }
-
-    /**
-     * The state of a change document of the review index.
-     *
-     * @param array<string, mixed> $change
-     */
-    public static function fromChange(array $change): self
-    {
-        return match (ReviewStatusEnum::tryFrom((string) ($change['reviewstatus'] ?? ''))) {
-            ReviewStatusEnum::MERGED => self::MERGED,
-            ReviewStatusEnum::ABANDONED => self::ABANDONED,
-            default => ($change['work_in_progress'] ?? false) ? self::WORK_IN_PROGRESS : self::READY,
-        };
-    }
 }

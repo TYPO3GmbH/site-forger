@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Report;
 
+use App\Document\Change;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewStateEnum;
@@ -55,7 +56,7 @@ final class StaleIssuesTest extends TestCase
             ['id' => 81237, 'reviewstatus' => 'ABANDONED', 'related' => [3]],
         ];
 
-        $rows = StaleIssues::withChanges($issues, $changes);
+        $rows = StaleIssues::withChanges($issues, array_map(Change::fromDocument(...), $changes));
 
         // An open change does not keep an issue out: it lies still all the same
         self::assertSame([1, 2, 3, 4], array_map(static fn (array $row): int => $row['issue']['id'], $rows));

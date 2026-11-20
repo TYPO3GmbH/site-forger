@@ -11,10 +11,12 @@ declare(strict_types=1);
 
 namespace App\Report;
 
+use App\Document\Change;
 use App\Elastic\Indices;
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStatusEnum;
+use App\Repository\ChangeRepository;
 use App\Search\IssueSearch;
 use App\Search\ReviewLists;
 use Elastica\Index;
@@ -96,13 +98,21 @@ final readonly class KeyFigures
     /**
      * The changes of the list "Ready to merge" updated last.
      *
-     * @return array{documents: list<array<string, mixed>>, total: int}
+     * @return array{documents: list<Change>, total: int}
      */
     public function readyToMerge(): array
     {
-        $query = (array) ReviewLists::query(ReviewLists::READY_TO_MERGE);
+        $resultSet = $this->indices->reviews()->createSearch([
+            'query' => (array) ReviewLists::query(ReviewLists::READY_TO_MERGE),
+            'sort' => [['updated_on' => 'desc']],
+            'size' => self::LIST_SIZE,
+            'track_total_hits' => true,
+        ])->search();
 
-        return $this->latest($this->indices->reviews(), $query, [['updated_on' => 'desc']]);
+        return [
+            'documents' => array_values(ChangeRepository::fromResultSet($resultSet)->toArray()),
+            'total' => $resultSet->getTotalHits(),
+        ];
     }
 
     /**

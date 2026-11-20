@@ -11,8 +11,10 @@ declare(strict_types=1);
 
 namespace App\Search;
 
+use App\Document\Change;
 use App\Elastic\Indices;
 use App\People\UserDirectory;
+use App\Repository\ChangeRepository;
 use Elastica\Exception\NotFoundException;
 use Elastica\Query;
 
@@ -39,6 +41,7 @@ final readonly class GlobalSearch
 
     public function __construct(
         private Indices $indices,
+        private ChangeRepository $changes,
     ) {
     }
 
@@ -112,7 +115,7 @@ final readonly class GlobalSearch
     /**
      * The issue and the change with the number searched for, as they are indexed, closed ones, too.
      *
-     * @return array{issue: array<string, mixed>|null, change: array<string, mixed>|null}
+     * @return array{issue: array<string, mixed>|null, change: Change|null}
      */
     public function exactMatches(string $searchTerms): array
     {
@@ -121,7 +124,7 @@ final readonly class GlobalSearch
             return ['issue' => null, 'change' => null];
         }
 
-        return ['issue' => $this->document(Indices::ISSUE, $number), 'change' => $this->document(Indices::REVIEW, $number)];
+        return ['issue' => $this->document(Indices::ISSUE, $number), 'change' => $this->changes->byNumber($number)];
     }
 
     /**

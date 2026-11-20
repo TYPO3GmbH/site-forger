@@ -235,21 +235,6 @@ enum ActivityEnum: string
     }
 
     /**
-     * The stage of a change document of the review index, null if the change is closed or has no date.
-     *
-     * @param array<string, mixed> $change
-     */
-    public static function fromChange(array $change, \DateTimeInterface $now): ?self
-    {
-        if (ReviewStateEnum::fromChange($change)->isClosed()) {
-            return null;
-        }
-        $lastActivity = self::lastActivity($change);
-
-        return null === $lastActivity ? null : self::fromDate($lastActivity, $now);
-    }
-
-    /**
      * The stage of an issue document of the issue index, null if the issue is closed or has no date.
      * Statuses Forge does not know count as open.
      *

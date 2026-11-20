@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Enum;
 
+use App\Document\Change;
 use App\Enum\ActivityEnum;
 use App\Enum\CommandRunStatusEnum;
 use App\Enum\IssueStatusEnum;
@@ -65,11 +66,11 @@ final class StatusEnumTest extends TestCase
 
     public function testReviewStateOfAChangeKeepsWorkInProgressApartFromTheStatus(): void
     {
-        self::assertSame(ReviewStateEnum::READY, ReviewStateEnum::fromChange(['reviewstatus' => 'NEW', 'work_in_progress' => false]));
-        self::assertSame(ReviewStateEnum::WORK_IN_PROGRESS, ReviewStateEnum::fromChange(['reviewstatus' => 'NEW', 'work_in_progress' => true]));
-        self::assertSame(ReviewStateEnum::MERGED, ReviewStateEnum::fromChange(['reviewstatus' => 'MERGED']));
+        self::assertSame(ReviewStateEnum::READY, Change::fromDocument(['reviewstatus' => 'NEW', 'work_in_progress' => false])->state());
+        self::assertSame(ReviewStateEnum::WORK_IN_PROGRESS, Change::fromDocument(['reviewstatus' => 'NEW', 'work_in_progress' => true])->state());
+        self::assertSame(ReviewStateEnum::MERGED, Change::fromDocument(['reviewstatus' => 'MERGED'])->state());
         // Abandoned work in progress is abandoned
-        self::assertSame(ReviewStateEnum::ABANDONED, ReviewStateEnum::fromChange(['reviewstatus' => 'ABANDONED', 'work_in_progress' => true]));
+        self::assertSame(ReviewStateEnum::ABANDONED, Change::fromDocument(['reviewstatus' => 'ABANDONED', 'work_in_progress' => true])->state());
         self::assertSame(ReviewStatusEnum::NEW, ReviewStateEnum::WORK_IN_PROGRESS->status());
         self::assertTrue(ReviewStateEnum::ABANDONED->isClosed());
         self::assertFalse(ReviewStateEnum::WORK_IN_PROGRESS->isClosed());

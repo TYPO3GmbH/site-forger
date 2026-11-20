@@ -17,6 +17,7 @@ use App\Enum\ActivityEnum;
 use App\Enum\ReviewSizeEnum;
 use App\Enum\ReviewSortEnum;
 use App\People\UserDirectory;
+use App\Repository\ChangeRepository;
 
 /**
  * The review lists and the search of the changes with their filters, see ReviewLists and ReviewController.
@@ -74,7 +75,7 @@ final readonly class ReviewListSearch
         }
 
         return $page->withTotal($resultSet->getTotalHits())->viewData() + [
-            'results' => $resultSet->getResults(),
+            'changes' => ChangeRepository::fromResultSet($resultSet),
             'aggregations' => $found,
         ];
     }

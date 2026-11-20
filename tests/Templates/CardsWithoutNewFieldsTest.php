@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Templates;
 
+use App\Document\Change;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Twig\Environment;
 
@@ -86,8 +87,8 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     {
         $change = self::OLD_CHANGE;
 
-        $card = $this->twig->render('_partials/review_card.html.twig', ['card' => $change]);
-        $full = $this->twig->render('_partials/row/change.html.twig', ['change' => $change, 'detailed' => true]);
+        $card = $this->twig->render('_partials/review_card.html.twig', ['card' => Change::fromDocument($change)]);
+        $full = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'detailed' => true]);
 
         foreach ([$card, $full] as $html) {
             self::assertStringContainsString('Benni Mack', $html);
@@ -100,21 +101,21 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
 
     public function testOnlyChangesLyingStillShowTheirActivity(): void
     {
-        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => self::OLD_CHANGE, 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::OLD_CHANGE), 'detailed' => true]);
         self::assertStringContainsString('status-pill-activity-', $row);
 
         $change = ['updated_on' => date('Y/m/d H:i:s'), 'created_on' => date('Y/m/d H:i:s')] + self::OLD_CHANGE;
-        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => $change, 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'detailed' => true]);
         self::assertStringNotContainsString('status-pill-activity-', $row);
     }
 
     public function testRowsNameTheStateOnlyWhenNotReady(): void
     {
-        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => self::OLD_CHANGE, 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::OLD_CHANGE), 'detailed' => true]);
         self::assertStringNotContainsString('status-pill-ready', $row);
 
         foreach (['wip' => ['work_in_progress' => true], 'merged' => ['reviewstatus' => 'MERGED']] as $state => $fields) {
-            $row = $this->twig->render('_partials/row/change.html.twig', ['change' => $fields + self::OLD_CHANGE, 'detailed' => true]);
+            $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($fields + self::OLD_CHANGE), 'detailed' => true]);
             self::assertStringContainsString('status-pill-' . $state . '"', $row);
         }
     }
@@ -122,13 +123,13 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     public function testRowShowsBranchAndReleasesTogether(): void
     {
         $change = self::OLD_CHANGE;
-        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => $change, 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'detailed' => true]);
         // The branch is in the releases of old documents, it shows once
         self::assertStringContainsString('<span title="Branch">→ main</span>', $row);
         self::assertStringNotContainsString('class="tag-label" title="Branch"', $row);
 
         $change['releases'] = ['main', '14.3'];
-        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => $change, 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'detailed' => true]);
         self::assertStringContainsString('<span title="Branch and target releases">→ main, 14.3</span>', $row);
     }
 
@@ -136,7 +137,7 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     {
         $change = self::OLD_CHANGE + ['reviewtags' => ['!!!', 'FEATURE'], 'ownerEmail' => 'benni@example.org'];
 
-        $html = $this->twig->render('_partials/review_card.html.twig', ['card' => $change]);
+        $html = $this->twig->render('_partials/review_card.html.twig', ['card' => Change::fromDocument($change)]);
 
         self::assertStringContainsString('review-type-feature', $html);
         self::assertStringContainsString('review-breaking', $html);

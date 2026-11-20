@@ -11,11 +11,13 @@ declare(strict_types=1);
 
 namespace App\Report;
 
+use App\Document\Change;
 use App\Document\GerritLinks;
 use App\Elastic\Indices;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewStateEnum;
+use App\Repository\ChangeRepository;
 use Elastica\Result;
 
 /**
@@ -45,6 +47,7 @@ final readonly class StaleIssues
 
     public function __construct(
         private Indices $indices,
+        private ChangeRepository $changes,
     ) {
     }
 
@@ -62,10 +65,7 @@ final readonly class StaleIssues
             $resultSet->getResults(),
         );
         $changesRequest = self::changesRequest($issues);
-        $changes = null === $changesRequest ? [] : array_map(
-            static fn (Result $result): array => $result->getData(),
-            $this->indices->reviews()->createSearch($changesRequest)->search()->getResults(),
-        );
+        $changes = null === $changesRequest ? [] : $this->changes->search($changesRequest)->toArray();
 
         return [
             'issues' => self::withChanges($issues, $changes),
@@ -128,7 +128,7 @@ final readonly class StaleIssues
      * not have it.
      *
      * @param list<array<string, mixed>> $issues
-     * @param list<array<string, mixed>> $changes the changes of changesRequest()
+     * @param list<Change>               $changes the changes of changesRequest()
      *
      * @return list<array{issue: array<string, mixed>, changes: list<array{id: int, state: ReviewStateEnum|null}>}>
      */
@@ -137,10 +137,9 @@ final readonly class StaleIssues
         $byNumber = [];
         $byIssue = [];
         foreach ($changes as $change) {
-            $number = (int) $change['id'];
-            $byNumber[$number] = $change;
-            foreach ([...(array) ($change['resolves'] ?? []), ...(array) ($change['related'] ?? [])] as $issueId) {
-                $byIssue[(int) $issueId][$number] = $change;
+            $byNumber[$change->id] = $change;
+            foreach ([...$change->resolves, ...$change->related] as $issueId) {
+                $byIssue[$issueId][$change->id] = $change;
             }
         }
 
@@ -151,11 +150,11 @@ final readonly class StaleIssues
                 $own[$number] = $byNumber[$number] ?? null;
             }
             ksort($own);
-            $states = array_map(static fn (?array $change): ?ReviewStateEnum => null === $change ? null : ReviewStateEnum::fromChange($change), $own);
-            $rows[] = [
-                'issue' => $issue,
-                'changes' => array_map(static fn (int $number, ?ReviewStateEnum $state): array => ['id' => $number, 'state' => $state], array_keys($states), array_values($states)),
-            ];
+            $changeRows = [];
+            foreach ($own as $number => $change) {
+                $changeRows[] = ['id' => $number, 'state' => $change?->state()];
+            }
+            $rows[] = ['issue' => $issue, 'changes' => $changeRows];
         }
 
         return $rows;

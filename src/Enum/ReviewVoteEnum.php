@@ -49,29 +49,4 @@ enum ReviewVoteEnum: int
     {
         return self::APPROVED === $this || self::REJECTED === $this;
     }
-
-    /**
-     * The vote that counts for a label of a change, as Gerrit sums it up: a negative vote outweighs the
-     * positive ones, else the highest positive vote counts.
-     *
-     * The import stores the lowest and the highest single vote. A change imported before that only has the
-     * sums of the votes: they cannot tell a +2 from two +1, so they give a +1 or -1 at most.
-     *
-     * @param array<string, mixed> $change a document of the review index
-     * @param string               $label  "review" or "verification", see LABELS
-     */
-    public static function fromChange(array $change, string $label): self
-    {
-        if (isset($change['lowest_' . $label . '_vote'], $change['highest_' . $label . '_vote'])) {
-            $lowest = (int) $change['lowest_' . $label . '_vote'];
-            $highest = (int) $change['highest_' . $label . '_vote'];
-
-            return self::tryFrom($lowest < 0 ? max($lowest, -2) : min(max($highest, 0), 2)) ?? self::NONE;
-        }
-        if ((int) ($change['negative_' . $label . 's'] ?? 0) > 0) {
-            return self::DISLIKED;
-        }
-
-        return (int) ($change['positive_' . $label . 's'] ?? 0) > 0 ? self::RECOMMENDED : self::NONE;
-    }
 }

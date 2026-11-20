@@ -21,16 +21,6 @@ use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 final class UserTwigExtensionTest extends TestCase
 {
-    public function testTheOwnerOfAChangeIsAUserWithNameAndEmail(): void
-    {
-        $extension = $this->extension();
-
-        self::assertSame(['name' => 'Ingo Hollmann', 'email' => 'ingo@example.org', 'gerrit_id' => 52917], $extension->changeOwner(['owner' => 'Ingo Hollmann', 'ownerEmail' => 'ingo@example.org', 'owner_id' => 52917]));
-        self::assertSame(['name' => 'Benni Mack', 'email' => null, 'gerrit_id' => null], $extension->changeOwner(['owner' => 'Benni Mack']));
-        self::assertNull($extension->changeOwner(['owner' => ' ']));
-        self::assertNull($extension->changeOwner([]));
-    }
-
     public function testTheAvatarOfAnEmailElseThePlaceholder(): void
     {
         $extension = $this->extension();

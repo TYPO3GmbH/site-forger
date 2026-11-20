@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Report\Backport;
 
+use App\Document\Change;
 use App\Enum\ReviewStateEnum;
 
 /**
@@ -68,9 +69,9 @@ final class Backports
 
     /**
      * @param array<string, array<string, mixed>> $backports Change-Id => entry of the file, the excluded ones left out
-     * @param array<int, array<string, mixed>>    $changes   number => document of the review index, the changes in main
+     * @param array<int, Change>                  $changes   number => the changes in main
      *
-     * @return list<array{changeId: string, number: int, change: array<string, mixed>|null, missing: int, versions: list<array{version: string, state: ReviewStateEnum|null, change: array<string, mixed>|null}>}>
+     * @return list<array{changeId: string, number: int, change: Change|null, missing: int, versions: list<array{version: string, state: ReviewStateEnum|null, change: Change|null}>}>
      */
     public static function rows(array $backports, array $changes): array
     {
@@ -84,9 +85,8 @@ final class Backports
                 if (null === $version || 'main' === $version || !(is_array($value) || 'missing' === $value)) {
                     continue;
                 }
-                $versions[] = is_array($value)
-                    ? ['version' => $version, 'state' => ReviewStateEnum::fromChange($value), 'change' => $value]
-                    : ['version' => $version, 'state' => null, 'change' => null];
+                $backport = is_array($value) ? Change::fromDocument($value) : null;
+                $versions[] = ['version' => $version, 'state' => $backport?->state(), 'change' => $backport];
             }
             if ([] === $versions) {
                 continue;
@@ -102,7 +102,8 @@ final class Backports
                 'versions' => $versions,
             ];
         }
-        usort($rows, static fn (array $a, array $b): int => [$b['missing'] > 0, $b['change']['updated_on'] ?? ''] <=> [$a['missing'] > 0, $a['change']['updated_on'] ?? '']);
+        usort($rows, static fn (array $a, array $b): int => [$b['missing'] > 0, $b['change']->updatedOn ?? '']
+            <=> [$a['missing'] > 0, $a['change']->updatedOn ?? '']);
 
         return $rows;
     }

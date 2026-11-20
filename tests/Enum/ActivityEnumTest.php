@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Enum;
 
+use App\Document\Change;
 use App\Enum\ActivityEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -38,24 +39,24 @@ final class ActivityEnumTest extends TestCase
     {
         $change = ['reviewstatus' => 'NEW', 'updated_on' => $lastActivity, 'created_on' => '2020/01/01 00:00:00'];
 
-        self::assertSame($expected, ActivityEnum::fromChange($change, new \DateTimeImmutable(self::NOW)));
+        self::assertSame($expected, Change::fromDocument($change)->activity(new \DateTimeImmutable(self::NOW)));
     }
 
     public function testClosedChangesHaveNoStage(): void
     {
         $now = new \DateTimeImmutable(self::NOW);
 
-        self::assertNull(ActivityEnum::fromChange(['reviewstatus' => 'MERGED', 'updated_on' => '2020/01/01 00:00:00'], $now));
-        self::assertNull(ActivityEnum::fromChange(['reviewstatus' => 'ABANDONED', 'updated_on' => '2020/01/01 00:00:00'], $now));
-        self::assertSame(ActivityEnum::ORPHANED, ActivityEnum::fromChange(['reviewstatus' => 'NEW', 'work_in_progress' => true, 'updated_on' => '2020/01/01 00:00:00'], $now));
+        self::assertNull(Change::fromDocument(['reviewstatus' => 'MERGED', 'updated_on' => '2020/01/01 00:00:00'])->activity($now));
+        self::assertNull(Change::fromDocument(['reviewstatus' => 'ABANDONED', 'updated_on' => '2020/01/01 00:00:00'])->activity($now));
+        self::assertSame(ActivityEnum::ORPHANED, Change::fromDocument(['reviewstatus' => 'NEW', 'work_in_progress' => true, 'updated_on' => '2020/01/01 00:00:00'])->activity($now));
     }
 
     public function testDocumentsWithoutAnUpdateFallBackToTheCreation(): void
     {
         $now = new \DateTimeImmutable(self::NOW);
 
-        self::assertSame(ActivityEnum::STALE, ActivityEnum::fromChange(['reviewstatus' => 'NEW', 'created_on' => '2026/07/01 00:00:00'], $now));
-        self::assertNull(ActivityEnum::fromChange(['reviewstatus' => 'NEW'], $now));
+        self::assertSame(ActivityEnum::STALE, Change::fromDocument(['reviewstatus' => 'NEW', 'created_on' => '2026/07/01 00:00:00'])->activity($now));
+        self::assertNull(Change::fromDocument(['reviewstatus' => 'NEW'])->activity($now));
     }
 
     public function testIssuesHaveAStageUnlessClosed(): void

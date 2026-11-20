@@ -35,25 +35,6 @@ final readonly class UserTwigExtension
     }
 
     /**
-     * The owner of a change as a user: the change keeps the name, the email and the number on Gerrit apart.
-     *
-     * @param array<string, mixed> $change a document of the review index
-     *
-     * @return array{name: string, email: string|null, gerrit_id: int|null}|null null without an owner
-     */
-    #[AsTwigFunction(name: 'change_owner')]
-    public function changeOwner(array $change): ?array
-    {
-        $name = trim((string) ($change['owner'] ?? ''));
-
-        return '' === $name ? null : [
-            'name' => $name,
-            'email' => isset($change['ownerEmail']) ? (string) $change['ownerEmail'] : null,
-            'gerrit_id' => isset($change['owner_id']) ? (int) $change['owner_id'] : null,
-        ];
-    }
-
-    /**
      * The key of a person in the filters of people, for the links to the issues and changes of the person, see
      * UserDirectory::keyOfUser().
      *

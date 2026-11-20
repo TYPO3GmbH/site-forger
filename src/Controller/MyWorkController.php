@@ -17,6 +17,7 @@ use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
 use App\People\User;
+use App\Repository\ChangeRepository;
 use App\Repository\UserRepository;
 use App\Search\UserWorkQuery;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -80,7 +81,7 @@ class MyWorkController extends AbstractController
         return $this->render('my/changes.html.twig', [
             ...$this->viewData($query, 'changes', $includeClosed, $searchTerms),
             'openChanges' => array_sum(array_diff_key($counts, array_flip($closedStates))),
-            'changes' => array_map(static fn ($result): array => $result->getData(), $reviews->getResults()),
+            'changes' => ChangeRepository::fromResultSet($reviews),
             'shown' => count($reviews->getResults()),
             'total' => $reviews->getTotalHits(),
             'selected' => $reviewState?->value,

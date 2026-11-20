@@ -11,9 +11,11 @@ declare(strict_types=1);
 
 namespace App\Sprint;
 
+use App\Document\Change;
 use App\Elastic\Indices;
 use App\Entity\SprintBoard;
 use App\Enum\IssueStatusEnum;
+use App\Repository\ChangeRepository;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -26,6 +28,7 @@ final readonly class SprintBoards
 
     public function __construct(
         private Indices $indices,
+        private ChangeRepository $changes,
     ) {
     }
 
@@ -63,7 +66,7 @@ final readonly class SprintBoards
     /**
      * The cards of a board by column. An issue under review shows its Gerrit change, if the index has it.
      *
-     * @return array<string, list<array<string, mixed>>>
+     * @return array<string, list<array{issue: array<string, mixed>, change: Change|null}>>
      */
     public function cards(SprintBoard $board): array
     {
@@ -75,7 +78,8 @@ final readonly class SprintBoards
         foreach ($resultSet->getResults() as $result) {
             $issue = $result->getData();
             $column = BoardColumnEnum::ofIssue($issue);
-            $cards[$column->value][] = (BoardColumnEnum::REVIEW === $column ? $this->changeOf($issue) : null) ?? $issue;
+            $change = BoardColumnEnum::REVIEW === $column ? $this->changeOf($issue) : null;
+            $cards[$column->value][] = ['issue' => $issue, 'change' => $change];
         }
 
         return $cards;
@@ -142,10 +146,8 @@ final readonly class SprintBoards
      * The Gerrit change that the journal of the issue links, if the index has it.
      *
      * @param array<string, mixed> $issue
-     *
-     * @return array<string, mixed>|null
      */
-    private function changeOf(array $issue): ?array
+    private function changeOf(array $issue): ?Change
     {
         $notes = '';
         foreach ((array) ($issue['journals'] ?? []) as $journal) {
@@ -156,13 +158,7 @@ final readonly class SprintBoards
         if (1 !== preg_match('|https?://review\.typo3\.org/(?>(c/)?)(?>Packages/TYPO3\.CMS/\+/)?(?<number>\d{2,6})|', $notes, $matches)) {
             return null;
         }
-        try {
-            $change = $this->indices->reviews()->getDocument($matches['number'])->getData();
-        } catch (\Exception) {
-            return null;
-        }
-        $change['_redmine_issue_id'] = $issue['id'];
 
-        return $change;
+        return $this->changes->byNumber((int) $matches['number']);
     }
 }

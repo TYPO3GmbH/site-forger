@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Sprint;
 
+use App\Document\Change;
 use App\Enum\IssueStatusEnum;
 use App\Sprint\BoardColumnEnum;
 use App\Sprint\ReviewBoards;
@@ -85,6 +86,6 @@ final class BoardsTest extends TestCase
     #[DataProvider('changes')]
     public function testEachChangeHasTheGroupOfTheVotesItNeeds(array $change, string $group): void
     {
-        self::assertSame($group, ReviewBoards::group($change));
+        self::assertSame($group, ReviewBoards::group(Change::fromDocument($change)));
     }
 }

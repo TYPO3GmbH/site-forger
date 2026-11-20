@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Enum;
 
+use App\Document\Change;
 use App\Enum\ReviewSizeEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -43,13 +44,13 @@ final class ReviewSizeEnumTest extends TestCase
 
     public function testTheAddedAndRemovedLinesCountTogether(): void
     {
-        self::assertSame(ReviewSizeEnum::NORMAL, ReviewSizeEnum::fromChange(['insertions' => 30, 'deletions' => 30]));
+        self::assertSame(ReviewSizeEnum::NORMAL, Change::fromDocument(['insertions' => 30, 'deletions' => 30])->size());
     }
 
     public function testChangesImportedWithoutLinesHaveNoSize(): void
     {
-        self::assertNull(ReviewSizeEnum::fromChange(['insertions' => 30]));
-        self::assertNull(ReviewSizeEnum::fromChange([]));
+        self::assertNull(Change::fromDocument(['insertions' => 30])->size());
+        self::assertNull(Change::fromDocument([])->size());
     }
 
     public function testTheSizesFollowEachOtherWithoutAGap(): void

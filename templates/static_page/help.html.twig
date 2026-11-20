@@ -81,7 +81,7 @@
                     <div class="help-stages">
                         {% for stage in enum_cases('App\\Enum\\ActivityEnum') %}
                             <div class="help-stage">
-                                {{ status.activityPill(stage, {}) }}
+                                {{ status.activityPill(stage, null, null) }}
                                 <span class="help-stage-range">
                                     {% if stage.maximumDays is null %}
                                         over {{ stage.minimumDays }} days

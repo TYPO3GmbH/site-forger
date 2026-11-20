@@ -1,7 +1,7 @@
 {#
  # A Gerrit change in one row of a list: the branch, the subject, below it owner, votes, releases, topic and size,
  # the last update. A merge conflict shows in every row.
- # Expects: change, a document of the review index
+ # Expects: change, an App\Document\Change
  # Optional: relation, how it belongs to the page, like "Resolves this issue";
  #           detailed, for the review lists: the whole subject, below it in one line the state unless ready, the owner with a small
  #           avatar, the branch and the releases together as the targets, topic, files and patch sets; on the right the size first, beside the subject, as it tells
@@ -12,14 +12,14 @@
 {% import '_macros/user.html.twig' as user %}
 {% set detailed = detailed ?? false %}
 {% set releases = (change.releases ?? [])|filter(release => release != (change.branch ?? '') and release != 'omitted') %}
-{% set conflict = (change.mergeable ?? 'yes') == 'no' and (change.reviewstatus ?? 'NEW') == 'NEW' %}
+{% set conflict = change.conflict %}
 {% set lines %}
-    {% if change.insertions is defined and change.deletions is defined %}
+    {% if change.insertions is not null and change.deletions is not null %}
         <span class="overview-list-size" title="Lines added and removed"><span class="is-added">+{{ change.insertions }}</span> <span class="is-removed">&minus;{{ change.deletions }}</span></span>
     {% endif %}
 {% endset %}
 {# The avatar beside the name, so it is clear whom it shows #}
-{% set owner %}{{ user.inline(change_owner(change), role: 'Owner') }}{% endset %}
+{% set owner %}{{ user.inline(change.ownerAsUser, role: 'Owner') }}{% endset %}
 {% set branch %}<span class="tag-label{{ (change.branch ?? 'main') != 'main' ? ' is-backport' }}" title="Branch">{{ change.branch ?? 'main' }}</span>{% endset %}
 <a class="overview-list-item kind-change{{ detailed ? ' overview-list-item-detailed' }}" href="{{ change_path(change.id) }}" title="{{ change.subject }}">
     {% if not detailed %}
@@ -30,14 +30,14 @@
         {% if detailed %}
             <span class="overview-list-item-meta">
                 {# Only when it is not ready for review, see ReviewStateEnum::isNoteworthy() #}
-                {% if review_state(change).isNoteworthy %}{{ status.review(change) }}{% endif %}
+                {% if change.state.isNoteworthy %}{{ status.review(change) }}{% endif %}
                 {% if conflict %}<span class="status-pill status-pill-conflict" title="Gerrit cannot merge it, it needs a rebase">Merge conflict</span>{% endif %}
                 {{ status.activity(change) }}
                 {{ owner }}
                 <span title="Branch{{ releases is not empty ? ' and target releases' }}">→ {{ ([change.branch ?? 'main']|merge(releases))|join(', ') }}</span>
-                {% if change.topic is defined and change.topic != 'no topic' %}<span title="Topic">{{ change.topic }}</span>{% endif %}
-                {% if change.affected_files is defined %}<span>{{ change.affected_files }} {{ change.affected_files == 1 ? 'file' : 'files' }}</span>{% endif %}
-                {% if change.patchsets is defined %}<span>{{ change.patchsets }} patch {{ change.patchsets == 1 ? 'set' : 'sets' }}</span>{% endif %}
+                {% if change.hasTopic %}<span title="Topic">{{ change.topic }}</span>{% endif %}
+                {% if change.affectedFiles is not null %}<span>{{ change.affectedFiles }} {{ change.affectedFiles == 1 ? 'file' : 'files' }}</span>{% endif %}
+                {% if change.patchsets is not null %}<span>{{ change.patchsets }} patch {{ change.patchsets == 1 ? 'set' : 'sets' }}</span>{% endif %}
             </span>
         {% else %}
             <span class="overview-list-item-meta">
@@ -46,7 +46,7 @@
                 {{ owner }}
                 {{ status.votes(change) }}
                 {% if releases is not empty %}<span title="Target releases">→ {{ releases|join(', ') }}</span>{% endif %}
-                {% if change.topic is defined and change.topic != 'no topic' %}<span title="Topic">{{ change.topic }}</span>{% endif %}
+                {% if change.hasTopic %}<span title="Topic">{{ change.topic }}</span>{% endif %}
                 {{ status.size(change) }}
                 {{ lines }}
             </span>
@@ -55,9 +55,9 @@
     {% if detailed %}
         <span class="overview-list-column">
             <span class="overview-list-column-line overview-list-column-size">{{ lines }}{{ status.size(change) }}</span>
-            <span class="overview-list-column-line overview-list-column-votes"><time class="overview-list-item-date" datetime="{{ to_datetime(change.updated_on)|date('c') }}" title="Updated {{ change.updated_on }}{{ change.created_on is defined ? ', created ' ~ change.created_on }}">{{ relativetime(to_datetime(change.updated_on)) }}</time>{{ status.votes(change) }}</span>
+            <span class="overview-list-column-line overview-list-column-votes"><time class="overview-list-item-date" datetime="{{ to_datetime(change.updatedOn)|date('c') }}" title="Updated {{ change.updatedOn }}{{ change.createdOn is not null ? ', created ' ~ change.createdOn }}">{{ relativetime(to_datetime(change.updatedOn)) }}</time>{{ status.votes(change) }}</span>
         </span>
     {% else %}
-        <time class="overview-list-item-date" datetime="{{ to_datetime(change.updated_on)|date('c') }}" title="Updated {{ change.updated_on }}{{ change.created_on is defined ? ', created ' ~ change.created_on }}">{{ relativetime(to_datetime(change.updated_on)) }}</time>
+        <time class="overview-list-item-date" datetime="{{ to_datetime(change.updatedOn)|date('c') }}" title="Updated {{ change.updatedOn }}{{ change.createdOn is not null ? ', created ' ~ change.createdOn }}">{{ relativetime(to_datetime(change.updatedOn)) }}</time>
     {% endif %}
 </a>

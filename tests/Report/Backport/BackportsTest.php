@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Report\Backport;
 
+use App\Document\Change;
 use App\Enum\ReviewStateEnum;
 use App\Report\Backport\Backports;
 use PHPUnit\Framework\TestCase;
@@ -35,18 +36,18 @@ final class BackportsTest extends TestCase
         ];
         $changes = [96766 => ['id' => 96766, 'updated_on' => '2026/11/19 10:00:00'], 96000 => ['id' => 96000, 'updated_on' => '2026/01/01 10:00:00']];
 
-        $rows = Backports::rows($backports, $changes);
+        $rows = Backports::rows($backports, array_map(Change::fromDocument(...), $changes));
 
         // A missing backport before one in review, however old
         self::assertSame(['I2', 'I1'], array_column($rows, 'changeId'));
         self::assertSame(1, $rows[0]['missing']);
-        self::assertSame($changes[96000], $rows[0]['change']);
+        self::assertSame(96000, $rows[0]['change']?->id);
         // The newest version first, the main change and the versions not targeted left out
         self::assertSame(
             [['version' => '14.3', 'state' => ReviewStateEnum::MERGED], ['version' => '13.4', 'state' => null]],
             array_map(static fn (array $version): array => ['version' => $version['version'], 'state' => $version['state']], $rows[0]['versions']),
         );
-        self::assertSame([['version' => '14.3', 'state' => ReviewStateEnum::READY, 'change' => $open]], $rows[1]['versions']);
+        self::assertEquals([['version' => '14.3', 'state' => ReviewStateEnum::READY, 'change' => Change::fromDocument($open)]], $rows[1]['versions']);
         self::assertSame([96766, 96000, 95000], Backports::mainNumbers($backports));
     }
 

@@ -13,6 +13,7 @@ namespace App\Document;
 
 use App\Elastic\Indices;
 use App\Enum\IssueStatusEnum;
+use App\Repository\ChangeRepository;
 use Elastica\ResultSet;
 
 /**
@@ -34,6 +35,7 @@ final readonly class Relations
 
     public function __construct(
         private Indices $indices,
+        private ChangeRepository $changes,
     ) {
     }
 
@@ -43,13 +45,13 @@ final readonly class Relations
      *
      * @param array<string, mixed> $issue
      *
-     * @return array{changes: list<array{change: array<string, mixed>, relation: string}>, unknown: list<int>}
+     * @return array{changes: list<array{change: Change, relation: string}>, unknown: list<int>}
      */
     public function changesOf(array $issue): array
     {
         $id = (int) $issue['id'];
         $numbers = GerritLinks::changeNumbers($issue);
-        $results = $this->indices->reviews()->search([
+        $found = $this->changes->search([
             'query' => ['bool' => ['should' => [
                 ['term' => ['resolves' => $id]],
                 ['term' => ['related' => $id]],
@@ -57,35 +59,32 @@ final readonly class Relations
             ]]],
             'sort' => [['updated_on' => 'desc']],
             'size' => self::CHANGES,
-        ])->getResults();
+        ]);
         $changes = [];
-        foreach ($results as $result) {
-            $change = $result->getData();
+        foreach ($found as $change) {
             $changes[] = ['change' => $change, 'relation' => match (true) {
-                in_array($id, $change['resolves'] ?? [], true) => CommitMessage::RESOLVES,
-                in_array($id, $change['related'] ?? [], true) => CommitMessage::RELATED,
+                in_array($id, $change->resolves, true) => CommitMessage::RESOLVES,
+                in_array($id, $change->related, true) => CommitMessage::RELATED,
                 default => self::LINKED,
             }];
         }
-        $found = array_map(static fn (array $change): int => (int) $change['change']['id'], $changes);
+        $foundNumbers = $found->map(static fn (Change $change): int => $change->id)->toArray();
 
-        return ['changes' => $changes, 'unknown' => array_values(array_diff($numbers, $found))];
+        return ['changes' => $changes, 'unknown' => array_values(array_diff($numbers, $foundNumbers))];
     }
 
     /**
      * The issues of the footer of a change, in its order: those it resolves first.
      * An issue that is not imported comes as null: it is in another project, or private.
      *
-     * @param array<string, mixed> $change
-     *
      * @return list<array{id: int, relation: string, issue: array<string, mixed>|null}>
      */
-    public function issuesOf(array $change): array
+    public function issuesOf(Change $change): array
     {
         $relations = [];
         $footer = [
-            CommitMessage::RESOLVES => $change['resolves'] ?? [],
-            CommitMessage::RELATED => $change['related'] ?? [],
+            CommitMessage::RESOLVES => $change->resolves,
+            CommitMessage::RELATED => $change->related,
         ];
         foreach ($footer as $relation => $ids) {
             foreach ($ids as $id) {

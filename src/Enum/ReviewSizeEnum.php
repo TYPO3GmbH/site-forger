@@ -162,18 +162,4 @@ enum ReviewSizeEnum: string
 
         return self::IMPOSSIBLE;
     }
-
-    /**
-     * The size of a document of the review index, null if it was imported before the lines were.
-     *
-     * @param array<string, mixed> $change
-     */
-    public static function fromChange(array $change): ?self
-    {
-        if (!isset($change['insertions'], $change['deletions'])) {
-            return null;
-        }
-
-        return self::fromLines((int) $change['insertions'] + (int) $change['deletions']);
-    }
 }

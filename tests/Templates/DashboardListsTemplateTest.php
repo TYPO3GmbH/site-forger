@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Templates;
 
+use App\Document\Change;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Twig\Environment;
 
@@ -97,7 +98,7 @@ final class DashboardListsTemplateTest extends KernelTestCase
             'insertions' => 12,
             'deletions' => 3,
         ];
-        $html = $this->twig->render('dashboard/_ready_to_merge.html.twig', ['changes' => ['documents' => [$change], 'total' => 1]]);
+        $html = $this->twig->render('dashboard/_ready_to_merge.html.twig', ['changes' => ['documents' => [Change::fromDocument($change)], 'total' => 1]]);
 
         self::assertStringContainsString('status-pill-vote-approved" title="Code review: +2 by a merger · 3 for, 0 against">CR +2</span>', $html);
         self::assertStringContainsString('status-pill-vote-recommended" title="Verified: +1 · 2 for, 0 against">V +1</span>', $html);
@@ -114,7 +115,7 @@ final class DashboardListsTemplateTest extends KernelTestCase
 
     public function testReadyToMerge(): void
     {
-        $html = $this->twig->render('dashboard/_ready_to_merge.html.twig', ['changes' => ['documents' => [self::CHANGE], 'total' => 7]]);
+        $html = $this->twig->render('dashboard/_ready_to_merge.html.twig', ['changes' => ['documents' => [Change::fromDocument(self::CHANGE)], 'total' => 7]]);
 
         self::assertStringContainsString('href="/change/12345"', $html);
         self::assertStringContainsString('[BUGFIX] Repair the cache', $html);

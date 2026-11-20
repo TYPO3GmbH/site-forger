@@ -8,7 +8,7 @@
 {% set listSearch = listSearch ?? false %}
 {% set listArguments = listParameters|merge({'filters': filters})|merge(sortParameter) %}
 <div class="section">
-    {% if results is defined %}
+    {% if changes is defined %}
         <div class="section-filter">
             <form action="{{ path(routeName) }}" method="get">
                 {% for name, value in listParameters|merge(sortParameter) %}
@@ -50,30 +50,30 @@
                     }) }}
                     {{ sortField }}
                 </div>
-                {% if results is not empty %}{{ pagination }}{% endif %}
+                {% if changes is not empty %}{{ pagination }}{% endif %}
             {% else %}
                 {# As the issues of the search: the count first, the order at the end, in one line #}
                 <div class="results-toolbar">
-                    {% if results is not empty %}{{ pagination }}{% endif %}
+                    {% if changes is not empty %}{{ pagination }}{% endif %}
                     {{ sortField }}
                 </div>
             {% endif %}
-            {% if results is empty and has_active_filters(filters) %}
+            {% if changes is empty and has_active_filters(filters) %}
                 {% include '_partials/alert.html.twig' with {
                     'title': query is not empty ? 'No change in this list matches "' ~ query ~ '" with the filters.' : 'No change in this list matches the filters.',
                     'message': 'Untick a filter, or',
                     'action': {'url': path(routeName, listParameters|merge(sortParameter)), 'label': 'remove the filters.'},
                     'style': 'info'
                 } only %}
-            {% elseif results is empty %}
+            {% elseif changes is empty %}
                 {% include '_partials/alert.html.twig' with {
                     'message': query is not empty ? 'No change in this list matches "' ~ query ~ '".' : 'This list is empty.',
                     'style': 'info'
                 } only %}
             {% else %}
                 <ul class="row-list row-list-panel">
-                    {% for result in results %}
-                        <li>{% include '_partials/row/change.html.twig' with {'change': result.data, 'detailed': true} only %}</li>
+                    {% for change in changes %}
+                        <li>{% include '_partials/row/change.html.twig' with {'change': change, 'detailed': true} only %}</li>
                     {% endfor %}
                 </ul>
                 {# The pages only below the list, the count stands above it #}

@@ -11,8 +11,10 @@ declare(strict_types=1);
 
 namespace App\Sprint;
 
+use App\Document\Change;
 use App\Elastic\Indices;
 use App\Enum\ReviewStatusEnum;
+use App\Repository\ChangeRepository;
 
 /**
  * The open changes of a type ("[BUGFIX]", "[TASK]", "[FEATURE]"), grouped by the votes they still need.
@@ -30,7 +32,7 @@ final readonly class ReviewBoards
     }
 
     /**
-     * @return array<string, list<array<string, mixed>>> by group, empty for an unknown type
+     * @return array<string, list<Change>> by group, empty for an unknown type
      */
     public function cards(string $type): array
     {
@@ -43,8 +45,7 @@ final readonly class ReviewBoards
             'size' => self::MAX_CHANGES,
             'sort' => [['updated_on' => ['order' => 'asc']]],
         ])->search();
-        foreach ($resultSet->getResults() as $result) {
-            $change = $result->getSource();
+        foreach (ChangeRepository::fromResultSet($resultSet) as $change) {
             $cards[self::group($change)][] = $change;
         }
 
@@ -79,19 +80,17 @@ final readonly class ReviewBoards
         ]];
     }
 
-    /**
-     * @param array<string, mixed> $change
-     */
-    public static function group(array $change): string
+    public static function group(Change $change): string
     {
-        if ('no' === $change['mergeable']) {
+        if (false === $change->mergeable) {
             return 'mergeConflict';
         }
-        if ($change['negative_reviews'] > 0 || $change['negative_verifications'] > 0) {
+        $against = $change->negativeVotes(Change::LABEL_REVIEW) + $change->negativeVotes(Change::LABEL_VERIFICATION);
+        if ($against > 0) {
             return 'blocked';
         }
-        $reviewed = $change['positive_reviews'] > 0;
-        $verified = $change['positive_verifications'] > 0;
+        $reviewed = $change->positiveVotes(Change::LABEL_REVIEW) > 0;
+        $verified = $change->positiveVotes(Change::LABEL_VERIFICATION) > 0;
 
         return match (true) {
             $reviewed && $verified => 'hasPlusOne',

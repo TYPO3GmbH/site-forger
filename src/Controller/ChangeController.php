@@ -13,8 +13,7 @@ namespace App\Controller;
 
 use App\Document\CommitMessage;
 use App\Document\Relations;
-use App\Elastic\Indices;
-use App\Search\GlobalSearch;
+use App\Repository\ChangeRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -26,7 +25,7 @@ class ChangeController extends AbstractController
 {
     public function __construct(
         private readonly Relations $relations,
-        private readonly GlobalSearch $globalSearch,
+        private readonly ChangeRepository $changes,
     ) {
     }
 
@@ -34,14 +33,14 @@ class ChangeController extends AbstractController
     public function show(int $number): Response
     {
         $message = sprintf('Change %d is not in Forger. It may be newer than the last import.', $number);
-        $change = $this->globalSearch->document(Indices::REVIEW, $number);
+        $change = $this->changes->byNumber($number);
         if (null === $change) {
             throw $this->createNotFoundException($message);
         }
 
         return $this->render('change/show.html.twig', [
             'change' => $change,
-            'message' => CommitMessage::body((string) ($change['commit_message'] ?? '')),
+            'message' => CommitMessage::body($change->commitMessage),
             'issues' => $this->relations->issuesOf($change),
         ]);
     }

@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace App\Report\Backport;
 
-use App\Elastic\Indices;
 use App\Repository\BackportBlacklistEntryRepository;
+use App\Repository\ChangeRepository;
 
 /**
  * The rows of the backport view: what app:backports found, without the changes excluded since.
@@ -22,7 +22,7 @@ final readonly class BackportList
     public function __construct(
         private BackportFile $file,
         private BackportBlacklistEntryRepository $blacklist,
-        private Indices $indices,
+        private ChangeRepository $changes,
     ) {
     }
 
@@ -39,29 +39,8 @@ final readonly class BackportList
         }
         $backports = array_diff_key($backports, array_flip($this->blacklist->changeIds()));
 
-        return ['rows' => Backports::rows($backports, $this->mainChanges($backports)), 'fileExists' => true];
-    }
+        $mainChanges = $this->changes->byNumbers(Backports::mainNumbers($backports))->toArray();
 
-    /**
-     * @param array<string, array<string, mixed>> $backports
-     *
-     * @return array<int, array<string, mixed>> the changes in main by their number
-     */
-    private function mainChanges(array $backports): array
-    {
-        $numbers = Backports::mainNumbers($backports);
-        if ([] === $numbers) {
-            return [];
-        }
-        $results = $this->indices->reviews()->createSearch([
-            'query' => ['terms' => ['id' => $numbers]],
-            'size' => count($numbers),
-        ])->search()->getResults();
-        $changes = [];
-        foreach ($results as $result) {
-            $changes[(int) $result->getData()['id']] = $result->getData();
-        }
-
-        return $changes;
+        return ['rows' => Backports::rows($backports, $mainChanges), 'fileExists' => true];
     }
 }
