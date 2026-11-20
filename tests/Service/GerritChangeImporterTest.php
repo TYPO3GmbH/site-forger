@@ -16,11 +16,8 @@ use App\Elastic\Users;
 use App\Service\ChangeRefreshResult;
 use App\Service\CommandRunRecorder;
 use App\Service\GerritChangeImporter;
+use App\Tests\Http\MockApi;
 use Doctrine\DBAL\Connection;
-use GuzzleHttp\Client;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -106,31 +103,13 @@ final class GerritChangeImporterTest extends TestCase
         self::assertSame('project:Packages/TYPO3.CMS change:95026', $query['q']);
     }
 
-    public function testRateLimitIsAnErrorAtOnceWithoutAHandler(): void
+    public function testTheQueryOfARetryIsTheSame(): void
     {
-        $importer = $this->importer([new Response(429), new Response(200, [], ")]}'\n[]")]);
-
-        try {
-            $importer->find('change:1', 1);
-            self::fail('A rate limit is an error');
-        } catch (\RuntimeException $e) {
-            self::assertSame(429, $e->getCode());
-        }
-        self::assertCount(1, $this->requests);
-    }
-
-    public function testRetriesWithTheSameQueryWithAHandler(): void
-    {
-        $importer = $this->importer([new Response(503), new Response(429, ['Retry-After' => '7']), new Response(200, [], ")]}'\n[]")]);
-        $waits = [];
-        $importer->onRetry(static function (int $status, int $seconds, int $attempt) use (&$waits): void {
-            $waits[] = [$status, $seconds, $attempt];
-        }, 4);
+        $importer = $this->importer([new Response(429, ['Retry-After' => '2']), new Response(200, [], ")]}'\n[]")]);
 
         self::assertSame([], $importer->find('change:1', 1));
-        self::assertSame([[503, 30, 1], [429, 7, 2]], $waits);
-        // The retries ask the same, the query was lost on a retry before
-        self::assertSame($this->requests[0]['request']->getUri()->getQuery(), $this->requests[2]['request']->getUri()->getQuery());
+        // The query was lost on a retry once
+        self::assertSame($this->requests[0]['request']->getUri()->getQuery(), $this->requests[1]['request']->getUri()->getQuery());
     }
 
     public function testTheRefreshOfAChangeAsksForTheDetailsOfTheImport(): void
@@ -197,12 +176,13 @@ final class GerritChangeImporterTest extends TestCase
      */
     private function importer(array $responses, ?ProjectChanges $projectChanges = null): GerritChangeImporter
     {
-        $stack = HandlerStack::create(new MockHandler($responses));
-        $stack->push(Middleware::history($this->requests));
+        $recorder = new CommandRunRecorder($this->createStub(Connection::class), new NullLogger());
+        $api = new MockApi($responses, $recorder, 'Gerrit');
+        $this->requests = &$api->requests;
 
         return new GerritChangeImporter(
-            new Client(['handler' => $stack, 'base_uri' => 'https://review.typo3.org']),
-            new CommandRunRecorder($this->createStub(Connection::class), new NullLogger()),
+            $api->client,
+            $recorder,
             $projectChanges ?? $this->createStub(ProjectChanges::class),
             new Users(new ArrayAdapter(), new NullLogger()),
         );

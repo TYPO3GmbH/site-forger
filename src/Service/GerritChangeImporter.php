@@ -19,18 +19,15 @@ use App\Elastic\ProjectChanges;
 use App\Elastic\ReviewSubject;
 use App\Elastic\Users;
 use App\Enum\ReviewVoteEnum;
+use App\Http\ApiClient;
+use App\Http\ApiFailure;
 use Elastica\Document;
-use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\ClientException;
-use GuzzleHttp\Exception\ServerException;
-use Psr\Http\Message\ResponseInterface;
 
 /**
  * Writes Gerrit changes to the review index, as the import and the refresh of a single
  * change do.
  *
- * Gerrit rate-limits the heavy queries now and then (429) or fails (5xx). Without a handler, see onRetry(),
- * that is an error at once: a page waiting for minutes helps nobody. The import waits and tries again.
+ * The requests go through App\Http\ApiClient: retries and failures as for every API, see App\Http\ApiRequests.
  */
 final class GerritChangeImporter
 {
@@ -49,13 +46,8 @@ final class GerritChangeImporter
      */
     private const int BULK_SIZE = 500;
 
-    /** @var (\Closure(int, int, int): void)|null */
-    private ?\Closure $retryHandler = null;
-
-    private int $retries = 0;
-
     public function __construct(
-        private readonly ClientInterface $client,
+        private readonly ApiClient $gerrit,
         private readonly CommandRunRecorder $recorder,
         private readonly ProjectChanges $projectChanges,
         private readonly Users $users,
@@ -63,21 +55,10 @@ final class GerritChangeImporter
     }
 
     /**
-     * Waits for Gerrit and tries again, the handler gets the status, the seconds to wait and the attempt, and sleeps.
-     *
-     * @param \Closure(int, int, int): void $handler
-     */
-    public function onRetry(\Closure $handler, int $retries): void
-    {
-        $this->retryHandler = $handler;
-        $this->retries = $retries;
-    }
-
-    /**
      * Loads a change of the project from Gerrit again and writes it to the index, as the import does. A change
      * Gerrit does not show (any more), private now, deleted or in another project, is removed from the index.
      *
-     * @throws \RuntimeException Gerrit could not be asked, the index keeps the change as it is
+     * @throws ApiFailure Gerrit could not be asked, the index keeps the change as it is
      */
     public function refresh(int $number): ChangeRefreshResult
     {
@@ -157,51 +138,11 @@ final class GerritChangeImporter
      *
      * @return list<array<string, mixed>>
      *
-     * @throws \RuntimeException Gerrit could not be asked
+     * @throws ApiFailure Gerrit could not be asked
      */
     public function find(string $query, int $count, int $start = 0, array $options = self::DETAIL_OPTIONS): array
     {
-        return $this->decode($this->request($query, $count, $start, $options));
-    }
-
-    /**
-     * @param list<string> $options
-     */
-    private function request(string $query, int $count, int $start, array $options, int $retry = 0): ResponseInterface
-    {
-        try {
-            $httpQueryData = [
-                'q' => $query,
-                'n' => $count,
-                'start' => $start,
-                'o' => $options,
-            ];
-            // A list of its own: on a retry $query is the Gerrit query again
-            $parts = [];
-            // http_build_query() doesn't work as it generates o[0]=a&o[1]=b&o[2]=c instead of o=a&o=b&o=c
-            foreach ($httpQueryData as $name => $value) {
-                $value = (array) $value;
-                array_walk_recursive($value, static function ($value) use (&$parts, $name) {
-                    $parts[] = urlencode($name) . '=' . urlencode((string) $value);
-                });
-            }
-            $httpQuery = implode('&', $parts);
-            $url = sprintf('/changes/?%s', $httpQuery);
-
-            return $this->client->request('GET', $url);
-        } catch (ServerException|ClientException $e) {
-            $status = $e->getResponse()->getStatusCode();
-            // Gerrit rate-limits the heavy change queries now and then with 429
-            if ((429 === $status || $e instanceof ServerException) && null !== $this->retryHandler && $retry < $this->retries) {
-                ++$retry;
-                $retryAfter = (int) $e->getResponse()->getHeaderLine('Retry-After');
-                ($this->retryHandler)($status, $retryAfter > 0 ? min($retryAfter, 300) : 30 * $retry, $retry);
-
-                return $this->request($query, $count, $start, $options, $retry);
-            }
-
-            throw new \RuntimeException(sprintf('Fetching changes from Gerrit failed with status %d', $status), $status, $e);
-        }
+        return array_values($this->gerrit->object('/changes/', ['q' => $query, 'n' => $count, 'start' => $start, 'o' => $options], 'a list of changes'));
     }
 
     /**
@@ -332,13 +273,5 @@ final class GerritChangeImporter
         }
 
         return $out;
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function decode(ResponseInterface $response): array
-    {
-        return json_decode(str_replace(")]}'", '', (string) $response->getBody()), true, 512, JSON_THROW_ON_ERROR);
     }
 }

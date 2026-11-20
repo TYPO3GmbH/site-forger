@@ -13,17 +13,14 @@ namespace App\Tests\Service;
 
 use App\Elastic\ProjectIssues;
 use App\Elastic\Users;
+use App\Http\ApiFailure;
 use App\Service\CommandRunRecorder;
 use App\Service\ForgeIssueImporter;
+use App\Tests\Http\MockApi;
 use Doctrine\DBAL\Connection;
+use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
-use Redmine\Api\Issue;
-use Redmine\Client\Client;
-use Redmine\Http\HttpClient;
-use Redmine\Http\HttpFactory;
-use Redmine\Http\Request;
-use Redmine\Http\Response;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 final class ForgeIssueImporterTest extends TestCase
@@ -93,82 +90,34 @@ final class ForgeIssueImporterTest extends TestCase
         self::assertSame([], $document['duplicated_by']);
     }
 
-    public function testRateLimitIsAnErrorAtOnceWithoutAHandler(): void
+    public function testErrorsOfForgeOtherThanNotFoundAreThrownByRefresh(): void
     {
-        $calls = 0;
-        $importer = $this->importer([429]);
-
-        try {
-            $importer->call('issue', static function (Issue $issues) use (&$calls): mixed {
-                ++$calls;
-
-                return $issues->show(91089);
-            });
-            self::fail('A rate limit is an error');
-        } catch (\RuntimeException $e) {
-            self::assertSame(429, $e->getCode());
-        }
-        self::assertSame(1, $calls);
-    }
-
-    public function testRateLimitIsWaitedForWithAHandler(): void
-    {
-        $importer = $this->importer([429, 429, 200]);
-        $attempts = [];
-        $importer->onRateLimit(static function (int $attempt) use (&$attempts): void {
-            $attempts[] = $attempt;
-        }, 6);
-
-        self::assertSame(['issue' => ['id' => 91089]], $importer->call('issue', static fn (Issue $issues): mixed => $issues->show(91089)));
-        self::assertSame([1, 2], $attempts);
-    }
-
-    public function testHandlerGivesUpAfterTheRetries(): void
-    {
-        $importer = $this->importer([429, 429, 429]);
-        $importer->onRateLimit(static function (int $attempt): void {
-        }, 2);
-
-        $this->expectExceptionCode(429);
-        $importer->call('issue', static fn (Issue $issues): mixed => $issues->show(91089));
-    }
-
-    public function testErrorsOfForgeOtherThanGoneAreThrownByRefresh(): void
-    {
-        $importer = $this->importer([500]);
+        // A page tries twice again, then gives up
+        $importer = $this->importer([new Response(500), new Response(500), new Response(500)]);
 
         // The index is not touched: the issue keeps its state there
-        $this->expectExceptionCode(500);
+        $this->expectExceptionObject(ApiFailure::status('Forge', 500));
         $importer->refresh(91089);
     }
 
-    /**
-     * @param list<int> $statuses the status of each request, in order
-     */
-    private function importer(array $statuses): ForgeIssueImporter
+    public function testAnAnswerWithoutTheIssueIsAFailure(): void
     {
-        // Forge answers each request with the next status, the issue with a success
-        $http = new class($statuses) implements HttpClient {
-            /** @param list<int> $statuses */
-            public function __construct(private array $statuses)
-            {
-            }
+        $this->expectExceptionMessage('Forge answered without the issue: {"errors":[]}');
+        $this->importer([new Response(200, [], '{"errors":[]}')])->refresh(91089);
+    }
 
-            public function request(Request $request): Response
-            {
-                $status = array_shift($this->statuses) ?? 200;
-
-                return HttpFactory::makeResponse($status, 'application/json', $status < 400 ? '{"issue":{"id":91089}}' : '');
-            }
-        };
-        $client = $this->createStub(Client::class);
-        $client->method('getApi')->willReturn(Issue::fromHttpClient($http));
+    /**
+     * @param list<Response> $responses the answers of Forge, in order
+     */
+    private function importer(array $responses): ForgeIssueImporter
+    {
+        $recorder = new CommandRunRecorder($this->createStub(Connection::class), new NullLogger());
 
         return new ForgeIssueImporter(
-            $client,
+            new MockApi($responses, $recorder)->client,
             new Users(new ArrayAdapter(), new NullLogger()),
             new ProjectIssues(27),
-            new CommandRunRecorder($this->createStub(Connection::class), new NullLogger()),
+            $recorder,
         );
     }
 }

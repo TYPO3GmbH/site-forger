@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Http\ApiRequests;
+use App\Http\RetryPolicy;
 use App\Service\CommandRunRecorder;
 use App\Service\ForgeUserSync;
 use App\Service\JobStopped;
@@ -45,6 +47,7 @@ final class ImportUsersCommand extends Command implements LoggerAwareInterface
     public function __construct(
         private readonly ForgeUserSync $userSync,
         private readonly CommandRunRecorder $recorder,
+        private readonly ApiRequests $apiRequests,
         LockFactory $lockFactory,
     ) {
         parent::__construct();
@@ -65,6 +68,8 @@ final class ImportUsersCommand extends Command implements LoggerAwareInterface
 
             return Command::SUCCESS;
         }
+        // Unattended: waits for Forge as long as a job does, keeping the lock meanwhile
+        $this->apiRequests->retryWith(RetryPolicy::job(), fn () => $this->lock?->refresh());
         try {
             $this->recorder->progress(self::STEP_TAKE_OVER);
             $taken = $this->userSync->takeOverFromIssues();

@@ -1,0 +1,7 @@
+# The state is in the cache, so all processes share it. Each API has its own bucket, keyed by its name.
+framework:
+    rate_limiter:
+        api:
+            policy: token_bucket
+            limit: 10
+            rate: { interval: '1 second', amount: 10 }

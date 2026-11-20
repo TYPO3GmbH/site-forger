@@ -14,10 +14,8 @@ namespace App\Service;
 use App\DTO\User;
 use App\Elastic\ElasticUtility;
 use App\Elastic\Users;
-use Redmine\Client\Client;
-use Redmine\Exception as RedmineException;
-use Redmine\Http\HttpClient;
-use Redmine\Http\HttpFactory;
+use App\Http\ApiClient;
+use App\Http\ApiFailure;
 
 /**
  * Fills the index "user" from Forge, see App\Elastic\Users, in the job "Update users" (App\Command\ImportUsersCommand):
@@ -31,7 +29,8 @@ use Redmine\Http\HttpFactory;
  * 2. asks Forge for some of the users it never asked for, those without an email first, and for those it asked
  *    longest ago, after REFRESH_AFTER_DAYS: one request each, Forge lists no users to anyone but its admins.
  *
- * A rate limit (429) or another error of Forge ends step 2 for the run, it does not wait: the next run goes on.
+ * The requests retry as those of every job, see App\Http\ApiRequests; a failure that remains ends step 2 for the
+ * run, the next run goes on.
  * The issues are written without waiting for their users, the avatar shows once the email is known: Gravatar
  * finds it by the email, without one the pages show its placeholder.
  */
@@ -59,7 +58,7 @@ final readonly class ForgeUserSync
     private const int AGGREGATION_PAGE = 1000;
 
     public function __construct(
-        private Client $forgeClient,
+        private ApiClient $forge,
         private Users $users,
         private CommandRunRecorder $recorder,
     ) {
@@ -93,28 +92,20 @@ final readonly class ForgeUserSync
         $stopped = null;
         try {
             foreach ($due as $position => $user) {
-                $status = 0;
                 try {
-                    $answer = $this->fetch($user->forgeId, $status);
-                } catch (RedmineException $e) {
-                    // Forge could not be reached: the next run tries again
-                    $stopped = 'Forge could not be reached: ' . $e->getMessage();
-                    break;
-                }
-                if (null !== $answer) {
-                    $written[] = $user->updatedBy(User::fromForge($answer, $now));
+                    $written[] = $user->updatedBy(User::fromForge($this->fetch($user->forgeId), $now));
                     $replaced[] = $user->id();
-                } elseif (in_array($status, [403, 404], true)) {
+                } catch (ApiFailure $e) {
+                    if (!$e->isNotFound()) {
+                        // The next run tries again
+                        $stopped = $e->getMessage();
+                        break;
+                    }
                     // Deleted or locked, or a group: Forge has no user for a group that is assigned
                     $written[] = $user->asGone($now);
                     ++$gone;
-                } else {
-                    $stopped = 429 === $status ? 'Forge rate limit' : sprintf('Forge responded with status %d', $status);
-                    break;
                 }
                 $this->recorder->progress(self::STEP, $position + 1, count($due));
-                // Stephan Großberndt asked for a pause between the requests to Forge, see ImportCommand::importIssues()
-                usleep(50000);
             }
         } finally {
             $this->users->write($this->withGerrit($written), $replaced);
@@ -236,25 +227,17 @@ final readonly class ForgeUserSync
     }
 
     /**
-     * The user as Forge answers, null if it does not, with the status in $status.
+     * The user as Forge answers.
      *
-     * @return array<string, mixed>|null
+     * @return array<string, mixed>
+     *
+     * @throws ApiFailure
      */
-    private function fetch(int $forgeId, int &$status): ?array
+    private function fetch(int $forgeId): array
     {
-        if (!$this->forgeClient instanceof HttpClient) {
-            throw new \LogicException(sprintf('The client of Forge (%s) sends no requests of its own.', $this->forgeClient::class));
-        }
-        $response = $this->forgeClient->request(HttpFactory::makeJsonRequest('GET', sprintf('/users/%d.json', $forgeId)));
-        $status = $response->getStatusCode();
-        if ($status >= 400) {
-            return null;
-        }
-        $answer = json_decode($response->getContent(), true);
-        if (!is_array($answer) || !isset($answer['user']['id'])) {
-            $status = 502;
-
-            return null;
+        $answer = $this->forge->object(sprintf('/users/%d.json', $forgeId), [], 'the user');
+        if (!isset($answer['user']['id']) || !is_array($answer['user'])) {
+            throw ApiFailure::unexpected($this->forge->name, 'the user', json_encode($answer));
         }
 
         return $answer['user'];

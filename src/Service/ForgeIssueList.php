@@ -11,7 +11,8 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use Redmine\Http\HttpFactory;
+use App\Http\ApiClient;
+use App\Http\ApiFailure;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
@@ -30,7 +31,7 @@ final readonly class ForgeIssueList
     public const int PAGE_SIZE = 100;
 
     public function __construct(
-        private ForgeIssueImporter $issueImporter,
+        private ApiClient $forge,
         #[Autowire('%redmine_project_id%')]
         private int $projectId,
     ) {
@@ -100,14 +101,13 @@ final readonly class ForgeIssueList
     /**
      * @return array<string, mixed>
      *
-     * @throws \RuntimeException Forge could not be asked
+     * @throws ApiFailure Forge could not be asked
      */
     private function get(string $path): array
     {
-        $content = $this->issueImporter->request(HttpFactory::makeJsonRequest('GET', $path))->getContent();
-        $answer = json_decode($content, true);
-        if (!is_array($answer) || !array_key_exists('total_count', $answer)) {
-            throw new \RuntimeException(sprintf('Forge answered without a list of issues: %s', mb_substr($content, 0, 200)));
+        $answer = $this->forge->object($path, [], 'a list of issues');
+        if (!array_key_exists('total_count', $answer)) {
+            throw ApiFailure::unexpected($this->forge->name, 'a list of issues', json_encode($answer));
         }
 
         return $answer;

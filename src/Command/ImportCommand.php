@@ -18,6 +18,9 @@ use App\Elastic\IndexSetup;
 use App\Elastic\IssueReconciliation;
 use App\Elastic\ProjectChanges;
 use App\Elastic\ProjectIssues;
+use App\Http\ApiClient;
+use App\Http\ApiRequests;
+use App\Http\RetryPolicy;
 use App\Service\CommandRunRecorder;
 use App\Service\ForgeIssueImporter;
 use App\Service\ForgeIssueList;
@@ -27,7 +30,6 @@ use Elastica\Result;
 use Exception;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
-use Redmine\Api\Issue;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Command\LockableTrait;
@@ -94,10 +96,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
     private const int OUTDATED_LIMIT_GERRIT = 300;
     private const int PAGE_SIZE = 100;
     /**
-     * Retries of a rate-limited request to Forge, see waitForForge().
-     */
-    private const int FORGE_RETRIES = 6;
-    /**
      * Changes per request when loading the details of the changed ones.
      */
     private const int GERRIT_DETAIL_BATCH = 25;
@@ -105,10 +103,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
      * Changes per page of the light listing without details: Gerrit sends 500 in about the time of 100.
      */
     private const int GERRIT_LIST_PAGE_SIZE = 500;
-    /**
-     * Retries of a Gerrit query that is rate-limited or fails, see waitForGerrit().
-     */
-    private const int GERRIT_RETRIES = 4;
     protected static array $importModes = ['forgeFull', 'forgeDelta', 'reviewFull', 'reviewDelta'];
     protected OutputInterface $output;
 
@@ -122,6 +116,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
         private readonly GerritChangeImporter $changeImporter,
         private readonly ProjectChanges $projectChanges,
         private readonly ForgeIssueList $forgeIssues,
+        private readonly ApiClient $forge,
+        private readonly ApiRequests $apiRequests,
         LockFactory $lockFactory,
     ) {
         parent::__construct();
@@ -152,8 +148,8 @@ class ImportCommand extends Command implements LoggerAwareInterface
     {
         $io = new SymfonyStyle($input, $output);
         $this->output = $output;
-        $this->issueImporter->onRateLimit($this->waitForForge(...), self::FORGE_RETRIES);
-        $this->changeImporter->onRetry($this->waitForGerrit(...), self::GERRIT_RETRIES);
+        // Unattended: waits for Forge and Gerrit as long as a job does, keeping the lock meanwhile
+        $this->apiRequests->retryWith(RetryPolicy::job(), $this->refreshLock(...));
         $mode = $input->getOption('mode');
         $startAt = (int) $input->getOption('startAt');
         if (!in_array($mode, self::$importModes, true)) {
@@ -549,10 +545,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
             } catch (\Exception $e) {
                 // The import goes on with the next issue
                 $this->recorder->skipped('issue', (string) ($doc['id'] ?? '?'), $e);
-            } finally {
-                // Stephan Großberndt asked for a sleep of between 50 - 100ms between requests to Forge on April 15th, 2024 in Slack channel #t3a-t3g-infra
-                // Since we run into a lot of requests here, 50ms should be fine to not block the overall import process for too long
-                usleep(50000);
             }
             if (null !== $progressBar) {
                 $progressBar->advance();
@@ -757,42 +749,6 @@ class ImportCommand extends Command implements LoggerAwareInterface
     }
 
     /**
-     * Calls Forge, waits and retries while it rate-limits (429), and fails on any other error status.
-     *
-     * The pause doubles from 10 seconds up to 5 minutes, about 10 minutes in all: enough for a full import
-     * running unattended over night not to end at a rate limit. A delta waiting that long holds its lock,
-     * the next delta is skipped meanwhile.
-     *
-     * The Redmine client returns the body of an error response (e.g. the HTML page of a 429) instead of
-     * throwing, so the status of the last response decides.
-     *
-     * @throws \RuntimeException
-     */
-    /**
-     * @template T
-     *
-     * @param \Closure(Issue): T $callback
-     *
-     * @return T
-     */
-    private function callRedmine(\Closure $callback): mixed
-    {
-        return $this->issueImporter->call('issue', $callback);
-    }
-
-    /**
-     * Gives Forge some time to relax after a rate limit, longer with each attempt.
-     */
-    private function waitForForge(int $attempt): void
-    {
-        $sleepTime = min(10 * 2 ** ($attempt - 1), 300);
-        $this->logger->warning(sprintf('[RECV] Failed to fetch data from Forge, response code 429, retrying in %d seconds, attempt #%d...', $sleepTime, $attempt));
-        $this->recorder->waiting(sprintf('Forge rate limit, waiting %d s (attempt %d of %d)', $sleepTime, $attempt, self::FORGE_RETRIES));
-        $this->recorder->sleep($sleepTime);
-        $this->refreshLock();
-    }
-
-    /**
      * @param string|null $updatedOn a Redmine filter, see ImportWatermark::redmineFilter(); with a filter the oldest come first
      */
     private function getAllForgeIssuesPaginated(int $limit, int $offset, ?string $updatedOn = null): array
@@ -810,18 +766,7 @@ class ImportCommand extends Command implements LoggerAwareInterface
             $parameters['updated_on'] = $updatedOn;
         }
 
-        return $this->callRedmine(static fn (Issue $issues): mixed => $issues->list($parameters));
-    }
-
-    /**
-     * Gives Gerrit some time after a rate limit or an error, as long as it asks for or longer with each attempt.
-     */
-    private function waitForGerrit(int $status, int $seconds, int $attempt): void
-    {
-        $this->logger->warning(sprintf('Gerrit responded with %d, retrying in %d seconds (attempt %d)...', $status, $seconds, $attempt));
-        $this->recorder->waiting(sprintf('Gerrit responded with %d, waiting %d s (attempt %d of %d)', $status, $seconds, $attempt, self::GERRIT_RETRIES));
-        $this->recorder->sleep($seconds);
-        $this->refreshLock();
+        return $this->forge->object('/issues.json', $parameters, 'a list of issues');
     }
 
     /**
