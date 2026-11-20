@@ -144,7 +144,7 @@ final class ReviewLists
     {
         $aggregations = [
             // Added and removed lines together, filtered as "filters[size][...]"
-            'Size' => ReviewSizeEnum::changeAggregation(),
+            'Size' => ReviewSizeQuery::changeAggregation(),
             'Releases' => ['terms' => ['field' => 'releases']],
             'Affected Files' => ['terms' => ['field' => 'affected_files']],
             'Topic' => ['terms' => ['field' => 'topic', 'order' => ['_term' => 'asc']]],
@@ -154,7 +154,7 @@ final class ReviewLists
             'Owner' => PeopleFacet::aggregation('Owner'),
             // The tags in the subject, like "BUGFIX" or "!!!", filtered as "filters[type][...]"
             'Type' => ['terms' => ['field' => 'reviewtags', 'size' => 50]],
-            'Activity' => ActivityEnum::changeAggregation(),
+            'Activity' => ActivityQuery::changeAggregation(),
         ];
 
         return array_diff_key($aggregations, array_flip($without));
@@ -231,11 +231,11 @@ final class ReviewLists
                 // Only open changes have a stage, also when closed ones are searched
                 $stage = ActivityEnum::tryFromLabel($value);
 
-                return null === $stage ? null : new Simple($stage->changeQuery());
+                return null === $stage ? null : new Simple(ActivityQuery::changes($stage));
             case 'size':
                 $size = ReviewSizeEnum::tryFromLabel($value);
 
-                return null === $size ? null : new Simple($size->changeQuery());
+                return null === $size ? null : new Simple(ReviewSizeQuery::changes($size));
             case 'updated_on':
                 // A month of the filter "Updated on" ticked before the datepicker, in links shared then
                 $start = new \DateTimeImmutable('@' . intdiv((int) $value, 1000));

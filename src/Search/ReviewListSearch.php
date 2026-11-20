@@ -13,8 +13,6 @@ namespace App\Search;
 
 use App\DTO\Pagination;
 use App\Elastic\Indices;
-use App\Enum\ActivityEnum;
-use App\Enum\ReviewSizeEnum;
 use App\Enum\ReviewSortEnum;
 use App\People\UserDirectory;
 use App\Repository\ChangeRepository;
@@ -70,10 +68,10 @@ final readonly class ReviewListSearch
             $found['Owner'] = PeopleFacet::keyed($found['Owner'], 'Owner', $this->users, $owners);
         }
         if (isset($found['Activity'])) {
-            $found['Activity'] = ActivityEnum::buckets($found['Activity']);
+            $found['Activity'] = ActivityQuery::facet($found['Activity']);
         }
         if (isset($found['Size'])) {
-            $found['Size'] = ReviewSizeEnum::buckets($found['Size']);
+            $found['Size'] = ReviewSizeQuery::facet($found['Size']);
         }
 
         return $page->withTotal($changes->total)->viewData() + [

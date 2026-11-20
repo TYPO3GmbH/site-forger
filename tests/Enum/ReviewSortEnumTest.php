@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Enum;
 
-use App\Enum\ReviewSizeEnum;
 use App\Enum\ReviewSortEnum;
+use App\Search\ReviewSizeQuery;
 use PHPUnit\Framework\TestCase;
 
 final class ReviewSortEnumTest extends TestCase
@@ -60,6 +60,6 @@ final class ReviewSortEnumTest extends TestCase
         $script = ReviewSortEnum::SMALLEST->sort()[0]['_script'];
 
         self::assertSame('asc', $script['order']);
-        self::assertSame(ReviewSizeEnum::LINES_SCRIPT, $script['script']['source']);
+        self::assertSame(ReviewSizeQuery::LINES_SCRIPT, $script['script']['source']);
     }
 }

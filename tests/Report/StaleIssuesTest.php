@@ -19,6 +19,7 @@ use App\Enum\ReviewStateEnum;
 use App\Report\LinkedChange;
 use App\Report\StaleIssue;
 use App\Report\StaleIssues;
+use App\Search\ActivityQuery;
 use PHPUnit\Framework\TestCase;
 
 final class StaleIssuesTest extends TestCase
@@ -38,7 +39,10 @@ final class StaleIssuesTest extends TestCase
         $request = StaleIssues::issuesRequest(3, 25);
 
         // ActivityEnum decides, also which issues count as open
-        self::assertSame([ActivityEnum::STALE->issueQuery(), ActivityEnum::ORPHANED->issueQuery()], $request['query']['bool']['should']);
+        self::assertSame(
+            [ActivityQuery::issues(ActivityEnum::STALE), ActivityQuery::issues(ActivityEnum::ORPHANED)],
+            $request['query']['bool']['should'],
+        );
         self::assertSame(1, $request['query']['bool']['minimum_should_match']);
         self::assertSame([['updated_on' => 'asc'], ['id' => 'asc']], $request['sort']);
         // A page at a time, the total of all pages counted

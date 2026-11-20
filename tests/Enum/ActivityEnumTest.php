@@ -13,7 +13,6 @@ namespace App\Tests\Enum;
 
 use App\Document\Change;
 use App\Document\Issue;
-use App\Elastic\Bucket;
 use App\Enum\ActivityEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -71,63 +70,6 @@ final class ActivityEnumTest extends TestCase
         // Statuses Forge does not know count as open
         self::assertSame(ActivityEnum::STALE, Issue::fromDocument($old + ['status' => ['id' => 99]])->activity($now));
         self::assertSame(ActivityEnum::STALE, Issue::fromDocument($old)->activity($now));
-    }
-
-    public function testRangesCoverAllDatesWithoutGaps(): void
-    {
-        self::assertSame(['gte' => 'now-14d'], ActivityEnum::FRESH->range());
-        self::assertSame(['gte' => 'now-60d', 'lt' => 'now-14d'], ActivityEnum::QUIET->range());
-        self::assertSame(['lt' => 'now-180d'], ActivityEnum::ORPHANED->range());
-
-        $cases = ActivityEnum::cases();
-        for ($i = 1, $count = count($cases); $i < $count; ++$i) {
-            $younger = $cases[$i - 1]->range();
-            $older = $cases[$i]->range();
-            self::assertArrayHasKey('gte', $younger);
-            self::assertArrayHasKey('lt', $older);
-            self::assertSame($younger['gte'], $older['lt']);
-        }
-    }
-
-    public function testFiltersLeaveOutClosedChangesAndIssues(): void
-    {
-        self::assertSame(
-            ['bool' => [
-                'filter' => [['range' => ['updated_on' => ['gte' => 'now-180d', 'lt' => 'now-60d']]]],
-                'must_not' => [['terms' => ['reviewstatus' => ['MERGED', 'ABANDONED']]]],
-            ]],
-            ActivityEnum::STALE->changeQuery()
-        );
-        self::assertSame(
-            ['bool' => [
-                'filter' => [['range' => ['updated_on' => ['lt' => 'now-180d']]]],
-                'must_not' => [['terms' => ['status.id' => [5, 6, 3]]]],
-            ]],
-            ActivityEnum::ORPHANED->issueQuery()
-        );
-    }
-
-    public function testAggregationsCountWithTheFilters(): void
-    {
-        $changes = ActivityEnum::changeAggregation()['filters']['filters'];
-        $issues = ActivityEnum::issueAggregation()['filters']['filters'];
-
-        self::assertSame(['Fresh', 'Quiet', 'Stale', 'Orphaned'], array_keys($changes));
-        self::assertSame(ActivityEnum::QUIET->changeQuery(), $changes['Quiet']);
-        self::assertSame(ActivityEnum::QUIET->issueQuery(), $issues['Quiet']);
-    }
-
-    public function testBucketsFollowTheStagesWithTheLabelsAsKeys(): void
-    {
-        // Elasticsearch answers a keyed "filters" aggregation, in any order
-        $result = ['buckets' => ['Stale' => ['doc_count' => 3], 'Fresh' => ['doc_count' => 7], 'Orphaned' => ['doc_count' => 1]]];
-
-        $buckets = ActivityEnum::buckets(Bucket::facetOf($result));
-
-        self::assertSame(
-            [['Fresh' => 7], ['Quiet' => 0], ['Stale' => 3], ['Orphaned' => 1]],
-            $buckets->map(static fn (Bucket $bucket): array => [$bucket->key => $bucket->count])->toArray(),
-        );
     }
 
     public function testLabelsAreTheFilterKeys(): void

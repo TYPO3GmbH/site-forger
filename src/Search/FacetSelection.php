@@ -91,6 +91,31 @@ final class FacetSelection
     }
 
     /**
+     * The buckets of a "filters" aggregation keyed by labels, in the order of the labels. A label without a bucket
+     * counts 0.
+     *
+     * @param ReadableCollection<int, Bucket> $facet
+     * @param list<string>                    $labels
+     *
+     * @return ReadableCollection<int, Bucket>
+     */
+    public static function inOrderOfLabels(ReadableCollection $facet, array $labels): ReadableCollection
+    {
+        $counts = [];
+        foreach ($facet as $bucket) {
+            $counts[$bucket->key] = $bucket->count;
+        }
+
+        return new ArrayCollection(array_map(
+            static fn (string $label): Bucket => Bucket::fromArray([
+                'key' => $label,
+                'doc_count' => $counts[$label] ?? 0,
+            ]),
+            $labels,
+        ));
+    }
+
+    /**
      * The values of "filters[<key>][<value>]=true", as they are stored: the search writes spaces as "_".
      *
      * @param array<string, mixed> $filters

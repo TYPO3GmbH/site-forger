@@ -11,29 +11,21 @@ declare(strict_types=1);
 
 namespace App\Enum;
 
-use App\Elastic\Bucket;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\ReadableCollection;
-
 /**
  * How big a Gerrit change is, by the lines it adds and removes together, as Gerrit counts them.
  *
- * Gerrit has no sizes: the value is the key of the size, the label the name to show. The size tells a reviewer
- * at a glance how long the review takes, named like the difficulty of a game, from Easy to Impossible.
+ * Gerrit has no sizes: the label is the name to show, see ReviewSizeQuery for the sizes in the index. The size
+ * tells a reviewer at a glance how long the review takes, named like the difficulty of a game, from Easy to
+ * Impossible.
  */
-enum ReviewSizeEnum: string
+enum ReviewSizeEnum
 {
-    /**
-     * The lines of a change in Painless, 0 for one imported before the lines were.
-     */
-    public const string LINES_SCRIPT = "(doc['insertions'].size() == 0 ? 0 : doc['insertions'].value) + (doc['deletions'].size() == 0 ? 0 : doc['deletions'].value)";
-
-    case EASY = 'easy';
-    case NORMAL = 'normal';
-    case HARD = 'hard';
-    case EXPERT = 'expert';
-    case NIGHTMARE = 'nightmare';
-    case IMPOSSIBLE = 'impossible';
+    case EASY;
+    case NORMAL;
+    case HARD;
+    case EXPERT;
+    case NIGHTMARE;
+    case IMPOSSIBLE;
 
     public function label(): string
     {
@@ -52,7 +44,7 @@ enum ReviewSizeEnum: string
      */
     public function severity(): string
     {
-        return 'size-' . $this->value;
+        return 'size-' . strtolower($this->name);
     }
 
     /**
@@ -94,62 +86,6 @@ enum ReviewSizeEnum: string
         }
 
         return sprintf('more than %d lines changed', $this->minimum() - 1);
-    }
-
-    /**
-     * The Gerrit changes of the review index of this size. A change imported without lines has none.
-     *
-     * @return array<string, mixed>
-     */
-    public function changeQuery(): array
-    {
-        return ['bool' => ['filter' => [
-            ['exists' => ['field' => 'insertions']],
-            ['script' => ['script' => [
-                'lang' => 'painless',
-                'source' => 'def lines = ' . self::LINES_SCRIPT . '; return lines >= params.minimum && (params.maximum < 0 || lines <= params.maximum);',
-                'params' => ['minimum' => $this->minimum(), 'maximum' => $this->maximum() ?? -1],
-            ]]],
-        ]]];
-    }
-
-    /**
-     * A "filters" aggregation counting the changes per size, see buckets().
-     *
-     * @return array<string, mixed>
-     */
-    public static function changeAggregation(): array
-    {
-        $filters = [];
-        foreach (self::cases() as $size) {
-            $filters[$size->label()] = $size->changeQuery();
-        }
-
-        return ['filters' => ['filters' => $filters]];
-    }
-
-    /**
-     * The result of changeAggregation() as the filter list shows aggregations: a bucket per size, the smallest
-     * first, with the label as key.
-     *
-     * @param ReadableCollection<int, Bucket> $facet the buckets of the aggregation, by the label
-     *
-     * @return ReadableCollection<int, Bucket>
-     */
-    public static function buckets(ReadableCollection $facet): ReadableCollection
-    {
-        $counts = $facet->reduce(
-            static fn (array $counts, Bucket $bucket): array => [$bucket->key => $bucket->count] + $counts,
-            [],
-        );
-
-        return new ArrayCollection(array_map(
-            static fn (self $size): Bucket => Bucket::fromArray([
-                'key' => $size->label(),
-                'doc_count' => $counts[$size->label()] ?? 0,
-            ]),
-            self::cases(),
-        ));
     }
 
     public static function tryFromLabel(string $label): ?self

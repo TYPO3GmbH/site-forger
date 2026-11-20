@@ -19,6 +19,7 @@ use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
+use App\Search\ActivityQuery;
 use Doctrine\Common\Collections\ArrayCollection;
 
 /**
@@ -77,7 +78,7 @@ final readonly class StaleIssues
     {
         return [
             'query' => ['bool' => [
-                'should' => array_map(static fn (ActivityEnum $stage): array => $stage->issueQuery(), self::STAGES),
+                'should' => array_map(ActivityQuery::issues(...), self::STAGES),
                 'minimum_should_match' => 1,
             ]],
             // The id last, so the pages keep their order among issues of the same value

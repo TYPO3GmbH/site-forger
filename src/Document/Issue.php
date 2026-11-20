@@ -104,7 +104,7 @@ final readonly class Issue
             return null;
         }
         $dates = ['updated_on' => $this->updatedOn, 'created_on' => $this->createdOn];
-        $lastActivity = ActivityEnum::lastActivity($dates);
+        $lastActivity = IndexDates::lastActivity($dates);
 
         return null === $lastActivity ? null : ActivityEnum::fromDate($lastActivity, $now);
     }

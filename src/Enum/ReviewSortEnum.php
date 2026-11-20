@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace App\Enum;
 
+use App\Search\ReviewSizeQuery;
+
 /**
  * The orders a list of Gerrit changes can be sorted in.
  *
@@ -62,7 +64,7 @@ enum ReviewSortEnum: string
                     'type' => 'number',
                     'order' => 'asc',
                     // Without lines, as imported before them, a change counts as empty instead of failing the search
-                    'script' => ['lang' => 'painless', 'source' => ReviewSizeEnum::LINES_SCRIPT],
+                    'script' => ['lang' => 'painless', 'source' => ReviewSizeQuery::LINES_SCRIPT],
                 ]],
                 ['updated_on' => 'desc'],
             ],

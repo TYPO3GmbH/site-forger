@@ -87,7 +87,7 @@ final readonly class IssueListSearch
             }
         }
         if (isset($facets['Activity'])) {
-            $facets['Activity'] = ActivityEnum::buckets($facets['Activity']);
+            $facets['Activity'] = ActivityQuery::facet($facets['Activity']);
         }
 
         return $page->withTotal($issues->total)->viewData() + [
@@ -203,7 +203,7 @@ final readonly class IssueListSearch
             // Only open issues have a stage, also when closed ones are searched
             $stage = ActivityEnum::tryFromLabel($value);
 
-            return null === $stage ? null : new Query\Simple($stage->issueQuery());
+            return null === $stage ? null : new Query\Simple(ActivityQuery::issues($stage));
         }
         if ('category' === $key && CategoryOverview::WITHOUT === $value) {
             return new Query\Simple(CategoryOverview::withoutCategoryQuery());
@@ -250,7 +250,7 @@ final readonly class IssueListSearch
         }
 
         $activity = new Filters('Activity');
-        foreach (ActivityEnum::issueAggregation()['filters']['filters'] as $label => $filter) {
+        foreach (ActivityQuery::issueAggregation()['filters']['filters'] as $label => $filter) {
             $activity->addFilter(new Query\Simple($filter), $label);
         }
         $query->addAggregation($activity);
