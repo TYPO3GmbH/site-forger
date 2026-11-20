@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\DTO\User;
-use App\Elastic\ElasticUtility;
+use App\Elastic\Indices;
 use App\Elastic\Users;
 use App\Http\ApiClient;
 use App\Http\ApiFailure;
@@ -58,6 +58,7 @@ final readonly class ForgeUserSync
     private const int AGGREGATION_PAGE = 1000;
 
     public function __construct(
+        private Indices $indices,
         private ApiClient $forge,
         private Users $users,
         private CommandRunRecorder $recorder,
@@ -237,7 +238,7 @@ final readonly class ForgeUserSync
     private function peopleOfIssues(): array
     {
         $people = [];
-        $index = ElasticUtility::getIndexByName('issue');
+        $index = $this->indices->get('issue');
         foreach (self::PEOPLE_FIELDS as $field) {
             $after = null;
             do {

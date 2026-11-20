@@ -11,7 +11,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Elastic;
 
+use App\Elastic\Indices;
 use App\Elastic\ProjectIssues;
+use Elastica\Client;
 use PHPUnit\Framework\TestCase;
 
 final class ProjectIssuesTest extends TestCase
@@ -20,7 +22,7 @@ final class ProjectIssuesTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->projectIssues = new ProjectIssues(27);
+        $this->projectIssues = new ProjectIssues(new Indices(new Client()), 27);
     }
 
     public function testOnlyTheIssuesOfTheProjectItselfAreImported(): void

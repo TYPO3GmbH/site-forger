@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace App\Charts\Types;
 
 use App\Charts\TimeSeries;
-use App\Elastic\ElasticUtility;
+use App\Elastic\Indices;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStatusEnum;
 use Elastica\Index;
@@ -20,6 +20,11 @@ use Elastica\ResultSet;
 
 abstract class AbstractChart
 {
+    public function __construct(
+        private readonly Indices $indices,
+    ) {
+    }
+
     abstract protected function getDocumentType(): string;
 
     /**
@@ -27,7 +32,7 @@ abstract class AbstractChart
      */
     protected function getIndex(): Index
     {
-        return ElasticUtility::getIndexByName($this->getDocumentType());
+        return $this->indices->get($this->getDocumentType());
     }
 
     protected function fetchData(array $query): ResultSet

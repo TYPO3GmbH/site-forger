@@ -27,12 +27,17 @@ final class ImportWatermark
 {
     public const int OVERLAP = 600;
 
+    public function __construct(
+        private readonly Indices $indices,
+    ) {
+    }
+
     /**
      * @param 'issue'|'review' $index
      */
     public function since(string $index): ?\DateTimeImmutable
     {
-        $result = ElasticUtility::getIndexByName($index)->createSearch([
+        $result = $this->indices->get($index)->createSearch([
             'size' => 0,
             'aggs' => ['latest' => ['max' => ['field' => 'updated_on']]],
         ])->search();
@@ -50,7 +55,7 @@ final class ImportWatermark
      */
     public function outdated(string $index, int $limit): array
     {
-        $results = ElasticUtility::getIndexByName($index)->search([
+        $results = $this->indices->get($index)->search([
             'query' => ImportSchema::outdated($index),
             'sort' => [['updated_on' => 'desc']],
             '_source' => false,
@@ -79,7 +84,7 @@ final class ImportWatermark
         if ([] === $ids) {
             return [];
         }
-        $response = ElasticUtility::getIndexByName($index)->request(
+        $response = $this->indices->get($index)->request(
             '_mget',
             Request::POST,
             ['ids' => array_map('strval', $ids)],

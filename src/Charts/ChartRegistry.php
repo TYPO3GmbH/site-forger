@@ -12,10 +12,12 @@ declare(strict_types=1);
 namespace App\Charts;
 
 use App\Charts\Types\ChartInterface;
+use Psr\Container\ContainerInterface;
+use Symfony\Component\DependencyInjection\Attribute\AutowireLocator;
 
-final class ChartRegistry
+final readonly class ChartRegistry
 {
-    private const array CHARTS = [
+    public const array CHARTS = [
         'mergeable' => Types\Mergeable::class,
         'open_reviews' => Types\OpenReviews::class,
         'opened_closed' => Types\OpenedClosed::class,
@@ -26,13 +28,18 @@ final class ChartRegistry
         'tracker_types' => Types\TrackerTypes::class,
     ];
 
-    public static function getChartInstance(string $identifier): ChartInterface
+    public function __construct(
+        #[AutowireLocator(self::CHARTS)]
+        private ContainerInterface $charts,
+    ) {
+    }
+
+    public function get(string $identifier): ChartInterface
     {
-        $class = self::CHARTS[$identifier] ?? null;
-        if (null !== $class) {
-            return new $class();
+        if (!$this->charts->has($identifier)) {
+            throw new \InvalidArgumentException('Chart "' . $identifier . '" is unknown', 1565269002);
         }
 
-        throw new \InvalidArgumentException('Chart "' . $identifier . '" is unknown', 1565269002);
+        return $this->charts->get($identifier);
     }
 }

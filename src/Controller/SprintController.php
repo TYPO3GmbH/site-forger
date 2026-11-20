@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Elastic\ElasticUtility;
+use App\Elastic\Indices;
 use App\Entity\SprintBoard;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewStatusEnum;
@@ -32,6 +32,7 @@ use Symfony\Component\Yaml\Yaml;
 class SprintController extends AbstractController
 {
     public function __construct(
+        private readonly Indices $indices,
         private readonly SprintBoardCategoryRepository $sprintBoardCategoryRepository,
         private readonly SprintBoardRepository $sprintBoardRepository,
         private readonly ParameterBagInterface $parameters,
@@ -167,7 +168,7 @@ class SprintController extends AbstractController
 
         /** @var array<string, int|null> $columns */
         $columns = $this->parameters->get('ColumnOrder');
-        $resultSet = ElasticUtility::getIndexByName('issue')->createSearch([
+        $resultSet = $this->indices->get('issue')->createSearch([
             'query' => $filter->toQuery(),
             'size' => 10000,
             '_source' => ['id', 'subject', 'status', 'tracker'],
@@ -298,7 +299,7 @@ class SprintController extends AbstractController
                     ],
                 ],
             ];
-            $resultSet = ElasticUtility::getIndexByName('review')
+            $resultSet = $this->indices->get('review')
                 ->createSearch($fullRequest)->search();
             foreach ($resultSet->getResults() as $review) {
                 $getBoardGroup = $this->defineReviewBoardGroup($review->getSource());
@@ -426,7 +427,7 @@ class SprintController extends AbstractController
             'query' => $query,
             'size' => 0,
         ];
-        $resultSet = ElasticUtility::getIndexByName('review')
+        $resultSet = $this->indices->get('review')
             ->createSearch($fullRequest)->search();
 
         return $resultSet->getTotalHits();
@@ -489,7 +490,7 @@ class SprintController extends AbstractController
                 ],
             ],
         ];
-        $resultSet = ElasticUtility::getIndexByName('issue')
+        $resultSet = $this->indices->get('issue')
             ->createSearch($fullRequest)->search();
         $count = [
             'open' => 0,
@@ -535,7 +536,7 @@ class SprintController extends AbstractController
             'query' => Yaml::parse($sprint->getQuery()),
             'size' => 10000,
         ];
-        $resultSet = ElasticUtility::getIndexByName('issue')
+        $resultSet = $this->indices->get('issue')
             ->createSearch($fullRequest)->search();
         foreach ($resultSet->getResults() as $ticket) {
             $status = $ticket->getSource()['status'];
@@ -569,7 +570,7 @@ class SprintController extends AbstractController
         }
 
         try {
-            $review = ElasticUtility::getIndexByName('review')->getDocument($matches['reviewId'])->getData();
+            $review = $this->indices->get('review')->getDocument($matches['reviewId'])->getData();
         } catch (\Exception) {
             return null;
         }

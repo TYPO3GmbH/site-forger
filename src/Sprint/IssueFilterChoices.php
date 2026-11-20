@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Sprint;
 
-use App\Elastic\ElasticUtility;
+use App\Elastic\Indices;
 
 /**
  * The values the issue index holds for each filter of the sprint board wizard, with their issue count.
@@ -22,6 +22,11 @@ class IssueFilterChoices
 
     /** @var array<string, array<string, int>>|null */
     private ?array $values = null;
+
+    public function __construct(
+        private readonly Indices $indices,
+    ) {
+    }
 
     /**
      * @return array<int|string, int> issue count by value, versions newest first, everything else alphabetical
@@ -43,7 +48,7 @@ class IssueFilterChoices
         foreach ($fields as $field) {
             $aggregations[$field] = ['terms' => ['field' => $field, 'size' => self::MAX_VALUES]];
         }
-        $resultSet = ElasticUtility::getIndexByName('issue')
+        $resultSet = $this->indices->get('issue')
             ->createSearch(['size' => 0, 'aggregations' => $aggregations])
             ->search();
 

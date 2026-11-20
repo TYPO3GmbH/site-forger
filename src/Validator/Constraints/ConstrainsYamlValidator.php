@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Validator\Constraints;
 
-use App\Elastic\ElasticUtility;
+use App\Elastic\Indices;
 use Elastica\Exception\InvalidException;
 use Elastica\Exception\ResponseException;
 use Symfony\Component\Validator\Constraint;
@@ -22,6 +22,11 @@ use Symfony\Component\Yaml\Yaml;
 
 class ConstrainsYamlValidator extends ConstraintValidator
 {
+    public function __construct(
+        private readonly Indices $indices,
+    ) {
+    }
+
     /**
      * Checks if the passed value is valid.
      *
@@ -44,7 +49,7 @@ class ConstrainsYamlValidator extends ConstraintValidator
                 'size' => 10000,
             ];
 
-            $search = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest);
+            $search = $this->indices->get('issue')->createSearch($fullRequest);
             $search->search();
         } catch (InvalidException|ResponseException) {
             $this->context->buildViolation('Your query did not yield any results. Is it correct?')->addViolation();

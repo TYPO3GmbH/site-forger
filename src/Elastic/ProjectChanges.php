@@ -23,6 +23,11 @@ use Elastica\Query\MatchAll;
  */
 readonly class ProjectChanges
 {
+    public function __construct(
+        private Indices $indices,
+    ) {
+    }
+
     /**
      * The numbers of all changes in the index.
      *
@@ -30,7 +35,7 @@ readonly class ProjectChanges
      */
     public function indexedNumbers(): \Generator
     {
-        $search = ElasticUtility::getIndexByName('review')->createSearch(new Query(new MatchAll())->setSource(false)->setSize(1000));
+        $search = $this->indices->get('review')->createSearch(new Query(new MatchAll())->setSource(false)->setSize(1000));
         foreach ($search->scroll('2m') as $resultSet) {
             foreach ($resultSet as $result) {
                 yield (int) $result->getId();
@@ -43,7 +48,7 @@ readonly class ProjectChanges
      */
     public function count(): int
     {
-        return ElasticUtility::getIndexByName('review')->count();
+        return $this->indices->get('review')->count();
     }
 
     /**
@@ -58,7 +63,7 @@ readonly class ProjectChanges
         if ([] === $numbers) {
             return 0;
         }
-        $response = ElasticUtility::getIndexByName('review')->deleteByQuery(
+        $response = $this->indices->get('review')->deleteByQuery(
             new Query(['query' => ['ids' => ['values' => array_map('strval', $numbers)]]]),
             ['refresh' => 'true', 'conflicts' => 'proceed'],
         )->getData();

@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\CommitMessage;
-use App\Elastic\ElasticUtility;
 use App\Elastic\GlobalSearch;
+use App\Elastic\Indices;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -23,10 +23,16 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 class ChangeController extends AbstractController
 {
+    public function __construct(
+        private readonly Indices $indices,
+        private readonly GlobalSearch $globalSearch,
+    ) {
+    }
+
     #[Route(path: '/change/{number}', name: 'change_show', requirements: ['number' => '\d+'], methods: ['GET'])]
     public function show(int $number): Response
     {
-        $change = GlobalSearch::document('review', $number)
+        $change = $this->globalSearch->document('review', $number)
             ?? throw $this->createNotFoundException(sprintf('Change %d is not in Forger. It may be newer than the last import.', $number));
 
         // The issues of the footer, in its order: those it resolves first
@@ -38,7 +44,7 @@ class ChangeController extends AbstractController
         }
         $found = [];
         if ([] !== $relations) {
-            $results = ElasticUtility::getIndexByName('issue')->search([
+            $results = $this->indices->get('issue')->search([
                 'query' => ['terms' => ['id' => array_keys($relations)]],
                 'size' => count($relations),
             ])->getResults();

@@ -13,7 +13,7 @@ namespace App\Controller;
 
 use App\DTO\TrackerFilters;
 use App\Elastic\CategoryOverview;
-use App\Elastic\ElasticUtility;
+use App\Elastic\Indices;
 use App\Elastic\MonthOverview;
 use App\Enum\IssueStatusEnum;
 use App\Enum\TrackerEnum;
@@ -24,6 +24,11 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class ManagementController extends AbstractController
 {
+    public function __construct(
+        private readonly Indices $indices,
+    ) {
+    }
+
     #[Route(path: '/management', name: 'management_index')]
     public function index(Request $request): Response
     {
@@ -80,7 +85,7 @@ class ManagementController extends AbstractController
         foreach ($trackerFilters->excluded as $tracker) {
             $fullRequest['query']['bool']['must_not'][2]['terms']['tracker.name'][] = $tracker->label();
         }
-        $resultSet = ElasticUtility::getIndexByName('issue')->createSearch($fullRequest)->search();
+        $resultSet = $this->indices->get('issue')->createSearch($fullRequest)->search();
         $rows = MonthOverview::rows($resultSet->getAggregations()['year']['buckets'] ?? []);
         $viewData['rows'] = $rows;
         $viewData['maximum'] = MonthOverview::maximum($rows);
@@ -111,7 +116,7 @@ class ManagementController extends AbstractController
     #[Route(path: '/management/bycategory', name: 'management_bycategory')]
     public function byCategory(): Response
     {
-        $resultSet = ElasticUtility::getIndexByName('issue')->createSearch(CategoryOverview::request())->search();
+        $resultSet = $this->indices->get('issue')->createSearch(CategoryOverview::request())->search();
         $aggregations = $resultSet->getAggregations();
         $rows = CategoryOverview::rows($aggregations['category']['buckets'] ?? []);
         $withoutCategory = CategoryOverview::withoutCategory($aggregations['without_category'] ?? null);

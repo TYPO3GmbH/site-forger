@@ -13,8 +13,8 @@ namespace App\Service;
 
 use App\DTO\User;
 use App\Elastic\CommitMessage;
-use App\Elastic\ElasticUtility;
 use App\Elastic\ImportSchema;
+use App\Elastic\Indices;
 use App\Elastic\ProjectChanges;
 use App\Elastic\ReviewSubject;
 use App\Elastic\Users;
@@ -52,6 +52,7 @@ final class GerritChangeImporter
     public const int DETAIL_BATCH = 25;
 
     public function __construct(
+        private readonly Indices $indices,
         private readonly ApiClient $gerrit,
         private readonly CommandRunRecorder $recorder,
         private readonly ProjectChanges $projectChanges,
@@ -127,11 +128,11 @@ final class GerritChangeImporter
         // The owners the index "user" lacks, complete: Gerrit told all of them with the change
         $this->users->ensureGerrit(array_values(array_filter(array_map(self::owner(...), array_values($documents)))));
         foreach (array_chunk(array_values($documents), self::BULK_SIZE) as $chunk) {
-            ElasticUtility::getIndexByName('review')->addDocuments(array_map(static fn (array $document): Document => new Document((string) $document['id'], $document), $chunk));
+            $this->indices->get('review')->addDocuments(array_map(static fn (array $document): Document => new Document((string) $document['id'], $document), $chunk));
             $this->recorder->document(count($chunk));
         }
         if ($refresh && [] !== $documents) {
-            ElasticUtility::getIndexByName('review')->refresh();
+            $this->indices->get('review')->refresh();
         }
     }
 

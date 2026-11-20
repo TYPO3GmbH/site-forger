@@ -12,9 +12,9 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\CommitMessage;
-use App\Elastic\ElasticUtility;
 use App\Elastic\GerritLinks;
 use App\Elastic\GlobalSearch;
+use App\Elastic\Indices;
 use App\Enum\IssueStatusEnum;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -37,13 +37,19 @@ class IssueController extends AbstractController
      */
     private const int CHANGES = 50;
 
+    public function __construct(
+        private readonly Indices $indices,
+        private readonly GlobalSearch $globalSearch,
+    ) {
+    }
+
     #[Route(name: 'issue_show', methods: ['GET'])]
     public function show(int $id): Response
     {
         $issue = $this->issue($id);
         $numbers = GerritLinks::changeNumbers($issue);
         // The changes whose footer resolves or names the issue, and those its comments link
-        $results = ElasticUtility::getIndexByName('review')->search([
+        $results = $this->indices->get('review')->search([
             'query' => ['bool' => ['should' => [
                 ['term' => ['resolves' => $id]],
                 ['term' => ['related' => $id]],
@@ -92,7 +98,7 @@ class IssueController extends AbstractController
         if (!$searchClosed) {
             $bool['must_not'] = [['terms' => ['status.name' => IssueStatusEnum::closedLabels()]]];
         }
-        $results = ElasticUtility::getIndexByName('issue')->search(['query' => ['bool' => $bool], 'size' => self::DUPLICATES]);
+        $results = $this->indices->get('issue')->search(['query' => ['bool' => $bool], 'size' => self::DUPLICATES]);
 
         return $this->render('issue/duplicates.html.twig', [
             'issue' => $issue,
@@ -107,7 +113,7 @@ class IssueController extends AbstractController
      */
     private function issue(int $id): array
     {
-        return GlobalSearch::document('issue', $id)
+        return $this->globalSearch->document('issue', $id)
             ?? throw $this->createNotFoundException(sprintf('Issue #%d is not in Forger. It may be newer than the last import.', $id));
     }
 }

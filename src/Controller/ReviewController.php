@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Elastic\ElasticUtility;
 use App\Elastic\FacetSelection;
 use App\Elastic\GlobalSearch;
+use App\Elastic\Indices;
 use App\Elastic\MonthOverview;
 use App\Elastic\PeopleFacet;
 use App\Elastic\PersonSuggestion;
@@ -43,6 +43,8 @@ class ReviewController extends AbstractController
     private ?int $totalHits = null;
 
     public function __construct(
+        private readonly Indices $indices,
+        private readonly GlobalSearch $globalSearch,
         private readonly RequestStack $requestStack,
         private readonly Users $users,
     ) {
@@ -115,13 +117,13 @@ class ReviewController extends AbstractController
             ReviewSortEnum::UPDATED,
             '' !== trim($searchTerms),
         );
-        $viewData['tabs'] = GlobalSearch::tabs(
+        $viewData['tabs'] = $this->globalSearch->tabs(
             $searchTerms,
             $searchClosed,
             [GlobalSearch::ISSUES => GlobalSearch::peopleQuery(GlobalSearch::ISSUES, $this->query()->all('filters'), $this->users)],
             [GlobalSearch::CHANGES => (int) $viewData['totalResults']],
         );
-        $viewData['exactMatches'] = GlobalSearch::exactMatches($searchTerms);
+        $viewData['exactMatches'] = $this->globalSearch->exactMatches($searchTerms);
 
         return $this->render('search/changes.html.twig', $viewData);
     }
@@ -144,7 +146,7 @@ class ReviewController extends AbstractController
         if (null === $request) {
             return new JsonResponse([]);
         }
-        $resultSet = ElasticUtility::getIndexByName('review')->search($request);
+        $resultSet = $this->indices->get('review')->search($request);
 
         return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), 'Owner', fn (array $user): ?string => $this->users->avatarOfUser($user, PersonSuggestion::AVATAR_SIZE), $this->users->keyOf(...)));
     }
@@ -168,12 +170,12 @@ class ReviewController extends AbstractController
     public function staleIssues(): Response
     {
         $sort = IssueSortEnum::fromRequest($this->query()->getString('sort'), false, StaleIssues::DEFAULT_SORT);
-        $resultSet = ElasticUtility::getIndexByName('issue')->createSearch(StaleIssues::issuesRequest($this->currentPage, $this->perPage, $sort))->search();
+        $resultSet = $this->indices->get('issue')->createSearch(StaleIssues::issuesRequest($this->currentPage, $this->perPage, $sort))->search();
         $issues = array_map(static fn ($result): array => $result->getData(), $resultSet->getResults());
         $changesRequest = StaleIssues::changesRequest($issues);
         $changes = null === $changesRequest ? [] : array_map(
             static fn ($result): array => $result->getData(),
-            ElasticUtility::getIndexByName('review')->createSearch($changesRequest)->search()->getResults(),
+            $this->indices->get('review')->createSearch($changesRequest)->search()->getResults(),
         );
         $this->totalHits = $resultSet->getTotalHits();
         $from = ($this->currentPage - 1) * $this->perPage;
@@ -274,7 +276,7 @@ class ReviewController extends AbstractController
         // Selected owners show in the filter also when they are not among those with the most changes: by number
         $owners = PeopleFacet::selection('Owner', FacetSelection::keys($this->query()->all('filters'), 'owner'), $this->users);
         $fullRequest['aggregations'] = FacetSelection::withSelected($fullRequest['aggregations'] ?? [], 'Owner', array_keys($owners));
-        $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
+        $query = $this->indices->get('review')->createSearch($fullRequest);
         $resultSet = $query->search();
         $this->totalHits = $resultSet->getTotalHits();
         if ((int) $this->totalHits <= ($this->currentPage * $this->perPage)) {

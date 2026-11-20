@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\DTO\User;
-use App\Elastic\ElasticUtility;
 use App\Elastic\ImportSchema;
+use App\Elastic\Indices;
 use App\Elastic\ProjectIssues;
 use App\Elastic\Users;
 use App\Enum\IssueStatusEnum;
@@ -29,6 +29,7 @@ use Elastica\Document;
 final class ForgeIssueImporter
 {
     public function __construct(
+        private readonly Indices $indices,
         private readonly ApiClient $forge,
         private readonly ForgeIssueList $forgeIssues,
         private readonly Users $users,
@@ -138,7 +139,7 @@ final class ForgeIssueImporter
         // The author and the assignee the index "user" lacks, empty: "Update users" fills them
         $this->users->ensure(array_values(array_filter([User::fromIssue($issue['author'] ?? []), User::fromIssue($issue['assigned_to'] ?? [])])));
         $document = self::document($issue);
-        $index = ElasticUtility::getIndexByName('issue');
+        $index = $this->indices->get('issue');
         $index->addDocument(new Document((string) $document['id'], $document));
         if ($refresh) {
             $index->refresh();

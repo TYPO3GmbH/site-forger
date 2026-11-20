@@ -13,7 +13,7 @@ namespace App\Controller;
 
 use App\Charts\ChartStyle;
 use App\Charts\Types\Mergeable;
-use App\Elastic\ElasticUtility;
+use App\Elastic\Indices;
 use App\Elastic\IssueSearch;
 use App\Elastic\ReviewLists;
 use App\Enum\IssueSortEnum;
@@ -31,10 +31,16 @@ class DashboardController extends AbstractController
      */
     private const int LIST_SIZE = 5;
 
+    public function __construct(
+        private readonly Indices $indices,
+        private readonly Mergeable $mergeable,
+    ) {
+    }
+
     #[Route(name: 'index')]
     public function index(): Response
     {
-        $changes = (new Mergeable())->counts();
+        $changes = $this->mergeable->counts();
 
         return $this->render('dashboard/index.html.twig', [
             'openIssues' => $this->count('issue', [], [['terms' => ['status.name' => IssueStatusEnum::closedLabels()]]]),
@@ -71,7 +77,7 @@ class DashboardController extends AbstractController
      */
     private function latest(string $type, array $query, array $sort): array
     {
-        $resultSet = ElasticUtility::getIndexByName($type)->createSearch([
+        $resultSet = $this->indices->get($type)->createSearch([
             'query' => $query,
             'sort' => $sort,
             'size' => self::LIST_SIZE,
@@ -90,6 +96,6 @@ class DashboardController extends AbstractController
      */
     private function count(string $type, array $filter, array $mustNot = []): int
     {
-        return ElasticUtility::getIndexByName($type)->count(['query' => ['bool' => ['filter' => $filter, 'must_not' => $mustNot]]]);
+        return $this->indices->get($type)->count(['query' => ['bool' => ['filter' => $filter, 'must_not' => $mustNot]]]);
     }
 }

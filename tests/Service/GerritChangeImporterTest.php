@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Service;
 
+use App\Elastic\Indices;
 use App\Elastic\ProjectChanges;
 use App\Elastic\Users;
 use App\Service\ChangeRefreshResult;
@@ -18,6 +19,7 @@ use App\Service\CommandRunRecorder;
 use App\Service\GerritChangeImporter;
 use App\Tests\Http\MockApi;
 use Doctrine\DBAL\Connection;
+use Elastica\Client;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -181,10 +183,11 @@ final class GerritChangeImporterTest extends TestCase
         $this->requests = &$api->requests;
 
         return new GerritChangeImporter(
+            new Indices(new Client()),
             $api->client,
             $recorder,
             $projectChanges ?? $this->createStub(ProjectChanges::class),
-            new Users(new ArrayAdapter(), new NullLogger()),
+            new Users(new Indices(new Client()), new ArrayAdapter(), new NullLogger()),
         );
     }
 }

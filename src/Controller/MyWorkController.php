@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\DTO\User;
-use App\Elastic\ElasticUtility;
+use App\Elastic\Indices;
 use App\Elastic\Users;
 use App\Elastic\UserWorkQuery;
 use App\Enum\IssueSortEnum;
@@ -34,6 +34,7 @@ use T3G\Bundle\Keycloak\Security\KeyCloakUser;
 class MyWorkController extends AbstractController
 {
     public function __construct(
+        private readonly Indices $indices,
         private readonly Users $users,
     ) {
     }
@@ -62,7 +63,7 @@ class MyWorkController extends AbstractController
         // Only search words rank the changes, so only then they can be sorted by relevance
         $sort = ReviewSortEnum::fromRequest($request->query->getString('sort'), '' !== $searchTerms);
         $query = $this->query($includeClosed, $searchTerms, reviewState: $reviewState, reviewSort: $sort);
-        $reviews = ElasticUtility::getIndexByName('review')->createSearch($query->reviews())->search();
+        $reviews = $this->indices->get('review')->createSearch($query->reviews())->search();
 
         $counts = [];
         foreach ($reviews->getAggregation('status')['buckets'] ?? [] as $state => $bucket) {
@@ -104,7 +105,7 @@ class MyWorkController extends AbstractController
         // Only search words rank the issues, so only then they can be sorted by relevance
         $sort = IssueSortEnum::fromRequest($request->query->getString('sort'), '' !== $searchTerms);
         $query = $this->query($includeClosed, $searchTerms, issueStatus: $issueStatus, issueSort: $sort);
-        $issues = ElasticUtility::getIndexByName('issue')->createSearch($query->issues())->search();
+        $issues = $this->indices->get('issue')->createSearch($query->issues())->search();
 
         $counts = [];
         foreach ($issues->getAggregation('status')['buckets'] ?? [] as $bucket) {
@@ -168,9 +169,9 @@ class MyWorkController extends AbstractController
             'query' => $searchTerms,
         ];
         if ('changes' === $view) {
-            $data['openIssues'] = ElasticUtility::getIndexByName('issue')->count($query->openIssuesCount());
+            $data['openIssues'] = $this->indices->get('issue')->count($query->openIssuesCount());
         } else {
-            $data['openChanges'] = ElasticUtility::getIndexByName('review')->count($query->openReviewsCount());
+            $data['openChanges'] = $this->indices->get('review')->count($query->openReviewsCount());
         }
 
         return $data;

@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\ElasticsearchVersion;
-use App\Elastic\ElasticUtility;
 use App\Elastic\IndexSetup;
+use App\Elastic\Indices;
 use App\Elastic\PendingImport;
 use App\Elastic\UserHealth;
 use App\Elastic\Users;
@@ -34,6 +34,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class SystemController extends AbstractController
 {
     public function __construct(
+        private readonly Indices $indices,
         private readonly IndexSetup $indexSetup,
         private readonly KernelInterface $kernel,
         private readonly Users $users,
@@ -76,7 +77,7 @@ class SystemController extends AbstractController
     private function elasticsearch(): array
     {
         try {
-            $client = ElasticUtility::getClient();
+            $client = $this->indices->client();
             $version = $client->getVersion();
             $health = new Health($client);
         } catch (\Throwable $e) {
@@ -114,7 +115,7 @@ class SystemController extends AbstractController
     {
         $indices = [];
         foreach ($this->indexSetup->describeAll() as $alias => $description) {
-            $index = null === $description['index'] ? null : ElasticUtility::getClient()->getIndex($description['index']);
+            $index = null === $description['index'] ? null : $this->indices->client()->getIndex($description['index']);
             $indices[] = [
                 'alias' => $alias,
                 'index' => $description['index'],
@@ -154,7 +155,7 @@ class SystemController extends AbstractController
     {
         $pending = [];
         foreach (PendingImport::checks() as $check) {
-            $index = ElasticUtility::getIndexByName($check['index']);
+            $index = $this->indices->get($check['index']);
             $matches = $index->count(['query' => $check['query']]);
             $pending[] = $check + [
                 'matches' => $matches,

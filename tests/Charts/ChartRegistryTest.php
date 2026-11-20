@@ -15,15 +15,18 @@ use App\Charts\ChartRegistry;
 use App\Charts\Types\AbstractChart;
 use App\Charts\Types\IssueChart;
 use App\Charts\Types\ReviewChart;
+use App\Elastic\Indices;
+use Elastica\Client;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 
 final class ChartRegistryTest extends TestCase
 {
     #[DataProvider('chartsDataProvider')]
     public function testChartReadsTheIndexOfItsDocumentType(string $identifier): void
     {
-        $chart = ChartRegistry::getChartInstance($identifier);
+        $chart = self::registry()->get($identifier);
         self::assertInstanceOf(AbstractChart::class, $chart);
 
         $expected = match (true) {
@@ -39,14 +42,20 @@ final class ChartRegistryTest extends TestCase
     public function testUnknownChartIsRejected(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        ChartRegistry::getChartInstance('does_not_exist');
+        self::registry()->get('does_not_exist');
     }
 
     public static function chartsDataProvider(): \Generator
     {
-        $charts = (new \ReflectionClassConstant(ChartRegistry::class, 'CHARTS'))->getValue();
-        foreach (array_keys($charts) as $identifier) {
+        foreach (array_keys(ChartRegistry::CHARTS) as $identifier) {
             yield $identifier => [$identifier];
         }
+    }
+
+    private static function registry(): ChartRegistry
+    {
+        $indices = new Indices(new Client());
+
+        return new ChartRegistry(new ServiceLocator(array_map(static fn (string $class): \Closure => static fn (): object => new $class($indices), ChartRegistry::CHARTS)));
     }
 }

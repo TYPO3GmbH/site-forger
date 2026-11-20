@@ -44,6 +44,15 @@ services:
   # without Composer and its plugins on the server
   Symfony\Component\Dotenv\Command\DotenvDumpCommand: ~
 
+  Elastica\Client:
+    arguments:
+      - host: '%env(ES_HOST)%'
+        port: '%env(ES_PORT)%'
+        path: '%env(ES_PATH)%'
+        transport: '%env(ES_TRANSPORT)%'
+        username: '%env(ES_USER)%'
+        password: '%env(ES_PASSWORD)%'
+
   # To add an API, add a service here and a bind in _defaults.
   api.forge:
     class: App\Http\ApiClient
@@ -80,11 +89,6 @@ services:
   renderer.redmineTextile:
     class: App\Renderer\RedmineTextileRenderer
     factory: '@App\Renderer\Factory\RedmineTextileRendererFactory'
-
-  App\Charts\Types\TrackerTypes:
-    class: App\Charts\Types\TrackerTypes
-    tags:
-      - { name: 'chart_type', key: 'tracker_types' }
 
   # controllers are imported separately to make sure services can be injected
   # as action arguments even if you don't extend any base controller class

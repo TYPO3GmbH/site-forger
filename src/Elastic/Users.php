@@ -66,6 +66,7 @@ class Users
     private ?array $known = null;
 
     public function __construct(
+        private readonly Indices $indices,
         private readonly CacheInterface $cache,
         private readonly LoggerInterface $logger,
     ) {
@@ -221,7 +222,7 @@ class Users
             return [];
         }
         $users = [];
-        $results = ElasticUtility::getIndexByName(self::INDEX)->search(['query' => ['ids' => ['values' => $ids]], 'size' => count($ids)])->getResults();
+        $results = $this->indices->get(self::INDEX)->search(['query' => ['ids' => ['values' => $ids]], 'size' => count($ids)])->getResults();
         foreach ($results as $result) {
             $users[(string) $result->getId()] = User::fromDocument($result->getSource());
         }
@@ -240,7 +241,7 @@ class Users
         if (!str_contains($email, '@')) {
             return [];
         }
-        $results = ElasticUtility::getIndexByName(self::INDEX)->search(['query' => ['term' => ['email' => $email]], 'size' => 10])->getResults();
+        $results = $this->indices->get(self::INDEX)->search(['query' => ['term' => ['email' => $email]], 'size' => 10])->getResults();
 
         return array_map(static fn (Result $result): User => User::fromDocument($result->getSource()), $results);
     }
@@ -383,7 +384,7 @@ class Users
      */
     public function statistics(): array
     {
-        $result = ElasticUtility::getIndexByName(self::INDEX)->search([
+        $result = $this->indices->get(self::INDEX)->search([
             'size' => 0,
             'track_total_hits' => true,
             'query' => ['exists' => ['field' => 'forge_id']],
@@ -426,7 +427,7 @@ class Users
         if ([] === $users && [] === $replaced) {
             return;
         }
-        $index = ElasticUtility::getIndexByName(self::INDEX);
+        $index = $this->indices->get(self::INDEX);
         if ([] !== $users) {
             $index->addDocuments(array_map(static fn (User $user): Document => new Document($user->id(), $user->toDocument()), $users));
         }
@@ -476,7 +477,7 @@ class Users
      */
     private function scroll(array $query): \Generator
     {
-        $search = ElasticUtility::getIndexByName(self::INDEX)->createSearch(new Query(['size' => 1000, 'query' => $query]));
+        $search = $this->indices->get(self::INDEX)->createSearch(new Query(['size' => 1000, 'query' => $query]));
         foreach ($search->scroll('1m') as $resultSet) {
             foreach ($resultSet->getResults() as $result) {
                 yield User::fromDocument($result->getSource());

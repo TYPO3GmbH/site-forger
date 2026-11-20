@@ -12,9 +12,9 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\CategoryOverview;
-use App\Elastic\ElasticUtility;
 use App\Elastic\FacetSelection;
 use App\Elastic\GlobalSearch;
+use App\Elastic\Indices;
 use App\Elastic\IssueSearch;
 use App\Elastic\MonthOverview;
 use App\Elastic\PeopleFacet;
@@ -61,6 +61,8 @@ class SearchController extends AbstractController
     private array $selection = [];
 
     public function __construct(
+        private readonly Indices $indices,
+        private readonly GlobalSearch $globalSearch,
         private readonly Users $users,
     ) {
     }
@@ -84,13 +86,13 @@ class SearchController extends AbstractController
         $viewData['sortOptions'] = IssueSortEnum::options($withRelevance);
         // Links leave out the default, so a changed search keeps its own default
         $viewData['sortParameter'] = $sort === IssueSortEnum::default($withRelevance) ? [] : ['sort' => $sort->value];
-        $viewData['tabs'] = GlobalSearch::tabs(
+        $viewData['tabs'] = $this->globalSearch->tabs(
             $query,
             $searchClosed,
             [GlobalSearch::CHANGES => GlobalSearch::peopleQuery(GlobalSearch::CHANGES, $this->filters, $this->users)],
             [GlobalSearch::ISSUES => (int) $viewData['totalResults']],
         );
-        $viewData['exactMatches'] = GlobalSearch::exactMatches($query);
+        $viewData['exactMatches'] = $this->globalSearch->exactMatches($query);
         $viewData['query'] = $query;
         if ($searchClosed) {
             $viewData['searchClosed'] = '1';
@@ -120,7 +122,7 @@ class SearchController extends AbstractController
         if (null === $search) {
             return new JsonResponse([]);
         }
-        $resultSet = ElasticUtility::getIndexByName('issue')->search($search);
+        $resultSet = $this->indices->get('issue')->search($search);
 
         return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), $title, fn (array $user): ?string => $this->users->avatarOfUser($user, PersonSuggestion::AVATAR_SIZE), $this->users->keyOf(...)));
     }
@@ -143,7 +145,7 @@ class SearchController extends AbstractController
             $query['post_filter'] = $usedFilters;
         }
 
-        $search = ElasticUtility::getIndexByName('issue')->createSearch($query);
+        $search = $this->indices->get('issue')->createSearch($query);
         $search->getQuery()->setSize($this->perPage);
         $search->getQuery()->setFrom(($this->currentPage * $this->perPage) - $this->perPage);
 

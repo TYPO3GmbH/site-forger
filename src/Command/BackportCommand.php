@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Elastic\ElasticUtility;
+use App\Elastic\Indices;
 use App\Enum\ReviewStatusEnum;
 use App\Repository\BackportBlacklistEntryRepository;
 use Elastica\Exception\InvalidException;
@@ -44,6 +44,7 @@ class BackportCommand extends Command
     ];
 
     public function __construct(
+        private readonly Indices $indices,
         private readonly ParameterBagInterface $parameters,
         private readonly BackportBlacklistEntryRepository $blackListRepository
     ) {
@@ -178,7 +179,7 @@ class BackportCommand extends Command
             ],
             'size' => 5000,
         ];
-        $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
+        $query = $this->indices->get('review')->createSearch($fullRequest);
 
         return $query->search()->getResults();
     }
@@ -204,7 +205,7 @@ class BackportCommand extends Command
             ],
             'size' => 50,
         ];
-        $query = ElasticUtility::getIndexByName('review')->createSearch($fullRequest);
+        $query = $this->indices->get('review')->createSearch($fullRequest);
 
         return $query->search()->getResults();
     }

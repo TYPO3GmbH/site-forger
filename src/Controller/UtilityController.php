@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\Backports;
-use App\Elastic\ElasticUtility;
+use App\Elastic\Indices;
 use App\Entity\BackportBlacklistEntry;
 use App\Repository\BackportBlacklistEntryRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -27,6 +27,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class UtilityController extends AbstractController
 {
     public function __construct(
+        private readonly Indices $indices,
         private readonly ParameterBagInterface $parameters,
         private readonly BackportBlacklistEntryRepository $backportBlacklistEntryRepository
     ) {
@@ -61,7 +62,7 @@ class UtilityController extends AbstractController
         $changes = [];
         $numbers = Backports::mainNumbers($backports);
         if ([] !== $numbers) {
-            $results = ElasticUtility::getIndexByName('review')->createSearch([
+            $results = $this->indices->get('review')->createSearch([
                 'query' => ['terms' => ['id' => $numbers]],
                 'size' => count($numbers),
             ])->search()->getResults();

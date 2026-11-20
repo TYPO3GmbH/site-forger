@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Service;
 
+use App\Elastic\Indices;
 use App\Elastic\ProjectIssues;
 use App\Elastic\Users;
 use App\Http\ApiFailure;
@@ -19,6 +20,7 @@ use App\Service\ForgeIssueImporter;
 use App\Service\ForgeIssueList;
 use App\Tests\Http\MockApi;
 use Doctrine\DBAL\Connection;
+use Elastica\Client;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -117,10 +119,11 @@ final class ForgeIssueImporterTest extends TestCase
         $forge = new MockApi($responses, $recorder)->client;
 
         return new ForgeIssueImporter(
+            new Indices(new Client()),
             $forge,
             new ForgeIssueList($forge, 27),
-            new Users(new ArrayAdapter(), new NullLogger()),
-            new ProjectIssues(27),
+            new Users(new Indices(new Client()), new ArrayAdapter(), new NullLogger()),
+            new ProjectIssues(new Indices(new Client()), 27),
             $recorder,
         );
     }

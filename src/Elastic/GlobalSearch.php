@@ -20,7 +20,7 @@ use Elastica\Query;
  * Forge issues and Gerrit changes are numbered alike, so a number finds the issue and the change with it, shown
  * above the results of either tab. The number also stays a search word: it finds the issues that mention it.
  */
-final class GlobalSearch
+final readonly class GlobalSearch
 {
     public const string ISSUES = 'issues';
     public const string CHANGES = 'changes';
@@ -34,6 +34,11 @@ final class GlobalSearch
         self::ISSUES => ['author', 'assigned_to'],
         self::CHANGES => ['owner'],
     ];
+
+    public function __construct(
+        private Indices $indices,
+    ) {
+    }
 
     /**
      * The filters the link to a tab takes along from the other one: its people, as the filters of people of the
@@ -68,12 +73,12 @@ final class GlobalSearch
      *
      * @return array{issues: int, changes: int}
      */
-    public static function tabs(string $searchTerms, bool $includeClosed, array $people = [], array $counted = []): array
+    public function tabs(string $searchTerms, bool $includeClosed, array $people = [], array $counted = []): array
     {
-        $count = static function (string $index, array $query, ?array $people): int {
+        $count = function (string $index, array $query, ?array $people): int {
             $query = null === $people ? $query : ['bool' => ['must' => [$query], 'filter' => [$people]]];
 
-            return ElasticUtility::getIndexByName($index)->count(new Query(['query' => $query]));
+            return $this->indices->get($index)->count(new Query(['query' => $query]));
         };
 
         return [
@@ -107,14 +112,14 @@ final class GlobalSearch
      *
      * @return array{issue: array<string, mixed>|null, change: array<string, mixed>|null}
      */
-    public static function exactMatches(string $searchTerms): array
+    public function exactMatches(string $searchTerms): array
     {
         $number = self::number($searchTerms);
         if (null === $number) {
             return ['issue' => null, 'change' => null];
         }
 
-        return ['issue' => self::document('issue', $number), 'change' => self::document('review', $number)];
+        return ['issue' => $this->document('issue', $number), 'change' => $this->document('review', $number)];
     }
 
     /**
@@ -132,10 +137,10 @@ final class GlobalSearch
     /**
      * @return array<string, mixed>|null
      */
-    public static function document(string $type, int $id): ?array
+    public function document(string $type, int $id): ?array
     {
         try {
-            return ElasticUtility::getIndexByName($type)->getDocument((string) $id)->getData();
+            return $this->indices->get($type)->getDocument((string) $id)->getData();
         } catch (NotFoundException) {
             return null;
         }

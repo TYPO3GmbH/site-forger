@@ -65,6 +65,7 @@ final readonly class IndexSetup
     private const string LOCK = 'elasticsearch-index-setup';
 
     public function __construct(
+        private Indices $indices,
         private LockFactory $lockFactory,
         #[Autowire('%kernel.project_dir%/config/Elasticorn')]
         private string $configurationPath,
@@ -512,6 +513,6 @@ final readonly class IndexSetup
 
     private function client(): Client
     {
-        return ElasticUtility::getClient();
+        return $this->indices->client();
     }
 }
