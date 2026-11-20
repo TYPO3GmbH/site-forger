@@ -12,7 +12,8 @@ declare(strict_types=1);
 namespace App\Report\Backport;
 
 use App\Document\Change;
-use App\Enum\ReviewStateEnum;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\ReadableCollection;
 
 /**
  * The rows of "Backports" from the file BackportFinder fills, see BackportFile: per change merged into main, the
@@ -69,11 +70,11 @@ final class Backports
 
     /**
      * @param array<string, array<string, mixed>> $backports Change-Id => entry of the file, the excluded ones left out
-     * @param array<int, Change>                  $changes   number => the changes in main
+     * @param ReadableCollection<int, Change>     $changes   the changes in main by number
      *
-     * @return list<array{changeId: string, number: int, change: Change|null, missing: int, versions: list<array{version: string, state: ReviewStateEnum|null, change: Change|null}>}>
+     * @return ReadableCollection<int, BackportRow>
      */
-    public static function rows(array $backports, array $changes): array
+    public static function rows(array $backports, ReadableCollection $changes): ReadableCollection
     {
         $names = self::versions();
         $rows = [];
@@ -85,26 +86,27 @@ final class Backports
                 if (null === $version || 'main' === $version || !(is_array($value) || 'missing' === $value)) {
                     continue;
                 }
-                $backport = is_array($value) ? Change::fromDocument($value) : null;
-                $versions[] = ['version' => $version, 'state' => $backport?->state(), 'change' => $backport];
+                $versions[] = new BackportVersion($version, is_array($value) ? Change::fromDocument($value) : null);
             }
             if ([] === $versions) {
                 continue;
             }
             // The newest version first, as in the footer "Releases: main, 14.3, 13.4"
-            usort($versions, static fn (array $a, array $b): int => version_compare($b['version'], $a['version']));
+            usort(
+                $versions,
+                static fn (BackportVersion $a, BackportVersion $b): int => version_compare($b->version, $a->version),
+            );
             $number = (int) ($entry['mainReviewId'] ?? 0);
-            $rows[] = [
-                'changeId' => (string) $changeId,
-                'number' => $number,
-                'change' => $changes[$number] ?? null,
-                'missing' => count(array_filter($versions, static fn (array $version): bool => null === $version['state'])),
-                'versions' => $versions,
-            ];
+            $rows[] = new BackportRow(
+                (string) $changeId,
+                $number,
+                $changes->get($number),
+                new ArrayCollection($versions),
+            );
         }
-        usort($rows, static fn (array $a, array $b): int => [$b['missing'] > 0, $b['change']->updatedOn ?? '']
-            <=> [$a['missing'] > 0, $a['change']->updatedOn ?? '']);
+        usort($rows, static fn (BackportRow $a, BackportRow $b): int => [$b->missing > 0, $b->change->updatedOn ?? '']
+            <=> [$a->missing > 0, $a->change->updatedOn ?? '']);
 
-        return $rows;
+        return new ArrayCollection($rows);
     }
 }

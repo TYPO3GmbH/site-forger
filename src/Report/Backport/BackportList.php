@@ -13,6 +13,7 @@ namespace App\Report\Backport;
 
 use App\Repository\BackportBlacklistEntryRepository;
 use App\Repository\ChangeRepository;
+use Doctrine\Common\Collections\ReadableCollection;
 
 /**
  * The rows of the backport view: what app:backports found, without the changes excluded since.
@@ -27,20 +28,18 @@ final readonly class BackportList
     }
 
     /**
-     * The rows, see Backports::rows(), and whether app:backports ran yet.
+     * The rows, see Backports::rows(), null before app:backports wrote its file.
      *
-     * @return array{rows: list<array<string, mixed>>, fileExists: bool}
+     * @return ReadableCollection<int, BackportRow>|null
      */
-    public function rows(): array
+    public function rows(): ?ReadableCollection
     {
         $backports = $this->file->read();
         if (null === $backports) {
-            return ['rows' => [], 'fileExists' => false];
+            return null;
         }
         $backports = array_diff_key($backports, array_flip($this->blacklist->changeIds()));
 
-        $mainChanges = $this->changes->byNumbers(Backports::mainNumbers($backports))->toArray();
-
-        return ['rows' => Backports::rows($backports, $mainChanges), 'fileExists' => true];
+        return Backports::rows($backports, $this->changes->byNumbers(Backports::mainNumbers($backports)));
     }
 }

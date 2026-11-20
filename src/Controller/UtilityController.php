@@ -14,6 +14,7 @@ namespace App\Controller;
 use App\Entity\BackportBlacklistEntry;
 use App\Report\Backport\BackportList;
 use App\Repository\BackportBlacklistEntryRepository;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -45,7 +46,12 @@ class UtilityController extends AbstractController
     #[Route(path: '/backport', name: 'backport')]
     public function backport(): Response
     {
-        return $this->render('utility/backport.html.twig', $this->backportList->rows());
+        $rows = $this->backportList->rows();
+
+        return $this->render('utility/backport.html.twig', [
+            'rows' => $rows ?? new ArrayCollection(),
+            'fileExists' => null !== $rows,
+        ]);
     }
 
     #[Route(path: '/backport/create', name: 'backport_create')]

@@ -21,6 +21,8 @@ use App\Enum\IssueSortEnum;
 use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
 use App\Enum\TrackerEnum;
+use App\Report\Backport\BackportRow;
+use App\Report\Backport\BackportVersion;
 use App\Report\CategoryOverview;
 use App\Report\LinkedChange;
 use App\Report\MonthOverview;
@@ -474,12 +476,12 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
     public function testBackportsShowTheVersionsOfEachChange(): void
     {
         $template = $this->twig->load('utility/backport.html.twig');
-        $rows = [
-            ['changeId' => 'I1', 'number' => 81234, 'change' => Change::fromDocument(self::CHANGE), 'missing' => 1, 'versions' => [
-                ['version' => '14.3', 'state' => ReviewStateEnum::READY, 'change' => Change::fromDocument(['id' => 97836, 'branch' => '14.3'])],
-                ['version' => '13.4', 'state' => null, 'change' => null],
-            ]],
-        ];
+        $rows = new ArrayCollection([
+            new BackportRow('I1', 81234, Change::fromDocument(self::CHANGE), new ArrayCollection([
+                new BackportVersion('14.3', Change::fromDocument(['id' => 97836, 'branch' => '14.3'])),
+                new BackportVersion('13.4', null),
+            ])),
+        ]);
         $html = $template->renderBlock('body', ['rows' => $rows, 'fileExists' => true]);
 
         // The change in main as in the lists, below it its versions
