@@ -49,6 +49,7 @@
                 {% include '_partials/pagination.html.twig' with {
                     'pages': pagesToLinkTo,
                     'current': currentPage,
+                    'last': lastPage ?? null,
                     'routeName': 'gerrit_stale_issues',
                     'arguments': sortParameter,
                 } only %}

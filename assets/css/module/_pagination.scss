@@ -10,6 +10,37 @@
 
     .pagination {
         margin: 0;
+        // Disabled steps are dimmed, not filled
+        --bs-pagination-disabled-bg: var(--bs-pagination-bg);
+    }
+
+    .page-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2.625rem;
+        height: 100%;
+        // The icons take the color of the link, also when it is disabled
+        --icon-color-primary: currentcolor;
+
+        .icon {
+            opacity: 1;
+        }
+    }
+
+    // The pages left out between the linked ones: a gap, not a button
+    .page-gap .page-link {
+        min-width: 0;
+        padding-inline: .5rem;
+        color: var(--bs-pagination-disabled-color);
+    }
+
+    // A phone shows the previous and the next page and the pages around the current one only
+    @media (max-width: 575.98px) {
+        .page-edge,
+        .page-gap {
+            display: none;
+        }
     }
 
     // Below the list: the pages on the right

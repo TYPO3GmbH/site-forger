@@ -12,17 +12,34 @@ declare(strict_types=1);
 namespace App\Tests\DTO;
 
 use App\DTO\Pagination;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class PaginationTest extends TestCase
 {
-    public function testThePagesAreThoseTheListsLinkedBefore(): void
+    /**
+     * @return iterable<string, array{int, int, list<int>}>
+     */
+    public static function pages(): iterable
     {
-        foreach ([0, 1, 24, 25, 26, 250, 374, 375, 376, 1000, 5000] as $total) {
-            foreach (range(1, 50) as $page) {
-                self::assertSame(self::before($total, $page), new Pagination($page, $total)->pages(), sprintf('%d results, page %d', $total, $page));
-            }
-        }
+        yield 'no results' => [0, 1, []];
+        yield 'one page' => [25, 1, [1]];
+        yield 'fewer pages than the window' => [75, 2, [1, 2, 3]];
+        yield 'the first page' => [1000, 1, [1, 2, 3, 4, 5]];
+        yield 'the second page' => [1000, 2, [1, 2, 3, 4, 5]];
+        yield 'in the middle' => [1000, 20, [18, 19, 20, 21, 22]];
+        yield 'the last but one' => [1000, 39, [36, 37, 38, 39, 40]];
+        yield 'the last page' => [1000, 40, [36, 37, 38, 39, 40]];
+        yield 'beyond the last page' => [75, 9, [1, 2, 3]];
+    }
+
+    /**
+     * @param list<int> $expected
+     */
+    #[DataProvider('pages')]
+    public function testFivePagesAroundTheCurrentOneAreLinked(int $total, int $page, array $expected): void
+    {
+        self::assertSame($expected, array_values(new Pagination($page, $total)->pages()));
     }
 
     public function testTheLastPageShowsWhereItEnds(): void
@@ -35,38 +52,5 @@ final class PaginationTest extends TestCase
     public function testAPageBelowTheFirstIsTheFirst(): void
     {
         self::assertSame(0, new Pagination(-3, 100)->from());
-    }
-
-    /**
-     * The pages as ReviewController::getPages() and SearchController::getPages() linked them.
-     *
-     * @return array<int, int>
-     */
-    private static function before(int $total, int $currentPage): array
-    {
-        $numPages = ceil($total / 25);
-        $i = 0;
-        $maxPages = $numPages;
-        if ($numPages > 15 && $currentPage <= 7) {
-            $numPages = 15;
-        }
-        if ($currentPage > 7) {
-            $i = $currentPage - 7;
-            $numPages = $currentPage + 6;
-        }
-        if ($numPages > $maxPages) {
-            $numPages = $maxPages;
-            $i = $maxPages - 15;
-        }
-        if ($i < 0) {
-            $i = 0;
-        }
-        $out = [];
-        while ($i < $numPages) {
-            $out[(int) $i] = (int) ($i + 1);
-            ++$i;
-        }
-
-        return $out;
     }
 }

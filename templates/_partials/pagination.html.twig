@@ -1,21 +1,40 @@
 {#
  # Above a list the count of the results (resultsTotal, resultsFrom, resultsTo), below it the pages (pages, current,
- # routeName, arguments). The pages are only shown below the list.
+ # last, routeName, arguments). The pages are only shown below the list.
  #}
+{% import _self as pagination %}
+{% macro step(iconIdentifier, title, page, enabled, routeName, arguments, class = '') %}
+    {% if enabled %}
+        <li class="page-item{{ class ? ' ' ~ class }}"><a class="page-link" href="{{ path(routeName, arguments|merge({'page': page})) }}" aria-label="{{ title }}" title="{{ title }}">{{ icon(iconIdentifier) }}</a></li>
+    {% else %}
+        <li class="page-item{{ class ? ' ' ~ class }} disabled"><span class="page-link" aria-label="{{ title }}">{{ icon(iconIdentifier) }}</span></li>
+    {% endif %}
+{% endmacro %}
 <div class="pagination-section">
     {% if resultsTotal is defined and resultsFrom is defined and resultsTo is defined %}
         <p class="pagination-count">Showing <strong>{{ resultsFrom }}</strong>–<strong>{{ resultsTo }}</strong> of <strong>{{ resultsTotal }}</strong></p>
     {% endif %}
     {% if (pages ?? [])|length > 1 %}
+        {% set last = last ?? pages|last %}
         <nav aria-label="Pages">
             <ul class="pagination">
-                {% for pageDesc, page in pages %}
+                {{ pagination.step('actions-chevron-double-left', 'First page', 1, current > 1, routeName, arguments, 'page-edge') }}
+                {{ pagination.step('actions-chevron-left', 'Previous page', current - 1, current > 1, routeName, arguments) }}
+                {% if pages|first > 1 %}
+                    <li class="page-item page-gap disabled" aria-hidden="true"><span class="page-link">…</span></li>
+                {% endif %}
+                {% for page in pages %}
                     {% if current == page %}
-                        <li class="page-item active"><a class="page-link" href="{{ path(routeName, arguments|merge({'page': page})) }}">{{ page }}</a></li>
+                        <li class="page-item active"><a class="page-link" href="{{ path(routeName, arguments|merge({'page': page})) }}" aria-current="page">{{ page }}</a></li>
                     {% else %}
                         <li class="page-item"><a class="page-link" href="{{ path(routeName, arguments|merge({'page': page})) }}">{{ page }}</a></li>
                     {% endif %}
                 {% endfor %}
+                {% if pages|last < last %}
+                    <li class="page-item page-gap disabled" aria-hidden="true"><span class="page-link">…</span></li>
+                {% endif %}
+                {{ pagination.step('actions-chevron-right', 'Next page', current + 1, current < last, routeName, arguments) }}
+                {{ pagination.step('actions-chevron-double-right', 'Last page', last, current < last, routeName, arguments, 'page-edge') }}
             </ul>
         </nav>
     {% endif %}

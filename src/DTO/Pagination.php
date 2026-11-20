@@ -19,10 +19,9 @@ final readonly class Pagination
     public const int PER_PAGE = 25;
 
     /**
-     * The first pages link up to this many. Further on, the links show the pages around the current one.
+     * The links show this many pages before and after the current one, so the pagination fits a phone.
      */
-    private const int LINKED_PAGES = 15;
-    private const int AROUND = 6;
+    private const int AROUND = 2;
 
     public int $page;
 
@@ -55,17 +54,8 @@ final readonly class Pagination
     public function pages(): array
     {
         $last = $this->lastPage();
-        if ($this->page <= self::AROUND + 1) {
-            $first = 1;
-            $end = min($last, self::LINKED_PAGES);
-        } else {
-            $first = $this->page - self::AROUND;
-            $end = $this->page + self::AROUND;
-            if ($end > $last) {
-                $end = $last;
-                $first = max(1, $last - self::LINKED_PAGES + 1);
-            }
-        }
+        $first = max(1, min($this->page - self::AROUND, $last - 2 * self::AROUND));
+        $end = min($last, $first + 2 * self::AROUND);
         $pages = [];
         for ($number = $first; $number <= $end; ++$number) {
             $pages[$number - 1] = $number;
@@ -77,13 +67,14 @@ final readonly class Pagination
     /**
      * What the templates of the lists expect, see _partials/pagination.html.twig.
      *
-     * @return array{pagesToLinkTo: array<int, int>, currentPage: int, prev: int, next: int, totalResults: int, startingAtItem: int, endingAtItem: int}
+     * @return array{pagesToLinkTo: array<int, int>, currentPage: int, lastPage: int, prev: int, next: int, totalResults: int, startingAtItem: int, endingAtItem: int}
      */
     public function viewData(): array
     {
         return [
             'pagesToLinkTo' => $this->pages(),
             'currentPage' => $this->page,
+            'lastPage' => $this->lastPage(),
             'prev' => $this->page - 1,
             'next' => $this->page < $this->lastPage() ? $this->page + 1 : 0,
             'totalResults' => $this->total,

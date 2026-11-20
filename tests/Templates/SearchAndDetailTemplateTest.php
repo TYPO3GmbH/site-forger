@@ -307,7 +307,10 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertSame(2, substr_count($html, 'overview-list-item-note'));
         // The count above, the pages below
         self::assertStringContainsString('Showing <strong>26</strong>–<strong>28</strong> of <strong>30</strong>', $html);
-        self::assertStringContainsString('<li class="page-item active"><a class="page-link" href="/gerrit/stale-issues?sort=priority&amp;page=2">2</a></li>', $html);
+        self::assertStringContainsString('<li class="page-item active"><a class="page-link" href="/gerrit/stale-issues?sort=priority&amp;page=2" aria-current="page">2</a></li>', $html);
+        // The last page: back to the first and the previous one, nothing further
+        self::assertStringContainsString('href="/gerrit/stale-issues?sort=priority&amp;page=1" aria-label="Previous page"', $html);
+        self::assertStringContainsString('<li class="page-item disabled"><span class="page-link" aria-label="Next page">', $html);
         self::assertLessThan(strpos($html, 'class="pagination"'), strpos($html, 'row-list'));
 
         $html = $template->renderBlock('body', ['stages' => StaleIssues::STAGES, 'totalResults' => 0, 'issues' => []]);
