@@ -8,6 +8,7 @@
     {% import '_macros/status.html.twig' as status %}
     {% import '_macros/refresh.html.twig' as refresh %}
     {% import '_macros/detail.html.twig' as detail %}
+    {% import '_macros/user.html.twig' as user %}
     {% set tracker = issue_tracker(issue.tracker.name ?? null) %}
     {% set comments = (issue.journals ?? [])|filter(journal => (journal.notes ?? '') is not empty) %}
     {# How a change belongs to the issue: its commit message resolves or names it, or a comment links it #}
@@ -26,7 +27,7 @@
                         </div>
                         <h1 class="detail-title"><span class="detail-number">#{{ issue.id }}</span>{{ issue.subject }}</h1>
                         <p class="detail-meta">
-                            {% if issue.author.name is defined %}<span>Reported by <strong>{{ issue.author.name }}</strong></span>{% endif %}
+                            {{ user.inline(issue.author ?? null, role: 'Author') }}
                             <span title="{{ issue.created_on }}">{{ relativetime(to_datetime(issue.created_on)) }}</span>
                             <span title="{{ issue.updated_on }}">updated {{ relativetime(to_datetime(issue.updated_on)) }}</span>
                         </p>
@@ -97,8 +98,8 @@
                     <aside class="detail-aside" aria-label="Details">
                         <dl class="detail-facts">
                             {# Each value leads to the open issues with it, as the filter of the search shows them. Not the project: Forger has only TYPO3 Core #}
-                            {{ detail.person('Assigned to', issue.assigned_to.name ?? null, issue.assigned_to.email ?? null, detail.issueSearch('assigned_to', issue.assigned_to.name ?? ''), 'Issues assigned to them') }}
-                            {{ detail.person('Author', issue.author.name ?? null, issue.author.email ?? null, detail.issueSearch('author', issue.author.name ?? ''), 'Issues by them') }}
+                            {{ detail.person('Assigned to', issue.assigned_to ?? null, detail.issueSearch('assigned_to', issue.assigned_to.name ?? ''), 'Issues assigned to them') }}
+                            {{ detail.person('Author', issue.author ?? null, detail.issueSearch('author', issue.author.name ?? ''), 'Issues by them') }}
                             {{ detail.fact('Priority', issue.priority.name ?? null, detail.issueSearch('priority', issue.priority.name ?? ''), 'Issues with this priority') }}
                             {{ detail.fact('Category', issue.category.name ?? null, detail.issueSearch('category', issue.category.name ?? ''), 'Issues in this category') }}
                             {{ detail.fact('Target version', issue.fixed_version.name ?? null, detail.issueSearch('target_version', issue.fixed_version.name ?? ''), 'Issues for this version') }}

@@ -38,8 +38,10 @@ final class ImportSchema
      * 1: as before the versions
      * 2: what the changes imported before the versions may miss: the lowest and highest single vote of each label,
      *    work in progress for "[POC]" in the subject, the tag "!!!" from the subject.
+     * 3: the owner of the change with the account of Gerrit, "owner_id" and "owner_username", and in the index
+     *    "user"; "owner" and "ownerEmail" are those of the owner now, not of the author of the commit.
      */
-    public const int REVIEW = 2;
+    public const int REVIEW = 3;
 
     /**
      * @param 'issue'|'review' $index

@@ -26,7 +26,7 @@ final class PersonSuggestionTest extends TestCase
 
     public function testFindsPeopleOfTheListContainingTheTermInAnyCase(): void
     {
-        $request = PersonSuggestion::request(' benni ', self::LIST_QUERY, 'assigned_to.name.keyword', 'assigned_to.email');
+        $request = PersonSuggestion::request(' benni ', self::LIST_QUERY, 'assigned_to.name.keyword', 'assigned_to.id');
 
         self::assertSame(0, $request['size']);
         self::assertSame(self::LIST_QUERY, $request['query']['bool']['filter'][0]);
@@ -37,8 +37,8 @@ final class PersonSuggestionTest extends TestCase
         self::assertSame([['term' => ['assigned_to.name.keyword' => 'Unknown']]], $request['query']['bool']['must_not']);
         $people = $request['aggregations']['people'];
         self::assertSame(['field' => 'assigned_to.name.keyword', 'size' => PersonSuggestion::SIZE], $people['terms']);
-        self::assertSame(['exists' => ['field' => 'assigned_to.email']], $people['aggregations']['withEmail']['filter']);
-        self::assertSame(['includes' => ['assigned_to.email']], $people['aggregations']['withEmail']['aggregations']['latest']['top_hits']['_source']);
+        self::assertSame(['exists' => ['field' => 'assigned_to.id']], $people['aggregations']['withAvatar']['filter']);
+        self::assertSame(['includes' => ['assigned_to.id']], $people['aggregations']['withAvatar']['aggregations']['latest']['top_hits']['_source']);
     }
 
     public function testWildcardsInTheTermAreTakenLiterally(): void
@@ -50,14 +50,14 @@ final class PersonSuggestionTest extends TestCase
 
     public function testReadsNamesCountsAndAvatarsWithoutEmailAddresses(): void
     {
-        $withEmail = static fn (array $source): array => ['withEmail' => ['latest' => ['hits' => ['hits' => [['_source' => $source]]]]]];
+        $withEmail = static fn (array $source): array => ['withAvatar' => ['latest' => ['hits' => ['hits' => [['_source' => $source]]]]]];
         $aggregations = ['people' => ['buckets' => [
-            ['key' => 'Benni Mack', 'doc_count' => 16] + $withEmail(['assigned_to' => ['email' => 'Benni@Example.org ']]),
-            ['key' => 'Somebody', 'doc_count' => 1] + $withEmail(['assigned_to' => ['email' => 'Unknown']]),
-            ['key' => 'A group', 'doc_count' => 2, 'withEmail' => ['latest' => ['hits' => ['hits' => []]]]],
+            ['key' => 'Benni Mack', 'doc_count' => 16] + $withEmail(['ownerEmail' => 'Benni@Example.org ']),
+            ['key' => 'Somebody', 'doc_count' => 1] + $withEmail(['ownerEmail' => 'Unknown']),
+            ['key' => 'A group', 'doc_count' => 2, 'withAvatar' => ['latest' => ['hits' => ['hits' => []]]]],
         ]]];
 
-        $people = PersonSuggestion::fromAggregations($aggregations, 'assigned_to.email');
+        $people = PersonSuggestion::fromAggregations($aggregations, 'ownerEmail');
 
         self::assertSame(
             [
@@ -69,5 +69,26 @@ final class PersonSuggestionTest extends TestCase
         );
         self::assertStringNotContainsString('@', (string) json_encode($people));
         self::assertSame([], PersonSuggestion::fromAggregations([], 'ownerEmail'));
+    }
+
+    public function testAvatarsOfIssuesComeByTheForgeNumber(): void
+    {
+        $withNumber = static fn (array $source): array => ['withAvatar' => ['latest' => ['hits' => ['hits' => [['_source' => $source]]]]]];
+        $aggregations = ['people' => ['buckets' => [
+            ['key' => 'Benni Mack', 'doc_count' => 16] + $withNumber(['author' => ['id' => 1]]),
+            ['key' => 'Unknown to the users', 'doc_count' => 3] + $withNumber(['author' => ['id' => 2]]),
+            ['key' => 'Without a number', 'doc_count' => 1, 'withAvatar' => ['latest' => ['hits' => ['hits' => []]]]],
+        ]]];
+        $asked = [];
+        $avatar = static function (mixed $forgeId) use (&$asked): ?string {
+            $asked[] = $forgeId;
+
+            return 1 === $forgeId ? 'https://www.gravatar.com/avatar/abc?s=48&d=mp&r=g' : null;
+        };
+
+        $people = PersonSuggestion::fromAggregations($aggregations, 'author.id', $avatar);
+
+        self::assertSame(['https://www.gravatar.com/avatar/abc?s=48&d=mp&r=g', null, null], array_column($people, 'avatar'));
+        self::assertSame([1, 2], $asked);
     }
 }

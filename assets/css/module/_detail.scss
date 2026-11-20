@@ -111,7 +111,8 @@
     color: var(--overview-muted);
     font-size: var(--detail-size-ui);
 
-    strong {
+    strong,
+    .user-name {
         color: #0b0b0b;
         font-weight: 600;
     }
@@ -330,17 +331,6 @@
             border-color: var(--bs-primary, #ed6d05);
             color: #0b0b0b;
         }
-    }
-}
-
-.detail-person {
-    display: flex;
-    gap: .5rem;
-    align-items: center;
-
-    .review-owner-avatar .avatar {
-        width: 1.5rem;
-        height: 1.5rem;
     }
 }
 

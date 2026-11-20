@@ -24,7 +24,10 @@ class ApiController extends AbstractController
 {
     private const array EMAIL_FIELDS = ['email', 'ownerEmail'];
 
-    #[Route(path: '/api/{type}/{documentId}', name: 'api')]
+    /**
+     * Only the issues and the changes: the index "user" holds email addresses.
+     */
+    #[Route(path: '/api/{type}/{documentId}', name: 'api', requirements: ['type' => 'issue|review'])]
     public function index(string $type = 'issue', int $documentId = 0): JsonResponse
     {
         try {

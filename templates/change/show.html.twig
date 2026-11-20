@@ -8,6 +8,7 @@
     {% import '_macros/status.html.twig' as status %}
     {% import '_macros/refresh.html.twig' as refresh %}
     {% import '_macros/detail.html.twig' as detail %}
+    {% import '_macros/user.html.twig' as user %}
     {% set tags = change.reviewtags ?? [] %}
     {# A closed change finds itself: the links to the search of the changes find the closed ones, too #}
     {% set closed = review_state(change).isClosed %}
@@ -40,7 +41,7 @@
                         </div>
                         <h1 class="detail-title"><span class="detail-number">{{ change.id }}</span>{{ change.subject }}</h1>
                         <p class="detail-meta">
-                            {% if change.owner is defined %}<span>by <strong>{{ change.owner }}</strong></span>{% endif %}
+                            {{ user.inline(change_owner(change), role: 'Owner') }}
                             {{ status.votes(change) }}
                             {{ status.size(change) }}
                             {% if change.insertions is defined and change.deletions is defined %}
@@ -130,7 +131,7 @@
 
                     <aside class="detail-aside" aria-label="Details">
                         <dl class="detail-facts">
-                            {{ detail.person('Owner', change.owner ?? null, change.ownerEmail ?? null, detail.changeSearch('owner', change.owner ?? '', closed), 'Changes by them') }}
+                            {{ detail.person('Owner', change_owner(change), detail.changeSearch('owner', change.owner ?? '', closed), 'Changes by them') }}
                             {% if (change.topic ?? 'no topic') != 'no topic' %}
                                 <div class="detail-fact">
                                     <dt>Topic</dt>

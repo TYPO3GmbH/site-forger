@@ -18,6 +18,7 @@ use App\Elastic\GlobalSearch;
 use App\Elastic\IssueSearch;
 use App\Elastic\MonthOverview;
 use App\Elastic\PersonSuggestion;
+use App\Elastic\Users;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
 use Elastica\Aggregation\Filters;
@@ -33,12 +34,12 @@ use Symfony\Component\Routing\Attribute\Route;
 class SearchController extends AbstractController
 {
     /**
-     * The filters of people: title => [filter key, field of the name, field of the email for the avatar].
+     * The filters of people: title => [filter key, field of the name, field of the Forge number for the avatar].
      * They show the people with the most issues, the search in the filter finds the others.
      */
     private const array PEOPLE_FILTERS = [
-        'Author' => ['author', 'author.name', 'author.email'],
-        'Assigned to' => ['assigned_to', 'assigned_to.name.keyword', 'assigned_to.email'],
+        'Author' => ['author', 'author.name', 'author.id'],
+        'Assigned to' => ['assigned_to', 'assigned_to.name.keyword', 'assigned_to.id'],
     ];
 
     /**
@@ -89,25 +90,25 @@ class SearchController extends AbstractController
      * search in their filter. Names, numbers and avatars only, no email addresses.
      */
     #[Route(path: '/people/{filter}', name: 'people', methods: ['GET'])]
-    public function people(Request $request, string $filter): JsonResponse
+    public function people(Request $request, string $filter, Users $users): JsonResponse
     {
         $people = array_column(self::PEOPLE_FILTERS, null, 0)[$filter] ?? null;
         if (null === $people) {
             return new JsonResponse('Unknown filter', Response::HTTP_BAD_REQUEST);
         }
-        [, $nameField, $emailField] = $people;
+        [, $nameField, $avatarField] = $people;
         $search = PersonSuggestion::request(
             $request->query->getString('term'),
             IssueSearch::query($request->query->getString('query'), 1 === $request->query->getInt('searchClosed')),
             $nameField,
-            $emailField
+            $avatarField
         );
         if (null === $search) {
             return new JsonResponse([]);
         }
         $resultSet = ElasticUtility::getIndexByName('issue')->search($search);
 
-        return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), $emailField));
+        return new JsonResponse(PersonSuggestion::fromAggregations($resultSet->getAggregations(), $avatarField, static fn (mixed $forgeId): ?string => $users->avatarOf((int) $forgeId, PersonSuggestion::AVATAR_SIZE)));
     }
 
     /**

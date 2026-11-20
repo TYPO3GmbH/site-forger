@@ -9,6 +9,7 @@
  #           side, so the rows are balanced.
  #}
 {% import '_macros/status.html.twig' as status %}
+{% import '_macros/user.html.twig' as user %}
 {% set detailed = detailed ?? false %}
 {% set releases = (change.releases ?? [])|filter(release => release != (change.branch ?? '') and release != 'omitted') %}
 {% set conflict = (change.mergeable ?? 'yes') == 'no' and (change.reviewstatus ?? 'NEW') == 'NEW' %}
@@ -17,8 +18,8 @@
         <span class="overview-list-size" title="Lines added and removed"><span class="is-added">+{{ change.insertions }}</span> <span class="is-removed">&minus;{{ change.deletions }}</span></span>
     {% endif %}
 {% endset %}
-{# Beside the name, so it is clear whom it shows; the placeholder without an address, so every name starts at the same place #}
-{% set owner %}<span class="overview-list-person"><span class="overview-list-person-avatar" aria-hidden="true">{{ avatar('@' in (change.ownerEmail ?? '') ? change.ownerEmail : '', 40) }}</span>by {{ change.owner ?? '' }}</span>{% endset %}
+{# The avatar beside the name, so it is clear whom it shows #}
+{% set owner %}{{ user.inline(change_owner(change), role: 'Owner') }}{% endset %}
 {% set branch %}<span class="tag-label{{ (change.branch ?? 'main') != 'main' ? ' is-backport' }}" title="Branch">{{ change.branch ?? 'main' }}</span>{% endset %}
 <a class="overview-list-item kind-change{{ detailed ? ' overview-list-item-detailed' }}" href="{{ change_path(change.id) }}" title="{{ change.subject }}">
     {% if not detailed %}
@@ -32,7 +33,7 @@
                 {% if review_state(change).isNoteworthy %}{{ status.review(change) }}{% endif %}
                 {% if conflict %}<span class="status-pill status-pill-conflict" title="Gerrit cannot merge it, it needs a rebase">Merge conflict</span>{% endif %}
                 {{ status.activity(change) }}
-                {% if change.owner is defined %}{{ owner }}{% endif %}
+                {{ owner }}
                 <span title="Branch{{ releases is not empty ? ' and target releases' }}">→ {{ ([change.branch ?? 'main']|merge(releases))|join(', ') }}</span>
                 {% if change.topic is defined and change.topic != 'no topic' %}<span title="Topic">{{ change.topic }}</span>{% endif %}
                 {% if change.affected_files is defined %}<span>{{ change.affected_files }} {{ change.affected_files == 1 ? 'file' : 'files' }}</span>{% endif %}
@@ -42,7 +43,7 @@
             <span class="overview-list-item-meta">
                 {% if relation is defined %}<span class="overview-list-relation">{{ relation }}</span>{% endif %}
                 {% if conflict %}<span class="status-pill status-pill-conflict" title="Gerrit cannot merge it, it needs a rebase">Merge conflict</span>{% endif %}
-                {% if change.owner is defined %}<span>by {{ change.owner }}</span>{% endif %}
+                {{ owner }}
                 {{ status.votes(change) }}
                 {% if releases is not empty %}<span title="Target releases">→ {{ releases|join(', ') }}</span>{% endif %}
                 {% if change.topic is defined and change.topic != 'no topic' %}<span title="Topic">{{ change.topic }}</span>{% endif %}

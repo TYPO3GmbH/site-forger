@@ -11,22 +11,21 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\DTO\User;
 use App\Elastic\ElasticUtility;
 use App\Elastic\ImportSchema;
 use App\Elastic\ProjectIssues;
+use App\Elastic\Users;
 use App\Enum\IssueStatusEnum;
 use Elastica\Document;
 use Redmine\Api;
 use Redmine\Api\AbstractApi;
 use Redmine\Api\Issue;
-use Redmine\Api\User;
 use Redmine\Client\Client;
 use Redmine\Exception\UnexpectedResponseException;
 use Redmine\Http\HttpClient;
 use Redmine\Http\Request;
 use Redmine\Http\Response;
-use Symfony\Contracts\Cache\CacheInterface;
-use Symfony\Contracts\Cache\ItemInterface;
 
 /**
  * Writes Forge issues to the issue index, as the import and the refresh of a single issue do.
@@ -36,14 +35,6 @@ use Symfony\Contracts\Cache\ItemInterface;
  */
 final class ForgeIssueImporter
 {
-    /**
-     * Seconds the email of a Forge user is kept, so a run does not ask Forge for authors and assignees it knows.
-     */
-    private const int USER_CACHE_LIFETIME = 86400;
-
-    /** @var array<int|string, string> */
-    private array $userCache = [];
-
     /** @var (\Closure(int): void)|null */
     private ?\Closure $rateLimitHandler = null;
 
@@ -51,7 +42,7 @@ final class ForgeIssueImporter
 
     public function __construct(
         private readonly Client $forgeClient,
-        private readonly CacheInterface $cache,
+        private readonly Users $users,
         private readonly ProjectIssues $projectIssues,
         private readonly CommandRunRecorder $recorder,
     ) {
@@ -177,7 +168,9 @@ final class ForgeIssueImporter
             $issue = $this->projectIssues->withoutPrivateNotes($issueWithJournals['issue']);
         }
 
-        $document = self::document($this->withUserEmails($issue));
+        // The author and the assignee the index "user" lacks, empty: "Update users" fills them
+        $this->users->ensure(array_values(array_filter([User::fromIssue($issue['author'] ?? []), User::fromIssue($issue['assigned_to'] ?? [])])));
+        $document = self::document($issue);
         $index = ElasticUtility::getIndexByName('issue');
         $index->addDocument(new Document((string) $document['id'], $document));
         if ($refresh) {
@@ -250,53 +243,5 @@ final class ForgeIssueImporter
     public static function indexDate(string $date): string
     {
         return new \DateTime($date)->format('Y/m/d H:i:s');
-    }
-
-    /**
-     * Adds the email of the author and of the assignee, for their avatars.
-     *
-     * @param array<string, mixed> $issue
-     *
-     * @return array<string, mixed>
-     */
-    private function withUserEmails(array $issue): array
-    {
-        // The author could be empty, so we have to check for that
-        $issue['author']['email'] = $this->userEmail($issue['author']['id'] ?? null);
-        if (isset($issue['assigned_to']['id'])) {
-            // A group can be assigned, too: Forge has no user for it, so it gets no email
-            $issue['assigned_to']['email'] = $this->userEmail($issue['assigned_to']['id']);
-        }
-
-        return $issue;
-    }
-
-    /**
-     * The email of a Forge user, empty if Forge does not know it.
-     */
-    private function userEmail(int|string|null $userId): string
-    {
-        if (null === $userId) {
-            return '';
-        }
-        if (!isset($this->userCache[$userId])) {
-            // A rate limit (429) is thrown and not cached, the next run asks again
-            $this->userCache[$userId] = $this->cache->get('forge_user_mail_' . (int) $userId, function (ItemInterface $item) use ($userId): string {
-                $item->expiresAfter(self::USER_CACHE_LIFETIME);
-                try {
-                    $userRecord = $this->call('user', static fn (User $users): mixed => $users->show((int) $userId));
-                } catch (\RuntimeException $e) {
-                    // E.g. a deleted or locked user (404, 403): the issue is imported without the email
-                    if (429 === $e->getCode()) {
-                        throw $e;
-                    }
-                    $userRecord = null;
-                }
-
-                return is_array($userRecord) ? ($userRecord['user']['mail'] ?? '') : '';
-            });
-        }
-
-        return $this->userCache[$userId];
     }
 }

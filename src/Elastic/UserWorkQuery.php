@@ -21,7 +21,9 @@ use App\Enum\ReviewStatusEnum;
  * Builds the search requests for the issues and Gerrit changes of one person.
  *
  * A person is matched by email address or by name: Forge hides the email address
- * of many authors, and people often use different addresses in Forge and Gerrit.
+ * of many authors, and people often use different addresses in Forge and Gerrit. On Forge by the numbers of the
+ * Forge users of the account, see Users::accountsOf(): the issues keep no emails. On Gerrit also by the number of its
+ * account.
  */
 final readonly class UserWorkQuery
 {
@@ -35,6 +37,10 @@ final readonly class UserWorkQuery
         private IssueSortEnum $issueSort = IssueSortEnum::UPDATED,
         private ReviewSortEnum $reviewSort = ReviewSortEnum::UPDATED,
         private string $searchTerms = '',
+        /** @var list<int> */
+        private array $forgeIds = [],
+        /** @var list<int> */
+        private array $gerritIds = [],
     ) {
     }
 
@@ -48,7 +54,8 @@ final readonly class UserWorkQuery
     public function issues(): array
     {
         $request = $this->request([
-            ['author.email' => $this->emails()],
+            ['author.id' => $this->forgeIds],
+            ['assigned_to.id' => $this->forgeIds],
             ['author.name' => $this->names()],
             ['assigned_to.name.keyword' => $this->names()],
         ], '' === trim($this->searchTerms) ? null : IssueSearch::query($this->searchTerms, true));
@@ -70,6 +77,7 @@ final readonly class UserWorkQuery
     public function reviews(): array
     {
         $request = $this->request([
+            ['owner_id' => $this->gerritIds],
             ['ownerEmail' => $this->emails()],
             ['owner' => $this->names()],
         ], ReviewSearch::query($this->searchTerms));
@@ -115,8 +123,8 @@ final readonly class UserWorkQuery
     }
 
     /**
-     * @param list<array<string, list<string>>> $identityTerms field => values, one of them has to match
-     * @param array<string, mixed>|null         $search        the query of the search words, as the search has it
+     * @param list<array<string, list<int|string>>> $identityTerms field => values, one of them has to match
+     * @param array<string, mixed>|null             $search        the query of the search words, as the search has it
      */
     private function request(array $identityTerms, ?array $search = null): array
     {

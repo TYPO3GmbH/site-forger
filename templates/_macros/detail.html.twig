@@ -14,16 +14,13 @@
     {% endif %}
 {% endmacro %}
 
-{% macro person(label, name, email, url = null, title = null) %}
-    {% if name is not empty %}
+{# user: what the document has of the person, see _macros/user.html.twig; left out without #}
+{% macro person(label, user, url = null, title = null) %}
+    {% import '_macros/user.html.twig' as users %}
+    {% if (user.name ?? '') is not empty %}
         <div class="detail-fact">
             <dt>{{ label }}</dt>
-            <dd class="detail-person">
-                {% if '@' in (email ?? '') %}
-                    <span class="review-owner-avatar">{{ avatar(email, 48) }}</span>
-                {% endif %}
-                {% if url %}<a href="{{ url }}"{% if title %} title="{{ title }}"{% endif %}>{{ name }}</a>{% else %}{{ name }}{% endif %}
-            </dd>
+            <dd>{{ users.inline(user, 48, true, url, title) }}</dd>
         </div>
     {% endif %}
 {% endmacro %}

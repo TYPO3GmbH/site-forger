@@ -58,7 +58,7 @@ final class DashboardListsTemplateTest extends KernelTestCase
 
         self::assertStringContainsString('href="/issue/91089"', $html);
         self::assertStringContainsString('Something is broken', $html);
-        self::assertStringContainsString('by Benni Mack', $html);
+        self::assertStringContainsString('<span class="user-name">Benni Mack</span>', $html);
         self::assertStringContainsString('status-pill-new', $html);
         self::assertStringContainsString('tag-label-bug', $html);
         // Without category and version their details are left out
@@ -118,7 +118,7 @@ final class DashboardListsTemplateTest extends KernelTestCase
 
         self::assertStringContainsString('href="/change/12345"', $html);
         self::assertStringContainsString('[BUGFIX] Repair the cache', $html);
-        self::assertStringContainsString('by Benni Mack', $html);
+        self::assertStringContainsString('<span class="user-name">Benni Mack</span>', $html);
         // Votes missing in old documents count as none
         self::assertStringContainsString('status-pill-vote-none" title="Code review: no votes · 0 for, 0 against">CR 0</span>', $html);
         self::assertStringNotContainsString('Lines added and removed', $html);

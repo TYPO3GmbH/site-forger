@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Service;
 
 use App\Elastic\ProjectChanges;
+use App\Elastic\Users;
 use App\Service\ChangeRefreshResult;
 use App\Service\CommandRunRecorder;
 use App\Service\GerritChangeImporter;
@@ -23,6 +24,7 @@ use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 final class GerritChangeImporterTest extends TestCase
 {
@@ -176,6 +178,18 @@ final class GerritChangeImporterTest extends TestCase
         self::assertSame([105123], $document['resolves']);
         self::assertSame([104000], $document['related']);
         self::assertSame(['main', '13.4'], $document['releases']);
+        // Without an owner of Gerrit, the author of the commit
+        self::assertSame(['Benni Mack', 'benni@example.org', null, null], [$document['owner'], $document['ownerEmail'], $document['owner_id'], $document['owner_username']]);
+        self::assertNull(GerritChangeImporter::owner($document));
+
+        $change['owner'] = ['_account_id' => 52917, 'name' => 'Ingo Hollmann', 'username' => 'ingoholl', 'email' => 'ingo@example.org'];
+        $document = $this->importer([])->documents([$change])[81234];
+
+        // The owner, who uploaded it, not the author of the commit
+        self::assertSame(['Ingo Hollmann', 'ingo@example.org', 52917, 'ingoholl'], [$document['owner'], $document['ownerEmail'], $document['owner_id'], $document['owner_username']]);
+        $owner = GerritChangeImporter::owner($document);
+        self::assertNotNull($owner);
+        self::assertSame(['ingoholl', 52917, null, ['ingo@example.org'], md5('ingo@example.org')], [$owner->id(), $owner->gerritId, $owner->forgeId, $owner->emails, $owner->avatar()]);
     }
 
     /**
@@ -190,6 +204,7 @@ final class GerritChangeImporterTest extends TestCase
             new Client(['handler' => $stack, 'base_uri' => 'https://review.typo3.org']),
             new CommandRunRecorder($this->createStub(Connection::class), new NullLogger()),
             $projectChanges ?? $this->createStub(ProjectChanges::class),
+            new Users(new ArrayAdapter(), new NullLogger()),
         );
     }
 }

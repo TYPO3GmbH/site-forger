@@ -15,6 +15,8 @@ use App\Elastic\ElasticsearchVersion;
 use App\Elastic\ElasticUtility;
 use App\Elastic\IndexSetup;
 use App\Elastic\PendingImport;
+use App\Elastic\UserHealth;
+use App\Elastic\Users;
 use App\Enum\SystemCheckEnum;
 use Elastica\Cluster\Health;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,6 +36,7 @@ class SystemController extends AbstractController
     public function __construct(
         private readonly IndexSetup $indexSetup,
         private readonly KernelInterface $kernel,
+        private readonly Users $users,
     ) {
     }
 
@@ -43,11 +46,13 @@ class SystemController extends AbstractController
         $elasticsearch = $this->elasticsearch();
         $indices = $elasticsearch['reachable'] ? $this->indices() : [];
         $pending = $elasticsearch['reachable'] ? $this->pendingImport() : [];
+        $users = $elasticsearch['reachable'] ? $this->users() : null;
 
         return $this->render('management/system/index.html.twig', [
             'elasticsearch' => $elasticsearch,
             'indices' => $indices,
             'pending' => $pending,
+            'users' => $users,
             'application' => [
                 'php' => PHP_VERSION,
                 'symfony' => Kernel::VERSION,
@@ -59,6 +64,7 @@ class SystemController extends AbstractController
                 $elasticsearch['healthResult'],
                 ...array_column($indices, 'result'),
                 ...array_column($pending, 'result'),
+                ...(null === $users ? [] : [$users['result']]),
             ),
             'minimumVersion' => ElasticsearchVersion::MINIMUM,
         ]);
@@ -125,6 +131,20 @@ class SystemController extends AbstractController
         }
 
         return $indices;
+    }
+
+    /**
+     * The users in one line, see UserHealth: null if the index "user" cannot be read, the indices show why.
+     *
+     * @return array{result: SystemCheckEnum, summary: string, hint: string|null}|null
+     */
+    private function users(): ?array
+    {
+        try {
+            return UserHealth::of($this->users->statistics(), new \DateTimeImmutable());
+        } catch (\Exception) {
+            return null;
+        }
     }
 
     /**

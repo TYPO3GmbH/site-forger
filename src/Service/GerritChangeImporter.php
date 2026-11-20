@@ -11,11 +11,13 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\DTO\User;
 use App\Elastic\CommitMessage;
 use App\Elastic\ElasticUtility;
 use App\Elastic\ImportSchema;
 use App\Elastic\ProjectChanges;
 use App\Elastic\ReviewSubject;
+use App\Elastic\Users;
 use App\Enum\ReviewVoteEnum;
 use Elastica\Document;
 use GuzzleHttp\ClientInterface;
@@ -34,10 +36,10 @@ final class GerritChangeImporter
 {
     public const string PROJECT = 'project:Packages/TYPO3.CMS';
     /**
-     * The details of a change, the same for the refresh of one change, the full import and the delta: the votes
-     * and the current patch set with its files and commit.
+     * The details of a change, the same for the refresh of one change, the full import and the delta: the votes,
+     * the current patch set with its files and commit, and the accounts with name, username and email.
      */
-    public const array DETAIL_OPTIONS = ['DETAILED_LABELS', 'CURRENT_REVISION', 'CURRENT_FILES', 'CURRENT_COMMIT'];
+    public const array DETAIL_OPTIONS = ['DETAILED_LABELS', 'CURRENT_REVISION', 'CURRENT_FILES', 'CURRENT_COMMIT', 'DETAILED_ACCOUNTS'];
     /**
      * The accounts of the CI, their votes are no reviews.
      */
@@ -56,6 +58,7 @@ final class GerritChangeImporter
         private readonly ClientInterface $client,
         private readonly CommandRunRecorder $recorder,
         private readonly ProjectChanges $projectChanges,
+        private readonly Users $users,
     ) {
     }
 
@@ -99,6 +102,7 @@ final class GerritChangeImporter
      */
     public function write(array $document, bool $refresh = false): void
     {
+        $this->users->ensureGerrit(array_values(array_filter([self::owner($document)])));
         $index = ElasticUtility::getIndexByName('review');
         $index->addDocument(new Document((string) $document['id'], $document));
         if ($refresh) {
@@ -115,10 +119,27 @@ final class GerritChangeImporter
      */
     public function writeAll(array $documents): void
     {
+        // The owners the index "user" lacks, complete: Gerrit told all of them with the change
+        $this->users->ensureGerrit(array_values(array_filter(array_map(self::owner(...), array_values($documents)))));
         foreach (array_chunk(array_values($documents), self::BULK_SIZE) as $chunk) {
             ElasticUtility::getIndexByName('review')->addDocuments(array_map(static fn (array $document): Document => new Document((string) $document['id'], $document), $chunk));
             $this->recorder->document(count($chunk));
         }
+    }
+
+    /**
+     * The owner of a change as a person of the index "user", null for a change imported before the owner's account.
+     *
+     * @param array<string, mixed> $document see documents()
+     */
+    public static function owner(array $document): ?User
+    {
+        return isset($document['owner_id']) ? User::fromGerrit([
+            '_account_id' => $document['owner_id'],
+            'name' => $document['owner'] ?? '',
+            'username' => $document['owner_username'] ?? null,
+            'email' => $document['ownerEmail'] ?? null,
+        ]) : null;
     }
 
     /**
@@ -236,8 +257,12 @@ final class GerritChangeImporter
                 'patchsets' => $change['revisions'][$change['current_revision']]['_number'],
                 'created_on' => self::gerritDate($change['created']),
                 'updated_on' => self::gerritDate($change['updated']),
-                'owner' => $author ?? 'Unknown',
-                'ownerEmail' => $authorEmail ?? 'Unknown',
+                // The owner of the change, who uploaded it, with the account of Gerrit; the author of its commit
+                // before, who has no account, for the changes Gerrit tells no owner of
+                'owner' => $change['owner']['name'] ?? $author ?? 'Unknown',
+                'ownerEmail' => $change['owner']['email'] ?? $authorEmail ?? 'Unknown',
+                'owner_id' => isset($change['owner']['_account_id']) ? (int) $change['owner']['_account_id'] : null,
+                'owner_username' => $change['owner']['username'] ?? null,
                 'files' => $filesInPatchset,
                 'work_in_progress' => ReviewSubject::isWorkInProgress($reviewTags) || ($change['work_in_progress'] ?? false),
                 'commit_message' => $commitMessage,

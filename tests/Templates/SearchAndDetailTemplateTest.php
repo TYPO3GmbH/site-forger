@@ -230,7 +230,10 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
         self::assertStringContainsString('>Unassigned</span>', $render(self::ISSUE));
         self::assertStringContainsString('>Assigned to you</span>', $render(['assigned_to' => ['name' => 'Benni Mack']] + self::ISSUE));
-        self::assertStringContainsString('>for Oli Bartsch</span>', $render(['assigned_to' => ['name' => 'Oli Bartsch']] + self::ISSUE));
+        // Someone else: the person, as everywhere, with the role on hover
+        $other = $render(['assigned_to' => ['name' => 'Oli Bartsch']] + self::ISSUE);
+        self::assertStringContainsString('<span class="user" title="Assigned to: Oli Bartsch"><span class="user-avatar" aria-hidden="true"><img src="https://www.gravatar.com/avatar/' . md5('') . '?s=40&amp;d=mp&amp;r=g" class="avatar" height="40" width="40" alt=""/></span><span class="user-name">Oli Bartsch</span></span>', $other);
+        self::assertStringNotContainsString('for Oli Bartsch', $other);
         // The rows of the search
         self::assertStringContainsString('overview-list-item kind-issue overview-list-item-detailed', $render(self::ISSUE));
     }

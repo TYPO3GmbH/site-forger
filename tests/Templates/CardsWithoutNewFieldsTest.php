@@ -60,6 +60,11 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         'updated_on' => '2026/11/01 10:00:00',
     ];
 
+    /**
+     * The cache of the avatars, see App\Elastic\Users.
+     */
+    private const string AVATARS_CACHE_KEY = 'user_avatars';
+
     private Environment $twig;
 
     protected function setUp(): void
@@ -67,6 +72,14 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         self::bootKernel();
         $this->twig = self::getContainer()->get('twig');
         self::assertTrue($this->twig->isStrictVariables());
+        // The avatars of the issues come from the index "user", here from its cache
+        $this->avatars([]);
+    }
+
+    protected function tearDown(): void
+    {
+        self::getContainer()->get('cache.app')->delete(self::AVATARS_CACHE_KEY);
+        parent::tearDown();
     }
 
     public function testChangeWithoutNewFields(): void
@@ -81,9 +94,9 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
             self::assertStringContainsString('Benni Mack', $html);
             self::assertStringNotContainsString('review-breaking', $html);
         }
-        self::assertStringNotContainsString('class="avatar"', $card);
-        // Beside the name the placeholder of Gravatar without an address, so every name starts at the same place
-        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('') . '?s=40&d=mp', $full);
+        // The placeholder of Gravatar without an address, every person alike
+        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('') . '?s=20&amp;d=mp', $card);
+        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('') . '?s=40&amp;d=mp', $full);
     }
 
     public function testOnlyChangesLyingStillShowTheirActivity(): void
@@ -160,13 +173,38 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         }
     }
 
-    public function testIssueWithAssigneeEmailShowsTheAvatar(): void
+    public function testIssueShowsTheAvatarsOfTheUserIndex(): void
+    {
+        $this->avatars(['forge:2' => md5('benjamin@example.org')]);
+
+        $card = $this->twig->render('_partials/issue_card.html.twig', ['card' => self::OLD_ISSUE]);
+        $listed = $this->twig->render('_partials/row/issue.html.twig', ['issue' => self::OLD_ISSUE, 'detailed' => true]);
+
+        // The assignee has one, the author none: the placeholder
+        self::assertSame(2, substr_count($card, 'class="avatar"'));
+        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('') . '?s=36&amp;d=mp', $card);
+        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('benjamin@example.org') . '?s=36&amp;d=mp&amp;r=g', $card);
+        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('') . '?s=40&amp;d=mp', $listed);
+    }
+
+    public function testAnEmailAnOldIssueKeptShowsNoAvatarOfItsOwn(): void
     {
         $issue = self::OLD_ISSUE;
         $issue['assigned_to']['email'] = 'benjamin@example.org';
 
         $html = $this->twig->render('_partials/issue_card.html.twig', ['card' => $issue]);
 
-        self::assertStringContainsString(md5('benjamin@example.org'), $html);
+        // Only the index "user" gives the avatars, the email stays in the document
+        self::assertStringNotContainsString(md5('benjamin@example.org'), $html);
+    }
+
+    /**
+     * @param array<string, string> $avatars hashes by "forge:<number>" and "gerrit:<number>"
+     */
+    private function avatars(array $avatars): void
+    {
+        $cache = self::getContainer()->get('cache.app');
+        $cache->delete(self::AVATARS_CACHE_KEY);
+        $cache->get(self::AVATARS_CACHE_KEY, static fn (): array => $avatars);
     }
 }

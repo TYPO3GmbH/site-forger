@@ -124,10 +124,46 @@ The deltas only read what changed, and only load details for what they do not ha
   count each, until a part holds a page; it is listed, the issues missing or not up to date are imported, those
   Forge does not list are removed. At most 15 counts per run, the next run goes on. So issues deleted on Forge,
   private now, or never imported get in line without a full import.
-* **Authors:** the emails of Forge users are cached for a day.
+* **Authors and assignees:** the issues keep only their number and name, as Forge lists them. The rest is in
+  the index `user`, see [The users](#the-users).
 
 On an empty index `forgeDelta` and `reviewDelta` import the latest 100 issues or changes and report a
 warning: run the full import once, by hand. The comparison with Forge would fill it too, but a page at a time.
+
+### The users
+
+The index `user` holds the people of Forge and Gerrit, one document per TYPO3 account (`App\Elastic\Users`,
+`App\DTO\User`): the username, the number on Forge (`forge_id`) and on Gerrit (`gerrit_id`), the name, the known
+emails. Forge and Gerrit both log in with the TYPO3 account: the Forge login and the Gerrit username
+are its username, the id of the document. A person of Forge is `forge:<forge_id>` until Forge told it.
+
+**Gerrit** tells all of the owner of a change with the change (`DETAILED_ACCOUNTS`): number, name, username and
+email. The import of the changes writes the owners the index `user` lacks at once (`Users::ensureGerrit()`),
+and adds the number on Gerrit to a person it has by the username. When Forge tells the username of a person later,
+"Update users" joins the two documents. A change shows its owner, who uploaded it, with the account of Gerrit
+(`owner_id`, `owner_username`), not the author of its commit, who has no account.
+
+Forge tells more than the number and the name of a user only user by user, one request each: it lists users to its
+admins only. So the imports of Forge do not wait for the users. The job "Update users" (`app:import:users`)
+runs every five minutes, with the lock of the Forge import, so the two never ask Forge at the same time. Its name
+says what it keeps, not where from: the source of the users is Forge for now (`App\Service\ForgeUserSync`), and
+may be another one later under the same command:
+
+* **The importer** writes the author and the assignee of every issue it writes to the index `user`, if it lacks
+  them: empty but for the number and the name (`Users::ensure()`). The job fills them.
+* **First** the job takes the authors and assignees of the issues already in the index over that the index `user`
+  lacks, without a request, with the email the import kept there before the index `user` existed. So the index
+  `user` gets complete again by itself, also when it was lost.
+* **Then** it asks Forge for 30 users (`--limit`): those never asked for, the ones without an email first, then
+  those asked for more than 30 days ago.
+  A rate limit ends the run, it does not wait.
+
+The avatars are Gravatar's, by the first email the index `user` knows of the number on Forge or Gerrit, cached for
+10 minutes: the same avatar for a person on both. Without an email, as of users who hide it on Forge and have no
+account on Gerrit, the placeholder of Gravatar. `user_avatar()` and the macros of `templates/_macros/user.html.twig`
+render a person of Forge or Gerrit alike; changes imported before the owner's account show the avatar of the email. "My Work" finds the
+issues and changes by the numbers of the account on Forge and Gerrit: by its username, else by its email.
+`/api/<type>/<id>` serves only issues and changes, the index `user` holds email addresses.
 
 ### How the full imports work
 
@@ -234,6 +270,7 @@ When the jobs run is part of the app, in `App\Scheduler\JobSchedule` (Symfony Sc
 |---|---|
 | `app:import --mode=forgeDelta` | every 5 minutes |
 | `app:import --mode=reviewDelta` | every 5 minutes |
+| `app:import:users` | every 5 minutes |
 | `app:backports` | every 5 minutes |
 
 `bin/console debug:scheduler` lists them with their next run. The server only runs the worker of the schedule,

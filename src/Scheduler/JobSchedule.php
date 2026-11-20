@@ -12,6 +12,8 @@ declare(strict_types=1);
 namespace App\Scheduler;
 
 use App\Command\ImportCommand;
+use App\Command\ImportUsersCommand;
+use App\Service\ForgeUserSync;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
@@ -61,6 +63,7 @@ final readonly class JobSchedule implements ScheduleProviderInterface
     public const array JOBS = [
         'forgeDelta' => ['label' => 'Update Forge issues', 'every' => '5 minutes', 'command' => ['app:import', '--mode=forgeDelta'], 'lock' => ImportCommand::LOCK_FORGE, 'steps' => [ImportCommand::STEP_FORGE_DELTA, ImportCommand::STEP_FORGE_OUTDATED, ImportCommand::STEP_FORGE_RECONCILE]],
         'reviewDelta' => ['label' => 'Update Gerrit changes', 'every' => '5 minutes', 'command' => ['app:import', '--mode=reviewDelta'], 'lock' => ImportCommand::LOCK_GERRIT, 'steps' => [ImportCommand::STEP_GERRIT_DELTA_LIST, ImportCommand::STEP_GERRIT_DELTA_LOAD, ImportCommand::STEP_GERRIT_OUTDATED]],
+        'users' => ['label' => 'Update users', 'every' => '5 minutes', 'command' => ['app:import:users'], 'lock' => ImportCommand::LOCK_FORGE, 'steps' => [ImportUsersCommand::STEP_TAKE_OVER, ForgeUserSync::STEP]],
         'backports' => ['label' => 'Find missing backports', 'every' => '5 minutes', 'command' => ['app:backports']],
     ];
 

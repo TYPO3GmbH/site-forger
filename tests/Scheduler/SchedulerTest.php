@@ -113,6 +113,7 @@ final class SchedulerTest extends TestCase
         self::assertSame([
             'forgeDelta' => ['every 5 minutes', ['app:import', '--mode=forgeDelta']],
             'reviewDelta' => ['every 5 minutes', ['app:import', '--mode=reviewDelta']],
+            'users' => ['every 5 minutes', ['app:import:users']],
             'backports' => ['every 5 minutes', ['app:backports']],
             StartQueuedJobs::class => 'every 1 minute',
         ], $jobs);
@@ -126,7 +127,7 @@ final class SchedulerTest extends TestCase
         $triggers = (new ScheduledJobs(new JobSchedule(new ArrayAdapter(), new LockFactory(new InMemoryStore()))))->triggers();
 
         self::assertSame(
-            ['app:import --mode=forgeDelta', 'app:import --mode=reviewDelta', 'app:backports'],
+            ['app:import --mode=forgeDelta', 'app:import --mode=reviewDelta', 'app:import:users', 'app:backports'],
             array_keys($triggers),
         );
         self::assertSame('every 5 minutes', (string) $triggers['app:import --mode=reviewDelta']);
@@ -137,6 +138,7 @@ final class SchedulerTest extends TestCase
         self::assertSame([
             'app:import --mode=forgeDelta' => 'Update Forge issues',
             'app:import --mode=reviewDelta' => 'Update Gerrit changes',
+            'app:import:users' => 'Update users',
             'app:backports' => 'Find missing backports',
         ], (new ScheduledJobs(new JobSchedule(new ArrayAdapter(), new LockFactory(new InMemoryStore()))))->labels());
     }

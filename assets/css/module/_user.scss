@@ -1,0 +1,28 @@
+// A person with avatar and name, of Forge or Gerrit alike, see templates/_macros/user.html.twig: in the rows of the
+// lists, on the review cards and in the facts of the detail pages. The issue cards keep the layout of the template
+// bundle (issue-meta-item), the suggestions of the person filters their own (_person-search.scss).
+
+.user {
+    display: inline-flex;
+    gap: .375rem;
+    align-items: center;
+}
+
+.user-avatar .avatar {
+    display: block;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 1px solid #e6e8eb;
+    border-radius: 50%;
+    background: #f3f4f6;
+}
+
+// On the detail pages, beside the larger text of the facts
+.user-large {
+    gap: .5rem;
+
+    .user-avatar .avatar {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+}

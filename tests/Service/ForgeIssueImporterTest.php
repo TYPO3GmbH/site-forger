@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Service;
 
 use App\Elastic\ProjectIssues;
+use App\Elastic\Users;
 use App\Service\CommandRunRecorder;
 use App\Service\ForgeIssueImporter;
 use Doctrine\DBAL\Connection;
@@ -165,7 +166,7 @@ final class ForgeIssueImporterTest extends TestCase
 
         return new ForgeIssueImporter(
             $client,
-            new ArrayAdapter(),
+            new Users(new ArrayAdapter(), new NullLogger()),
             new ProjectIssues(27),
             new CommandRunRecorder($this->createStub(Connection::class), new NullLogger()),
         );

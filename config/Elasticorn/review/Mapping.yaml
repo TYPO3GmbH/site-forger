@@ -48,6 +48,10 @@ updated_on:
   format: yyyy/MM/dd HH:mm:ss
 owner:
   type: keyword
+owner_id:
+  type: integer
+owner_username:
+  type: keyword
 ownerEmail:
   type: keyword
 files:

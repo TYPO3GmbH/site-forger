@@ -11,7 +11,9 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\DTO\User;
 use App\Elastic\ElasticUtility;
+use App\Elastic\Users;
 use App\Elastic\UserWorkQuery;
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
@@ -31,6 +33,11 @@ use T3G\Bundle\Keycloak\Security\KeyCloakUser;
 #[IsGranted('ROLE_USER')]
 class MyWorkController extends AbstractController
 {
+    public function __construct(
+        private readonly Users $users,
+    ) {
+    }
+
     /**
      * Links to /my keep working: one with an issue state opens the issues, everything else the changes.
      */
@@ -127,6 +134,8 @@ class MyWorkController extends AbstractController
     private function query(bool $includeClosed, string $searchTerms, ?IssueStatusEnum $issueStatus = null, ?ReviewStateEnum $reviewState = null, IssueSortEnum $issueSort = IssueSortEnum::UPDATED, ReviewSortEnum $reviewSort = ReviewSortEnum::UPDATED): UserWorkQuery
     {
         $user = $this->getUser();
+        // The people of the account on Forge and Gerrit, see Users
+        $accounts = $user instanceof KeyCloakUser ? $this->users->accountsOf($user->getUserIdentifier(), (string) $user->getEmail()) : [];
 
         return new UserWorkQuery(
             $user instanceof KeyCloakUser ? (string) $user->getEmail() : '',
@@ -137,6 +146,8 @@ class MyWorkController extends AbstractController
             issueSort: $issueSort,
             reviewSort: $reviewSort,
             searchTerms: $searchTerms,
+            forgeIds: array_values(array_filter(array_map(static fn (User $account): ?int => $account->forgeId, $accounts))),
+            gerritIds: array_values(array_filter(array_map(static fn (User $account): ?int => $account->gerritId, $accounts))),
         );
     }
 

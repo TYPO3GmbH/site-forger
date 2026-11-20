@@ -22,14 +22,15 @@ use PHPUnit\Framework\TestCase;
 
 final class UserWorkQueryTest extends TestCase
 {
-    public function testIssuesMatchEmailOrName(): void
+    public function testIssuesMatchTheForgeUsersOrName(): void
     {
-        $request = (new UserWorkQuery('Jane.Doe@Example.org', 'Jane Doe'))->issues();
+        $request = (new UserWorkQuery('Jane.Doe@Example.org', 'Jane Doe', forgeIds: [38237, 41]))->issues();
 
         self::assertSame(
             [
                 'should' => [
-                    ['terms' => ['author.email' => ['Jane.Doe@Example.org', 'jane.doe@example.org']]],
+                    ['terms' => ['author.id' => [38237, 41]]],
+                    ['terms' => ['assigned_to.id' => [38237, 41]]],
                     ['terms' => ['author.name' => ['Jane Doe']]],
                     ['terms' => ['assigned_to.name.keyword' => ['Jane Doe']]],
                 ],
@@ -38,6 +39,9 @@ final class UserWorkQueryTest extends TestCase
             $request['query']['bool']
         );
         self::assertSame([['updated_on' => 'desc']], $request['sort']);
+        // Without Forge users the issues are found by the name alone, the issues keep no emails
+        $byName = (new UserWorkQuery('jane@example.org', 'Jane Doe'))->issues()['query']['bool']['should'];
+        self::assertSame([['terms' => ['author.name' => ['Jane Doe']]], ['terms' => ['assigned_to.name.keyword' => ['Jane Doe']]]], $byName);
     }
 
     public function testIssuesAndChangesEachInTheirGivenOrder(): void
@@ -63,11 +67,12 @@ final class UserWorkQueryTest extends TestCase
 
     public function testReviewsMatchOwnerAndHideMergedAndAbandoned(): void
     {
-        $request = (new UserWorkQuery('jane@example.org', 'Jane Doe'))->reviews();
+        $request = (new UserWorkQuery('jane@example.org', 'Jane Doe', gerritIds: [21249]))->reviews();
 
         self::assertSame(
             [
                 'should' => [
+                    ['terms' => ['owner_id' => [21249]]],
                     ['terms' => ['ownerEmail' => ['jane@example.org']]],
                     ['terms' => ['owner' => ['Jane Doe']]],
                 ],

@@ -34,7 +34,7 @@
                     No issues have the status “{{ selected }}”.
                 {% else %}
                     {{ includeClosed ? 'You have no issues.' : 'You have no open issues.' }}
-                    <p class="mywork-empty-hint">Forger looks for the Forge issues reported by or assigned to <strong>{{ name }}</strong>, or reported by <strong>{{ email }}</strong>.</p>
+                    <p class="mywork-empty-hint">Forger looks for the Forge issues reported by or assigned to <strong>{{ name }}</strong>, or to the Forge account with <strong>{{ email }}</strong>.</p>
                 {% endif %}
             </div>
         {% else %}

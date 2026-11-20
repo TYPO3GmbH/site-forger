@@ -158,6 +158,19 @@
                         {% endfor %}
                     </div>
                 </section>
+
+                {% if users is not null %}
+                    <section class="runs-section">
+                        <h2 class="runs-heading">Users</h2>
+                        <article class="runs-card">
+                            <header class="runs-card-header">
+                                <span class="system-check-label">{{ users.summary }}</span>
+                                {{ system.result(users.result) }}
+                            </header>
+                            {% if users.hint %}<p class="runs-muted system-check-description">{{ users.hint }}</p>{% endif %}
+                        </article>
+                    </section>
+                {% endif %}
             {% endif %}
 
             <section class="runs-section">

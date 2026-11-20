@@ -83,6 +83,10 @@ services:
     arguments:
       $forgeClient: '@redmine.client.forge'
 
+  App\Service\ForgeUserSync:
+    arguments:
+      $forgeClient: '@redmine.client.forge'
+
   # The state of the schedule (App\Scheduler\JobSchedule): in var/scheduler, which the deployments keep,
   # unlike var/cache
   app.scheduler.state:
