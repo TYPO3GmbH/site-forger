@@ -408,6 +408,11 @@ Whether the worker runs at all shows `systemctl status 'forger-scheduler@*'`, wh
 (`App\Controller\ApiV1Controller`). It returns the objects in `App\Api\Model`, `App\Api\IssueMapper` and
 `App\Api\ChangeMapper` build them from the documents. No email address leaves Forger.
 
+The routes are stateless. `App\Subscriber\ApiRateLimitSubscriber` limits the requests of each address
+(`public_api` in `config/packages/rate_limiter.yaml`) and marks the answers as public for a minute.
+`App\Security\StatelessAwareKeycloakSubscriber` replaces the subscriber of the Keycloak bundle, which opens the
+session on every request to refresh the token: on the API that would send a cookie and make every answer private.
+
 The documentation is at `/api/doc`, linked as "API" in the footer, and the OpenAPI document at `/api/doc.json`.
 NelmioApiDocBundle builds both from the attributes of the controller and the models.
 `templates/bundles/NelmioApiDocBundle/SwaggerUi/index.html.twig` shows Swagger UI in the layout of Forger,

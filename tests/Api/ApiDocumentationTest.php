@@ -103,6 +103,15 @@ final class ApiDocumentationTest extends KernelTestCase
         self::assertSame($operationIds, array_unique($operationIds));
     }
 
+    public function testEveryEndpointDescribesTheLimit(): void
+    {
+        foreach (self::document()['paths'] as $path => $operations) {
+            foreach ($operations as $operation) {
+                self::assertArrayHasKey('429', $operation['responses'], $path . ' does not describe the limit');
+            }
+        }
+    }
+
     public function testNeedsNoLogin(): void
     {
         self::assertSame([], self::document()['security']);

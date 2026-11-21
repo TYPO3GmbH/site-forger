@@ -7,6 +7,11 @@ security:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler(/|$)|(_wdt|assets|build)/)
             security: false
+        # The public API knows no login. Without security it does not read the session, so a session cookie
+        # does not break the stateless routes or make their answers private.
+        api:
+            pattern: ^/api/v1(/|$)
+            security: false
         main:
             lazy: true
             provider: keycloak

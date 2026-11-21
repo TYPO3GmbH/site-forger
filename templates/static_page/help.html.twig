@@ -278,7 +278,15 @@
                         <li>
                             <strong>Errors.</strong> A failed request returns an object with <code>error</code>, a
                             message for people: <code>400</code> for a parameter value the endpoint does not
-                            accept, <code>404</code> for an issue or change Forger does not have.
+                            accept, <code>404</code> for an issue or change Forger does not have, <code>429</code> for
+                            too many requests.
+                        </li>
+                        <li>
+                            <strong>Limits.</strong> An address may send 120 requests a minute. Beyond that the API
+                            answers <code>429</code>, and the header <code>Retry-After</code> says in how many seconds
+                            it takes the next one. The headers <code>X-RateLimit-Limit</code> and
+                            <code>X-RateLimit-Remaining</code> show the limit and what is left of it. Answers may be
+                            cached for a minute, the data changes with the imports only.
                         </li>
                         <li>
                             <strong>Versions.</strong> The path holds the major version, <code>/api/v1</code>.

@@ -41,12 +41,16 @@ use Symfony\Component\Routing\Attribute\Route;
  * The public API: the issues and changes Forger indexed, read only and without a login.
  *
  * The attributes describe it for the documentation at /api/doc, see config/packages/nelmio_api_doc.yaml. The
- * objects it returns are the classes in App\Api\Model.
+ * objects it returns are the classes in App\Api\Model. ApiRateLimitSubscriber limits the requests and adds the
+ * headers for caching and for other sites.
  */
-#[Route(path: '/api/v1', name: 'api_v1_', methods: ['GET'], format: 'json')]
+#[Route(path: '/api/v1', name: 'api_v1_', methods: ['GET'], format: 'json', stateless: true)]
 class ApiV1Controller extends AbstractController
 {
     private const string BAD_REQUEST = 'A parameter has a value the endpoint does not accept.';
+
+    private const string TOO_MANY_REQUESTS = 'Too many requests from the address. The header "Retry-After" says in '
+        . 'how many seconds the next one is accepted.';
 
     public function __construct(
         private readonly IssueRepository $issues,
@@ -102,6 +106,7 @@ class ApiV1Controller extends AbstractController
     #[OA\Parameter(ref: '#/components/parameters/offset')]
     #[OA\Response(response: 200, description: 'One page of issues.', content: new Model(type: IssuePage::class))]
     #[OA\Response(response: 400, description: self::BAD_REQUEST, content: new Model(type: Error::class))]
+    #[OA\Response(response: 429, description: self::TOO_MANY_REQUESTS, content: new Model(type: Error::class))]
     public function issues(Request $request): JsonResponse
     {
         try {
@@ -147,6 +152,7 @@ class ApiV1Controller extends AbstractController
         description: 'Forger does not have the issue.',
         content: new Model(type: Error::class),
     )]
+    #[OA\Response(response: 429, description: self::TOO_MANY_REQUESTS, content: new Model(type: Error::class))]
     public function issue(int $id): JsonResponse
     {
         $issue = $this->issues->byId($id);
@@ -203,6 +209,7 @@ class ApiV1Controller extends AbstractController
     #[OA\Parameter(ref: '#/components/parameters/offset')]
     #[OA\Response(response: 200, description: 'One page of changes.', content: new Model(type: ChangePage::class))]
     #[OA\Response(response: 400, description: self::BAD_REQUEST, content: new Model(type: Error::class))]
+    #[OA\Response(response: 429, description: self::TOO_MANY_REQUESTS, content: new Model(type: Error::class))]
     public function changes(Request $request): JsonResponse
     {
         try {
@@ -247,6 +254,7 @@ class ApiV1Controller extends AbstractController
         description: 'Forger does not have the change.',
         content: new Model(type: Error::class),
     )]
+    #[OA\Response(response: 429, description: self::TOO_MANY_REQUESTS, content: new Model(type: Error::class))]
     public function change(int $number): JsonResponse
     {
         $change = $this->changes->byNumber($number);
@@ -276,8 +284,6 @@ class ApiV1Controller extends AbstractController
     {
         $response = new JsonResponse($data, $status);
         $response->setEncodingOptions(JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        // Other sites and tools in the browser may read the public data, too
-        $response->headers->set('Access-Control-Allow-Origin', '*');
 
         return $response;
     }
