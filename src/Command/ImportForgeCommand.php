@@ -17,6 +17,7 @@ use App\Http\ApiRequests;
 use App\Import\DuplicateImport;
 use App\Import\ForgeImport;
 use App\Import\ForgeIssueImporter;
+use App\Import\ForgeIssueList;
 use App\Import\ImportRun;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
@@ -31,6 +32,7 @@ final class ImportForgeCommand extends ImportJobCommand
         private readonly ForgeImport $forgeImport,
         private readonly ForgeIssueImporter $issueImporter,
         private readonly DuplicateImport $duplicateImport,
+        private readonly ForgeIssueList $forgeIssues,
         IndexSetup $indexSetup,
         CommandRunRecorder $recorder,
         ApiRequests $apiRequests,
@@ -61,7 +63,11 @@ final class ImportForgeCommand extends ImportJobCommand
                 throw new \InvalidArgumentException('--remove needs the numbers of the issues');
             }
             $run->writeln(sprintf('Removed %d issues', $this->issueImporter->remove($ids)));
-        } elseif ([] !== $ids) {
+
+            return;
+        }
+        $this->checkAccess();
+        if ([] !== $ids) {
             $result = $this->issueImporter->update($ids);
             $run->writeln(sprintf('Updated %d issues, removed %d that Forge does not list', $result['updated'], $result['removed']));
         } elseif ($input->getOption('full')) {
@@ -70,6 +76,18 @@ final class ImportForgeCommand extends ImportJobCommand
         } else {
             $this->forgeImport->delta($run);
             $this->duplicateImport->run($run, new \DateTimeImmutable());
+        }
+    }
+
+    /**
+     * Stops before the import when Forge refuses the issues to the token. Without this check the import fails on its
+     * first list with a bare 403. The system page checks the token as well, see ForgeLogin.
+     */
+    private function checkAccess(): void
+    {
+        $problem = $this->forgeIssues->accessProblem();
+        if (null !== $problem) {
+            throw new \RuntimeException($problem);
         }
     }
 }

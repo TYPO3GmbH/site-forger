@@ -230,6 +230,25 @@ class UserRepository
     }
 
     /**
+     * The user Forge answered for last, null if Forge answered for none. The system page asks Forge for it again,
+     * see ForgeLogin.
+     */
+    public function lastFetched(): ?User
+    {
+        $result = $this->indices->users()->search([
+            'size' => 1,
+            'query' => ['bool' => [
+                'filter' => [['exists' => ['field' => 'forge_id']], ['exists' => ['field' => 'fetched_on']]],
+                'must_not' => [['term' => ['gone' => true]]],
+            ]],
+            'sort' => [['fetched_on' => 'desc']],
+        ]);
+        $hit = $result->getResults()[0] ?? null;
+
+        return null === $hit ? null : User::fromDocument($hit->getSource());
+    }
+
+    /**
      * All users Forge was asked for that have no email: first those unknown to Forge by its answer, then those Forge
      * does not show the email of, each by name.
      *

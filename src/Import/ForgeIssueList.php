@@ -52,6 +52,28 @@ final readonly class ForgeIssueList
     }
 
     /**
+     * Why Forge does not list the issues of the project to the token, null if it does. A role of the account in the
+     * project without the permission "View issues" sees less than the public: Forge answers 403 or lists none.
+     *
+     * @throws ApiFailure when Forge could not be asked for another reason
+     */
+    public function accessProblem(): ?string
+    {
+        $grant = ' Give the role of the account in the project the permission "View issues".';
+        try {
+            $count = $this->count()['count'];
+        } catch (ApiFailure $e) {
+            if (403 !== $e->status) {
+                throw $e;
+            }
+
+            return 'Forge refuses the issues of the project (403).' . $grant;
+        }
+
+        return 0 === $count ? 'Forge lists no issues of the project.' . $grant : null;
+    }
+
+    /**
      * A page of all issues of the project, the newest first. With a filter of "updated_on" the oldest come first.
      *
      * @param string|null $updatedOn see ImportWatermark::redmineFilter()
