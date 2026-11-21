@@ -15,7 +15,9 @@ use App\Enum\SystemCheckEnum;
 use App\Import\ForgeUserSync;
 
 /**
- * The users on the system page: how many people cannot be mapped to an email, and why, see UserStatistics.
+ * The users on the system page: of how many people Forger does not know the TYPO3 login, and why, see
+ * UserStatistics. The login joins a person across Forge, Gerrit and Keycloak, so it counts first. The email follows
+ * in a line of its own.
  *
  * People that "Update users" did not ask Forge for yet are no problem, the job asks for them run by run, see
  * ForgeUserSync. It needs attention only when the job does not get on, or when Forge does not know the users it
@@ -36,9 +38,10 @@ final class UserHealth
     private const int GONE_MINIMUM = 20;
 
     /**
-     * The reasons say why the people without an email have none.
+     * The reasons say why the people without a login have none.
      *
-     * @return array{result: SystemCheckEnum, summary: string, reasons: string|null, hint: string|null}
+     * @return array{result: SystemCheckEnum, summary: string, reasons: string|null, emails: string|null,
+     *               hint: string|null}
      */
     public static function of(UserStatistics $statistics, \DateTimeImmutable $now): array
     {
@@ -47,6 +50,7 @@ final class UserHealth
                 'result' => SystemCheckEnum::ATTENTION,
                 'summary' => 'No users yet.',
                 'reasons' => null,
+                'emails' => null,
                 'hint' => 'The next run of "Update users" copies them from the issues.'
                     . ' If it does not, check the runs of "Update users".',
             ];
@@ -54,6 +58,7 @@ final class UserHealth
         $check = [
             'summary' => self::summary($statistics),
             'reasons' => self::reasons($statistics),
+            'emails' => self::emails($statistics),
         ];
         $waiting = $statistics->notAskedYet;
         $lastFetched = $statistics->lastFetched;
@@ -114,25 +119,29 @@ final class UserHealth
 
     private static function summary(UserStatistics $statistics): string
     {
-        if (0 === $statistics->unmapped()) {
-            return sprintf('All %s people have an email address.', self::number($statistics->total));
+        if (0 === $statistics->withoutLogin()) {
+            return sprintf('Forger knows the TYPO3 login of all %s people.', self::number($statistics->total));
         }
 
         return sprintf(
-            'Forger has no email address for %s of %s people.',
-            self::number($statistics->unmapped()),
+            'Forger knows the TYPO3 login of %s of %s people.',
+            self::number($statistics->withLogin),
             self::number($statistics->total),
         );
     }
 
     /**
      * Like "1,375 not asked yet · 54 unknown to Forge (50 refused (403), 4 not found (404))", null for none.
+     *
+     * Forge tells the login of every user it knows. So the people without a login that Forge knows are not asked
+     * for yet.
      */
     private static function reasons(UserStatistics $statistics): ?string
     {
         $reasons = [];
-        if ($statistics->notAskedYet > 0) {
-            $reasons[] = self::number($statistics->notAskedYet) . ' not asked yet';
+        $notAskedYet = $statistics->withoutLogin() - $statistics->unknownToForge;
+        if ($notAskedYet > 0) {
+            $reasons[] = self::number($notAskedYet) . ' not asked yet';
         }
         if ($statistics->unknownToForge > 0) {
             $reasons[] = sprintf(
@@ -141,11 +150,24 @@ final class UserHealth
                 self::answers($statistics->goneByStatus),
             );
         }
-        if ($statistics->withoutEmail > 0) {
-            $reasons[] = self::number($statistics->withoutEmail) . ' with no email on Forge';
-        }
 
         return [] === $reasons ? null : implode(' · ', $reasons);
+    }
+
+    /**
+     * Like "An email address for 3,432 of 5,632 people · 771 with no email on Forge".
+     */
+    private static function emails(UserStatistics $statistics): string
+    {
+        $emails = sprintf(
+            'An email address for %s of %s people',
+            self::number($statistics->withEmail),
+            self::number($statistics->total),
+        );
+
+        return 0 === $statistics->withoutEmail
+            ? $emails
+            : $emails . ' · ' . self::number($statistics->withoutEmail) . ' with no email on Forge';
     }
 
     private static function number(int $number): string
