@@ -94,8 +94,12 @@
     }
 }
 
+// Below both issues: the column of the similarity is too narrow for the button
+.duplicates-pair-actions {
+    padding: 0 1.25rem 1.25rem 0;
+}
+
 .duplicates-compare.btn {
-    align-self: flex-start;
     white-space: nowrap;
 }
 
@@ -110,7 +114,8 @@
         grid-template-columns: minmax(0, 1fr);
 
         > .overview-list-item,
-        .duplicates-pair-issues > .overview-list-item {
+        .duplicates-pair-issues > .overview-list-item,
+        .duplicates-pair-actions {
             padding-left: 1rem;
         }
     }
