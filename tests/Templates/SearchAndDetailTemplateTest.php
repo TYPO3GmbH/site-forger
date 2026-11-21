@@ -22,6 +22,7 @@ use App\Duplicates\DuplicateGroups;
 use App\Duplicates\DuplicateHit;
 use App\Elastic\Bucket;
 use App\Elastic\SearchResult;
+use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
@@ -916,6 +917,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
     public function testIssuePage(): void
     {
         $journal = [
+            'id' => 584271,
             'user' => ['name' => 'Gerrit Code Review'],
             'notes' => 'Pushed',
             'created_on' => '2026-11-02T10:00:00Z',
@@ -933,6 +935,23 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('href="https://forge.typo3.org/issues/91089"', $html);
         self::assertStringContainsString('Change 81234</a>', $html);
         self::assertStringContainsString('Gerrit Code Review', $html);
+        // The time of an entry is the markup of relativetime(), not its escaped text
+        self::assertStringContainsString('<span data-processor="relativetime"', $html);
+        self::assertStringNotContainsString('&lt;span', $html);
+    }
+
+    public function testTheTooltipOfAnActivityPillIsPlainText(): void
+    {
+        $html = $this->twig->createTemplate(
+            "{% import '_macros/status.html.twig' as status %}{{ status.activityPill(stage, updatedOn, createdOn) }}",
+        )->render([
+            'stage' => ActivityEnum::STALE,
+            'updatedOn' => '2026/11/02 10:00:00',
+            'createdOn' => '2026/10/01 08:30:00',
+        ]);
+
+        self::assertMatchesRegularExpression('/ · updated 2026-11-02 \d\d:00 · created 2026-10-01 \d\d:30"/', $html);
+        self::assertStringNotContainsString('&lt;span', $html);
     }
 
     public function testIssuePageWithoutChanges(): void

@@ -232,7 +232,7 @@
                             {{ _self.change(change) }}
                         {% endfor %}
                         {% if journal.createdOn is not null %}
-                            {% set time = relativetime(date(journal.createdOn)) %}
+                            {% set time %}{{ relativetime(date(journal.createdOn)) }}{% endset %}
                             {% if journal.id is not null %}
                                 <a
                                     class="timeline-time"
