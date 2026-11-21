@@ -27,6 +27,7 @@ class GetInvolvedController extends AbstractController
     public function index(): Response
     {
         return $this->render('get_involved/index.html.twig', [
+            'people' => $this->getInvolved->recentPeople(),
             'smallReviews' => $this->getInvolved->smallReviews(),
             'goodFirstIssues' => $this->getInvolved->goodFirstIssues(),
             'newBugs' => $this->getInvolved->newBugs(),

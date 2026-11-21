@@ -1,0 +1,85 @@
+// A card that tells about something, see the steps and the tasks of "Get involved" and the merges of the dashboard:
+// a gray line around, round corners, a tile with an icon or a number, a bold title, a text and a link at its end.
+// The pages keep what only their cards have.
+
+.info-card {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    height: 100%;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--overview-border, #e6e8eb);
+    border-radius: var(--overview-radius, 1rem);
+    background: #fff;
+    color: inherit;
+}
+
+// A card that is a link as a whole lifts a little under the pointer
+a.info-card {
+    text-decoration: none;
+    transition: box-shadow .15s, transform .15s;
+
+    &:hover,
+    &:focus-visible {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16, 24, 40, .08);
+        color: inherit;
+    }
+}
+
+// The icon or the number in black on light orange
+.info-card-tile {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-bottom: .5rem;
+    border-radius: .625rem;
+    background: #fff1e6;
+    color: #0b0b0b;
+    font-size: 1.25rem;
+
+    &.is-number {
+        font-size: 1.125rem;
+        font-weight: 700;
+    }
+}
+
+.info-card-title {
+    margin: 0;
+    color: #0b0b0b;
+    // The size of the titles of all cards
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.2;
+    // Lines of about the same length, no single word left alone
+    text-wrap: balance;
+}
+
+.info-card-text {
+    margin: 0;
+    color: #4b5563;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+// The link at the end, to all of its items or to where it is done: below a line, as wide as the card
+.info-card-link {
+    display: flex;
+    gap: .375rem;
+    align-items: center;
+    margin-top: auto;
+    padding-top: .875rem;
+    border-top: 1px solid #f0f1f3;
+    color: #0b0b0b;
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        color: #0b0b0b;
+        text-decoration: underline;
+    }
+}

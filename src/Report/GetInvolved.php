@@ -18,6 +18,7 @@ use App\Enum\IssueMarkEnum;
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewSizeEnum;
+use App\Enum\ReviewStatusEnum;
 use App\Enum\TrackerEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
@@ -34,6 +35,16 @@ use App\Search\ReviewSizeQuery;
 final readonly class GetInvolved
 {
     public const int LIST_SIZE = 5;
+
+    /**
+     * The people the page shows on top: as many as the places of their faces, see _get-involved.scss.
+     */
+    public const int PEOPLE_SIZE = 9;
+
+    /**
+     * The merges the people are taken from, at most: enough for nine different people on any day.
+     */
+    private const int MERGES_FOR_PEOPLE = 20;
 
     public function __construct(
         private IssueRepository $issues,
@@ -55,6 +66,39 @@ final readonly class GetInvolved
         ]]];
 
         return $this->changes->search(self::request($query, [['updated_on' => 'desc']]));
+    }
+
+    /**
+     * The people behind the changes merged last, each once, in the order of the merges: of each change first its
+     * author, then its reviewers, see Change::reviewers(). A backport counts with its original, as on the dashboard.
+     * No ranking: who comes first merged last.
+     *
+     * @return list<MergePerson>
+     */
+    public function recentPeople(): array
+    {
+        $merged = $this->changes->search([
+            'query' => ['term' => ['reviewstatus' => ReviewStatusEnum::MERGED->value]],
+            'sort' => [['updated_on' => 'desc']],
+            'collapse' => ['field' => 'change_id'],
+            'size' => self::MERGES_FOR_PEOPLE,
+        ]);
+        $people = [];
+        foreach ($merged as $change) {
+            $owner = $change->ownerPerson();
+            $team = null === $owner ? [] : [new MergePerson($owner, $change, true)];
+            foreach ($change->reviewers() as $reviewer) {
+                $team[] = new MergePerson($reviewer, $change, false);
+            }
+            foreach ($team as $mergePerson) {
+                $people[$mergePerson->person->name] ??= $mergePerson;
+            }
+            if (count($people) >= self::PEOPLE_SIZE) {
+                break;
+            }
+        }
+
+        return array_slice(array_values($people), 0, self::PEOPLE_SIZE);
     }
 
     /**

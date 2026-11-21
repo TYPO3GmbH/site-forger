@@ -99,6 +99,11 @@ final class DashboardTemplateTest extends KernelTestCase
             'ownerEmail' => 'benni@example.org',
             'resolves' => [91089, 91090],
             'updated_on' => '2026/11/20 10:00:00',
+            'reviewtags' => ['BUGFIX'],
+            'votes' => [
+                ['label' => 'Code-Review', 'value' => 2, 'account' => ['id' => 2, 'name' => 'Georg Ringer']],
+                ['label' => 'Verified', 'value' => 1, 'account' => ['id' => 49454, 'name' => 'core-ci']],
+            ],
         ]);
         $html = $this->twig->render(
             'dashboard/_recently_merged.html.twig',
@@ -108,7 +113,12 @@ final class DashboardTemplateTest extends KernelTestCase
         self::assertStringContainsString('Recently merged', $html);
         self::assertStringContainsString('<span class="overview-merged-name">Benni Mack</span>', $html);
         self::assertStringContainsString('href="/change/81235"', $html);
-        self::assertStringContainsString('Resolves #91089, #91090', $html);
+        self::assertStringContainsString('#91089, #91090', $html);
+        // The type as a tag, the title without it, the reviewers without the CI
+        self::assertStringContainsString('<span class="tag-label tag-label-bugfix">BUGFIX</span>', $html);
+        self::assertStringContainsString('<span class="overview-merged-subject">Clear the cache</span>', $html);
+        self::assertStringContainsString('title="Reviewed by Georg Ringer"', $html);
+        self::assertStringNotContainsString('core-ci', $html);
         self::assertStringContainsString('is-backport', $html);
         // The address is for the avatar only
         self::assertStringNotContainsString('benni@example.org', $html);

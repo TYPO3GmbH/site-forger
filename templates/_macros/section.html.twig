@@ -1,10 +1,16 @@
 {#
- # The head of a part of a page: its title, a line below it. The same on the dashboard and on "Get involved", see
- # assets/css/module/_section-heading.scss.
+ # The head of a part of a page: its title, a line below it, and on the right a link to more of it. The same on the
+ # dashboard and on "Get involved", see assets/css/module/_section-heading.scss.
+ # action: the link on the right, url and label
  #}
-{% macro heading(title, id, lead = null) %}
-    <header class="section-heading">
-        <h2 class="section-title" id="{{ id }}">{{ title }}</h2>
-        {% if lead is not null %}<p class="section-lead">{{ lead }}</p>{% endif %}
+{% macro heading(title, id, lead = null, action = null) %}
+    <header class="section-heading{{ action is not null ? ' has-action' }}">
+        <div>
+            <h2 class="section-title" id="{{ id }}">{{ title }}</h2>
+            {% if lead is not null %}<p class="section-lead">{{ lead }}</p>{% endif %}
+        </div>
+        {% if action is not null %}
+            <a class="section-action" href="{{ action.url }}">{{ action.label }} {{ icon('actions-arrow-right') }}</a>
+        {% endif %}
     </header>
 {% endmacro %}

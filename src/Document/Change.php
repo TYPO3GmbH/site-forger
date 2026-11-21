@@ -380,6 +380,14 @@ final readonly class Change
         return ReviewSizeEnum::fromLines($this->insertions + $this->deletions);
     }
 
+    /**
+     * The subject without its tags, see ReviewSubject::title().
+     */
+    public function title(): string
+    {
+        return ReviewSubject::title($this->subject);
+    }
+
     public function type(): ?ReviewTypeEnum
     {
         return ReviewTypeEnum::fromTags($this->reviewTags);
@@ -439,6 +447,36 @@ final readonly class Change
         $lastActivity = IndexDates::lastActivity($dates);
 
         return null === $lastActivity ? null : ActivityEnum::fromDate($lastActivity, $now);
+    }
+
+    /**
+     * The people who voted for the change, each once: a positive vote on Code-Review first, then on Verified, the
+     * highest first. Neither the CI nor the owner, who votes on its own change, counts.
+     *
+     * @return list<Person>
+     */
+    public function reviewers(): array
+    {
+        $owner = $this->ownerPerson();
+        $reviewers = [];
+        foreach ([ReviewLabelEnum::CODE_REVIEW, ReviewLabelEnum::VERIFIED] as $label) {
+            foreach ($this->votesOn($label) as $vote) {
+                $person = $vote->account;
+                if (null === $person || $vote->value <= 0 || $vote->isByCi()) {
+                    continue;
+                }
+                $key = null === $person->gerritId ? $person->name : (string) $person->gerritId;
+                $isOwner = null !== $owner && (
+                    $owner->name === $person->name
+                    || (null !== $this->ownerId && $this->ownerId === $person->gerritId)
+                );
+                if (!$isOwner) {
+                    $reviewers[$key] ??= $person;
+                }
+            }
+        }
+
+        return array_values($reviewers);
     }
 
     /**

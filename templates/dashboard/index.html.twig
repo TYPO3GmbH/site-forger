@@ -15,6 +15,14 @@
                 'closed': {'title': 'Also merged and abandoned changes, and resolved, closed and rejected issues'},
             }) }}
 
+            <div class="overview-figures">
+                {{ section.heading(
+                    'Key figures',
+                    'overview-figures-title',
+                    null,
+                    {'url': path('dashboard_statistics'), 'label': 'Statistics over time'},
+                ) }}
+            </div>
             <div class="overview-stats">
                 <a class="overview-stat" href="{{ path('search_search') }}">
                     <span class="overview-stat-label">Open issues</span>
@@ -83,12 +91,6 @@
                 } only %}
                 {% include 'dashboard/_new_issues.html.twig' with {'issues': newIssues} only %}
             </div>
-
-            <p class="overview-more">
-                <a class="btn btn-default" href="{{ path('dashboard_statistics') }}">
-                    {{- 'Statistics: the issues and changes over time' }} {{ icon('actions-arrow-right') -}}
-                </a>
-            </p>
         </div>
     </div>
 {% endblock %}

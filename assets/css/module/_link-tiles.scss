@@ -49,6 +49,8 @@
     // The size of the titles of all cards
     font-size: 1.125rem;
     font-weight: 500;
+    // Lines of about the same length, no single word left alone
+    text-wrap: balance;
 }
 
 .link-tile-text {

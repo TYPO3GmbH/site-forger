@@ -1,5 +1,7 @@
-// The page "Get involved", see templates/get_involved/index.html.twig. Its lists are the ones of the dashboard, its
-// heads those of _section-heading.scss.
+@use "sass:list";
+
+// The page "Get involved", see templates/get_involved/index.html.twig. Its cards are info cards, see
+// _info-card.scss, its heads those of _section-heading.scss.
 
 // The steps to a first contribution as numbered cards, four in a row
 .get-involved-steps {
@@ -9,7 +11,6 @@
     margin: 0;
     padding: 0;
     list-style: none;
-    counter-reset: get-involved-step;
 
     @media (max-width: 991.98px) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -17,33 +18,6 @@
 
     @media (max-width: 575.98px) {
         grid-template-columns: minmax(0, 1fr);
-    }
-}
-
-// The number in a light orange tile, the button at the bottom, so the buttons of a row stand in a line
-.get-involved-step {
-    display: flex;
-    flex-direction: column;
-    gap: .5rem;
-    padding: 1.25rem 1.5rem;
-    border: 1px solid var(--overview-border);
-    border-radius: var(--overview-radius);
-    background: #fff;
-    counter-increment: get-involved-step;
-
-    &::before {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 2.5rem;
-        height: 2.5rem;
-        margin-bottom: .5rem;
-        border-radius: .625rem;
-        background: #fff1e6;
-        color: #c25700;
-        content: counter(get-involved-step);
-        font-size: 1.125rem;
-        font-weight: 700;
     }
 }
 
@@ -55,32 +29,194 @@
         gap: .375rem .875rem;
         padding: 1.25rem;
 
-        &::before {
+        > .info-card-tile {
             grid-row: span 3;
             margin-bottom: 0;
         }
     }
 }
 
-.get-involved-step-title {
-    margin: 0;
-    // The size of the titles of all cards
-    font-size: 1.125rem;
-    font-weight: 500;
-    line-height: 1.2;
+// The hero: the text on the left, the people of the last merges on the right; on a phone the people go below it
+.hero-layout {
+    display: grid;
+    gap: 2rem;
+    align-items: center;
+
+    @media (min-width: 992px) {
+        grid-template-columns: minmax(0, 1fr) 24rem;
+    }
 }
 
-.get-involved-step-text {
+.hero-people {
+    margin: 0;
+
+    figcaption {
+        margin-top: .25rem;
+        color: #4b5563;
+        font-size: .875rem;
+        text-align: center;
+    }
+}
+
+// The faces as a loose group: each in a place of its own and of its own size, so that none covers another. The
+// places are in percent of the group, which keeps its shape on every width. Each face floats a little, at its own
+// pace, unless the reader asks for less motion.
+.hero-people-faces {
+    position: relative;
+    width: 100%;
+    max-width: 24rem;
+    margin: 0 auto;
+    padding: 0;
+    aspect-ratio: 6 / 5;
+    list-style: none;
+}
+
+.hero-face {
+    position: absolute;
+    aspect-ratio: 1;
+    animation: hero-face-float 6s ease-in-out infinite;
+
+    a {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        transition: transform .15s;
+
+        &:hover,
+        &:focus-visible {
+            transform: scale(1.06);
+        }
+    }
+
+    .avatar {
+        width: 100%;
+        height: 100%;
+        border: 3px solid #fff;
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(16, 24, 40, .12);
+        object-fit: cover;
+    }
+}
+
+// left, top, width and the pace of each place
+$hero-faces: (
+    1: (6%, 8%, 24%, 6.5s),
+    2: (38%, 0%, 17%, 5.5s),
+    3: (64%, 6%, 22%, 7s),
+    4: (26%, 34%, 20%, 6s),
+    5: (54%, 34%, 26%, 7.5s),
+    6: (2%, 58%, 16%, 5s),
+    7: (84%, 40%, 14%, 6.5s),
+    8: (30%, 68%, 18%, 5.5s),
+    9: (66%, 72%, 19%, 7s),
+);
+
+@each $place, $values in $hero-faces {
+    .hero-face-#{$place} {
+        top: list.nth($values, 2);
+        left: list.nth($values, 1);
+        width: list.nth($values, 3);
+        animation-duration: list.nth($values, 4);
+        animation-delay: -$place * .7s;
+    }
+}
+
+@keyframes hero-face-float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hero-face {
+        animation: none;
+    }
+}
+
+// The tasks as info cards, three in a row: what to do and what it takes, the first items, a link at the end
+.task-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+
+    @media (max-width: 991.98px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.task-card-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+    margin: 0;
+}
+
+// The first items, each with its title and its state
+.task-card-items {
     flex: 1;
-    margin: 0;
-    color: #4b5563;
-    font-size: 1rem;
-    line-height: 1.5;
+    margin: .5rem 0 0;
+    padding: 0;
+    list-style: none;
+
+    li + li {
+        border-top: 1px solid #f0f1f3;
+    }
+
+    a {
+        display: flex;
+        flex-direction: column;
+        gap: .375rem;
+        padding: .625rem 0;
+        color: #0b0b0b;
+        font-size: .9375rem;
+        text-decoration: none;
+
+        &:hover,
+        &:focus-visible {
+            .task-card-subject {
+                text-decoration: underline;
+            }
+        }
+    }
 }
 
-.get-involved-step-action {
-    // As wide as its label, in the column of the card and in the grid of a phone
-    align-self: flex-start;
-    justify-self: start;
-    margin-top: .5rem;
+// The title in one line, the number muted before it
+.task-card-line {
+    display: flex;
+    gap: .5rem;
+    min-width: 0;
+}
+
+// The state below the title: the pills of the lists, the other facts muted
+.task-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem .5rem;
+    align-items: center;
+    color: var(--overview-muted);
+    font-size: .8125rem;
+}
+
+.task-card-number {
+    flex: none;
+    color: var(--overview-muted);
+}
+
+.task-card-subject {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-card-empty {
+    flex: 1;
+    margin: .5rem 0 0;
+    color: var(--overview-muted);
 }
