@@ -99,4 +99,51 @@ final class ListParametersTest extends TestCase
         $this->expectException(InvalidParameter::class);
         ListParameters::number(Request::create('/?limit=26'), 'limit', 10, 1, 25);
     }
+
+    public function testTakesADayInUtc(): void
+    {
+        $day = ListParameters::day(Request::create('/?createdSince=2026-02-28'), 'createdSince');
+
+        self::assertSame('2026-02-28T00:00:00+00:00', $day?->format(DATE_ATOM));
+        self::assertNull(ListParameters::day(Request::create('/'), 'createdSince'));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function invalidDays(): iterable
+    {
+        yield 'no such day' => ['2026-02-30'];
+        yield 'another format' => ['30.01.2026'];
+        yield 'a time' => ['2026-01-30T10:00'];
+    }
+
+    #[DataProvider('invalidDays')]
+    public function testRejectsWhatIsNoDay(string $value): void
+    {
+        $this->expectExceptionMessage('takes a day as YYYY-MM-DD');
+
+        ListParameters::day(Request::create('/?createdSince=' . urlencode($value)), 'createdSince');
+    }
+
+    public function testTakesAPersonByNumberOrName(): void
+    {
+        self::assertSame(36415, ListParameters::person(Request::create('/?author=36415'), 'author')?->number);
+        self::assertSame(
+            ['frank', 'nägler'],
+            ListParameters::person(Request::create('/?author=Frank%20N%C3%A4gler'), 'author')?->words,
+        );
+        self::assertNull(ListParameters::person(Request::create('/?author=%20'), 'author'));
+    }
+
+    public function testTakesASwitch(): void
+    {
+        self::assertTrue(ListParameters::flag(Request::create('/?breakdown=true'), 'breakdown'));
+        self::assertTrue(ListParameters::flag(Request::create('/?breakdown=1'), 'breakdown'));
+        self::assertFalse(ListParameters::flag(Request::create('/?breakdown=0'), 'breakdown'));
+        self::assertFalse(ListParameters::flag(Request::create('/'), 'breakdown'));
+
+        $this->expectException(InvalidParameter::class);
+        ListParameters::flag(Request::create('/?breakdown=yes'), 'breakdown');
+    }
 }

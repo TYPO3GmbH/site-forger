@@ -287,6 +287,12 @@
                             too many requests.
                         </li>
                         <li>
+                            <strong>Values and age.</strong> <code>breakdown=true</code> lists the statuses,
+                            trackers and categories the issues of a search have, with their numbers: with
+                            <code>status=all</code> those of all issues. The <code>updatedOn</code> of the first item
+                            of <code>sort=updated&amp;status=all</code> tells how far the imports are.
+                        </li>
+                        <li>
                             <strong>Limits.</strong> An address may send 120 requests a minute. Beyond that the API
                             answers <code>429</code>, and the header <code>Retry-After</code> says in how many seconds
                             it takes the next one. The headers <code>X-RateLimit-Limit</code> and

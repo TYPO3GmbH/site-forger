@@ -13,6 +13,7 @@ namespace App\Controller;
 
 use App\Api\ChangeMapper;
 use App\Api\InvalidParameter;
+use App\Api\IssueFilters;
 use App\Api\IssueMapper;
 use App\Api\ListParameters;
 use App\Api\Model\ChangeDetail;
@@ -51,6 +52,9 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route(path: '/api/v1', name: 'api_v1_', methods: ['GET'], format: 'json', stateless: true)]
 class ApiV1Controller extends AbstractController
 {
+    private const string PERSON = 'A number is the user on Forge, as "author.id" of an issue has it. Words are '
+        . 'searched in the name, in any case, and may fit several people: the issues tell which.';
+
     private const string BAD_REQUEST = 'A parameter has a value the endpoint does not accept.';
 
     private const string TOO_MANY_REQUESTS = 'Too many requests from the address. The header "Retry-After" says in '
@@ -99,9 +103,62 @@ class ApiV1Controller extends AbstractController
     )]
     #[OA\Parameter(
         name: 'category',
-        description: 'Only issues of this category, by its exact name, like "Backend User Interface".',
+        description: 'Only issues of this category, by its exact name, like "Backend User Interface". "none" for '
+            . 'the issues without a category, which are many.',
         in: 'query',
         schema: new OA\Schema(type: 'string'),
+    )]
+    #[OA\Parameter(
+        name: 'author',
+        description: 'Only issues this person reported. ' . self::PERSON,
+        in: 'query',
+        schema: new OA\Schema(type: 'string'),
+        example: 'wolters',
+    )]
+    #[OA\Parameter(
+        name: 'assignee',
+        description: 'Only issues assigned to this person. On an old issue the assignee is often who touched it '
+            . 'last, not who works on it. ' . self::PERSON,
+        in: 'query',
+        schema: new OA\Schema(type: 'string'),
+    )]
+    #[OA\Parameter(
+        name: 'involving',
+        description: 'Only issues this person reported or is assigned to. ' . self::PERSON,
+        in: 'query',
+        schema: new OA\Schema(type: 'string'),
+    )]
+    #[OA\Parameter(
+        name: 'createdSince',
+        description: 'Only issues reported on this day or later, as YYYY-MM-DD in UTC.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', format: 'date'),
+    )]
+    #[OA\Parameter(
+        name: 'createdBefore',
+        description: 'Only issues reported before this day, as YYYY-MM-DD in UTC.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', format: 'date'),
+    )]
+    #[OA\Parameter(
+        name: 'updatedSince',
+        description: 'Only issues changed on this day or later, as YYYY-MM-DD in UTC.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', format: 'date'),
+    )]
+    #[OA\Parameter(
+        name: 'updatedBefore',
+        description: 'Only issues nobody changed since this day, as YYYY-MM-DD in UTC: the ones everybody walked '
+            . 'past.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', format: 'date'),
+    )]
+    #[OA\Parameter(
+        name: 'breakdown',
+        description: 'Also count how all issues of the search spread by status, tracker, category and year, not '
+            . 'only those of the page.',
+        in: 'query',
+        schema: new OA\Schema(type: 'boolean', default: false),
     )]
     #[OA\Parameter(
         name: 'sort',
@@ -119,12 +176,12 @@ class ApiV1Controller extends AbstractController
     {
         try {
             $list = ListParameters::fromRequest($request);
+            $breakdown = ListParameters::flag($request, 'breakdown');
             $search = ApiIssueQuery::request(
                 $list,
-                ListParameters::choice($request, 'status', IssueStateFilterEnum::class, IssueStateFilterEnum::OPEN),
-                ListParameters::optional($request, 'tracker'),
-                ListParameters::optional($request, 'category'),
+                IssueFilters::fromRequest($request),
                 ListParameters::choice($request, 'sort', IssueSortEnum::class, self::issueSort($list)),
+                $breakdown,
             );
         } catch (InvalidParameter $e) {
             return self::error($e->getMessage(), Response::HTTP_BAD_REQUEST);
@@ -136,6 +193,7 @@ class ApiV1Controller extends AbstractController
             $list->offset,
             $list->limit,
             array_values($found->map($this->issueMapper->summary(...))->toArray()),
+            $breakdown ? $this->issueMapper->breakdown($found) : null,
         ));
     }
 

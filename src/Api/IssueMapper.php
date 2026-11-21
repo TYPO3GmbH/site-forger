@@ -11,8 +11,10 @@ declare(strict_types=1);
 
 namespace App\Api;
 
+use App\Api\Model\Bucket;
 use App\Api\Model\Duplicate;
 use App\Api\Model\DuplicateList;
+use App\Api\Model\IssueBreakdown;
 use App\Api\Model\IssueChange;
 use App\Api\Model\IssueDetail;
 use App\Api\Model\IssueRelation;
@@ -23,6 +25,7 @@ use App\Document\IssueRelation as ForgeRelation;
 use App\Document\RelatedChange;
 use App\Duplicates\DuplicateGroups;
 use App\Duplicates\DuplicateHit;
+use App\Elastic\SearchResult;
 use App\People\Person as IndexedPerson;
 use App\Twig\LinkTwigExtension;
 use Doctrine\Common\Collections\ReadableCollection;
@@ -124,6 +127,30 @@ final readonly class IssueMapper
             $issue->id,
             DuplicateGroups::MIN_SIMILARITY,
             array_map($duplicate, [...$groups->marked, ...$groups->similar]),
+        );
+    }
+
+    /**
+     * How the issues of a search spread, from the aggregations of ApiIssueQuery::breakdown().
+     *
+     * @param SearchResult<Issue> $found
+     */
+    public function breakdown(SearchResult $found): IssueBreakdown
+    {
+        $buckets = static fn (string $name): array => array_values(array_map(
+            static fn (array $bucket): Bucket => new Bucket(
+                (string) ($bucket['key_as_string'] ?? $bucket['key']),
+                (int) $bucket['doc_count'],
+            ),
+            (array) ($found->aggregation($name)['buckets'] ?? []),
+        ));
+
+        return new IssueBreakdown(
+            $buckets('status'),
+            $buckets('tracker'),
+            $buckets('category'),
+            $buckets('createdYear'),
+            $buckets('updatedYear'),
         );
     }
 

@@ -89,6 +89,49 @@ final readonly class ListParameters
     }
 
     /**
+     * A switch: "true" or "1" turns it on, "false", "0" or no parameter leave it off.
+     *
+     * @throws InvalidParameter
+     */
+    public static function flag(Request $request, string $name): bool
+    {
+        return match (self::string($request, $name)) {
+            '', 'false', '0' => false,
+            'true', '1' => true,
+            default => throw InvalidParameter::notOneOf($name, self::string($request, $name), ['true', 'false']),
+        };
+    }
+
+    /**
+     * A person, by the number of the account or by words of the name, null without the parameter.
+     *
+     * @throws InvalidParameter
+     */
+    public static function person(Request $request, string $name): ?PersonFilter
+    {
+        return PersonFilter::fromValue(self::string($request, $name));
+    }
+
+    /**
+     * A day as YYYY-MM-DD, midnight in UTC, null without the parameter.
+     *
+     * @throws InvalidParameter
+     */
+    public static function day(Request $request, string $name): ?\DateTimeImmutable
+    {
+        $value = self::string($request, $name);
+        if ('' === $value) {
+            return null;
+        }
+        $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $value, new \DateTimeZone('UTC'));
+        if (false === $day || $day->format('Y-m-d') !== $value) {
+            throw InvalidParameter::notADay($name);
+        }
+
+        return $day;
+    }
+
+    /**
      * A whole number between a minimum and a maximum, the default without the parameter.
      *
      * @throws InvalidParameter

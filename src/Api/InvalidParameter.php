@@ -51,4 +51,9 @@ final class InvalidParameter extends \InvalidArgumentException
     {
         return new self(sprintf('The parameter "%s" takes a whole number.', $name));
     }
+
+    public static function notADay(string $name): self
+    {
+        return new self(sprintf('The parameter "%s" takes a day as YYYY-MM-DD, like 2026-11-21.', $name));
+    }
 }

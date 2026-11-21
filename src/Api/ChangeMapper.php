@@ -55,7 +55,7 @@ final readonly class ChangeMapper
             owner: null === $change->owner ? null : new Owner(
                 $change->ownerId,
                 $change->owner,
-                $change->ownerUsername,
+                self::publicUsername($change->ownerUsername),
             ),
             createdOn: ApiDate::fromIndex($change->createdOn),
             updatedOn: ApiDate::fromIndex($change->updatedOn),
@@ -86,5 +86,13 @@ final readonly class ChangeMapper
                 url: sprintf(LinkTwigExtension::FORGE_ISSUE, $related->id),
             ))->toArray()),
         );
+    }
+
+    /**
+     * The username, null when it is an email address: some people logged in to Gerrit with theirs.
+     */
+    public static function publicUsername(?string $username): ?string
+    {
+        return str_contains((string) $username, '@') ? null : $username;
     }
 }

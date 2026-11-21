@@ -11,9 +11,12 @@ declare(strict_types=1);
 
 namespace App\Search;
 
+use App\Api\IssueFilters;
 use App\Api\ListParameters;
+use App\Api\PersonFilter;
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStateFilterEnum;
+use App\Report\CategoryOverview;
 
 /**
  * The search request of /api/v1/issues: the search words as in the issue search, the filters as exact values.
@@ -21,37 +24,142 @@ use App\Enum\IssueStateFilterEnum;
 final class ApiIssueQuery
 {
     /**
-     * @param string|null $tracker  the name of a tracker, like "Bug"
-     * @param string|null $category the name of a category, like "Backend User Interface"
+     * The value of the buckets of a breakdown for the issues without one, see breakdown().
+     */
+    public const string NONE = 'none';
+
+    /**
+     * More values than any field of the breakdown has.
+     */
+    private const int BUCKETS = 200;
+
+    /**
+     * The format of the index for a range of days, see the mapping of "created_on".
+     */
+    private const string INDEX_DAY = 'Y/m/d H:i:s';
+
+    /**
+     * @param bool $breakdown whether the request counts how all issues of the search spread, see breakdown()
      *
      * @return array<string, mixed>
      */
     public static function request(
         ListParameters $list,
-        IssueStateFilterEnum $state,
-        ?string $tracker,
-        ?string $category,
+        IssueFilters $filters,
         IssueSortEnum $sort,
+        bool $breakdown = false,
     ): array {
         $bool = ['must' => [IssueSearch::query($list->query, includeClosed: true)]];
-        if (IssueStateFilterEnum::OPEN === $state) {
+        if (IssueStateFilterEnum::OPEN === $filters->state) {
             $bool['must_not'] = [IssueSearch::closed()];
         }
-        $filter = array_values(array_filter([
-            IssueStateFilterEnum::CLOSED === $state ? IssueSearch::closed() : null,
-            null === $tracker ? null : ['term' => ['tracker.name' => $tracker]],
-            null === $category ? null : ['term' => ['category.name' => $category]],
-        ]));
+        $filter = self::filters($filters);
         if ([] !== $filter) {
             $bool['filter'] = $filter;
         }
-
-        return [
+        $request = [
             'query' => ['bool' => $bool],
             'sort' => IssueSortQuery::sort($sort),
             'size' => $list->limit,
             'from' => $list->offset,
             'track_total_hits' => true,
         ];
+        if ($breakdown) {
+            $request['aggregations'] = self::breakdown();
+        }
+
+        return $request;
+    }
+
+    /**
+     * The aggregations of a breakdown, by the name of the field of IssueBreakdown. The years list only those that
+     * have issues, so they need no bounds.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public static function breakdown(): array
+    {
+        $year = static fn (string $field): array => ['date_histogram' => [
+            'field' => $field,
+            'calendar_interval' => 'year',
+            'format' => 'yyyy',
+            'min_doc_count' => 1,
+        ]];
+
+        return [
+            'status' => ['terms' => ['field' => 'status.name', 'size' => self::BUCKETS]],
+            'tracker' => ['terms' => ['field' => 'tracker.name', 'size' => self::BUCKETS]],
+            'category' => ['terms' => [
+                'field' => 'category.name',
+                'size' => self::BUCKETS,
+                'missing' => self::NONE,
+            ]],
+            'createdYear' => $year('created_on'),
+            'updatedYear' => $year('updated_on'),
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private static function filters(IssueFilters $filters): array
+    {
+        $created = self::days('created_on', $filters->createdSince, $filters->createdBefore);
+        $updated = self::days('updated_on', $filters->updatedSince, $filters->updatedBefore);
+
+        return array_values(array_filter([
+            IssueStateFilterEnum::CLOSED === $filters->state ? IssueSearch::closed() : null,
+            null === $filters->tracker ? null : ['term' => ['tracker.name' => $filters->tracker]],
+            null === $filters->category ? null : self::category($filters->category),
+            null === $filters->author ? null : self::author($filters->author),
+            null === $filters->assignee ? null : self::assignee($filters->assignee),
+            null === $filters->involving ? null : ['bool' => [
+                'should' => [self::author($filters->involving), self::assignee($filters->involving)],
+                'minimum_should_match' => 1,
+            ]],
+            $created,
+            $updated,
+        ]));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function author(PersonFilter $person): array
+    {
+        return PersonQuery::query($person, 'author.id', 'author.name');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function assignee(PersonFilter $person): array
+    {
+        return PersonQuery::query($person, 'assigned_to.id', 'assigned_to.name');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function category(string $category): array
+    {
+        if (self::NONE === $category) {
+            return CategoryOverview::withoutCategoryQuery();
+        }
+
+        return ['term' => ['category.name' => $category]];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private static function days(string $field, ?\DateTimeImmutable $since, ?\DateTimeImmutable $before): ?array
+    {
+        $range = array_filter([
+            'gte' => $since?->format(self::INDEX_DAY),
+            'lt' => $before?->format(self::INDEX_DAY),
+        ]);
+
+        return [] === $range ? null : ['range' => [$field => $range]];
     }
 }

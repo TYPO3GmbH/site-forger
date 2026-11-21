@@ -33,6 +33,12 @@ final readonly class IssuePage
             items: new OA\Items(ref: new Model(type: IssueSummary::class)),
         )]
         public array $items,
+        #[OA\Property(
+            description: 'How all issues of the search spread. Null unless "breakdown" asks for it.',
+            nullable: true,
+            allOf: [new OA\Schema(ref: new Model(type: IssueBreakdown::class))],
+        )]
+        public ?IssueBreakdown $breakdown = null,
     ) {
     }
 }

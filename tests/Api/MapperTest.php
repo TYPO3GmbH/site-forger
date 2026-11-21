@@ -16,6 +16,7 @@ use App\Api\IssueMapper;
 use App\Document\Issue;
 use App\Duplicates\DuplicateGroups;
 use App\Duplicates\DuplicateHit;
+use App\Elastic\SearchResult;
 use PHPUnit\Framework\TestCase;
 
 final class MapperTest extends TestCase
@@ -134,5 +135,27 @@ final class MapperTest extends TestCase
     private static function decoded(object $model): array
     {
         return (array) json_decode((string) json_encode($model), true);
+    }
+
+    public function testCountsHowTheIssuesSpread(): void
+    {
+        $found = SearchResult::ofDocuments([], 0, [
+            'status' => ['buckets' => [['key' => 'New', 'doc_count' => 3]]],
+            'category' => ['buckets' => [['key' => 'none', 'doc_count' => 2]]],
+            'createdYear' => ['buckets' => [['key' => 1356998400000, 'key_as_string' => '2013', 'doc_count' => 1]]],
+        ]);
+
+        $breakdown = new IssueMapper(ApiFixtures::urls())->breakdown($found);
+
+        self::assertSame([['name' => 'New', 'count' => 3]], self::decoded($breakdown)['status']);
+        self::assertSame([['name' => 'none', 'count' => 2]], self::decoded($breakdown)['category']);
+        self::assertSame([['name' => '2013', 'count' => 1]], self::decoded($breakdown)['createdYear']);
+        self::assertSame([], $breakdown->tracker);
+    }
+
+    public function testLeavesOutAUsernameThatIsAnEmailAddress(): void
+    {
+        self::assertSame('jdoe', ChangeMapper::publicUsername('jdoe'));
+        self::assertNull(ChangeMapper::publicUsername(ApiFixtures::EMAIL));
     }
 }

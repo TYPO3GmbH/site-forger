@@ -13,6 +13,9 @@ namespace App\Tests\Api;
 
 use App\Api\ChangeMapper;
 use App\Api\IssueMapper;
+use App\Api\Model\Bucket;
+use App\Api\Model\IssueBreakdown;
+use App\Api\Model\IssuePage;
 use App\Duplicates\DuplicateGroups;
 use App\Duplicates\DuplicateHit;
 use Nelmio\ApiDocBundle\ApiDocGenerator;
@@ -66,6 +69,17 @@ final class ApiDocumentationTest extends KernelTestCase
 
         self::assertFieldsDescribed('DuplicateList', $list);
         self::assertFieldsDescribed('Duplicate', $list->items[0]);
+    }
+
+    public function testDescribesEveryFieldOfTheBreakdown(): void
+    {
+        $bucket = new Bucket('New', 3);
+        $breakdown = new IssueBreakdown([$bucket], [$bucket], [$bucket], [$bucket], [$bucket]);
+        $summary = new IssueMapper(ApiFixtures::urls())->summary(ApiFixtures::issue());
+        $page = new IssuePage(1, 0, 25, [$summary], $breakdown);
+
+        self::assertFieldsDescribed('IssuePage', $page);
+        self::assertFieldsDescribed('IssueBreakdown', $breakdown);
     }
 
     public function testEveryFieldHasADescription(): void
