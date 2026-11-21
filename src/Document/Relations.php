@@ -78,15 +78,14 @@ final readonly class Relations
     }
 
     /**
-     * The issue the issue is a subtask of, null when it has none.
+     * The issue the issue is a subtask of, null when it has none or the index does not have it: it may be private,
+     * see indexedRelatedIssues().
      */
     public function parentOf(Issue $issue): ?RelatedIssue
     {
-        if (null === $issue->parent) {
-            return null;
-        }
+        $parent = null === $issue->parent ? null : $this->issues->byId($issue->parent);
 
-        return new RelatedIssue($issue->parent, self::PARENT, $this->issues->byId($issue->parent));
+        return null === $parent ? null : new RelatedIssue($parent->id, self::PARENT, $parent);
     }
 
     /**
@@ -102,23 +101,35 @@ final readonly class Relations
 
     /**
      * The issues Forge relates to the issue by their type, as IssueRelationEnum orders them. Duplicates are left
-     * out, the duplicates page has them.
+     * out, the duplicates page has them. So are the issues the index does not have: they may be private, see
+     * indexedRelatedIssues().
      *
      * @return ReadableCollection<int, RelatedIssue>
      */
     public function relatedIssuesOf(Issue $issue): ReadableCollection
     {
-        $relations = self::sorted($issue->relations);
-        $found = $this->issues->byIds(array_map(static fn (IssueRelation $relation): int => $relation->issue, $relations));
+        $numbers = array_map(static fn (IssueRelation $relation): int => $relation->issue, $issue->relations);
 
-        return new ArrayCollection(array_map(
-            static fn (IssueRelation $relation): RelatedIssue => new RelatedIssue(
-                $relation->issue,
-                $relation->type->label(),
-                $found->get($relation->issue),
-            ),
-            $relations,
-        ));
+        return new ArrayCollection(self::related($issue->relations, $this->issues->byIds($numbers)));
+    }
+
+    /**
+     * @param list<IssueRelation>            $relations
+     * @param ReadableCollection<int, Issue> $found     the related issues the index has, by number
+     *
+     * @return list<RelatedIssue> in the order of sorted(), without the issues the index does not have
+     */
+    public static function related(array $relations, ReadableCollection $found): array
+    {
+        $related = [];
+        foreach (self::sorted($relations) as $relation) {
+            $other = $found->get($relation->issue);
+            if (null !== $other) {
+                $related[] = new RelatedIssue($relation->issue, $relation->type->label(), $other);
+            }
+        }
+
+        return $related;
     }
 
     /**
