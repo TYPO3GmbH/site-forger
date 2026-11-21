@@ -86,6 +86,10 @@ file_details:
 chain:
   type: object
   enabled: false
+# The open changes that conflict with an open change, see GerritChangeImporter::mergeConflicts(). Searched for the
+# changes to load again when one of them changes, see App\Search\AffectedChangesQuery
+merge_conflicts:
+  type: integer
 # The comments on the code and on the patch sets, see GerritChangeImporter::comments()
 comments:
   type: object

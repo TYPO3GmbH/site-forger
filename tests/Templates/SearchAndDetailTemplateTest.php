@@ -793,6 +793,24 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringNotContainsString('chain-title', $html);
     }
 
+    public function testAChangeShowsTheChangesItConflictsWith(): void
+    {
+        $other = Change::fromDocument(['id' => 95192, 'subject' => '[TASK] Rework'] + self::CHANGE);
+
+        $html = $this->twig->load('change/show.html.twig')->renderBlock('body', [
+            'change' => Change::fromDocument(self::CHANGE + ['merge_conflicts' => [95192, 94029]]),
+            'message' => '',
+            'issues' => [],
+            'mergeConflicts' => [95192 => $other],
+        ]);
+
+        self::assertStringContainsString('Merge conflicts <span class="detail-count">2</span>', $html);
+        self::assertStringContainsString('href="/change/95192"', $html);
+        self::assertStringContainsString('Conflicts with this change', $html);
+        // Not in Forger: its number leads to Gerrit
+        self::assertStringContainsString('target="gerrit94029"', $html);
+    }
+
     public function testAChangeOfAnOlderImportHasNoReviewLog(): void
     {
         $html = $this->twig->load('change/show.html.twig')->renderBlock(

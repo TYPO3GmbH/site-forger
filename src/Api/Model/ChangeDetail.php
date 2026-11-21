@@ -21,13 +21,14 @@ use OpenApi\Attributes as OA;
 final readonly class ChangeDetail extends ChangeSummary
 {
     /**
-     * @param list<string>        $releases
-     * @param list<ChangeFile>    $files
-     * @param list<ChangeIssue>   $issues
-     * @param list<ReviewMessage> $messages
-     * @param list<string>        $conflicts
-     * @param list<ChainChange>   $chain
-     * @param list<CodeComment>   $comments
+     * @param list<string>            $releases
+     * @param list<ChangeFile>        $files
+     * @param list<ChangeIssue>       $issues
+     * @param list<ReviewMessage>     $messages
+     * @param list<string>            $conflicts
+     * @param list<ChainChange>       $chain
+     * @param list<CodeComment>       $comments
+     * @param list<ConflictingChange> $mergeConflicts
      */
     public function __construct(
         ChangeSummary $summary,
@@ -84,6 +85,13 @@ final readonly class ChangeDetail extends ChangeSummary
             items: new OA\Items(ref: new Model(type: CodeComment::class)),
         )]
         public array $comments,
+        #[OA\Property(
+            description: 'The open changes Gerrit cannot merge together with this one, as its section "Merge '
+                . 'conflicts". Gerrit tells them for an open change it can merge only.',
+            type: 'array',
+            items: new OA\Items(ref: new Model(type: ConflictingChange::class)),
+        )]
+        public array $mergeConflicts,
     ) {
         parent::__construct(...get_object_vars($summary));
     }

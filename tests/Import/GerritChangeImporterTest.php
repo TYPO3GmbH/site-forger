@@ -152,8 +152,10 @@ final class GerritChangeImporterTest extends TestCase
             ]],
         ];
 
+        // An open change it can merge: Gerrit is asked for its chain and its merge conflicts
         $noChain = static fn (): Response => new Response(200, [], ")]}'\n{\"changes\": []}");
-        $document = $this->importer([$noChain()])->documents([$change])[81234];
+        $noConflicts = static fn (): Response => new Response(200, [], ")]}'\n[]");
+        $document = $this->importer([$noChain(), $noConflicts()])->documents([$change])[81234];
 
         self::assertSame($message, $document['commit_message']);
         self::assertSame('The overlay first.', $document['commit_text']);
@@ -165,7 +167,7 @@ final class GerritChangeImporterTest extends TestCase
         self::assertNull(GerritChangeImporter::owner($document));
 
         $change['owner'] = ['_account_id' => 52917, 'name' => 'Ingo Hollmann', 'username' => 'ingoholl', 'email' => 'ingo@example.org'];
-        $document = $this->importer([$noChain()])->documents([$change])[81234];
+        $document = $this->importer([$noChain(), $noConflicts()])->documents([$change])[81234];
 
         // The owner, who uploaded it, not the author of the commit
         self::assertSame(['Ingo Hollmann', 'ingo@example.org', 52917, 'ingoholl'], [$document['owner'], $document['ownerEmail'], $document['owner_id'], $document['owner_username']]);
@@ -405,6 +407,41 @@ final class GerritChangeImporterTest extends TestCase
         ], $chain);
         // A merged change asks for nothing
         self::assertSame([], $this->importer([])->documents([['status' => 'MERGED'] + $change])[1]['chain']);
+    }
+
+    public function testAnOpenChangeItCanMergeHasItsMergeConflicts(): void
+    {
+        $change = [
+            '_number' => 1,
+            'status' => 'NEW',
+            'mergeable' => true,
+            'change_id' => 'I1',
+            'subject' => 'This',
+            'branch' => 'main',
+            'insertions' => 1,
+            'deletions' => 0,
+            'created' => '2026-11-01 10:00:00.000000000',
+            'updated' => '2026-11-01 10:00:00.000000000',
+            'labels' => [],
+            'current_revision' => 'abc',
+            'revisions' => ['abc' => [
+                '_number' => 1,
+                'files' => [],
+                'commit' => ['message' => 'This', 'author' => ['name' => 'A', 'email' => 'a@example.org']],
+            ]],
+        ];
+        $importer = $this->importer([
+            new Response(200, [], ")]}'\n{\"changes\": []}"),
+            new Response(200, [], ")]}'\n" . json_encode([['_number' => 95192], ['_number' => 94029]])),
+        ]);
+
+        self::assertSame([95192, 94029], $importer->documents([$change])[1]['merge_conflicts']);
+        parse_str($this->api->request(1)->getUri()->getQuery(), $query);
+        self::assertSame('status:open conflicts:1', $query['q']);
+
+        // Gerrit cannot merge it: no conflicts to ask for
+        $importer = $this->importer([new Response(200, [], ")]}'\n{\"changes\": []}")]);
+        self::assertSame([], $importer->documents([['mergeable' => false] + $change])[1]['merge_conflicts']);
     }
 
     public function testThePeopleOfAChangeAreItsOwnerAndItsReviewersButTheCi(): void

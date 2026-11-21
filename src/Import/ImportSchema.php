@@ -45,8 +45,8 @@ final class ImportSchema
      * 3: the owner of the change with the account of Gerrit, "owner_id" and "owner_username", and in the index
      *    "user"; "owner" and "ownerEmail" are those of the owner now, not of the author of the commit.
      * 4: the review log, the single votes, the files with their lines, the states of the labels, the conflicts,
-     *    the change it is a cherry-pick of, the comments and their counts, and the relation chain of an open
-     *    change, see GerritChangeImporter::documents().
+     *    the change it is a cherry-pick of, the comments and their counts, and the relation chain and the merge
+     *    conflicts of an open change, see GerritChangeImporter::documents().
      */
     public const int REVIEW = 4;
 

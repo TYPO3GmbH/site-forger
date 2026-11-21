@@ -109,6 +109,7 @@ final class ApiFixtures
             ]],
             'conflicts' => ['composer.json'],
             'cherry_pick_of' => 97000,
+            'merge_conflicts' => [95192],
             'comments' => [[
                 'id' => 'c1',
                 'message_id' => 'm1',

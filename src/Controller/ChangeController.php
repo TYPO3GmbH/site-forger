@@ -44,6 +44,7 @@ class ChangeController extends AbstractController
             'message' => CommitMessage::body($change->commitMessage),
             'issues' => $this->relations->issuesOf($change),
             'chain' => $change->hasChain() ? $this->relations->chainOf($change) : new ArrayCollection(),
+            'mergeConflicts' => $this->relations->mergeConflictsOf($change),
         ]);
     }
 }

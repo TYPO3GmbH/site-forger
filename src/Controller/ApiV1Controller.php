@@ -431,6 +431,7 @@ class ApiV1Controller extends AbstractController
             $change,
             $this->relations->issuesOf($change),
             $change->hasChain() ? $this->relations->chainOf($change) : new ArrayCollection(),
+            $this->relations->mergeConflictsOf($change),
         ));
     }
 

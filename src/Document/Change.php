@@ -31,22 +31,23 @@ final readonly class Change
     private const string NO_TOPIC = 'no topic';
 
     /**
-     * @param list<string>          $releases     the versions of the footer "Releases:"
-     * @param list<string>          $reviewTags   the tags of the subject, like "BUGFIX"
-     * @param list<string>          $files        the paths the current patch set changes
-     * @param list<int>             $resolves     the issues of the footer "Resolves:"
-     * @param list<int>             $related      the issues of the footer "Related:"
-     * @param array<string, int>    $votes        the sums and the lowest and highest votes of the labels, see vote()
-     * @param list<ChangedFile>     $fileDetails  the files with their lines, the paths only for older imports
-     * @param list<SingleVote>      $singleVotes  each vote with who gave it, the CI too
-     * @param array<string, string> $labelStates  what each label lacks for a merge, by its name: OK, NEED, REJECT,
-     *                                            IMPOSSIBLE or MAY
-     * @param list<ReviewMessage>   $messages     the review log, the oldest first
-     * @param list<string>          $conflicts    the files with a conflict in the current patch set
-     * @param int|null              $cherryPickOf the change this one is a cherry-pick of
-     * @param list<ChainLink>       $chain        the relation chain of an open change, the top first, the change
-     *                                            itself among them; empty without a chain
-     * @param list<CodeComment>     $comments     the comments on the code and on the patch sets, the oldest first
+     * @param list<string>          $releases       the versions of the footer "Releases:"
+     * @param list<string>          $reviewTags     the tags of the subject, like "BUGFIX"
+     * @param list<string>          $files          the paths the current patch set changes
+     * @param list<int>             $resolves       the issues of the footer "Resolves:"
+     * @param list<int>             $related        the issues of the footer "Related:"
+     * @param array<string, int>    $votes          the sums and the lowest and highest votes of the labels, see vote()
+     * @param list<ChangedFile>     $fileDetails    the files with their lines, the paths only for older imports
+     * @param list<SingleVote>      $singleVotes    each vote with who gave it, the CI too
+     * @param array<string, string> $labelStates    what each label lacks for a merge, by its name: OK, NEED, REJECT,
+     *                                              IMPOSSIBLE or MAY
+     * @param list<ReviewMessage>   $messages       the review log, the oldest first
+     * @param list<string>          $conflicts      the files with a conflict in the current patch set
+     * @param int|null              $cherryPickOf   the change this one is a cherry-pick of
+     * @param list<ChainLink>       $chain          the relation chain of an open change, the top first, the change
+     *                                              itself among them; empty without a chain
+     * @param list<CodeComment>     $comments       the comments on the code and on the patch sets, the oldest first
+     * @param list<int>             $mergeConflicts the open changes that conflict with this open one, by number
      */
     public function __construct(
         public int $id,
@@ -84,6 +85,7 @@ final readonly class Change
         public ?int $unresolvedCommentCount = null,
         public array $chain = [],
         public array $comments = [],
+        public array $mergeConflicts = [],
     ) {
     }
 
@@ -146,6 +148,7 @@ final readonly class Change
                 CodeComment::fromDocument(...),
                 array_filter((array) ($document['comments'] ?? []), is_array(...)),
             )),
+            mergeConflicts: array_values(array_map(intval(...), (array) ($document['merge_conflicts'] ?? []))),
         );
     }
 

@@ -144,6 +144,25 @@
                             </section>
                         {% endif %}
 
+                        {# The open changes Gerrit cannot merge together with this one, as its section "Merge conflicts" #}
+                        {% if change.mergeConflicts is not empty %}
+                            <section class="detail-section" aria-labelledby="conflicts-title">
+                                <h2 id="conflicts-title" class="detail-section-title">Merge conflicts <span class="detail-count">{{ change.mergeConflicts|length }}</span></h2>
+                                <ul class="row-list detail-chain">
+                                    {% for number in change.mergeConflicts %}
+                                        {% set other = (mergeConflicts ?? {})[number] ?? null %}
+                                        <li>
+                                            {% if other is not null %}
+                                                {% include '_partials/row/change.html.twig' with {'change': other, 'relation': 'Conflicts with this change'} only %}
+                                            {% else %}
+                                                <p class="detail-chain-plain"><a href="{{ gerrit_change_url(number) }}" target="gerrit{{ number }}"><span class="detail-number">{{ number }}</span></a></p>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </section>
+                        {% endif %}
+
                         {% if issues is not empty %}
                             <section class="detail-section" aria-labelledby="issues-title">
                                 <h2 id="issues-title" class="detail-section-title">Issues <span class="detail-count">{{ issues|length }}</span></h2>

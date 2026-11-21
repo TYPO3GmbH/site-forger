@@ -125,8 +125,11 @@ The deltas only read what changed, and only load details for what they do not ha
   reports a warning, the next run goes on from there.
 * **Gerrit:** a light query lists the changes updated since the start (`after:`) with their update time,
   the details (votes, the current patch set with its files and commit, the review log) are loaded only for the changes the index does not have in this
-  state. An open change takes one more request for its relation chain, and a change with comments one for them: Gerrit
-  tells both for one change at a time. The comments are those on the code and on the patch sets, which the review
+  state. An open change takes one more request for its relation chain, one it can merge one for its merge conflicts,
+  and a change with comments one for them: Gerrit tells these for one change at a time. After the updated changes
+  the run loads again the open changes they affect without updating them in Gerrit
+  (`App\Search\AffectedChangesQuery`): those on the branch of a merged change that touch its files, as the merge
+  can make them unmergeable, and those of their relation chains and merge conflicts. The comments are those on the code and on the patch sets, which the review
   log only counts. Gerrit lists the newest first, so the changes are written once all of them are loaded: a run that
   fails half way leaves the index as it was, and the next run tries again. Beyond 3000 updated changes the
   newest would move the start past the older ones: the run takes the oldest window from the start that fits
@@ -206,8 +209,9 @@ written before the versions count as version 1.
   A change of the mapping alone needs no new version: `app:elasticsearch:setup` copies the documents over.
 * **The deltas load them again over time:** after its changes, each delta loads up to 300
   documents of an older version again, those changed last first, and asks the source only for them (Forge by
-  `issue_id`, Gerrit by `change:`). Three or twelve requests every five minutes: all of them in about a day, with
-  no load peak. Those the source does not show any more are removed, so they are not chosen again in every run.
+  `issue_id`, Gerrit by `change:`), and for each of them the requests of its details: the journals of an issue,
+  the chain, the merge conflicts and the comments of a change. So a version that loads them takes days, with no
+  load peak. Those the source does not show any more are removed, so they are not chosen again in every run.
   The runs page notes how many are left.
 * **Any import that meets one** loads it again, too: a document of an older version counts as changed.
 

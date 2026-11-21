@@ -35,8 +35,8 @@ final class GerritChangeImporter
     /**
      * The details of a change, the same for the refresh of one change, the full import and the delta: the votes,
      * the current patch set with its files and commit, the review log, and the accounts with name, username and
-     * email. The relation chain of an open change and the comments take a request of their own, see chain() and
-     * comments().
+     * email. The relation chain and the merge conflicts of an open change and the comments take a request of their
+     * own, see chain(), mergeConflicts() and comments().
      */
     public const array DETAIL_OPTIONS = [
         'DETAILED_LABELS',
@@ -50,6 +50,11 @@ final class GerritChangeImporter
      * The accounts of the CI, their votes are no reviews.
      */
     public const array CI_ACCOUNTS = [49454, 51735, 52386];
+
+    /**
+     * The most merge conflicts a change keeps. Gerrit shows as many.
+     */
+    private const int MERGE_CONFLICTS = 100;
     /**
      * Documents per bulk request to Elasticsearch.
      */
@@ -297,6 +302,8 @@ final class GerritChangeImporter
                 'comments' => (int) ($change['total_comment_count'] ?? 0) > 0
                     ? $this->comments((int) $change['_number'])
                     : [],
+                // Gerrit tells the conflicts with other changes for a change it can merge only
+                'merge_conflicts' => self::canMerge($change) ? $this->mergeConflicts((int) $change['_number']) : [],
             ];
         }
 
@@ -336,6 +343,29 @@ final class GerritChangeImporter
             }
             throw $failure;
         }
+    }
+
+    /**
+     * @param array<string, mixed> $change a change as Gerrit sends it
+     */
+    private static function canMerge(array $change): bool
+    {
+        return ReviewStatusEnum::NEW->value === $change['status'] && true === ($change['mergeable'] ?? false);
+    }
+
+    /**
+     * The open changes that conflict with a change, as the section "Merge conflicts" of Gerrit lists them. One query
+     * of their own, the numbers only: the index has the rest.
+     *
+     * @return list<int>
+     *
+     * @throws ApiFailure
+     */
+    private function mergeConflicts(int $number): array
+    {
+        $changes = $this->find(sprintf('status:open conflicts:%d', $number), self::MERGE_CONFLICTS, 0, []);
+
+        return array_map(static fn (array $change): int => (int) $change['_number'], $changes);
     }
 
     /**

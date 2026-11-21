@@ -200,6 +200,16 @@ final readonly class Relations
     }
 
     /**
+     * The open changes that conflict with a change as the index has them, by number, see chainOf().
+     *
+     * @return ReadableCollection<int, Change>
+     */
+    public function mergeConflictsOf(Change $change): ReadableCollection
+    {
+        return $this->changes->byNumbers($change->mergeConflicts);
+    }
+
+    /**
      * The issues of the footer of a change, in its order: those it resolves first.
      *
      * @return ReadableCollection<int, RelatedIssue>

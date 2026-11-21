@@ -17,6 +17,7 @@ use App\Api\Model\ChangeFile;
 use App\Api\Model\ChangeIssue;
 use App\Api\Model\ChangeSummary;
 use App\Api\Model\CodeComment;
+use App\Api\Model\ConflictingChange;
 use App\Api\Model\GerritAccount;
 use App\Api\Model\Label;
 use App\Api\Model\ReviewMessage;
@@ -32,6 +33,7 @@ use App\Document\SingleVote;
 use App\Enum\ReviewLabelEnum;
 use App\People\Person;
 use App\Twig\LinkTwigExtension;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\ReadableCollection;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -83,12 +85,18 @@ final readonly class ChangeMapper
     }
 
     /**
-     * @param ReadableCollection<int, RelatedIssue> $issues see Relations::issuesOf()
-     * @param ReadableCollection<int, Change>       $chain  the changes of the chain Forger has, by number, see
-     *                                                      Relations::chainOf()
+     * @param ReadableCollection<int, RelatedIssue> $issues    see Relations::issuesOf()
+     * @param ReadableCollection<int, Change>       $chain     the changes of the chain Forger has, by number, see
+     *                                                         Relations::chainOf()
+     * @param ReadableCollection<int, Change>       $conflicts the conflicting changes Forger has, by number, see
+     *                                                         Relations::mergeConflictsOf()
      */
-    public function detail(Change $change, ReadableCollection $issues, ReadableCollection $chain): ChangeDetail
-    {
+    public function detail(
+        Change $change,
+        ReadableCollection $issues,
+        ReadableCollection $chain,
+        ReadableCollection $conflicts = new ArrayCollection(),
+    ): ChangeDetail {
         $place = static fn (ChainLink $link): string => match (true) {
             $link->number === $change->id => 'this',
             in_array($link, $change->chainAbove(), true) => 'above',
@@ -157,6 +165,15 @@ final readonly class ChangeMapper
                     text: $comment->text,
                 ),
                 $change->comments,
+            ),
+            mergeConflicts: array_map(
+                static fn (int $number): ConflictingChange => new ConflictingChange(
+                    $number,
+                    $conflicts->get($number)?->subject,
+                    $conflicts->get($number)?->state()->value,
+                    sprintf(LinkTwigExtension::GERRIT_CHANGE, $number),
+                ),
+                $change->mergeConflicts,
             ),
         );
     }
