@@ -1,40 +1,5 @@
 // The system page, see templates/management/system/index.html.twig. It builds on the layout of the command runs.
 
-.system-checks {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1rem;
-}
-
-.system-check-label {
-    font-weight: 700;
-}
-
-.system-check-count {
-    margin: .75rem 0 .25rem;
-    font-size: 1.125rem;
-
-    strong {
-        font-size: 1.5rem;
-    }
-}
-
-.system-check-description,
-.system-note {
-    margin: 0;
-    font-size: .875rem;
-}
-
-.system-note {
-    margin-top: .75rem;
-}
-
-.system-detail {
-    display: block;
-    margin-top: .25rem;
-    font-size: .8125rem;
-}
-
 .system-error {
     margin: .5rem 0 0;
     white-space: pre-wrap;
@@ -52,7 +17,7 @@
 
 // The people Forge was asked for without an email, collapsed at the foot of the card of the users
 .system-unmapped {
-    margin: 0 -1.25rem -1.1rem;
+    margin: 0;
     overflow: hidden;
     border-top: 1px solid var(--runs-border);
     border-radius: 0 0 var(--runs-radius) var(--runs-radius);
@@ -209,19 +174,15 @@
     }
 }
 
-.system-users-reasons {
-    margin: 0;
-    font-size: .9375rem;
-}
-
-// The tokens and secrets: the name and what it is for, the result on the right, a line below only when it tells more
-.system-setup {
+// Elasticsearch, the tokens and secrets, the indices, the outdated documents and the users: the name and what it
+// is about, the result on the right, lines below only when they tell more
+.system-list {
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
-.system-setup-item {
+.system-list-item {
     display: flex;
     gap: 1rem;
     align-items: center;
@@ -233,35 +194,140 @@
     }
 }
 
-.system-setup-text {
+.system-list-text {
     display: flex;
     flex-direction: column;
     gap: .15rem;
     min-width: 0;
 }
 
-.system-setup-name {
+.system-list-name {
     color: #0b0b0b;
     font-size: .875rem;
     font-weight: 600;
     overflow-wrap: anywhere;
 }
 
-.system-setup-purpose {
+.system-list-title {
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+.system-list-meta {
     color: var(--runs-muted);
     font-size: .8125rem;
 }
 
-.system-setup-detail {
+.system-list-detail {
     color: #374151;
     font-size: .8125rem;
 }
 
-.system-setup-problem {
+.system-list-problem {
     color: #b42318;
     font-size: .8125rem;
 }
 
-.system-setup-action {
+.system-list-action {
     margin-top: .35rem;
+}
+
+// The tiles of the top row: one per section, with its result. Proportional figures, as for any large standalone
+// number.
+.system-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+
+    @media (max-width: 991.98px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 575.98px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.system-tile {
+    color: inherit;
+    text-decoration: none;
+
+    &[href]:hover,
+    &[href]:focus-visible {
+        border-color: #c5ccd6;
+        color: inherit;
+        text-decoration: none;
+    }
+}
+
+.system-tile-head {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.system-tile-value {
+    color: #0b0b0b;
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
+// The track is a lighter step of the blue of the fill
+.system-tile-meter {
+    display: block;
+    height: .375rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #dbe8f8;
+
+    > span {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+        background: #2a78d6;
+    }
+}
+
+// The sections as panels, two side by side; the users and the application take the full width
+.system-panels {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem 1.5rem;
+
+    @media (max-width: 991.98px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+// Two panels side by side are as high as the higher one: the card below the head fills the rest
+.system-panel {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    scroll-margin-top: 1rem;
+
+    > .runs-table-card,
+    > .runs-card {
+        flex: 1;
+    }
+}
+
+.system-panel-wide {
+    grid-column: 1 / -1;
+}
+
+.system-panel-header {
+    display: flex;
+    gap: .75rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+
+    .runs-heading {
+        margin: 0;
+    }
 }

@@ -64,15 +64,13 @@ class SystemController extends AbstractController
         $pending = $elasticsearch['reachable'] ? $this->pendingImport() : [];
         $statistics = $elasticsearch['reachable'] ? $this->userStatistics() : null;
         $users = null === $statistics ? null : UserHealth::of($statistics, new \DateTimeImmutable());
-        $unmapped = null === $statistics ? 0 : $statistics->unknownToForge + $statistics->withoutEmail;
 
-        // The result of each section of the page, by its name
+        // The result of each section of the page, by its title: the tiles at the top and the heads of the sections
         $checks = [
             'Setup' => SystemCheckEnum::worst(
                 ...array_map(static fn (SetupSetting $setting): SystemCheckEnum => $setting->result, $setup),
             ),
-            'Elasticsearch version' => $elasticsearch['versionResult'],
-            'Cluster health' => $elasticsearch['healthResult'],
+            'Elasticsearch' => SystemCheckEnum::worst($elasticsearch['versionResult'], $elasticsearch['healthResult']),
             'Indices' => SystemCheckEnum::worst(...array_column($indices, 'result')),
             'Outdated documents' => SystemCheckEnum::worst(...array_column($pending, 'result')),
             'Users' => $users['result'] ?? SystemCheckEnum::OK,
@@ -83,8 +81,8 @@ class SystemController extends AbstractController
             'indices' => $indices,
             'pending' => $pending,
             'users' => $users,
-            'unmapped' => $unmapped,
-            'unmappedUsers' => 0 === $unmapped ? [] : $this->unmappedUsers(),
+            'userStatistics' => $statistics,
+            'unmappedUsers' => null === $statistics ? [] : $this->unmappedUsers(),
             'application' => [
                 'php' => PHP_VERSION,
                 'symfony' => Kernel::VERSION,
@@ -92,6 +90,7 @@ class SystemController extends AbstractController
                 'debug' => $this->kernel->isDebug(),
             ],
             'setup' => $setup,
+            'checks' => $checks,
             'overall' => SystemCheckEnum::worst(...array_values($checks)),
             'notOk' => array_keys(array_filter(
                 $checks,

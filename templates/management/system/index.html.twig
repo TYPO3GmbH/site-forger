@@ -22,6 +22,27 @@
     {%- endif -%}
 {% endmacro %}
 
+{#
+ # A tile of the top row: the label, the result, the key figure and a note. With an anchor the tile links to its
+ # section. A share from 0 to 1 adds a meter below the figure; the note says the same in words.
+ #}
+{% macro tile(label, result, value, note, anchor = null, share = null) %}
+    {% set tag = anchor ? 'a' : 'div' %}
+    <{{ tag }} class="runs-stat system-tile"{% if anchor %} href="#{{ anchor }}"{% endif %}>
+        <span class="system-tile-head">
+            <span class="runs-stat-label">{{ label }}</span>
+            {{ _self.result(result) }}
+        </span>
+        {% if value is not null %}<span class="system-tile-value">{{ value }}</span>{% endif %}
+        {% if share is not null %}
+            <span class="system-tile-meter" aria-hidden="true">
+                <span style="width: {{ (share * 100)|round(1) }}%"></span>
+            </span>
+        {% endif %}
+        <span class="runs-stat-note">{{ note }}</span>
+    </{{ tag }}>
+{% endmacro %}
+
 {% macro bytes(bytes) %}
     {%- if bytes is null -%}
         –
@@ -37,7 +58,6 @@
 {% block body %}
     {% import _self as system %}
     {% set configurationLabels = {
-        'current': 'Matches the configuration',
         'outdated': 'The configuration has changed. Run app:elasticsearch:setup to rebuild the index.',
         'unknown': 'Built before the configuration was stored. Run app:elasticsearch:setup to compare the mapping.',
         'missing': 'No index has this alias. Run app:elasticsearch:setup to create it.',
@@ -45,6 +65,13 @@
     {% set waiting = pending|filter(check => check.result != constant('App\\Enum\\SystemCheckEnum::OK')) %}
     {% set outdated = 0 %}
     {% for check in waiting %}{% set outdated = outdated + check.matches %}{% endfor %}
+    {% set documents = 0 %}
+    {% set bytes = 0 %}
+    {% for index in indices %}
+        {% set documents = documents + (index.documents ?? 0) %}
+        {% set bytes = bytes + (index.bytes ?? 0) %}
+    {% endfor %}
+    {% set problems = setup|filter(setting => setting.result != constant('App\\Enum\\SystemCheckEnum::OK'))|length %}
 
     <div class="content-section content-section-small runs system">
         <div class="container">
@@ -67,64 +94,88 @@
                         <pre class="system-error">{{ elasticsearch.error }}</pre>
                     </div>
                 </section>
-            {% elseif waiting is not empty %}
-                <section class="runs-notice system-notice-attention" role="status">
-                    <span class="runs-notice-icon" aria-hidden="true">!</span>
-                    <div class="runs-notice-body">
-                        <p class="runs-notice-title">
-                            {{ outdated|number_format(0, '.', ',') }} outdated
-                            {{ outdated == 1 ? 'document' : 'documents' }}.
-                            <span class="runs-muted">
-                                They work, but lack newer data. The imports update them over time.
-                            </span>
-                        </p>
-                    </div>
-                </section>
             {% endif %}
 
-            <div class="runs-stats">
-                <div class="runs-stat">
-                    <span class="runs-stat-label">Overall</span>
-                    <span class="runs-stat-value">{{ system.result(overall) }}</span>
-                    <span class="runs-stat-note">
-                        {{- notOk is empty ? 'All checks are OK.' : 'Look at: ' ~ notOk|join(', ') -}}
-                    </span>
-                </div>
-                <div class="runs-stat">
-                    <span class="runs-stat-label">Elasticsearch</span>
-                    <span class="runs-stat-value runs-numeric">{{ elasticsearch.version ?? '–' }}</span>
-                    <span class="runs-stat-note">
-                        {{ system.result(elasticsearch.versionResult) }} Needs {{ minimumVersion }} or a newer 7.x
-                    </span>
-                </div>
-                <div class="runs-stat">
-                    <span class="runs-stat-label">Cluster</span>
-                    <span class="runs-stat-value">{{ elasticsearch.health ?? '–' }}</span>
-                    <span class="runs-stat-note">{{ system.result(elasticsearch.healthResult) }}{% if elasticsearch.reachable %} {{ elasticsearch.nodes }} {{ elasticsearch.nodes == 1 ? 'node' : 'nodes' }}{% endif %}</span>
-                </div>
-                <div class="runs-stat">
-                    <span class="runs-stat-label">Outdated documents</span>
-                    <span class="runs-stat-value runs-numeric{{ outdated > 0 ? ' runs-tone-warning' }}">{{ outdated|number_format(0, '.', ',') }}</span>
-                    <span class="runs-stat-note">The imports update them over time</span>
-                </div>
+            {# One tile per section: its result and its key figure. A tile leads to its section. #}
+            <div class="system-tiles">
+                {{ system.tile(
+                    'Overall',
+                    overall,
+                    notOk is empty ? 'All OK' : notOk|length ~ ' of ' ~ checks|length,
+                    notOk is empty ? checks|length ~ ' sections' : 'Look at: ' ~ notOk|join(', '),
+                ) }}
+                {{ system.tile(
+                    'Setup',
+                    checks['Setup'],
+                    problems == 0 ? 'All set' : problems ~ ' of ' ~ setup|length,
+                    problems == 0 ? setup|length ~ ' settings' : 'settings need a look',
+                    'system-setup',
+                ) }}
+                {% if elasticsearch.reachable %}
+                    {{ system.tile(
+                        'Elasticsearch',
+                        checks['Elasticsearch'],
+                        elasticsearch.version,
+                        elasticsearch.health|capitalize ~ ' · ' ~ elasticsearch.nodes
+                            ~ (elasticsearch.nodes == 1 ? ' node' : ' nodes'),
+                        'system-elasticsearch',
+                    ) }}
+                    {{ system.tile(
+                        'Indices',
+                        checks['Indices'],
+                        documents|number_format(0, '.', ','),
+                        'documents in ' ~ indices|length ~ ' indices · ' ~ system.bytes(bytes),
+                        'system-indices',
+                    ) }}
+                    {{ system.tile(
+                        'Outdated documents',
+                        checks['Outdated documents'],
+                        outdated|number_format(0, '.', ','),
+                        'The imports update them over time',
+                        'system-outdated',
+                    ) }}
+                    {% if userStatistics is not null and userStatistics.total > 0 %}
+                        {% set share = userStatistics.withLogin / userStatistics.total %}
+                        {{ system.tile(
+                            'Users with a TYPO3 login',
+                            checks['Users'],
+                            (share * 100)|round(0, 'floor') ~ ' %',
+                            userStatistics.withLogin|number_format(0, '.', ',') ~ ' of '
+                                ~ userStatistics.total|number_format(0, '.', ',') ~ ' people',
+                            'system-users',
+                            share,
+                        ) }}
+                    {% endif %}
+                {% else %}
+                    {{ system.tile(
+                        'Elasticsearch',
+                        checks['Elasticsearch'],
+                        'Not reachable',
+                        'See the message above',
+                    ) }}
+                {% endif %}
             </div>
 
-            <section class="runs-section">
-                <h2 class="runs-heading">Setup</h2>
-                <ul class="runs-table-card system-setup">
+            <div class="system-panels">
+            <section class="system-panel" id="system-setup">
+                <header class="system-panel-header">
+                    <h2 class="runs-heading">Setup</h2>
+                    {{ system.result(checks['Setup']) }}
+                </header>
+                <ul class="runs-table-card system-list">
                     {% for setting in setup %}
-                        <li class="system-setup-item">
-                            <div class="system-setup-text">
-                                <code class="system-setup-name">{{ setting.name }}</code>
-                                <span class="system-setup-purpose">{{ setting.usedFor }}</span>
+                        <li class="system-list-item">
+                            <div class="system-list-text">
+                                <code class="system-list-name">{{ setting.name }}</code>
+                                <span class="system-list-meta">{{ setting.usedFor }}</span>
                                 {% if setting.detail %}
-                                    <span class="system-setup-detail">{{ setting.detail }}</span>
+                                    <span class="system-list-detail">{{ setting.detail }}</span>
                                 {% endif %}
                                 {% if setting.problem %}
-                                    <span class="system-setup-problem">{{ setting.problem }}</span>
+                                    <span class="system-list-problem">{{ setting.problem }}</span>
                                 {% endif %}
                                 {% if setting.action %}
-                                    <span class="system-setup-action">
+                                    <span class="system-list-action">
                                         <a
                                             class="btn btn-sm btn-default"
                                             href="{{ setting.action.url }}"
@@ -143,90 +194,126 @@
             </section>
 
             {% if elasticsearch.reachable %}
-                <section class="runs-section">
-                    <h2 class="runs-heading">Elasticsearch</h2>
-                    <article class="runs-card">
-                        <dl class="runs-facts">
-                            <div><dt>Version</dt><dd class="runs-numeric">{{ elasticsearch.version }}</dd></div>
-                            <div><dt>Cluster</dt><dd>{{ elasticsearch.cluster }}</dd></div>
-                            <div><dt>Health</dt><dd>{{ elasticsearch.health }}</dd></div>
-                            <div><dt>Nodes</dt><dd class="runs-numeric">{{ elasticsearch.nodes }}</dd></div>
-                            <div><dt>Unassigned shards</dt><dd class="runs-numeric">{{ elasticsearch.unassignedShards }}</dd></div>
-                        </dl>
-                        <p class="system-note runs-muted">
-                            The people filters need version {{ minimumVersion }} or newer
-                            to search without regard to case.
-                            {% if elasticsearch.health == 'yellow' and elasticsearch.nodes == 1 %}
-                                A single node is always "yellow", because it has no second node for the replicas.
-                                The data is complete.
-                            {% endif %}
-                        </p>
-                    </article>
+                <section class="system-panel" id="system-elasticsearch">
+                    <header class="system-panel-header">
+                        <h2 class="runs-heading">Elasticsearch</h2>
+                        {{ system.result(checks['Elasticsearch']) }}
+                    </header>
+                    <ul class="runs-table-card system-list">
+                        <li class="system-list-item">
+                            <div class="system-list-text">
+                                <span class="system-list-title">Version {{ elasticsearch.version }}</span>
+                                <span class="system-list-meta">
+                                    The people filters need version {{ minimumVersion }} or newer to search
+                                    without regard to case.
+                                </span>
+                            </div>
+                            {{ system.result(elasticsearch.versionResult) }}
+                        </li>
+                        <li class="system-list-item">
+                            <div class="system-list-text">
+                                <span class="system-list-title">Cluster <code>{{ elasticsearch.cluster }}</code></span>
+                                <span class="system-list-meta">
+                                    {{- elasticsearch.health|capitalize }}
+                                    · {{ elasticsearch.nodes }} {{ elasticsearch.nodes == 1 ? 'node' : 'nodes' }}
+                                    · {{ elasticsearch.unassignedShards }} unassigned
+                                    {{ elasticsearch.unassignedShards == 1 ? 'shard' : 'shards' -}}
+                                </span>
+                                {% if elasticsearch.health == 'yellow' and elasticsearch.nodes == 1 %}
+                                    <span class="system-list-detail">
+                                        A single node is always "yellow", because it has no second node for the
+                                        replicas. The data is complete.
+                                    </span>
+                                {% endif %}
+                            </div>
+                            {{ system.result(elasticsearch.healthResult) }}
+                        </li>
+                    </ul>
                 </section>
 
-                <section class="runs-section">
-                    <h2 class="runs-heading">Indices</h2>
-                    <div class="runs-table-card">
-                        <table class="runs-table">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Alias</th>
-                                    <th scope="col">Index</th>
-                                    <th scope="col" class="runs-numeric">Documents</th>
-                                    <th scope="col" class="runs-numeric">Size</th>
-                                    <th scope="col">Configuration</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for index in indices %}
-                                    <tr>
-                                        <td><code>{{ index.alias }}</code></td>
-                                        <td>{% if index.index %}<code>{{ index.index }}</code>{% else %}<span class="runs-muted">none</span>{% endif %}</td>
-                                        <td class="runs-numeric">{{ index.documents is null ? '–' : index.documents|number_format(0, '.', ',') }}</td>
-                                        <td class="runs-numeric runs-nowrap">{{ system.bytes(index.bytes) }}</td>
-                                        <td>
-                                            {{ system.result(index.result) }}
-                                            <span class="runs-muted system-detail">{{ configurationLabels[index.configuration] }}</span>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <section class="runs-section">
-                    <h2 class="runs-heading">Outdated documents</h2>
-                    <div class="system-checks">
-                        {% for check in pending %}
-                            <article class="runs-card">
-                                <header class="runs-card-header">
-                                    <span class="system-check-label">{{ check.label }}</span>
-                                    {{ system.result(check.result) }}
-                                </header>
-                                <p class="system-check-count">
-                                    <strong class="runs-numeric">{{ check.matches|number_format(0, '.', ',') }}</strong>
-                                    of {{ check.documents|number_format(0, '.', ',') }}
-                                    {{ check.index == 'issue' ? 'issues' : 'changes' }}
-                                    come from an import before version {{ check.version }}
-                                </p>
-                                <p class="runs-muted system-check-description">{{ check.description }}</p>
-                            </article>
+                <section class="system-panel" id="system-indices">
+                    <header class="system-panel-header">
+                        <h2 class="runs-heading">Indices</h2>
+                        {{ system.result(checks['Indices']) }}
+                    </header>
+                    <ul class="runs-table-card system-list">
+                        {% for index in indices %}
+                            <li class="system-list-item">
+                                <div class="system-list-text">
+                                    <code class="system-list-name">{{ index.alias }}</code>
+                                    <span class="system-list-meta">
+                                        {%- if index.index -%}
+                                            Index <code>{{ index.index }}</code>
+                                            · {{ index.documents is null
+                                                ? '–'
+                                                : index.documents|number_format(0, '.', ',') }} documents
+                                            · <span class="runs-nowrap">{{ system.bytes(index.bytes) }}</span>
+                                        {%- else -%}
+                                            No index
+                                        {%- endif -%}
+                                    </span>
+                                    {% if index.result != constant('App\\Enum\\SystemCheckEnum::OK') %}
+                                        <span class="system-list-detail">
+                                            {{- configurationLabels[index.configuration] -}}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                {{ system.result(index.result) }}
+                            </li>
                         {% endfor %}
-                    </div>
+                    </ul>
+                </section>
+
+                <section class="system-panel" id="system-outdated">
+                    <header class="system-panel-header">
+                        <h2 class="runs-heading">Outdated documents</h2>
+                        {{ system.result(checks['Outdated documents']) }}
+                    </header>
+                    <ul class="runs-table-card system-list">
+                        {% for check in pending %}
+                            <li class="system-list-item">
+                                <div class="system-list-text">
+                                    <span class="system-list-title">{{ check.label }}</span>
+                                    <span class="system-list-meta">
+                                        {{- check.matches|number_format(0, '.', ',') }}
+                                        of {{ check.documents|number_format(0, '.', ',') }}
+                                        {{ check.index == 'issue' ? 'issues' : 'changes' }}
+                                        come from an import before version {{ check.version -}}
+                                    </span>
+                                    {% if check.result != constant('App\\Enum\\SystemCheckEnum::OK') %}
+                                        <span class="system-list-detail">{{ check.description }}</span>
+                                    {% endif %}
+                                </div>
+                                {{ system.result(check.result) }}
+                            </li>
+                        {% endfor %}
+                    </ul>
                 </section>
 
                 {% if users is not null %}
-                    <section class="runs-section">
-                        <h2 class="runs-heading">Users</h2>
-                        <article class="runs-card">
-                            <header class="runs-card-header">
-                                <span class="system-check-label">{{ users.summary }}</span>
+                    <section class="system-panel system-panel-wide" id="system-users">
+                        <header class="system-panel-header">
+                            <h2 class="runs-heading">Users</h2>
+                            {{ system.result(checks['Users']) }}
+                        </header>
+                        <div class="runs-table-card">
+                            <div class="system-list-item">
+                                <div class="system-list-text">
+                                    <span class="system-list-title">{{ users.summary }}</span>
+                                    {% if users.reasons %}
+                                        <span class="system-list-meta">{{ users.reasons }}</span>
+                                    {% endif %}
+                                    {% if users.emails %}
+                                        <span class="system-list-meta">{{ users.emails }}</span>
+                                    {% endif %}
+                                    {% if users.hint %}
+                                        <span class="system-list-detail">{{ users.hint }}</span>
+                                    {% endif %}
+                                </div>
                                 {{ system.result(users.result) }}
-                            </header>
-                            {% if users.reasons %}<p class="system-users-reasons">{{ users.reasons }}</p>{% endif %}
-                            {% if users.hint %}<p class="runs-muted system-check-description">{{ users.hint }}</p>{% endif %}
-                            {% if unmappedUsers is not empty %}
+                            </div>
+                            {% set unmapped = unmappedUsers|length %}
+                            {% if unmapped > 0 %}
                                 <details class="system-unmapped">
                                     <summary>
                                         <span class="system-unmapped-title">
@@ -280,13 +367,15 @@
                                     </div>
                                 </details>
                             {% endif %}
-                        </article>
+                        </div>
                     </section>
                 {% endif %}
             {% endif %}
 
-            <section class="runs-section">
-                <h2 class="runs-heading">Application</h2>
+            <section class="system-panel system-panel-wide" id="system-application">
+                <header class="system-panel-header">
+                    <h2 class="runs-heading">Application</h2>
+                </header>
                 <article class="runs-card">
                     <dl class="runs-facts">
                         <div><dt>PHP</dt><dd class="runs-numeric">{{ application.php }}</dd></div>
@@ -296,6 +385,7 @@
                     </dl>
                 </article>
             </section>
+            </div>
 
         </div>
     </div>
