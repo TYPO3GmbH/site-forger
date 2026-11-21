@@ -37,11 +37,21 @@ final class IssueReconciliation
      * @param callable(int,int):int $countIndex
      * @param int                   $budget     counts at Forge at most; the ranges found until then are listed, the
      *                                          next run goes on
+     * @param int                   $maxRanges  ranges at most; listing one may load up to LISTED issues, the next
+     *                                          run goes on
      *
      * @return list<array{int, int}>
      */
-    public static function ranges(int $from, int $to, int $forge, int $index, callable $countForge, callable $countIndex, int $budget): array
-    {
+    public static function ranges(
+        int $from,
+        int $to,
+        int $forge,
+        int $index,
+        callable $countForge,
+        callable $countIndex,
+        int $budget,
+        int $maxRanges = PHP_INT_MAX,
+    ): array {
         $ranges = [];
         $pending = [[$from, $to, $forge, $index]];
         while ([] !== $pending) {
@@ -51,6 +61,9 @@ final class IssueReconciliation
             }
             if (($forgeCount <= self::LISTED && $indexCount <= self::LISTED) || $low === $high) {
                 $ranges[] = [$low, $high];
+                if (count($ranges) >= $maxRanges) {
+                    break;
+                }
                 continue;
             }
             if ($budget <= 0) {

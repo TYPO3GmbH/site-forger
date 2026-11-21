@@ -32,14 +32,21 @@ final readonly class ForgeImport
     private const int DELTA_LIMIT = 2000;
 
     /**
-     * Three requests every five minutes: the whole project in a day.
+     * One request per issue, a hundred every five minutes: all issues in about two days. More runs into the rate
+     * limit of Forge, see the pause of api.forge in config/services.yaml.
      */
-    private const int OUTDATED_LIMIT = 300;
+    private const int OUTDATED_LIMIT = 100;
 
     /**
      * Each halving of the ranges costs one count. About a dozen find a single issue among all of them.
      */
     private const int RECONCILE_COUNTS = 15;
+
+    /**
+     * Each range loads up to a page of issues, one request each: two keep a run within its five minutes when the
+     * index lacks many issues. The next run goes on.
+     */
+    private const int RECONCILE_RANGES = 2;
 
     public function __construct(
         private CommandRunRecorder $recorder,
@@ -158,6 +165,7 @@ final readonly class ForgeImport
             fn (int $from, int $to): int => $this->forgeIssues->count($from, $to)['count'],
             fn (int $from, int $to): int => $this->projectIssues->count($from, $to),
             self::RECONCILE_COUNTS,
+            self::RECONCILE_RANGES,
         );
         $removed = 0;
         foreach ($ranges as $position => [$from, $to]) {

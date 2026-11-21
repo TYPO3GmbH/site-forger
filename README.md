@@ -138,7 +138,7 @@ The deltas only read what changed, and only load details for what they do not ha
   number of issues with Forge, in one request (`App\Import\IssueReconciliation`): Forge counts the issues of the
   project, not private, as the index holds them. Where the numbers differ the range of numbers is halved, one
   count each, until a part holds a page; it is listed, the issues missing or not up to date are imported, those
-  Forge does not list are removed. At most 15 counts per run, the next run goes on. So issues deleted on Forge,
+  Forge does not list are removed. At most 15 counts and 2 listed parts per run, the next run goes on. So issues deleted on Forge,
   private now, or never imported get in line without a full import.
 * **Authors and assignees:** the issues keep only their number and name, as Forge lists them. The rest is in
   the index `user`, see [The users](#the-users).
