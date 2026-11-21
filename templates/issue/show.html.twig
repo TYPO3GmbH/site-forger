@@ -27,6 +27,7 @@
                             <span class="tag-label tag-label-{{ tracker.severity ?? 'default' }}">{{ tracker.label ?? issue.tracker.name ?? 'Issue' }}</span>
                             {{ status.issue(issue.status.name ?? null) }}
                             {{ status.issueActivity(issue) }}
+                            {{ status.issueMarks(issue) }}
                         </div>
                         <h1 class="detail-title"><span class="detail-number">#{{ issue.id }}</span>{{ issue.subject }}</h1>
                         <p class="detail-meta">

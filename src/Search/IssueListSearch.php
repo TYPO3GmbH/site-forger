@@ -15,6 +15,7 @@ use App\Document\Issue;
 use App\DTO\Pagination;
 use App\Elastic\Indices;
 use App\Enum\ActivityEnum;
+use App\Enum\IssueMarkEnum;
 use App\Enum\IssueSortEnum;
 use App\People\UserDirectory;
 use App\Report\CategoryOverview;
@@ -40,6 +41,11 @@ final readonly class IssueListSearch
      * The "Tags" filter shows the tags used most, and the selected ones.
      */
     private const int TAGS_SHOWN = 30;
+
+    /**
+     * The title of the filter of the marks of IssueMarkEnum, its key is "marked_as".
+     */
+    private const string MARKS = 'Marked as';
 
     /**
      * The filters that match on the field "<key>.name".
@@ -89,6 +95,9 @@ final readonly class IssueListSearch
         }
         if (isset($facets['Activity'])) {
             $facets['Activity'] = ActivityQuery::facet($facets['Activity']);
+        }
+        if (isset($facets[self::MARKS])) {
+            $facets[self::MARKS] = IssueMarkQuery::facet($facets[self::MARKS]);
         }
 
         return new ListPage($issues, $facets, $page->withTotal($issues->total));
@@ -202,6 +211,11 @@ final readonly class IssueListSearch
 
             return null === $stage ? null : new Query\Simple(ActivityQuery::issues($stage));
         }
+        if ('marked_as' === $key) {
+            $mark = IssueMarkEnum::tryFromLabel($value);
+
+            return null === $mark ? null : new Query\Simple(IssueMarkQuery::issues($mark));
+        }
         if ('category' === $key && CategoryOverview::WITHOUT === $value) {
             return new Query\Simple(CategoryOverview::withoutCategoryQuery());
         }
@@ -251,6 +265,12 @@ final readonly class IssueListSearch
             $activity->addFilter(new Query\Simple($filter), $label);
         }
         $query->addAggregation($activity);
+
+        $marks = new Filters(self::MARKS);
+        foreach (IssueMarkQuery::aggregation()['filters']['filters'] as $label => $filter) {
+            $marks->addFilter(new Query\Simple($filter), $label);
+        }
+        $query->addAggregation($marks);
 
         return $selection;
     }

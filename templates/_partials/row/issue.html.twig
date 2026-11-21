@@ -31,6 +31,7 @@
                 {{ trackerTag }}
                 {{ status.issue(issue.status.name ?? null) }}
                 {{ status.issueActivity(issue) }}
+                {{ status.issueMarks(issue) }}
                 {{ user.inline(issue.author ?? null, role: 'Author') }}
                 {% if issue.category.name is defined %}<span title="Category">{{ issue.category.name }}</span>{% endif %}
                 {% if (issue.typo3Version ?? '-') != '-' %}<span title="TYPO3 version">v{{ issue.typo3Version }}</span>{% endif %}
@@ -41,6 +42,7 @@
             <span class="overview-list-item-meta">
                 {% if relation is defined %}<span class="overview-list-relation">{{ relation }}</span>{% endif %}
                 {{ status.issue(issue.status.name ?? null) }}
+                {{ status.issueMarks(issue) }}
                 {% if issue.category.name is defined %}<span title="Category">{{ issue.category.name }}</span>{% endif %}
                 {% if (issue.typo3Version ?? '-') != '-' %}<span title="TYPO3 version">v{{ issue.typo3Version }}</span>{% endif %}
                 {{ user.inline(issue.author ?? null, role: 'Author') }}

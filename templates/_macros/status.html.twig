@@ -86,6 +86,17 @@
     {% if stage and stage.isNoteworthy %}{{ _self.activityPill(stage, issue.updatedOn, issue.createdOn) }}{% endif %}
 {% endmacro %}
 
+{#
+ # The marks of an open Forge issue as pills, like "Regression", see IssueMarkEnum.
+ #}
+{% macro issueMarks(issue) %}
+    {% for mark in issue.marks %}
+        <span class="status-pill status-pill-icon status-pill-{{ mark.severity }}" title="{{ mark.description }}">
+            {{- icon(mark.icon) }}{{ mark.label -}}
+        </span>
+    {% endfor %}
+{% endmacro %}
+
 {% macro activityPill(stage, updatedOn, createdOn) %}
     {% if stage %}
         {% set tooltip = [stage.description] %}

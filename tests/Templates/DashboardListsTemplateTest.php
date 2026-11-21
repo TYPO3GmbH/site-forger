@@ -91,6 +91,20 @@ final class DashboardListsTemplateTest extends KernelTestCase
         self::assertStringContainsString('v13', $html);
     }
 
+    public function testARegressionIsMarked(): void
+    {
+        $render = fn (array $issue): string => $this->twig->render(
+            'dashboard/_new_issues.html.twig',
+            ['issues' => SearchResult::ofDocuments([Issue::fromDocument($issue)], 1)],
+        );
+
+        self::assertStringContainsString(
+            'status-pill-mark-regression" title="It worked in an earlier version">',
+            $render(self::ISSUE + ['isregression' => true]),
+        );
+        self::assertStringNotContainsString('status-pill-mark-regression', $render(self::ISSUE));
+    }
+
     public function testChangeReadyToMergeWithAllDetails(): void
     {
         $change = self::CHANGE + [

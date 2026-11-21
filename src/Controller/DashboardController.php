@@ -37,6 +37,7 @@ class DashboardController extends AbstractController
             'openIssues' => $this->keyFigures->openIssues(),
             'openedIssues' => $this->keyFigures->openedIssues(),
             'closedIssues' => $this->keyFigures->closedIssues(),
+            'openRegressions' => $this->keyFigures->openRegressions(),
             'newIssues' => $this->keyFigures->newIssues(),
             'readyToMerge' => $this->keyFigures->readyToMerge(),
             'changes' => $changes,

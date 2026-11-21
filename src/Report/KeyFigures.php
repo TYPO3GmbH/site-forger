@@ -14,9 +14,11 @@ namespace App\Report;
 use App\Document\Change;
 use App\Document\Issue;
 use App\Elastic\SearchResult;
+use App\Enum\IssueMarkEnum;
 use App\Enum\IssueSortEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
+use App\Search\IssueMarkQuery;
 use App\Search\IssueSearch;
 use App\Search\IssueSortQuery;
 use App\Search\ReviewLists;
@@ -59,6 +61,14 @@ final readonly class KeyFigures
             self::closedStatus(),
             ['range' => ['updated_on' => ['gte' => self::LAST_30_DAYS]]],
         ]));
+    }
+
+    /**
+     * The open issues Forge marks as a regression, as the filter "Marked as" counts them.
+     */
+    public function openRegressions(): int
+    {
+        return $this->issues->count(self::filtered([IssueMarkQuery::issues(IssueMarkEnum::REGRESSION)]));
     }
 
     /**

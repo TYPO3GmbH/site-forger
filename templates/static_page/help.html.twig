@@ -175,6 +175,7 @@
                     </header>
                     <dl class="help-facts">
                         <div><dt>Open issues</dt><dd>with those opened and closed in the last 30 days</dd></div>
+                        <div><dt>Open regressions</dt><dd>open issues Forge marks with "Is Regression"</dd></div>
                         <div><dt>Open Gerrit changes</dt><dd>mergeable, with a conflict or work in progress</dd></div>
                         <div><dt>Waiting over a month</dt><dd>ready for review, no update for 30 days</dd></div>
                     </dl>
@@ -237,6 +238,10 @@
                         <li>The number next to a filter value is how many results it has.</li>
                         <li>Values of one filter add up, different filters narrow each other down: <em>Stale or Orphaned, and on main</em>.</li>
                         <li>The "Type" filter of the review lists uses the tags in the subject, like BUGFIX, TASK, FEATURE, DOCS or !!! for a breaking change.</li>
+                        <li>
+                            The "Marked as" filter of the issue search finds the open issues that need help most, like a
+                            regression: something that worked in an earlier version.
+                        </li>
                         <li>The "Tags" filter of the issue search shows the most used tags of the issues found, and the ones you selected.</li>
                         <li>The filters of people, "Owner" of the review lists and "Author" and "Assigned to" of the issue search, show the ten with the most results. Their search finds the others in the list while you type and filters by the one you pick.</li>
                         <li>The search in the header finds issues from every page.</li>
