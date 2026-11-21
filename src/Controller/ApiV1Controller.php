@@ -1,0 +1,284 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
+
+namespace App\Controller;
+
+use App\Api\ChangeMapper;
+use App\Api\InvalidParameter;
+use App\Api\IssueMapper;
+use App\Api\ListParameters;
+use App\Api\Model\ChangeDetail;
+use App\Api\Model\ChangePage;
+use App\Api\Model\Error;
+use App\Api\Model\IssueDetail;
+use App\Api\Model\IssuePage;
+use App\Document\Relations;
+use App\Enum\ChangeStateFilterEnum;
+use App\Enum\IssueSortEnum;
+use App\Enum\IssueStateFilterEnum;
+use App\Enum\ReviewSortEnum;
+use App\Repository\ChangeRepository;
+use App\Repository\IssueRepository;
+use App\Search\ApiChangeQuery;
+use App\Search\ApiIssueQuery;
+use Nelmio\ApiDocBundle\Attribute\Model;
+use OpenApi\Attributes as OA;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+/**
+ * The public API: the issues and changes Forger indexed, read only and without a login.
+ *
+ * The attributes describe it for the documentation at /api/doc, see config/packages/nelmio_api_doc.yaml. The
+ * objects it returns are the classes in App\Api\Model.
+ */
+#[Route(path: '/api/v1', name: 'api_v1_', methods: ['GET'], format: 'json')]
+class ApiV1Controller extends AbstractController
+{
+    private const string BAD_REQUEST = 'A parameter has a value the endpoint does not accept.';
+
+    public function __construct(
+        private readonly IssueRepository $issues,
+        private readonly ChangeRepository $changes,
+        private readonly Relations $relations,
+        private readonly IssueMapper $issueMapper,
+        private readonly ChangeMapper $changeMapper,
+    ) {
+    }
+
+    #[Route(path: '/issues', name: 'issues')]
+    #[OA\Get(
+        operationId: 'listIssues',
+        description: 'Finds Forge issues by words and filters. Without parameters it lists the open issues, the ones '
+            . 'updated last first.',
+        summary: 'List and search issues',
+        tags: ['Issues'],
+    )]
+    #[OA\Parameter(
+        name: 'q',
+        description: 'Search words. They are searched in the subject and the description, with stems: "caching" also '
+            . 'finds "cache". With words the default order is "relevance".',
+        in: 'query',
+        schema: new OA\Schema(type: 'string'),
+        example: 'image cache',
+    )]
+    #[OA\Parameter(
+        name: 'status',
+        description: 'Which issues to list by their status. "closed" covers Resolved, Closed and Rejected.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', default: 'open', enum: IssueStateFilterEnum::class),
+    )]
+    #[OA\Parameter(
+        name: 'tracker',
+        description: 'Only issues of this tracker, by its exact name, like "Bug" or "Feature".',
+        in: 'query',
+        schema: new OA\Schema(type: 'string'),
+    )]
+    #[OA\Parameter(
+        name: 'category',
+        description: 'Only issues of this category, by its exact name, like "Backend User Interface".',
+        in: 'query',
+        schema: new OA\Schema(type: 'string'),
+    )]
+    #[OA\Parameter(
+        name: 'sort',
+        description: 'The order of the issues. The default is "relevance" with search words and "updated" without '
+            . 'them.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', enum: IssueSortEnum::class),
+    )]
+    #[OA\Parameter(ref: '#/components/parameters/limit')]
+    #[OA\Parameter(ref: '#/components/parameters/offset')]
+    #[OA\Response(response: 200, description: 'One page of issues.', content: new Model(type: IssuePage::class))]
+    #[OA\Response(response: 400, description: self::BAD_REQUEST, content: new Model(type: Error::class))]
+    public function issues(Request $request): JsonResponse
+    {
+        try {
+            $list = ListParameters::fromRequest($request);
+            $search = ApiIssueQuery::request(
+                $list,
+                ListParameters::choice($request, 'status', IssueStateFilterEnum::class, IssueStateFilterEnum::OPEN),
+                ListParameters::optional($request, 'tracker'),
+                ListParameters::optional($request, 'category'),
+                ListParameters::choice($request, 'sort', IssueSortEnum::class, self::issueSort($list)),
+            );
+        } catch (InvalidParameter $e) {
+            return self::error($e->getMessage(), Response::HTTP_BAD_REQUEST);
+        }
+        $found = $this->issues->search($search);
+
+        return self::respond(new IssuePage(
+            $found->total,
+            $list->offset,
+            $list->limit,
+            array_values($found->map($this->issueMapper->summary(...))->toArray()),
+        ));
+    }
+
+    #[Route(path: '/issues/{id}', name: 'issue', requirements: ['id' => '\d+'])]
+    #[OA\Get(
+        operationId: 'getIssue',
+        description: 'One Forge issue with its description, its relations and the Gerrit changes that belong to it.',
+        summary: 'Get an issue',
+        tags: ['Issues'],
+    )]
+    #[OA\Parameter(
+        name: 'id',
+        description: 'The number of the issue on Forge.',
+        in: 'path',
+        required: true,
+        schema: new OA\Schema(type: 'integer', minimum: 1),
+        example: 105403,
+    )]
+    #[OA\Response(response: 200, description: 'The issue.', content: new Model(type: IssueDetail::class))]
+    #[OA\Response(
+        response: 404,
+        description: 'Forger does not have the issue.',
+        content: new Model(type: Error::class),
+    )]
+    public function issue(int $id): JsonResponse
+    {
+        $issue = $this->issues->byId($id);
+        if (null === $issue) {
+            return self::error(sprintf('Issue #%d is not in Forger.', $id), Response::HTTP_NOT_FOUND);
+        }
+
+        return self::respond($this->issueMapper->detail(
+            $issue,
+            $this->relations->changesOf($issue),
+            $this->relations->subtasksOf($issue),
+            $this->relations->indexedRelatedIssues($issue),
+        ));
+    }
+
+    #[Route(path: '/changes', name: 'changes')]
+    #[OA\Get(
+        operationId: 'listChanges',
+        description: 'Finds Gerrit changes of Packages/TYPO3.CMS by words and filters. Without parameters it lists '
+            . 'the open changes, the ones updated last first.',
+        summary: 'List and search changes',
+        tags: ['Changes'],
+    )]
+    #[OA\Parameter(
+        name: 'q',
+        description: 'Search words. They are searched in the subject and the commit message. A number also finds '
+            . 'the change with that number and the changes that resolve or name the issue with it. A Change-Id '
+            . 'finds its change, a topic its changes, a name the changes of its owner.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string'),
+        example: 'site configuration',
+    )]
+    #[OA\Parameter(
+        name: 'status',
+        description: 'Which changes to list by their status. "open" covers the changes ready for review and those '
+            . 'in progress.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', default: 'open', enum: ChangeStateFilterEnum::class),
+    )]
+    #[OA\Parameter(
+        name: 'branch',
+        description: 'Only changes for this branch, like "main" or "13.4". "master" is the same as "main".',
+        in: 'query',
+        schema: new OA\Schema(type: 'string'),
+    )]
+    #[OA\Parameter(
+        name: 'sort',
+        description: 'The order of the changes. The default is "relevance" with search words and "updated" without '
+            . 'them. "smallest" sorts by the lines added and removed together.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', enum: ReviewSortEnum::class),
+    )]
+    #[OA\Parameter(ref: '#/components/parameters/limit')]
+    #[OA\Parameter(ref: '#/components/parameters/offset')]
+    #[OA\Response(response: 200, description: 'One page of changes.', content: new Model(type: ChangePage::class))]
+    #[OA\Response(response: 400, description: self::BAD_REQUEST, content: new Model(type: Error::class))]
+    public function changes(Request $request): JsonResponse
+    {
+        try {
+            $list = ListParameters::fromRequest($request);
+            $search = ApiChangeQuery::request(
+                $list,
+                ListParameters::choice($request, 'status', ChangeStateFilterEnum::class, ChangeStateFilterEnum::OPEN),
+                ListParameters::optional($request, 'branch'),
+                ListParameters::choice($request, 'sort', ReviewSortEnum::class, self::changeSort($list)),
+            );
+        } catch (InvalidParameter $e) {
+            return self::error($e->getMessage(), Response::HTTP_BAD_REQUEST);
+        }
+        $found = $this->changes->search($search);
+
+        return self::respond(new ChangePage(
+            $found->total,
+            $list->offset,
+            $list->limit,
+            array_values($found->map($this->changeMapper->summary(...))->toArray()),
+        ));
+    }
+
+    #[Route(path: '/changes/{number}', name: 'change', requirements: ['number' => '\d+'])]
+    #[OA\Get(
+        operationId: 'getChange',
+        description: 'One Gerrit change with its commit message, its files and the Forge issues it names.',
+        summary: 'Get a change',
+        tags: ['Changes'],
+    )]
+    #[OA\Parameter(
+        name: 'number',
+        description: 'The number of the change on Gerrit.',
+        in: 'path',
+        required: true,
+        schema: new OA\Schema(type: 'integer', minimum: 1),
+        example: 97865,
+    )]
+    #[OA\Response(response: 200, description: 'The change.', content: new Model(type: ChangeDetail::class))]
+    #[OA\Response(
+        response: 404,
+        description: 'Forger does not have the change.',
+        content: new Model(type: Error::class),
+    )]
+    public function change(int $number): JsonResponse
+    {
+        $change = $this->changes->byNumber($number);
+        if (null === $change) {
+            return self::error(sprintf('Change %d is not in Forger.', $number), Response::HTTP_NOT_FOUND);
+        }
+
+        return self::respond($this->changeMapper->detail($change, $this->relations->issuesOf($change)));
+    }
+
+    private static function issueSort(ListParameters $list): IssueSortEnum
+    {
+        return IssueSortEnum::default('' !== $list->query);
+    }
+
+    private static function changeSort(ListParameters $list): ReviewSortEnum
+    {
+        return ReviewSortEnum::default('' !== $list->query);
+    }
+
+    private static function error(string $message, int $status): JsonResponse
+    {
+        return self::respond(new Error($message), $status);
+    }
+
+    private static function respond(object $data, int $status = Response::HTTP_OK): JsonResponse
+    {
+        $response = new JsonResponse($data, $status);
+        $response->setEncodingOptions(JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        // Other sites and tools in the browser may read the public data, too
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+
+        return $response;
+    }
+}

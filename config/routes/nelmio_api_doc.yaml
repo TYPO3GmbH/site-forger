@@ -1,0 +1,11 @@
+# The OpenAPI document of the public API, see App\Controller\ApiV1Controller
+app.api_doc_json:
+    path: /api/doc.json
+    methods: GET
+    defaults: { _controller: nelmio_api_doc.controller.swagger }
+
+# The documentation page, templates/bundles/NelmioApiDocBundle/SwaggerUi/index.html.twig
+app.api_doc:
+    path: /api/doc
+    methods: GET
+    defaults: { _controller: nelmio_api_doc.controller.swagger_ui }

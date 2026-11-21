@@ -231,6 +231,24 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         return $menu;
     }
 
+    /**
+     * The links in the footer: the API documentation, then the legal pages of the template bundle.
+     * The API is for developers and tools, so it stays out of the main menu.
+     *
+     * @param array<string, mixed> $options
+     */
+    #[\Override]
+    public function mainFooter(array $options): ItemInterface
+    {
+        $menu = $this->factory->createItem('root');
+        $menu->addChild('api', ['label' => 'API', 'route' => 'app.api_doc']);
+        foreach (parent::mainFooter($options)->getChildren() as $item) {
+            $menu->addChild($item->copy());
+        }
+
+        return $menu;
+    }
+
     private function isKeycloakSession(): bool
     {
         $request = $this->requestStack->getCurrentRequest();

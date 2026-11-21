@@ -40,7 +40,7 @@ final class ControllerMethodsTest extends TestCase
     public function testEveryMethodCalledOnItselfExists(string $class): void
     {
         $source = (string) file_get_contents((string) (new \ReflectionClass($class))->getFileName());
-        preg_match_all('/\$this->(\w+)\(/', $source, $matches);
+        preg_match_all('/(?:\$this->|self::)(\w+)\(/', $source, $matches);
 
         foreach (array_unique($matches[1]) as $method) {
             self::assertTrue(method_exists($class, $method), sprintf('%s calls %s(), which it does not have', $class, $method));

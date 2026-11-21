@@ -180,7 +180,7 @@ The avatars are Gravatar's, by the first email the index `user` knows of the num
 account on Gerrit, the placeholder of Gravatar. `user_avatar()` and the macros of `templates/_macros/user.html.twig`
 render a person of Forge or Gerrit alike; changes imported before the owner's account show the avatar of the email. "My Work" finds the
 issues and changes by the numbers of the account on Forge and Gerrit: by its username, else by its email.
-`/api/<type>/<id>` serves only issues and changes, the index `user` holds email addresses.
+The API (see [API](#api)) serves only issues and changes, the index `user` holds email addresses.
 
 ### How the full imports work
 
@@ -401,6 +401,19 @@ deltas run once. `rm -rf var/scheduler` forgets what the schedule started. The t
 What happened is on the command runs page. The output of the last run of each job (`*.lastrun`, overwritten
 by every run) is still worth keeping: it is the only trace of a run that fails before the console starts.
 Whether the worker runs at all shows `systemctl status 'forger-scheduler@*'`, why it does not its journal.
+
+## API
+
+`/api/v1` is the public API: the issues and changes of the index as JSON, read only and without a login
+(`App\Controller\ApiV1Controller`). It returns the objects in `App\Api\Model`, `App\Api\IssueMapper` and
+`App\Api\ChangeMapper` build them from the documents. No email address leaves Forger.
+
+The documentation is at `/api/doc`, linked as "API" in the footer, and the OpenAPI document at `/api/doc.json`.
+NelmioApiDocBundle builds both from the attributes of the controller and the models.
+`templates/bundles/NelmioApiDocBundle/SwaggerUi/index.html.twig` shows Swagger UI in the layout of Forger,
+without its info block: the section "API" of the help explains how the API works (dates, pages, errors,
+versions). `tests/Api/ApiDocumentationTest.php` checks that every endpoint and every field the API returns is
+documented: describe a new field where you add it.
 
 ## Keycloak
 

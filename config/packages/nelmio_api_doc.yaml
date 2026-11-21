@@ -1,0 +1,47 @@
+# The documentation of the public API at /api/doc. The endpoints and their objects come from the attributes of
+# App\Controller\ApiV1Controller and the classes in App\Api\Model. The page hides the info block of Swagger UI:
+# the help explains the API in templates/static_page/help.html.twig, the description below is for tools.
+nelmio_api_doc:
+    html_config:
+        assets_mode: bundle
+        swagger_ui_config:
+            # Without the bar of the standalone layout: Forger has its own header
+            layout: BaseLayout
+            deepLinking: true
+            defaultModelsExpandDepth: 0
+            docExpansion: list
+            tryItOutEnabled: true
+    documentation:
+        info:
+            title: Forger API
+            version: 1.0.0
+            description: >-
+                The issues of forge.typo3.org and the changes of review.typo3.org for the TYPO3 Core, as Forger
+                indexed them. Read only, JSON, no login. Dates are ISO 8601 in UTC, lists return one page with
+                "total", and a failed request returns an object with "error". The help of Forger explains the
+                API at /help#api.
+        # No endpoint needs a login
+        security: []
+        components:
+            parameters:
+                limit:
+                    name: limit
+                    in: query
+                    description: How many items a page has.
+                    schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+                offset:
+                    name: offset
+                    in: query
+                    description: >-
+                        How many items to skip before the page starts. Offset and limit together may not exceed
+                        10000.
+                    schema: { type: integer, minimum: 0, default: 0 }
+        tags:
+            - name: Issues
+              description: The issues of the project TYPO3 Core on Forge.
+            - name: Changes
+              description: The changes of Packages/TYPO3.CMS on Gerrit.
+    areas:
+        default:
+            path_patterns:
+                - ^/api/v1/

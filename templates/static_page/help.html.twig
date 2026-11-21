@@ -24,6 +24,7 @@
         {id: 'sprints', icon: 'actions-line-columns', title: 'Sprints'},
         {id: 'tools', icon: 'actions-briefcase', title: 'Tools'},
         {id: 'filters', icon: 'actions-filter', title: 'Filters and search'},
+        {id: 'api', icon: 'actions-code', title: 'API'},
     ] %}
 
     <div class="content-section bg-transparent">
@@ -239,6 +240,51 @@
                         <li>The "Tags" filter of the issue search shows the most used tags of the issues found, and the ones you selected.</li>
                         <li>The filters of people, "Owner" of the review lists and "Author" and "Assigned to" of the issue search, show the ten with the most results. Their search finds the others in the list while you type and filters by the one you pick.</li>
                         <li>The search in the header finds issues from every page.</li>
+                    </ul>
+                </section>
+                {# API #}
+                <section id="api" class="help-section">
+                    <header class="help-section-header">
+                        <span class="help-section-icon">{{ icon('actions-code') }}</span>
+                        <h2>API</h2>
+                    </header>
+                    <p>
+                        The API gives the issues and changes of Forger as JSON, for scripts and tools. It is read only
+                        and needs no login.
+                        The <a href="{{ path('app.api_doc') }}">API documentation</a> lists the endpoints, their
+                        parameters and the fields they return,
+                        the <a href="{{ path('app.api_doc_json') }}">OpenAPI document</a> describes them for tools.
+                    </p>
+                    <ul class="help-points">
+                        <li>
+                            <strong>Data.</strong> The API has what the pages have. Forger imports Forge and Gerrit
+                            every five minutes, so a new issue or patch set shows up after the next import. The
+                            <code>url</code> of each issue and change leads to the original. The API never returns
+                            email addresses.
+                        </li>
+                        <li>
+                            <strong>Format.</strong> Dates are ISO 8601 in UTC, like
+                            <code>2026-11-20T23:40:03Z</code>. A field without a value is <code>null</code>, an
+                            empty list is <code>[]</code>. Every object has all of its fields. Other sites may
+                            call the API from the browser.
+                        </li>
+                        <li>
+                            <strong>Lists.</strong> A list returns one page and <code>total</code>, the number of
+                            all items the search found. <code>limit</code> sets the size of a page, 25 by default
+                            and 100 at most, <code>offset</code> the position it starts at. The next page starts
+                            at <code>offset + limit</code>. Together they may not exceed 10,000: narrow the search
+                            to read further.
+                        </li>
+                        <li>
+                            <strong>Errors.</strong> A failed request returns an object with <code>error</code>, a
+                            message for people: <code>400</code> for a parameter value the endpoint does not
+                            accept, <code>404</code> for an issue or change Forger does not have.
+                        </li>
+                        <li>
+                            <strong>Versions.</strong> The path holds the major version, <code>/api/v1</code>.
+                            Version 1 only gets new fields and parameters. A change that breaks a client gets a
+                            new path.
+                        </li>
                     </ul>
                 </section>
             </div>

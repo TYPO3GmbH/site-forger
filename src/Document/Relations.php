@@ -139,6 +139,24 @@ final readonly class Relations
     }
 
     /**
+     * The numbers of the issues Forge relates to the issue that the index has: the other relations, the duplicates
+     * and the parent. The token of the import also sees the private issues, and Forge names them in the relations
+     * of public ones. The index has no private issue, so only the numbers it has are public.
+     *
+     * @return array<int, true> by number
+     */
+    public function indexedRelatedIssues(Issue $issue): array
+    {
+        $numbers = [
+            ...array_map(static fn (IssueRelation $relation): int => $relation->issue, $issue->relations),
+            ...$issue->duplicateNumbers(),
+            ...(null === $issue->parent ? [] : [$issue->parent]),
+        ];
+
+        return array_fill_keys($this->issues->byIds($numbers)->getKeys(), true);
+    }
+
+    /**
      * The issues of the footer of a change, in its order: those it resolves first.
      *
      * @return ReadableCollection<int, RelatedIssue>
