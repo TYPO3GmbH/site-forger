@@ -60,6 +60,31 @@ final class SetupCheckTest extends TestCase
         self::assertSame('Forge does not accept the token (401).', $rejected->detail);
     }
 
+    public function testAForgeAccountOutsideTheProjectIsAProblem(): void
+    {
+        $setting = self::byName(SetupCheck::settings(
+            ['FORGE_ACCESS_TOKEN' => 'abc'],
+            [],
+            [
+                'account' => 'typo3com_bamboo',
+                'error' => null,
+                'project' => 'TYPO3 Core (typo3cms-core)',
+                'membersUrl' => 'https://forge.typo3.org/projects/typo3cms-core/settings/members',
+            ],
+        ))['FORGE_ACCESS_TOKEN'];
+
+        self::assertSame(SystemCheckEnum::PROBLEM, $setting->result);
+        self::assertSame('Logged in as typo3com_bamboo.', $setting->detail);
+        self::assertStringStartsWith(
+            'The account is no member of the Forge project TYPO3 Core (typo3cms-core)',
+            (string) $setting->problem,
+        );
+        self::assertSame(
+            ['label' => 'Members in Forge', 'url' => 'https://forge.typo3.org/projects/typo3cms-core/settings/members'],
+            $setting->action,
+        );
+    }
+
     public function testNoValueLeavesTheCheck(): void
     {
         $settings = SetupCheck::settings(['FORGE_ACCESS_TOKEN' => 'secret-token'], []);

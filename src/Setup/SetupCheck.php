@@ -37,11 +37,12 @@ final class SetupCheck
     private const array SECRETS = ['APP_SECRET', 'FORGE_ACCESS_TOKEN', 'KEYCLOAK_CLIENT_SECRET'];
 
     /**
-     * @param array<string, mixed>                                 $environment the variables of the environment, like
-     *                                                                          $_SERVER
-     * @param array<string, string>                                $defaults    the values of the committed .env
-     * @param array{account: string|null, error: string|null}|null $forge       who Forge logs in as with the token, see
-     *                                                                          ForgeLogin; null if not asked
+     * $environment holds the variables of the environment, like $_SERVER. $defaults holds the values of the committed
+     * .env. $forge tells who Forge logs in as with the token, see ForgeLogin. It is null if Forge was not asked.
+     *
+     * @param array<string, mixed>                                                                        $environment
+     * @param array<string, string>                                                                       $defaults
+     * @param array{account: string|null, error: string|null, project?: string, membersUrl?: string}|null $forge
      *
      * @return list<SetupSetting>
      */
@@ -61,14 +62,42 @@ final class SetupCheck
                 $settings[] = new SetupSetting($name, $usedFor, SystemCheckEnum::PROBLEM, $missing);
             } elseif ('FORGE_ACCESS_TOKEN' === $name && null !== $forge) {
                 // Of the Forge token, the login tells whether Forge accepts it. Of the others, only being set counts.
-                $settings[] = null === $forge['account']
-                    ? new SetupSetting($name, $usedFor, SystemCheckEnum::PROBLEM, $forge['error'])
-                    : new SetupSetting($name, $usedFor, SystemCheckEnum::OK, 'Logged in as ' . $forge['account'] . '.');
+                $settings[] = self::forgeToken($usedFor, $forge);
             } else {
                 $settings[] = new SetupSetting($name, $usedFor, SystemCheckEnum::OK);
             }
         }
 
         return $settings;
+    }
+
+    /**
+     * The Forge token is a problem if Forge does not accept it, or if its account may not see the users.
+     *
+     * @param array{account: string|null, error: string|null, project?: string, membersUrl?: string} $forge
+     */
+    private static function forgeToken(string $usedFor, array $forge): SetupSetting
+    {
+        $name = 'FORGE_ACCESS_TOKEN';
+        if (null === $forge['account']) {
+            return new SetupSetting($name, $usedFor, SystemCheckEnum::PROBLEM, $forge['error']);
+        }
+        $loggedIn = 'Logged in as ' . $forge['account'] . '.';
+        if (!isset($forge['project'])) {
+            return new SetupSetting($name, $usedFor, SystemCheckEnum::OK, $loggedIn);
+        }
+
+        return new SetupSetting(
+            $name,
+            $usedFor,
+            SystemCheckEnum::PROBLEM,
+            $loggedIn,
+            sprintf(
+                'The account is no member of the Forge project %s, so Forge hides most users from it.'
+                . ' Add it to the project with any role, for example "Bot".',
+                $forge['project'],
+            ),
+            isset($forge['membersUrl']) ? ['label' => 'Members in Forge', 'url' => $forge['membersUrl']] : null,
+        );
     }
 }

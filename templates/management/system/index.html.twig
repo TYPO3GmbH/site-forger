@@ -120,6 +120,21 @@
                                 {% if setting.detail %}
                                     <span class="system-setup-detail">{{ setting.detail }}</span>
                                 {% endif %}
+                                {% if setting.problem %}
+                                    <span class="system-setup-problem">{{ setting.problem }}</span>
+                                {% endif %}
+                                {% if setting.action %}
+                                    <span class="system-setup-action">
+                                        <a
+                                            class="btn btn-sm btn-default"
+                                            href="{{ setting.action.url }}"
+                                            target="_blank"
+                                            rel="noopener"
+                                        >
+                                            {{- icon('actions-window-open') }} {{ setting.action.label -}}
+                                        </a>
+                                    </span>
+                                {% endif %}
                             </div>
                             {{ system.result(setting.result) }}
                         </li>
