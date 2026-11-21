@@ -27,15 +27,17 @@ final class PendingImport
     {
         return [
             [
-                'label' => 'Issues of an older import',
-                'description' => 'Written before the import took the data of its version. Each "Update Forge issues" loads some of them again, the ones changed last first.',
+                'label' => 'Outdated issues',
+                'description' => 'They lack the newer fields. Each run of "Update Forge issues" updates some of them,'
+                    . ' the most recently changed first.',
                 'index' => Indices::ISSUE,
                 'version' => ImportSchema::ISSUE,
                 'query' => ImportSchema::outdated(Indices::ISSUE),
             ],
             [
-                'label' => 'Changes of an older import',
-                'description' => 'Written before the import took the data of its version. Each "Update Gerrit changes" loads some of them again, the ones changed last first.',
+                'label' => 'Outdated changes',
+                'description' => 'They lack the newer fields. Each run of "Update Gerrit changes" updates some of them,'
+                    . ' the most recently changed first.',
                 'index' => Indices::REVIEW,
                 'version' => ImportSchema::REVIEW,
                 'query' => ImportSchema::outdated(Indices::REVIEW),

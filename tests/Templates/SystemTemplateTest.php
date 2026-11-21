@@ -30,7 +30,8 @@ final class SystemTemplateTest extends KernelTestCase
             self::pending('change', SystemCheckEnum::ATTENTION, 12),
         ]);
 
-        self::assertStringContainsString('of 100 changes older than version 3', $html);
+        self::assertStringContainsString('come from an import before version 3', $html);
+        self::assertStringContainsString('Look at: Setup, Outdated documents', $html);
         self::assertStringContainsString('<code>FORGE_ACCESS_TOKEN</code>', $html);
     }
 
@@ -40,7 +41,7 @@ final class SystemTemplateTest extends KernelTestCase
         $html = $this->render([], [
             'users' => [
                 'result' => SystemCheckEnum::ATTENTION,
-                'summary' => '2,200 of 5,632 people cannot be mapped to an email.',
+                'summary' => 'Forger has no email address for 2,200 of 5,632 people.',
                 'reasons' => '1,375 not asked for yet · 54 unknown to Forge (54 refused (403))',
                 'hint' => null,
             ],
@@ -52,11 +53,11 @@ final class SystemTemplateTest extends KernelTestCase
             ],
         ]);
 
-        self::assertStringContainsString('825 people Forge was asked for, without an email', $html);
+        self::assertStringContainsString('825 people without an email address', $html);
         self::assertStringContainsString('<a href="https://forge.typo3.org/users/45758"', $html);
-        self::assertStringContainsString('refused (403)', $html);
-        self::assertStringContainsString('login awidmer', $html);
-        self::assertStringContainsString('answer not stored', $html);
+        self::assertStringContainsString('Refused (403)', $html);
+        self::assertStringContainsString('Login: awidmer', $html);
+        self::assertStringContainsString('No answer stored', $html);
         // By why, with how many each
         self::assertMatchesRegularExpression('/Unknown to Forge <span>2<\/span>.*No email on Forge <span>1<\/span>/s', $html);
     }
@@ -94,6 +95,7 @@ final class SystemTemplateTest extends KernelTestCase
             ...$users + ['users' => null, 'unmapped' => 0, 'unmappedUsers' => []],
             'application' => ['php' => PHP_VERSION, 'symfony' => '7.4', 'environment' => 'test', 'debug' => false],
             'overall' => SystemCheckEnum::ATTENTION,
+            'notOk' => ['Setup', 'Outdated documents'],
             'minimumVersion' => '8.0',
         ]);
     }

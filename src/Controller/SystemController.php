@@ -60,6 +60,18 @@ class SystemController extends AbstractController
         $users = null === $statistics ? null : UserHealth::of($statistics, new \DateTimeImmutable());
         $unmapped = null === $statistics ? 0 : $statistics->unknownToForge + $statistics->withoutEmail;
 
+        // The result of each section of the page, by its name
+        $checks = [
+            'Setup' => SystemCheckEnum::worst(
+                ...array_map(static fn (SetupSetting $setting): SystemCheckEnum => $setting->result, $setup),
+            ),
+            'Elasticsearch version' => $elasticsearch['versionResult'],
+            'Cluster health' => $elasticsearch['healthResult'],
+            'Indices' => SystemCheckEnum::worst(...array_column($indices, 'result')),
+            'Outdated documents' => SystemCheckEnum::worst(...array_column($pending, 'result')),
+            'Users' => $users['result'] ?? SystemCheckEnum::OK,
+        ];
+
         return $this->render('management/system/index.html.twig', [
             'elasticsearch' => $elasticsearch,
             'indices' => $indices,
@@ -74,14 +86,11 @@ class SystemController extends AbstractController
                 'debug' => $this->kernel->isDebug(),
             ],
             'setup' => $setup,
-            'overall' => SystemCheckEnum::worst(
-                $elasticsearch['versionResult'],
-                $elasticsearch['healthResult'],
-                ...array_column($indices, 'result'),
-                ...array_column($pending, 'result'),
-                ...(null === $users ? [] : [$users['result']]),
-                ...array_map(static fn (SetupSetting $setting): SystemCheckEnum => $setting->result, $setup),
-            ),
+            'overall' => SystemCheckEnum::worst(...array_values($checks)),
+            'notOk' => array_keys(array_filter(
+                $checks,
+                static fn (SystemCheckEnum $result): bool => SystemCheckEnum::OK !== $result,
+            )),
             'minimumVersion' => ElasticsearchVersion::MINIMUM,
         ]);
     }

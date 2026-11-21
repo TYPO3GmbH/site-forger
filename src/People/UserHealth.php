@@ -47,8 +47,8 @@ final class UserHealth
                 'result' => SystemCheckEnum::ATTENTION,
                 'summary' => 'No users yet.',
                 'reasons' => null,
-                'hint' => 'The next run of "Update users" takes them over from the issues.'
-                    . ' If it does not, look at its runs.',
+                'hint' => 'The next run of "Update users" copies them from the issues.'
+                    . ' If it does not, check the runs of "Update users".',
             ];
         }
         $check = [
@@ -62,9 +62,10 @@ final class UserHealth
             return $check + [
                 'result' => SystemCheckEnum::PROBLEM,
                 'hint' => sprintf(
-                    'Forge was not asked for users %s. Look at the runs of "Update users": they fail, stop at a rate'
-                    . ' limit, or do not start.',
-                    null === $lastFetched ? 'ever' : 'since ' . $lastFetched->format('j M Y, H:i') . ' UTC',
+                    'Forger %s. Check the runs of "Update users": they may fail, hit a rate limit or not start.',
+                    null === $lastFetched
+                        ? 'has never asked Forge for users'
+                        : 'has not asked Forge for users since ' . $lastFetched->format('j M Y, H:i') . ' UTC',
                 ),
             ];
         }
@@ -73,10 +74,9 @@ final class UserHealth
             return $check + [
                 'result' => SystemCheckEnum::ATTENTION,
                 'hint' => sprintf(
-                    'Forge does not know %s of the %s users asked for. It answers 404 for deleted users and groups,'
-                    . ' 403 for locked users, but also for every user when the token may not see users. Open'
-                    . ' "/users/<number>.json" of a user below with the token of Forger: a user that exists and is not'
-                    . ' locked must not give 403.',
+                    'Forge does not know %s of the %s users that Forger asked for.'
+                    . ' Forge answers 404 for deleted users and groups, and 403 for locked users.'
+                    . ' If FORGE_ACCESS_TOKEN is missing or invalid, Forge answers 404 for every user.',
                     self::number($statistics->gone),
                     self::number($asked),
                 ),
@@ -86,7 +86,9 @@ final class UserHealth
 
         return $check + [
             'result' => SystemCheckEnum::OK,
-            'hint' => 0 === $waiting ? null : sprintf('"Update users" asks for the rest in about %d h.', $hours),
+            'hint' => 0 === $waiting
+                ? null
+                : sprintf('"Update users" asks Forge for the rest within about %d hours.', $hours),
         ];
     }
 
@@ -101,7 +103,7 @@ final class UserHealth
         $answers = [];
         foreach ($byStatus as $status => $count) {
             $answers[] = self::number($count) . ' ' . match ($status) {
-                0 => 'not stored',
+                0 => 'without a stored answer',
                 403 => 'refused (403)',
                 default => sprintf('not found (%d)', $status),
             };
@@ -113,24 +115,24 @@ final class UserHealth
     private static function summary(UserStatistics $statistics): string
     {
         if (0 === $statistics->unmapped()) {
-            return sprintf('All %s people are mapped to an email.', self::number($statistics->total));
+            return sprintf('All %s people have an email address.', self::number($statistics->total));
         }
 
         return sprintf(
-            '%s of %s people cannot be mapped to an email.',
+            'Forger has no email address for %s of %s people.',
             self::number($statistics->unmapped()),
             self::number($statistics->total),
         );
     }
 
     /**
-     * Like "1,375 not asked for yet · 54 unknown to Forge (50 refused (403), 4 not found (404))", null for none.
+     * Like "1,375 not asked yet · 54 unknown to Forge (50 refused (403), 4 not found (404))", null for none.
      */
     private static function reasons(UserStatistics $statistics): ?string
     {
         $reasons = [];
         if ($statistics->notAskedYet > 0) {
-            $reasons[] = self::number($statistics->notAskedYet) . ' not asked for yet';
+            $reasons[] = self::number($statistics->notAskedYet) . ' not asked yet';
         }
         if ($statistics->unknownToForge > 0) {
             $reasons[] = sprintf(
@@ -140,7 +142,7 @@ final class UserHealth
             );
         }
         if ($statistics->withoutEmail > 0) {
-            $reasons[] = self::number($statistics->withoutEmail) . ' without an email on Forge';
+            $reasons[] = self::number($statistics->withoutEmail) . ' with no email on Forge';
         }
 
         return [] === $reasons ? null : implode(' · ', $reasons);

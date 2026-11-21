@@ -38,10 +38,10 @@ final class UserHealthTest extends TestCase
             lastFetched: $this->now->modify('-4 minutes'),
         ), $this->now);
 
-        self::assertSame('2,200 of 5,632 people cannot be mapped to an email.', $health['summary']);
+        self::assertSame('Forger has no email address for 2,200 of 5,632 people.', $health['summary']);
         self::assertSame(
-            '1,375 not asked for yet · 54 unknown to Forge (50 refused (403), 4 not found (404))'
-            . ' · 771 without an email on Forge',
+            '1,375 not asked yet · 54 unknown to Forge (50 refused (403), 4 not found (404))'
+            . ' · 771 with no email on Forge',
             $health['reasons'],
         );
     }
@@ -52,7 +52,7 @@ final class UserHealthTest extends TestCase
         $health = UserHealth::of(self::statistics(notAskedYet: 1003, lastFetched: $recently), $this->now);
 
         self::assertSame(SystemCheckEnum::OK, $health['result']);
-        self::assertSame('"Update users" asks for the rest in about 3 h.', $health['hint']);
+        self::assertSame('"Update users" asks Forge for the rest within about 3 hours.', $health['hint']);
     }
 
     public function testEveryoneMapped(): void
@@ -60,7 +60,7 @@ final class UserHealthTest extends TestCase
         $health = UserHealth::of(self::statistics(mapped: 1033), $this->now);
 
         self::assertSame(SystemCheckEnum::OK, $health['result']);
-        self::assertSame('All 1,033 people are mapped to an email.', $health['summary']);
+        self::assertSame('All 1,033 people have an email address.', $health['summary']);
         self::assertNull($health['reasons']);
         self::assertNull($health['hint']);
     }
@@ -72,9 +72,12 @@ final class UserHealthTest extends TestCase
         $never = UserHealth::of(self::statistics(notAskedYet: 997), $this->now);
 
         self::assertSame(SystemCheckEnum::PROBLEM, $stale['result']);
-        self::assertStringContainsString('not asked for users since 20 Nov 2026, 16:00 UTC', (string) $stale['hint']);
+        self::assertStringContainsString(
+            'has not asked Forge for users since 20 Nov 2026, 16:00 UTC',
+            (string) $stale['hint'],
+        );
         self::assertSame(SystemCheckEnum::PROBLEM, $never['result']);
-        self::assertStringContainsString('not asked for users ever', (string) $never['hint']);
+        self::assertStringContainsString('has never asked Forge for users', (string) $never['hint']);
     }
 
     public function testManyUsersUnknownToForgeNeedAttention(): void
@@ -84,14 +87,17 @@ final class UserHealthTest extends TestCase
         $few = UserHealth::of(self::statistics(notAskedYet: 900, gone: 10, lastFetched: $this->now), $this->now);
 
         self::assertSame(SystemCheckEnum::ATTENTION, $many['result']);
-        self::assertStringContainsString('Forge does not know 120 of the 133 users asked for.', (string) $many['hint']);
+        self::assertStringContainsString(
+            'Forge does not know 120 of the 133 users that Forger asked for.',
+            (string) $many['hint'],
+        );
         self::assertSame(SystemCheckEnum::OK, $few['result']);
     }
 
     public function testTheAnswersOfForgeMostFirst(): void
     {
         self::assertSame(
-            '100 refused (403), 18 not stored, 2 not found (404)',
+            '100 refused (403), 18 without a stored answer, 2 not found (404)',
             UserHealth::answers([403 => 100, 0 => 18, 404 => 2]),
         );
     }

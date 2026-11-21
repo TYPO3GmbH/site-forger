@@ -14,11 +14,11 @@
 {# The answer of Forge for a person it does not know, see UserHealth::answers(); the login for the others #}
 {% macro unmappedDetail(user) %}
     {%- if not user.gone -%}
-        {{ user.username ? 'login ' ~ user.username : 'no login' }}
+        {{ user.username ? 'Login: ' ~ user.username : 'No login known' }}
     {%- elseif user.goneStatus is null -%}
-        answer not stored
+        No answer stored
     {%- else -%}
-        {{ user.goneStatus == 403 ? 'refused' : 'not found' }} ({{ user.goneStatus }})
+        {{ user.goneStatus == 403 ? 'Refused' : 'Not found' }} ({{ user.goneStatus }})
     {%- endif -%}
 {% endmacro %}
 
@@ -37,10 +37,10 @@
 {% block body %}
     {% import _self as system %}
     {% set configurationLabels = {
-        'current': 'Built from the configuration as it is',
-        'outdated': 'The configuration changed since, app:elasticsearch:setup builds it again',
-        'unknown': 'Built before the configuration was stored with it, app:elasticsearch:setup compares the mapping',
-        'missing': 'No index has this alias, app:elasticsearch:setup creates it',
+        'current': 'Matches the configuration',
+        'outdated': 'The configuration has changed. Run app:elasticsearch:setup to rebuild the index.',
+        'unknown': 'Built before the configuration was stored. Run app:elasticsearch:setup to compare the mapping.',
+        'missing': 'No index has this alias. Run app:elasticsearch:setup to create it.',
     } %}
     {% set waiting = pending|filter(check => check.result != constant('App\\Enum\\SystemCheckEnum::OK')) %}
     {% set outdated = 0 %}
@@ -51,9 +51,8 @@
 
             <div class="runs-intro">
                 <p>
-                    What Forger runs on and whether its data is complete. The page only reads, it changes nothing.
-                    Documents an older version of the import wrote get the newer data by themselves: the deltas load
-                    some of them again in every run.
+                    This page shows what Forger runs on and whether its data is complete.
+                    It only reads data and changes nothing.
                 </p>
             </div>
 
@@ -61,7 +60,10 @@
                 <section class="runs-notice" role="alert">
                     <span class="runs-notice-icon" aria-hidden="true">!</span>
                     <div class="runs-notice-body">
-                        <p class="runs-notice-title">Elasticsearch cannot be reached <span class="runs-muted">Lists, search and imports do not work.</span></p>
+                        <p class="runs-notice-title">
+                            Elasticsearch is not reachable.
+                            <span class="runs-muted">Lists, search and imports do not work.</span>
+                        </p>
                         <pre class="system-error">{{ elasticsearch.error }}</pre>
                     </div>
                 </section>
@@ -70,8 +72,11 @@
                     <span class="runs-notice-icon" aria-hidden="true">!</span>
                     <div class="runs-notice-body">
                         <p class="runs-notice-title">
-                            {{ outdated|number_format(0, '.', ',') }} {{ outdated == 1 ? 'document' : 'documents' }} of an older import
-                            <span class="runs-muted">Everything works, they show without the newer data until the deltas load them again.</span>
+                            {{ outdated|number_format(0, '.', ',') }} outdated
+                            {{ outdated == 1 ? 'document' : 'documents' }}.
+                            <span class="runs-muted">
+                                They work, but lack newer data. The imports update them over time.
+                            </span>
                         </p>
                     </div>
                 </section>
@@ -81,12 +86,16 @@
                 <div class="runs-stat">
                     <span class="runs-stat-label">Overall</span>
                     <span class="runs-stat-value">{{ system.result(overall) }}</span>
-                    <span class="runs-stat-note">The worst of the checks below</span>
+                    <span class="runs-stat-note">
+                        {{- notOk is empty ? 'All checks are OK.' : 'Look at: ' ~ notOk|join(', ') -}}
+                    </span>
                 </div>
                 <div class="runs-stat">
                     <span class="runs-stat-label">Elasticsearch</span>
                     <span class="runs-stat-value runs-numeric">{{ elasticsearch.version ?? '–' }}</span>
-                    <span class="runs-stat-note">{{ system.result(elasticsearch.versionResult) }} needs {{ minimumVersion }} or newer 7.x</span>
+                    <span class="runs-stat-note">
+                        {{ system.result(elasticsearch.versionResult) }} Needs {{ minimumVersion }} or a newer 7.x
+                    </span>
                 </div>
                 <div class="runs-stat">
                     <span class="runs-stat-label">Cluster</span>
@@ -94,9 +103,9 @@
                     <span class="runs-stat-note">{{ system.result(elasticsearch.healthResult) }}{% if elasticsearch.reachable %} {{ elasticsearch.nodes }} {{ elasticsearch.nodes == 1 ? 'node' : 'nodes' }}{% endif %}</span>
                 </div>
                 <div class="runs-stat">
-                    <span class="runs-stat-label">Of an older import</span>
+                    <span class="runs-stat-label">Outdated documents</span>
                     <span class="runs-stat-value runs-numeric{{ outdated > 0 ? ' runs-tone-warning' }}">{{ outdated|number_format(0, '.', ',') }}</span>
-                    <span class="runs-stat-note">Documents the deltas load again</span>
+                    <span class="runs-stat-note">The imports update them over time</span>
                 </div>
             </div>
 
@@ -139,9 +148,11 @@
                             <div><dt>Unassigned shards</dt><dd class="runs-numeric">{{ elasticsearch.unassignedShards }}</dd></div>
                         </dl>
                         <p class="system-note runs-muted">
-                            The search in the filters of people needs {{ minimumVersion }}: before, the wildcard query cannot ignore the case.
+                            The people filters need version {{ minimumVersion }} or newer
+                            to search without regard to case.
                             {% if elasticsearch.health == 'yellow' and elasticsearch.nodes == 1 %}
-                                "Yellow" on a single node is fine: it has no second node for the replicas, the data is complete.
+                                A single node is always "yellow", because it has no second node for the replicas.
+                                The data is complete.
                             {% endif %}
                         </p>
                     </article>
@@ -179,7 +190,7 @@
                 </section>
 
                 <section class="runs-section">
-                    <h2 class="runs-heading">Versions of the import</h2>
+                    <h2 class="runs-heading">Outdated documents</h2>
                     <div class="system-checks">
                         {% for check in pending %}
                             <article class="runs-card">
@@ -189,7 +200,9 @@
                                 </header>
                                 <p class="system-check-count">
                                     <strong class="runs-numeric">{{ check.matches|number_format(0, '.', ',') }}</strong>
-                                    of {{ check.documents|number_format(0, '.', ',') }} {{ check.index == 'issue' ? 'issues' : 'changes' }} older than version {{ check.version }}
+                                    of {{ check.documents|number_format(0, '.', ',') }}
+                                    {{ check.index == 'issue' ? 'issues' : 'changes' }}
+                                    come from an import before version {{ check.version }}
                                 </p>
                                 <p class="runs-muted system-check-description">{{ check.description }}</p>
                             </article>
@@ -212,7 +225,7 @@
                                     <summary>
                                         <span class="system-unmapped-title">
                                             {{- unmapped|number_format(0, '.', ',') }} {{ unmapped == 1 ? 'person' : 'people' -}}
-                                            {{ ' ' }}Forge was asked for, without an email
+                                            {{ ' ' }}without an email address
                                         </span>
                                         <span class="system-unmapped-icon">{{ icon('actions-chevron-down') }}</span>
                                     </summary>
