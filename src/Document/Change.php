@@ -44,6 +44,8 @@ final readonly class Change
      * @param list<ReviewMessage>   $messages     the review log, the oldest first
      * @param list<string>          $conflicts    the files with a conflict in the current patch set
      * @param int|null              $cherryPickOf the change this one is a cherry-pick of
+     * @param list<ChainLink>       $chain        the relation chain of an open change, the top first, the change
+     *                                            itself among them; empty without a chain
      */
     public function __construct(
         public int $id,
@@ -79,6 +81,7 @@ final readonly class Change
         public ?int $cherryPickOf = null,
         public ?int $commentCount = null,
         public ?int $unresolvedCommentCount = null,
+        public array $chain = [],
     ) {
     }
 
@@ -136,7 +139,68 @@ final readonly class Change
             cherryPickOf: self::intOrNull($document['cherry_pick_of'] ?? null),
             commentCount: self::intOrNull($document['comment_count'] ?? null),
             unresolvedCommentCount: self::intOrNull($document['unresolved_comment_count'] ?? null),
+            chain: self::chain($document),
         );
+    }
+
+    /**
+     * Whether the change is part of a relation chain: Gerrit names more changes than the change itself.
+     */
+    public function hasChain(): bool
+    {
+        return count($this->chain) > 1;
+    }
+
+    /**
+     * The changes of the chain based on this one, the top first.
+     *
+     * @return list<ChainLink>
+     */
+    public function chainAbove(): array
+    {
+        return array_slice($this->chain, 0, $this->chainPosition());
+    }
+
+    /**
+     * The changes of the chain this one is based on, the nearest first.
+     *
+     * @return list<ChainLink>
+     */
+    public function chainBelow(): array
+    {
+        return array_slice($this->chain, $this->chainPosition() + 1);
+    }
+
+    /**
+     * The link of the change itself in its chain, null without a chain.
+     */
+    public function chainLink(): ?ChainLink
+    {
+        return $this->chain[$this->chainPosition()] ?? null;
+    }
+
+    private function chainPosition(): int
+    {
+        foreach ($this->chain as $position => $link) {
+            if ($this->id === $link->number) {
+                return $position;
+            }
+        }
+
+        return count($this->chain);
+    }
+
+    /**
+     * @param array<string, mixed> $document
+     *
+     * @return list<ChainLink>
+     */
+    private static function chain(array $document): array
+    {
+        return array_values(array_map(
+            ChainLink::fromDocument(...),
+            array_filter((array) ($document['chain'] ?? []), is_array(...)),
+        ));
     }
 
     /**

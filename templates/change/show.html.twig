@@ -128,6 +128,22 @@
                             </ul>
                         </section>
 
+                        {# The changes it is based on and those based on it, the top first, as Gerrit shows them #}
+                        {% if change.hasChain %}
+                            <section class="detail-section" aria-labelledby="chain-title">
+                                <h2 id="chain-title" class="detail-section-title">Relation chain <span class="detail-count">{{ change.chain|length }}</span></h2>
+                                <ol class="row-list detail-chain">
+                                    {% for link in change.chainAbove %}
+                                        <li>{{ _self.chainLink(link, chain[link.number] ?? null, 'Based on this change') }}</li>
+                                    {% endfor %}
+                                    <li class="is-this">{{ _self.chainLink(change.chainLink, null, 'This change') }}</li>
+                                    {% for link in change.chainBelow %}
+                                        <li>{{ _self.chainLink(link, chain[link.number] ?? null, 'This change is based on it') }}</li>
+                                    {% endfor %}
+                                </ol>
+                            </section>
+                        {% endif %}
+
                         {% if issues is not empty %}
                             <section class="detail-section" aria-labelledby="issues-title">
                                 <h2 id="issues-title" class="detail-section-title">Issues <span class="detail-count">{{ issues|length }}</span></h2>
@@ -302,4 +318,23 @@
             </li>
         {% endfor %}
     </ol>
+{% endmacro %}
+
+{#
+ # A change of the relation chain: the row of the lists when Forger has it, with its votes and owner, else its
+ # number and subject leading to Gerrit. An older patch set than the current one in the chain is marked.
+ #}
+{% macro chainLink(link, indexed, relation) %}
+    {% if indexed is not null %}
+        {% include '_partials/row/change.html.twig' with {'change': indexed, 'relation': relation} only %}
+    {% else %}
+        <p class="detail-chain-plain">
+            <span class="detail-number">{{ link.number }}</span>
+            <span>{{ link.subject }}</span>
+            <span class="detail-chain-note">{{ relation }}</span>
+        </p>
+    {% endif %}
+    {% if link.isOutdated(indexed) %}
+        <p class="detail-chain-outdated">{{ icon('actions-exclamation-triangle') }} The chain has patch set {{ link.patchSet }} of {{ link.currentPatchSet }}, the changes above it need a rebase.</p>
+    {% endif %}
 {% endmacro %}

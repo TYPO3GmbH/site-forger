@@ -16,6 +16,7 @@ use App\Document\CommitMessage;
 use App\Document\ReviewSubject;
 use App\Elastic\Indices;
 use App\Enum\ReviewLabelEnum;
+use App\Enum\ReviewStatusEnum;
 use App\Http\ApiClient;
 use App\Http\ApiFailure;
 use App\People\User;
@@ -34,7 +35,7 @@ final class GerritChangeImporter
     /**
      * The details of a change, the same for the refresh of one change, the full import and the delta: the votes,
      * the current patch set with its files and commit, the review log, and the accounts with name, username and
-     * email.
+     * email. The relation chain of an open change takes a request of its own, see chain().
      */
     public const array DETAIL_OPTIONS = [
         'DETAILED_LABELS',
@@ -288,10 +289,53 @@ final class GerritChangeImporter
                 'work_in_progress' => ReviewSubject::isWorkInProgress($reviewTags) || ($change['work_in_progress'] ?? false),
                 'commit_message' => $commitMessage,
                 ImportSchema::FIELD => ImportSchema::REVIEW,
-            ] + CommitMessage::fields($commitMessage) + self::details($change);
+            ] + CommitMessage::fields($commitMessage) + self::details($change) + [
+                'chain' => ReviewStatusEnum::NEW->value === $change['status']
+                    ? $this->chain((int) $change['_number'])
+                    : [],
+            ];
         }
 
         return $out;
+    }
+
+    /**
+     * The relation chain of an open change: the changes it is based on and those based on it, the top first, the
+     * change itself among them. Gerrit tells it for one change at a time, so the closed ones go without it.
+     *
+     * @return list<array{number: int, patch_set: int, current_patch_set: int, status: string, subject: string}>
+     *
+     * @throws ApiFailure
+     */
+    private function chain(int $number): array
+    {
+        $related = $this->gerrit->object(sprintf('/changes/%d/revisions/current/related', $number), [], 'the chain');
+
+        return self::chainOf((array) ($related['changes'] ?? []));
+    }
+
+    /**
+     * @param array<mixed> $changes the "changes" of the answer of "related"
+     *
+     * @return list<array{number: int, patch_set: int, current_patch_set: int, status: string, subject: string}>
+     */
+    public static function chainOf(array $changes): array
+    {
+        $chain = [];
+        foreach ($changes as $change) {
+            if (!is_array($change) || !isset($change['_change_number'])) {
+                continue;
+            }
+            $chain[] = [
+                'number' => (int) $change['_change_number'],
+                'patch_set' => (int) ($change['_revision_number'] ?? 0),
+                'current_patch_set' => (int) ($change['_current_revision_number'] ?? 0),
+                'status' => (string) ($change['status'] ?? ''),
+                'subject' => (string) ($change['commit']['subject'] ?? ''),
+            ];
+        }
+
+        return $chain;
     }
 
     /**

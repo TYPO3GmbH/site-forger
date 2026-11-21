@@ -126,6 +126,13 @@ final class MapperTest extends TestCase
         ]);
         self::assertSame(['composer.json'], $change['conflicts']);
         self::assertSame(97000, $change['cherryPickOf']);
+        self::assertSame(
+            [[97900, 'above', null, false], [97865, 'this', 'ready', true], [97800, 'below', null, false]],
+            array_map(
+                static fn (array $link): array => [$link['number'], $link['place'], $link['state'], $link['outdated']],
+                $change['chain'],
+            ),
+        );
         self::assertSame(['id' => 14410, 'name' => 'Jane Doe', 'username' => 'jdoe'], $change['owner']);
         self::assertSame('resolves', $change['issues'][0]['relation']);
         self::assertSame('Under Review', $change['issues'][0]['status']);
@@ -167,6 +174,7 @@ final class MapperTest extends TestCase
         $change = new ChangeMapper(ApiFixtures::urls())->detail(
             ApiFixtures::change(),
             ApiFixtures::issuesOfTheChange(),
+            new ArrayCollection([97865 => ApiFixtures::change()]),
         );
 
         return self::decoded($change);
@@ -200,7 +208,8 @@ final class MapperTest extends TestCase
     {
         $change = Change::fromDocument(['id' => 1, 'subject' => 'Old', 'files' => ['composer.json']]);
 
-        $files = self::decoded(new ChangeMapper(ApiFixtures::urls())->detail($change, new ArrayCollection()))['files'];
+        $detail = new ChangeMapper(ApiFixtures::urls())->detail($change, new ArrayCollection(), new ArrayCollection());
+        $files = self::decoded($detail)['files'];
 
         self::assertSame([['composer.json', null, null, null, null, null]], array_map(array_values(...), $files));
     }

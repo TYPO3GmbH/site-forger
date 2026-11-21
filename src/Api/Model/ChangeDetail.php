@@ -26,6 +26,7 @@ final readonly class ChangeDetail extends ChangeSummary
      * @param list<ChangeIssue>   $issues
      * @param list<ReviewMessage> $messages
      * @param list<string>        $conflicts
+     * @param list<ChainChange>   $chain
      */
     public function __construct(
         ChangeSummary $summary,
@@ -68,6 +69,13 @@ final readonly class ChangeDetail extends ChangeSummary
         public array $conflicts,
         #[OA\Property(description: 'The change this one is a cherry-pick of, a backport mostly.', example: null)]
         public ?int $cherryPickOf,
+        #[OA\Property(
+            description: 'The relation chain of an open change, the top first, the change itself among them. Empty '
+                . 'without a chain, for a closed change and for one imported before Forger kept it.',
+            type: 'array',
+            items: new OA\Items(ref: new Model(type: ChainChange::class)),
+        )]
+        public array $chain,
     ) {
         parent::__construct(...get_object_vars($summary));
     }

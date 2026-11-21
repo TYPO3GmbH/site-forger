@@ -189,6 +189,17 @@ final readonly class Relations
     }
 
     /**
+     * The changes of the relation chain of a change as the index has them, by number: their votes and owners, which
+     * the chain does not tell. A change of the chain the index does not have is left out.
+     *
+     * @return ReadableCollection<int, Change>
+     */
+    public function chainOf(Change $change): ReadableCollection
+    {
+        return $this->changes->byNumbers(array_map(static fn (ChainLink $link): int => $link->number, $change->chain));
+    }
+
+    /**
      * The issues of the footer of a change, in its order: those it resolves first.
      *
      * @return ReadableCollection<int, RelatedIssue>

@@ -18,6 +18,7 @@ use App\Api\Model\IssueBreakdown;
 use App\Api\Model\IssuePage;
 use App\Duplicates\DuplicateGroups;
 use App\Duplicates\DuplicateHit;
+use Doctrine\Common\Collections\ArrayCollection;
 use Nelmio\ApiDocBundle\ApiDocGenerator;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Routing\RouterInterface;
@@ -57,6 +58,7 @@ final class ApiDocumentationTest extends KernelTestCase
         $change = new ChangeMapper(ApiFixtures::urls())->detail(
             ApiFixtures::change(),
             ApiFixtures::issuesOfTheChange(),
+            new ArrayCollection([97865 => ApiFixtures::change()]),
         );
 
         self::assertFieldsDescribed('ChangeDetail', $change);

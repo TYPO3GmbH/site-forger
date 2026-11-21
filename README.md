@@ -124,8 +124,8 @@ The deltas only read what changed, and only load details for what they do not ha
   the comments and changes, which no list of Forge has: one request per issue. A run ends after 2000 issues and
   reports a warning, the next run goes on from there.
 * **Gerrit:** a light query lists the changes updated since the start (`after:`) with their update time,
-  the details (votes, the current patch set with its files and commit) are loaded only for the changes the index does not have in this
-  state. Gerrit lists the newest first, so the changes are written once all of them are loaded: a run that
+  the details (votes, the current patch set with its files and commit, the review log) are loaded only for the changes the index does not have in this
+  state. An open change takes one more request for its relation chain, which Gerrit tells for one change at a time. Gerrit lists the newest first, so the changes are written once all of them are loaded: a run that
   fails half way leaves the index as it was, and the next run tries again. Beyond 3000 updated changes the
   newest would move the start past the older ones: the run takes the oldest window from the start that fits
   instead (a day, halved until it fits, `ImportWatermark::catchUpWindow()`), notes it, and the next runs go on.

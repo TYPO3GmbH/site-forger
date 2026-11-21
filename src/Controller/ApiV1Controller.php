@@ -36,6 +36,7 @@ use App\Repository\IssueRepository;
 use App\Search\ApiChangeQuery;
 use App\Search\ApiIssueQuery;
 use App\Search\IssueSearch;
+use Doctrine\Common\Collections\ArrayCollection;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -399,7 +400,8 @@ class ApiV1Controller extends AbstractController
     #[Route(path: '/changes/{number}', name: 'change', requirements: ['number' => '\d+'])]
     #[OA\Get(
         operationId: 'getChange',
-        description: 'One Gerrit change with its commit message, its files and the Forge issues it names.',
+        description: 'One Gerrit change with its commit message, its files, its review log, its relation chain and '
+            . 'the Forge issues it names.',
         summary: 'Get a change',
         tags: ['Changes'],
     )]
@@ -425,7 +427,11 @@ class ApiV1Controller extends AbstractController
             return self::error(sprintf('Change %d is not in Forger.', $number), Response::HTTP_NOT_FOUND);
         }
 
-        return self::respond($this->changeMapper->detail($change, $this->relations->issuesOf($change)));
+        return self::respond($this->changeMapper->detail(
+            $change,
+            $this->relations->issuesOf($change),
+            $change->hasChain() ? $this->relations->chainOf($change) : new ArrayCollection(),
+        ));
     }
 
     private static function issueSort(ListParameters $list): IssueSortEnum

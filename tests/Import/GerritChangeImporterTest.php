@@ -152,7 +152,8 @@ final class GerritChangeImporterTest extends TestCase
             ]],
         ];
 
-        $document = $this->importer([])->documents([$change])[81234];
+        $noChain = static fn (): Response => new Response(200, [], ")]}'\n{\"changes\": []}");
+        $document = $this->importer([$noChain()])->documents([$change])[81234];
 
         self::assertSame($message, $document['commit_message']);
         self::assertSame('The overlay first.', $document['commit_text']);
@@ -164,7 +165,7 @@ final class GerritChangeImporterTest extends TestCase
         self::assertNull(GerritChangeImporter::owner($document));
 
         $change['owner'] = ['_account_id' => 52917, 'name' => 'Ingo Hollmann', 'username' => 'ingoholl', 'email' => 'ingo@example.org'];
-        $document = $this->importer([])->documents([$change])[81234];
+        $document = $this->importer([$noChain()])->documents([$change])[81234];
 
         // The owner, who uploaded it, not the author of the commit
         self::assertSame(['Ingo Hollmann', 'ingo@example.org', 52917, 'ingoholl'], [$document['owner'], $document['ownerEmail'], $document['owner_id'], $document['owner_username']]);
@@ -292,6 +293,47 @@ final class GerritChangeImporterTest extends TestCase
             GerritChangeImporter::conflicts($messages, 4),
         );
         self::assertSame([], GerritChangeImporter::conflicts($messages, 5));
+    }
+
+    public function testAnOpenChangeHasItsChainAClosedOneNone(): void
+    {
+        $link = static fn (int $number, int $patchSet, int $current, string $subject): array => [
+            '_change_number' => $number,
+            '_revision_number' => $patchSet,
+            '_current_revision_number' => $current,
+            'status' => 'NEW',
+            'commit' => ['subject' => $subject],
+        ];
+        $related = ")]}'\n" . json_encode(['changes' => [$link(2, 1, 2, 'Above'), $link(1, 3, 3, 'This')]]);
+        $change = [
+            '_number' => 1,
+            'status' => 'NEW',
+            'change_id' => 'I1',
+            'subject' => 'This',
+            'branch' => 'main',
+            'insertions' => 1,
+            'deletions' => 0,
+            'created' => '2026-11-01 10:00:00.000000000',
+            'updated' => '2026-11-01 10:00:00.000000000',
+            'labels' => [],
+            'current_revision' => 'abc',
+            'revisions' => ['abc' => [
+                '_number' => 3,
+                'files' => [],
+                'commit' => ['message' => 'This', 'author' => ['name' => 'A', 'email' => 'a@example.org']],
+            ]],
+        ];
+
+        $importer = $this->importer([new Response(200, [], $related)]);
+        $chain = $importer->documents([$change])[1]['chain'];
+
+        self::assertSame('/changes/1/revisions/current/related', $this->api->request(0)->getUri()->getPath());
+        self::assertSame([
+            ['number' => 2, 'patch_set' => 1, 'current_patch_set' => 2, 'status' => 'NEW', 'subject' => 'Above'],
+            ['number' => 1, 'patch_set' => 3, 'current_patch_set' => 3, 'status' => 'NEW', 'subject' => 'This'],
+        ], $chain);
+        // A merged change asks for nothing
+        self::assertSame([], $this->importer([])->documents([['status' => 'MERGED'] + $change])[1]['chain']);
     }
 
     public function testThePeopleOfAChangeAreItsOwnerAndItsReviewersButTheCi(): void

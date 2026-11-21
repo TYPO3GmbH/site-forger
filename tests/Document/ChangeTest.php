@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Document;
 
+use App\Document\ChainLink;
 use App\Document\Change;
 use App\People\Person;
 use PHPUnit\Framework\TestCase;
@@ -48,5 +49,26 @@ final class ChangeTest extends TestCase
         self::assertTrue(Change::fromDocument(['topic' => 'cache'])->hasTopic());
         self::assertFalse(Change::fromDocument(['topic' => 'no topic'])->hasTopic());
         self::assertFalse(Change::fromDocument([])->hasTopic());
+    }
+
+    public function testThePlaceOfAChangeInItsChain(): void
+    {
+        $link = static fn (int $number): array => ['number' => $number, 'patch_set' => 1, 'current_patch_set' => 1];
+        $change = Change::fromDocument(['id' => 2, 'subject' => 'This', 'chain' => [$link(3), $link(2), $link(1)]]);
+
+        self::assertTrue($change->hasChain());
+        self::assertSame([3], array_map(static fn ($item): int => $item->number, $change->chainAbove()));
+        self::assertSame(2, $change->chainLink()?->number);
+        self::assertSame([1], array_map(static fn ($item): int => $item->number, $change->chainBelow()));
+        self::assertFalse(Change::fromDocument(['id' => 2, 'subject' => 'Alone', 'chain' => [$link(2)]])->hasChain());
+    }
+
+    public function testAChainLinkIsOutdatedAgainstTheIndex(): void
+    {
+        $link = ChainLink::fromDocument(['number' => 2, 'patch_set' => 3, 'current_patch_set' => 3]);
+
+        self::assertFalse($link->isOutdated());
+        // The change got a patch set since the chain was loaded
+        self::assertTrue($link->isOutdated(Change::fromDocument(['id' => 2, 'subject' => 'Base', 'patchsets' => 4])));
     }
 }

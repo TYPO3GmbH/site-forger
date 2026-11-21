@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Api;
 
+use App\Api\Model\ChainChange;
 use App\Api\Model\ChangeDetail;
 use App\Api\Model\ChangeFile;
 use App\Api\Model\ChangeIssue;
@@ -20,6 +21,7 @@ use App\Api\Model\Label;
 use App\Api\Model\ReviewMessage;
 use App\Api\Model\Vote;
 use App\Api\Model\Votes;
+use App\Document\ChainLink;
 use App\Document\Change;
 use App\Document\ChangedFile;
 use App\Document\RelatedIssue;
@@ -80,9 +82,17 @@ final readonly class ChangeMapper
 
     /**
      * @param ReadableCollection<int, RelatedIssue> $issues see Relations::issuesOf()
+     * @param ReadableCollection<int, Change>       $chain  the changes of the chain Forger has, by number, see
+     *                                                      Relations::chainOf()
      */
-    public function detail(Change $change, ReadableCollection $issues): ChangeDetail
+    public function detail(Change $change, ReadableCollection $issues, ReadableCollection $chain): ChangeDetail
     {
+        $place = static fn (ChainLink $link): string => match (true) {
+            $link->number === $change->id => 'this',
+            in_array($link, $change->chainAbove(), true) => 'above',
+            default => 'below',
+        };
+
         return new ChangeDetail(
             summary: $this->summary($change),
             commitMessage: $change->commitMessage,
@@ -117,6 +127,19 @@ final readonly class ChangeMapper
             ),
             conflicts: $change->conflicts,
             cherryPickOf: $change->cherryPickOf,
+            chain: $change->hasChain() ? array_map(
+                static fn (ChainLink $link): ChainChange => new ChainChange(
+                    number: $link->number,
+                    subject: $link->subject,
+                    place: $place($link),
+                    state: $chain->get($link->number)?->state()->value,
+                    patchSet: $link->patchSet,
+                    currentPatchSet: $link->currentPatchSet,
+                    outdated: $link->isOutdated($chain->get($link->number)),
+                    url: sprintf(LinkTwigExtension::GERRIT_CHANGE, $link->number),
+                ),
+                $change->chain,
+            ) : [],
         );
     }
 

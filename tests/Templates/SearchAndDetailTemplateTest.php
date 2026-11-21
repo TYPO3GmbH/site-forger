@@ -745,6 +745,39 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringNotContainsString('timeline-bot-toggle', $html);
     }
 
+    public function testAChangeShowsItsRelationChainWithTheRowsOfTheChangesForgerHas(): void
+    {
+        $chain = [
+            ['number' => 81300, 'patch_set' => 1, 'current_patch_set' => 1, 'status' => 'NEW', 'subject' => 'Above'],
+            ['number' => 81234, 'patch_set' => 2, 'current_patch_set' => 3, 'status' => 'NEW', 'subject' => 'This'],
+            ['number' => 81100, 'patch_set' => 5, 'current_patch_set' => 5, 'status' => 'NEW', 'subject' => 'Below'],
+        ];
+        $above = Change::fromDocument(['id' => 81300, 'subject' => '[TASK] Above'] + self::CHANGE);
+
+        $html = $this->twig->load('change/show.html.twig')->renderBlock('body', [
+            'change' => Change::fromDocument(self::CHANGE + ['chain' => $chain]),
+            'message' => '',
+            'issues' => [],
+            'chain' => [81300 => $above],
+        ]);
+
+        self::assertStringContainsString('Relation chain <span class="detail-count">3</span>', $html);
+        // Forger has the change above: its row; not the one below: its number and subject
+        self::assertStringContainsString('href="/change/81300"', $html);
+        self::assertStringContainsString('Based on this change', $html);
+        self::assertStringContainsString('<span class="detail-number">81100</span>', $html);
+        self::assertStringContainsString('This change is based on it', $html);
+        self::assertStringContainsString('<li class="is-this">', $html);
+        self::assertStringContainsString('The chain has patch set 2 of 3', $html);
+        self::assertLessThan(strpos($html, '81100'), strpos($html, '81300'));
+
+        $html = $this->twig->load('change/show.html.twig')->renderBlock(
+            'body',
+            ['change' => Change::fromDocument(self::CHANGE), 'message' => '', 'issues' => []],
+        );
+        self::assertStringNotContainsString('chain-title', $html);
+    }
+
     public function testAChangeOfAnOlderImportHasNoReviewLog(): void
     {
         $html = $this->twig->load('change/show.html.twig')->renderBlock(

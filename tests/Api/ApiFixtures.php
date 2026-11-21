@@ -110,6 +110,11 @@ final class ApiFixtures
             'cherry_pick_of' => 97000,
             'comment_count' => 4,
             'unresolved_comment_count' => 1,
+            'chain' => [
+                self::link(97900, 1, 1, 'NEW', 'Above'),
+                self::link(97865, 1, 2, 'NEW', 'This'),
+                self::link(97800, 4, 4, 'MERGED', 'Below'),
+            ],
         ]);
     }
 
@@ -183,6 +188,22 @@ final class ApiFixtures
     private static function journal(int $user, string $name, string $createdOn, string $notes): array
     {
         return ['user' => ['id' => $user, 'name' => $name], 'created_on' => $createdOn, 'notes' => $notes];
+    }
+
+    /**
+     * A change of the relation chain as the import keeps it.
+     *
+     * @return array<string, mixed>
+     */
+    private static function link(int $number, int $patchSet, int $current, string $status, string $subject): array
+    {
+        return [
+            'number' => $number,
+            'patch_set' => $patchSet,
+            'current_patch_set' => $current,
+            'status' => $status,
+            'subject' => $subject,
+        ];
     }
 
     /**
