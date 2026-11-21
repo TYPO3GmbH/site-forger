@@ -17,6 +17,7 @@ import './js/person-search.js';
 import './js/search-tabs.js';
 import './js/date-range.js';
 import './js/flash-messages.js';
+import './js/copy.js';
 
 import ace from 'ace-builds/src-noconflict/ace.js';
 import 'ace-builds/src-noconflict/mode-yaml.js';

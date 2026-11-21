@@ -95,6 +95,29 @@
                             {% endif %}
                         </section>
 
+                        {# How to get the current patch set into a clone of the core, to test it before a vote #}
+                        {% set ref = change.patchSetRef %}
+                        {% if ref is not null %}
+                            {% set fetch = 'git fetch ' ~ gerrit_repository_url() ~ ' ' ~ ref %}
+                            <section class="detail-section" aria-labelledby="test-title">
+                                <h2 id="test-title" class="detail-section-title">Test this change</h2>
+                                <p class="detail-hint">
+                                    Run a command in your clone of the TYPO3 Core.
+                                    Then try what the change does and vote on Verified in Gerrit.
+                                </p>
+                                <dl class="detail-commands">
+                                    {{ _self.command(
+                                        'Check out patch set ' ~ change.patchsets,
+                                        fetch ~ ' && git checkout FETCH_HEAD',
+                                    ) }}
+                                    {{ _self.command(
+                                        'Cherry-pick onto ' ~ (change.branch ?? 'your branch'),
+                                        fetch ~ ' && git cherry-pick FETCH_HEAD',
+                                    ) }}
+                                </dl>
+                            </section>
+                        {% endif %}
+
                         {# Each label with its vote, what it lacks for a merge, and who voted how #}
                         <section class="detail-section" aria-labelledby="review-title">
                             <h2 id="review-title" class="detail-section-title">Review</h2>
@@ -275,6 +298,26 @@
     </div>
 
 {% endblock %}
+
+{#
+ # A shell command with its label and a button that copies it, see assets/js/copy.js.
+ #}
+{% macro command(label, command) %}
+    <div class="detail-command">
+        <dt>{{ label }}</dt>
+        <dd>
+            <code class="detail-command-text">{{ command }}</code>
+            <button
+                type="button"
+                class="btn btn-sm btn-default"
+                data-copy-text="{{ command }}"
+                title="Copy the command"
+            >
+                {{- icon('actions-clipboard') }} <span>Copy</span>
+            </button>
+        </dd>
+    </div>
+{% endmacro %}
 
 {#
  # A file in one line: the folder cut with an ellipsis when it is too long, the name always whole, then the lines it

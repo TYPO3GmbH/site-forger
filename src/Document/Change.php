@@ -415,6 +415,19 @@ final readonly class Change
     }
 
     /**
+     * The Git ref of the current patch set, like "refs/changes/34/81234/3". Gerrit puts the last two digits of the
+     * number in front, so that no folder gets too many refs. Null for a closed change: it has nothing to test.
+     */
+    public function patchSetRef(): ?string
+    {
+        if ($this->state()->isClosed() || null === $this->patchsets) {
+            return null;
+        }
+
+        return sprintf('refs/changes/%02d/%d/%d', $this->id % 100, $this->id, $this->patchsets);
+    }
+
+    /**
      * How long nothing happened to the open change, null for a closed one.
      */
     public function activity(\DateTimeInterface $now): ?ActivityEnum

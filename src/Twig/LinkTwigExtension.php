@@ -27,6 +27,7 @@ final readonly class LinkTwigExtension
     public const string FORGE_ISSUE = 'https://forge.typo3.org/issues/%d';
     public const string FORGE_USER = 'https://forge.typo3.org/users/%d';
     public const string GERRIT_CHANGE = 'https://review.typo3.org/c/Packages/TYPO3.CMS/+/%d/';
+    public const string GERRIT_REPOSITORY = 'https://review.typo3.org/Packages/TYPO3.CMS';
 
     public function __construct(
         private UrlGeneratorInterface $urlGenerator,
@@ -114,5 +115,14 @@ final readonly class LinkTwigExtension
     public function gerritChangeUrl(int|string $number): string
     {
         return sprintf(self::GERRIT_CHANGE, (int) $number);
+    }
+
+    /**
+     * The repository of the core in Gerrit, to fetch a patch set from.
+     */
+    #[AsTwigFunction(name: 'gerrit_repository_url')]
+    public function gerritRepositoryUrl(): string
+    {
+        return self::GERRIT_REPOSITORY;
     }
 }

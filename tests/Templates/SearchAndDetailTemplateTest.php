@@ -569,6 +569,25 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringNotContainsString('refresh-form', $html);
     }
 
+    public function testAnOpenChangeSaysHowToTestIt(): void
+    {
+        $render = fn (array $change): string => $this->twig->load('change/show.html.twig')->renderBlock(
+            'body',
+            ['change' => Change::fromDocument($change), 'message' => '', 'issues' => []],
+        );
+        $fetch = 'git fetch https://review.typo3.org/Packages/TYPO3.CMS refs/changes/34/81234/3';
+
+        $html = $render(self::CHANGE);
+        self::assertStringContainsString('Test this change', $html);
+        self::assertStringContainsString('<dt>Check out patch set 3</dt>', $html);
+        self::assertStringContainsString($fetch . ' &amp;&amp; git checkout FETCH_HEAD', $html);
+        self::assertStringContainsString('<dt>Cherry-pick onto main</dt>', $html);
+        $cherryPick = $fetch . ' &amp;&amp; git cherry-pick FETCH_HEAD';
+        self::assertStringContainsString('data-copy-text="' . $cherryPick . '"', $html);
+
+        self::assertStringNotContainsString('Test this change', $render(['reviewstatus' => 'MERGED'] + self::CHANGE));
+    }
+
     public function testTheFilesOfAChangeAreSortedAsATree(): void
     {
         $change = self::CHANGE + ['files' => ['composer.json', 'typo3/sysext/core/Classes/Cache.php', 'Build/Sources/cache.ts', 'typo3/sysext/backend/Classes/Page.php']];

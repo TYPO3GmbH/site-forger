@@ -160,6 +160,55 @@
     }
 }
 
+.detail-hint {
+    margin: 0 0 .875rem;
+    color: var(--overview-muted);
+    font-size: var(--detail-size-ui);
+}
+
+// The commands to test a change: the label above, the command and its copy button in one line
+.detail-commands {
+    display: grid;
+    gap: .75rem;
+    margin: 0;
+
+    dt {
+        margin-bottom: .25rem;
+        font-size: var(--detail-size-label);
+        font-weight: 600;
+    }
+
+    dd {
+        display: flex;
+        gap: .5rem;
+        align-items: flex-start;
+        margin: 0;
+    }
+
+    // On a phone the command takes the whole width, the button goes below it
+    @media (max-width: 575px) {
+        dd {
+            flex-direction: column;
+        }
+
+        .detail-command-text {
+            align-self: stretch;
+        }
+    }
+}
+
+.detail-command-text {
+    flex: 1;
+    min-width: 0;
+    padding: .375rem .625rem;
+    border-radius: .25rem;
+    background: #f7f8fa;
+    color: #1f2937;
+    font-size: var(--detail-size-code);
+    // The URL and the ref have no spaces, a phone breaks them anywhere
+    overflow-wrap: anywhere;
+}
+
 // "Linked, but not in Forger" below the changes
 .row-list + .detail-empty {
     margin-top: .75rem;

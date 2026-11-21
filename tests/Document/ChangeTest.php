@@ -45,6 +45,22 @@ final class ChangeTest extends TestCase
         self::assertFalse(Change::fromDocument(['reviewstatus' => 'NEW'])->isConflict());
     }
 
+    public function testAnOpenChangeHasTheRefOfItsCurrentPatchSet(): void
+    {
+        self::assertSame(
+            'refs/changes/34/81234/3',
+            Change::fromDocument(['id' => 81234, 'reviewstatus' => 'NEW', 'patchsets' => 3])->patchSetRef(),
+        );
+        self::assertSame(
+            'refs/changes/05/91205/1',
+            Change::fromDocument(['id' => 91205, 'reviewstatus' => 'NEW', 'patchsets' => 1])->patchSetRef(),
+        );
+        self::assertNull(
+            Change::fromDocument(['id' => 81234, 'reviewstatus' => 'MERGED', 'patchsets' => 3])->patchSetRef(),
+        );
+        self::assertNull(Change::fromDocument(['id' => 81234, 'reviewstatus' => 'NEW'])->patchSetRef());
+    }
+
     public function testNoTopicIsNoTopic(): void
     {
         self::assertTrue(Change::fromDocument(['topic' => 'cache'])->hasTopic());
