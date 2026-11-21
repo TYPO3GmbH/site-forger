@@ -14,6 +14,7 @@ namespace App\Tests\Import;
 use App\CommandRun\CommandRunRecorder;
 use App\Elastic\Indices;
 use App\Http\ApiFailure;
+use App\Import\ForgeIssueApi;
 use App\Import\ForgeIssueImporter;
 use App\Import\ForgeIssueList;
 use App\Import\ProjectIssues;
@@ -184,7 +185,7 @@ final class ForgeIssueImporterTest extends TestCase
     {
         $recorder = new CommandRunRecorder($this->createStub(Connection::class), new NullLogger());
 
-        $forge = new MockApi($responses, $recorder)->client;
+        $forge = new ForgeIssueApi(new MockApi($responses, $recorder)->client, new MockApi([], $recorder)->client);
 
         return new ForgeIssueImporter(
             new Indices(new Client()),

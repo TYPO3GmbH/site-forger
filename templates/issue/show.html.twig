@@ -11,6 +11,7 @@
     {% import '_macros/user.html.twig' as user %}
     {% set tracker = issue_tracker(issue.tracker.name ?? null) %}
     {% import '_macros/timeline.html.twig' as timeline %}
+    {% import '_macros/copy.html.twig' as copy %}
     {# The history as Relations::historyOf() leaves it #}
     {% set history = history ?? [] %}
     {% set botCount = history|filter(journal => journal.isByBot)|length %}
@@ -27,6 +28,7 @@
                             <span class="tag-label tag-label-{{ tracker.severity ?? 'default' }}">{{ tracker.label ?? issue.tracker.name ?? 'Issue' }}</span>
                             {{ status.issue(issue.status.name ?? null) }}
                             {{ status.issueActivity(issue) }}
+                            {{ status.issueMarks(issue) }}
                         </div>
                         <h1 class="detail-title"><span class="detail-number">#{{ issue.id }}</span>{{ issue.subject }}</h1>
                         <p class="detail-meta">
@@ -37,6 +39,14 @@
                     </div>
                     <div class="detail-actions">
                         <a class="btn btn-sm btn-default" href="{{ forge_issue_url(issue.id) }}" target="issue{{ issue.id }}">{{ icon('actions-window-open') }} Open in Forge</a>
+                        <a
+                            class="btn btn-sm btn-default"
+                            href="{{ forge_issue_edit_url(issue.id) }}"
+                            target="issue{{ issue.id }}"
+                            title="Comment or change the issue in Forge, after you logged in there"
+                        >
+                            {{- icon('actions-comment') }} Comment in Forge
+                        </a>
                         {# The marked and the similar open issues, see DuplicateGroups #}
                         {% set duplicateCount = duplicates.offered ?? 0 %}
                         {% if duplicateCount > 0 %}
@@ -80,6 +90,29 @@
                                 <p class="detail-empty">
                                     No change resolves or names this issue in its commit message, and no comment links one.
                                 </p>
+                            {% endif %}
+                            {# No open patch: how to start one, "Resolves:" links it here.
+                               A change that is not in Forger may be open #}
+                            {% set openChanges = changes|filter(item => not item.change.state.isClosed) %}
+                            {% set closed = issue.statusEnum.isClosed ?? false %}
+                            {% if not closed and openChanges is empty and unknownChanges is empty %}
+                                <div class="detail-start">
+                                    <h3 class="detail-start-title">Fix this issue</h3>
+                                    <p class="detail-hint">
+                                        Start the commit message of your patch with this.
+                                        Add what the patch does, and the versions it goes to in "Releases:".
+                                        {% if changes is not empty %}
+                                            The changes above were merged or abandoned: read them before you start.
+                                        {% endif %}
+                                        {% set patchGuide = contribution_guide_url('BugfixingAZ/Index.html') %}
+                                        <a href="{{ patchGuide }}" target="_blank" rel="noopener">
+                                            {{- 'How to create a patch' -}}
+                                        </a>
+                                    </p>
+                                    <dl class="detail-commands">
+                                        {{ copy.text('Commit message', issue_commit_message(issue)) }}
+                                    </dl>
+                                </div>
                             {% endif %}
                         </section>
 
@@ -132,10 +165,10 @@
                                     {% set earlierOfPeople = earlierEntries|filter(journal => not journal.isByBot)|length %}
                                     <details class="timeline-earlier{{ earlierOfPeople == 0 ? ' is-bots-only' }}">
                                         {{ timeline.earlier(earlierOfPeople, earlier) }}
-                                        {{ _self.history(earlierEntries, issue.attachments) }}
+                                        {{ _self.history(earlierEntries, issue.attachments, issue.id) }}
                                     </details>
                                 {% endif %}
-                                {{ _self.history(history|slice(earlier), issue.attachments) }}
+                                {{ _self.history(history|slice(earlier), issue.attachments, issue.id) }}
                             </section>
                         {% endif %}
                     </div>
@@ -175,8 +208,9 @@
  # The history of an issue as a timeline, see App\Document\IssueJournal: who changed which fields, the comment of a
  # person in a box below. Gerrit names each patch set with its change. Relations::historyOf() left out the issues
  # Forger does not have, they may be private. files: the attachments of the issue, for the images of the comments.
+ # issueId: the number of the issue, the time of an entry links to it on Forge.
  #}
-{% macro history(journals, files) %}
+{% macro history(journals, files, issueId) %}
     {% import '_macros/user.html.twig' as user %}
     <ol class="timeline-list">
         {% for journal in journals %}
@@ -198,7 +232,19 @@
                             {{ _self.change(change) }}
                         {% endfor %}
                         {% if journal.createdOn is not null %}
-                            <span class="timeline-time" title="{{ journal.createdOn }}">{{ relativetime(date(journal.createdOn)) }}</span>
+                            {% set time = relativetime(date(journal.createdOn)) %}
+                            {% if journal.id is not null %}
+                                <a
+                                    class="timeline-time"
+                                    href="{{ forge_journal_url(issueId, journal.id) }}"
+                                    target="issue{{ issueId }}"
+                                    title="{{ journal.createdOn }}, the entry in Forge"
+                                >
+                                    {{- time -}}
+                                </a>
+                            {% else %}
+                                <span class="timeline-time" title="{{ journal.createdOn }}">{{ time }}</span>
+                            {% endif %}
                         {% endif %}
                         {% if journal.isByBot and journal.change is null and journal.notes is not empty %}
                             <span class="timeline-note">{{ journal.notes|autolink }}</span>

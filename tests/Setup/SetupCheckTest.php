@@ -85,6 +85,27 @@ final class SetupCheckTest extends TestCase
         );
     }
 
+    public function testHiddenIssuesAndUsersAreProblems(): void
+    {
+        $setting = self::byName(SetupCheck::settings(
+            ['FORGE_ACCESS_TOKEN' => 'abc'],
+            [],
+            [
+                'account' => 'typo3com_bamboo',
+                'error' => null,
+                'issues' => 'Forge refuses the issues of the project (403).',
+                'users' => 'Forge hides the user #1 (Jane Doe) from the account (404).',
+            ],
+        ))['FORGE_ACCESS_TOKEN'];
+
+        self::assertSame(SystemCheckEnum::PROBLEM, $setting->result);
+        self::assertSame(
+            'Forge refuses the issues of the project (403). Forge hides the user #1 (Jane Doe) from the account (404).',
+            $setting->problem,
+        );
+        self::assertNull($setting->action);
+    }
+
     public function testNoValueLeavesTheCheck(): void
     {
         $settings = SetupCheck::settings(['FORGE_ACCESS_TOKEN' => 'secret-token'], []);

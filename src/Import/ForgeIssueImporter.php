@@ -15,7 +15,6 @@ use App\CommandRun\CommandRunRecorder;
 use App\CommandRun\JobStopped;
 use App\Elastic\Indices;
 use App\Enum\IssueRelationEnum;
-use App\Http\ApiClient;
 use App\Http\ApiFailure;
 use App\People\User;
 use App\Repository\UserRepository;
@@ -32,7 +31,7 @@ final class ForgeIssueImporter
 {
     public function __construct(
         private readonly Indices $indices,
-        private readonly ApiClient $forge,
+        private readonly ForgeIssueApi $forge,
         private readonly ForgeIssueList $forgeIssues,
         private readonly UserRepository $users,
         private readonly ProjectIssues $projectIssues,
@@ -282,9 +281,9 @@ final class ForgeIssueImporter
      */
     private function issue(int $id, string $include): array
     {
-        $answer = $this->forge->object(sprintf('/issues/%d.json', $id), ['include' => $include], 'the issue');
+        $answer = $this->forge->client()->object(sprintf('/issues/%d.json', $id), ['include' => $include], 'the issue');
         if (!isset($answer['issue']) || !is_array($answer['issue'])) {
-            throw ApiFailure::unexpected($this->forge->name, 'the issue', json_encode($answer));
+            throw ApiFailure::unexpected($this->forge->client()->name, 'the issue', json_encode($answer));
         }
 
         return $answer['issue'];

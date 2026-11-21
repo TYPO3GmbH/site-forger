@@ -39,6 +39,17 @@ final class ReviewSubject
     }
 
     /**
+     * The subject without the tags in square brackets it starts with: "[!!!][FEATURE] Add a cache" gives "Add a
+     * cache". A subject of tags only stays as it is.
+     */
+    public static function title(string $subject): string
+    {
+        $title = trim((string) preg_replace('/^(\s*\[([a-zA-Z0-9]+|!!!)\])+\s*/', '', $subject));
+
+        return '' === $title ? trim($subject) : $title;
+    }
+
+    /**
      * Whether the tags mark the change as work in progress, "[WIP]" and "[POC]" do.
      *
      * @param list<string> $tags

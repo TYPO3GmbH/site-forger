@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Document;
 
 use App\Document\CommitMessage;
+use App\Document\Issue;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -128,6 +129,23 @@ final class CommitMessageTest extends TestCase
     public function testTheParts(string $message, array $expected): void
     {
         self::assertSame($expected, CommitMessage::parse($message));
+    }
+
+    public function testThePatchOfAnIssueStartsWithItsTypeSubjectAndTrailers(): void
+    {
+        $issue = static fn (int $tracker): Issue => Issue::fromDocument([
+            'id' => 91089,
+            'subject' => ' The cache is not cleared ',
+            'tracker' => ['id' => $tracker],
+        ]);
+
+        self::assertSame(
+            "[BUGFIX] The cache is not cleared\n\nResolves: #91089\nReleases: main",
+            CommitMessage::forIssue($issue(1)),
+        );
+        self::assertStringStartsWith('[FEATURE] ', CommitMessage::forIssue($issue(2)));
+        self::assertStringStartsWith('[TASK] ', CommitMessage::forIssue($issue(4)));
+        self::assertStringStartsWith('[TASK] ', CommitMessage::forIssue(Issue::fromDocument(['id' => 1])));
     }
 
     public function testTheFieldsOfTheIndexOfTheMessageTheImportFailedOn(): void

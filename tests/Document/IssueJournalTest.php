@@ -62,6 +62,15 @@ final class IssueJournalTest extends TestCase
         self::assertSame([97864, 2, 'main'], [$journal->change, $journal->patchSet, $journal->branch]);
     }
 
+    public function testKeepsTheIdOfForgeForTheLinkToTheEntry(): void
+    {
+        $journal = ['id' => 584554, 'notes' => 'Works for me', 'details' => [['name' => 'unknown']]];
+
+        self::assertSame(584554, IssueJournal::fromJournal($journal)->id);
+        self::assertSame(584554, IssueJournal::fromJournal($journal)->withIssuesOf([])?->id);
+        self::assertNull(IssueJournal::fromJournal(['notes' => 'Imported before'])->id);
+    }
+
     public function testTheHistoryOfAnIssueLeavesOutThePrivateNotes(): void
     {
         $issue = Issue::fromDocument(['id' => 1, 'subject' => 'Issue', 'journals' => [

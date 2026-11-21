@@ -18,6 +18,7 @@
         {id: 'data', icon: 'actions-database', title: 'Where the data comes from'},
         {id: 'activity', icon: 'actions-clock', title: 'Activity'},
         {id: 'reviews', icon: 'actions-code-pull-request', title: 'Reviews'},
+        {id: 'get-involved', icon: 'actions-heart', title: 'Get involved'},
         {id: 'issues', icon: 'actions-list', title: 'Issues'},
         {id: 'dashboard', icon: 'actions-viewmode-tiles', title: 'Dashboard'},
         {id: 'my-work', icon: 'actions-user', title: 'My Work'},
@@ -149,6 +150,21 @@
                     </div>
                 </section>
 
+                {# Get involved #}
+                <section id="get-involved" class="help-section">
+                    <header class="help-section-header">
+                        <span class="help-section-icon">{{ icon('actions-heart') }}</span>
+                        <h2>Get involved</h2>
+                    </header>
+                    <p>
+                        <a href="{{ path('get_involved') }}">Get involved</a> is the place to start if you are new to
+                        the TYPO3 Core. Its first steps, from the account to the first patch, link to the
+                        <a href="{{ contribution_guide_url() }}" target="_blank" rel="noopener">Contribution Guide</a>.
+                        Below them it lists small changes to test, good first issues, new bugs to confirm and
+                        regressions, each with a link to all of them.
+                    </p>
+                </section>
+
                 {# Issues #}
                 <section id="issues" class="help-section">
                     <header class="help-section-header">
@@ -179,8 +195,14 @@
                         <div><dt>Waiting over a month</dt><dd>ready for review, no update for 30 days</dd></div>
                     </dl>
                     <p>
-                        The charts show the issues opened and closed per week, how long changes have been waiting, the open issues and changes
-                        over three years and what was closed per year. Each chart switches to a table.
+                        Below the figures, "What needs attention" lists the changes ready to merge, the changes that
+                        wait for a review for over a month, the open regressions, as Forge marks them with "Is
+                        Regression", and the new issues.
+                    </p>
+                    <p>
+                        The <a href="{{ path('dashboard_statistics') }}">statistics</a> show the issues opened and
+                        closed per week, how long changes have been waiting, the open issues and changes over three
+                        years and what was closed per year. Each chart switches to a table.
                     </p>
                     <p class="help-muted">The history is worked out from when issues and changes were created and closed, so it is close to, not exactly, what Forge and Gerrit showed back then.</p>
                 </section>
@@ -237,6 +259,11 @@
                         <li>The number next to a filter value is how many results it has.</li>
                         <li>Values of one filter add up, different filters narrow each other down: <em>Stale or Orphaned, and on main</em>.</li>
                         <li>The "Type" filter of the review lists uses the tags in the subject, like BUGFIX, TASK, FEATURE, DOCS or !!! for a breaking change.</li>
+                        <li>
+                            The "Marked as" filter of the issue search finds the open issues that need help most: a
+                            regression, something that worked in an earlier version, or a good first issue. A good first
+                            issue is easy or trivial in Forge, new or accepted, and nobody is assigned to it.
+                        </li>
                         <li>The "Tags" filter of the issue search shows the most used tags of the issues found, and the ones you selected.</li>
                         <li>The filters of people, "Owner" of the review lists and "Author" and "Assigned to" of the issue search, show the ten with the most results. Their search finds the others in the list while you type and filters by the one you pick.</li>
                         <li>The search in the header finds issues from every page.</li>

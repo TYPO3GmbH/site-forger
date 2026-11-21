@@ -14,6 +14,7 @@ namespace App\Tests\Enum;
 use App\Document\Change;
 use App\Enum\ActivityEnum;
 use App\Enum\CommandRunStatusEnum;
+use App\Enum\IssueMarkEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewLabelStateEnum;
 use App\Enum\ReviewSizeEnum;
@@ -99,6 +100,7 @@ final class StatusEnumTest extends TestCase
             ...IssueStatusEnum::cases(),
             ...ReviewStateEnum::cases(),
             ...ActivityEnum::cases(),
+            ...IssueMarkEnum::cases(),
             ...CommandRunStatusEnum::cases(),
             ...SystemCheckEnum::cases(),
             ...ReviewVoteEnum::cases(),

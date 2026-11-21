@@ -438,7 +438,6 @@ select.rst-input {
 
 .rst-result {
     align-items: center;
-    border-left: 4px solid var(--rst-border-strong);
     display: grid;
     flex: 0 0 auto;
     gap: .375rem 1rem;
@@ -447,12 +446,10 @@ select.rst-input {
 
     &.is-open {
         background: var(--rst-open-soft);
-        border-left-color: #e8a33d;
     }
 
     &.is-complete {
         background: var(--rst-done-soft);
-        border-left-color: var(--rst-done);
     }
 }
 

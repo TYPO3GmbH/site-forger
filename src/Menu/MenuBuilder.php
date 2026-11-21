@@ -53,6 +53,8 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
     {
         $menu = $this->factory->createItem('root');
         $menu->addChild('index', ['label' => 'Dashboard', 'route' => 'dashboard_index']);
+        // Where somebody new starts, before the lists the Core team works with
+        $menu->addChild('get_involved', ['label' => 'Get involved', 'route' => 'get_involved']);
         if ($this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
             $myWork = $menu->addChild('my_work', ['label' => 'My Work', 'route' => 'my_changes']);
             $this->addLink($myWork, 'my_changes', 'My reviews', 'my_changes', 'actions-code-pull-request');

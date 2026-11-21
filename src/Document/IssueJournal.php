@@ -56,6 +56,7 @@ final readonly class IssueJournal
     /**
      * @param list<IssueFieldChange> $changes the fields it changes
      * @param int|null               $change  the Gerrit change of a note of Gerrit on a patch set
+     * @param int|null               $id      the id of Forge, for the link to the entry; older imports have none
      */
     public function __construct(
         public ?Person $author,
@@ -65,6 +66,7 @@ final readonly class IssueJournal
         public ?int $change = null,
         public ?int $patchSet = null,
         public ?string $branch = null,
+        public ?int $id = null,
     ) {
     }
 
@@ -88,6 +90,7 @@ final readonly class IssueJournal
             change: null === $patchSet ? null : ($changes[0] ?? null),
             patchSet: null === $patchSet ? null : (int) $patchSet['patchSet'],
             branch: null === $patchSet ? null : $patchSet['branch'],
+            id: isset($journal['id']) ? (int) $journal['id'] : null,
         );
     }
 
@@ -134,6 +137,7 @@ final readonly class IssueJournal
             $this->change,
             $this->patchSet,
             $this->branch,
+            $this->id,
         );
     }
 

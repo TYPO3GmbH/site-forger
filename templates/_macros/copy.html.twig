@@ -1,0 +1,20 @@
+{#
+ # A text to copy with its label and a button that copies it, see assets/js/copy.js. Put it in a
+ # <dl class="detail-commands">, a text of several lines keeps them.
+ #}
+{% macro text(label, text) %}
+    <div class="detail-command">
+        <dt>{{ label }}</dt>
+        <dd>
+            <code class="detail-command-text">{{ text }}</code>
+            <button
+                type="button"
+                class="btn btn-sm btn-default"
+                data-copy-text="{{ text }}"
+                title="Copy it"
+            >
+                {{- icon('actions-clipboard') }} <span>Copy</span>
+            </button>
+        </dd>
+    </div>
+{% endmacro %}

@@ -13,6 +13,9 @@ namespace App\Setup;
 
 use App\Http\ApiClient;
 use App\Http\ApiFailure;
+use App\Import\ForgeIssueList;
+use App\Repository\UserRepository;
+use Elastica\Exception\ExceptionInterface as ElasticaException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
@@ -23,6 +26,19 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * Forge shows a user only to admins and to members of a project: a role in a project lets its members see all
  * active users. To anyone else Forge answers 404 for most users, and ForgeUserSync marks them as gone. So the
  * account must be a member of the project Forger reads (redmine_project_id).
+ *
+ * The role in the project must also let the account view the issues. A role without that permission sees less
+ * than the public: Forge answers 403 for the issues of the project. So check() asks Forge for the issues as the
+ * import does, and for the user Forge answered last as the user sync does.
+ *
+ * @phpstan-type ForgeCheck array{
+ *     account: string|null,
+ *     error: string|null,
+ *     project?: string,
+ *     membersUrl?: string,
+ *     issues?: string,
+ *     users?: string,
+ * }
  */
 final readonly class ForgeLogin
 {
@@ -32,7 +48,9 @@ final readonly class ForgeLogin
     public const string MEMBERS_URL = 'https://forge.typo3.org/projects/%s/settings/members';
 
     public function __construct(
+        private ForgeIssueList $issues,
         private ApiClient $forge,
+        private UserRepository $users,
         #[Autowire('%redmine_project_id%')]
         private int $projectId,
     ) {
@@ -41,9 +59,10 @@ final readonly class ForgeLogin
     /**
      * The account, like "benjaminkott (Benjamin Kott)", or why Forge did not log in, see SetupCheck. "project" names
      * the project Forger reads, like "TYPO3 Core (typo3cms-core)", if the account is no member and no admin.
-     * "membersUrl" is where to add the account to it then.
+     * "membersUrl" is where to add the account to it then. "issues" and "users" tell what keeps the account from the
+     * issues or the users of the project.
      *
-     * @return array{account: string|null, error: string|null, project?: string, membersUrl?: string}
+     * @return ForgeCheck
      */
     public function check(): array
     {
@@ -65,8 +84,14 @@ final readonly class ForgeLogin
         }
         $name = trim(sprintf('%s %s', $user['firstname'] ?? '', $user['lastname'] ?? ''));
         $login = ['account' => $user['login'] . ('' === $name ? '' : ' (' . $name . ')'), 'error' => null];
+        $issues = $this->issuesProblem();
+        if (null !== $issues) {
+            $login['issues'] = $issues;
+        }
         if (true === ($user['admin'] ?? false) || $this->isMember($user)) {
-            return $login;
+            $users = $this->usersProblem();
+
+            return null === $users ? $login : [...$login, 'users' => $users];
         }
 
         $project = $this->project();
@@ -79,6 +104,52 @@ final readonly class ForgeLogin
             'project' => $projectName,
             'membersUrl' => sprintf(self::MEMBERS_URL, $project['identifier'] ?? $this->projectId),
         ];
+    }
+
+    /**
+     * Why Forge does not list the issues of the project as the import asks for them, null if it does.
+     */
+    private function issuesProblem(): ?string
+    {
+        try {
+            return $this->issues->accessProblem();
+        } catch (ApiFailure $e) {
+            return 'Forge could not be asked for the issues: ' . $e->getMessage();
+        }
+    }
+
+    /**
+     * Why Forge hides the user it answered for last, null if it shows the user or no user was asked for yet.
+     *
+     * Forge answers 403 for a locked user, so only 404 counts.
+     */
+    private function usersProblem(): ?string
+    {
+        try {
+            $user = $this->users->lastFetched();
+        } catch (ElasticaException) {
+            return null;
+        }
+        if (null === $user || null === $user->forgeId) {
+            return null;
+        }
+        try {
+            $this->forge->object(sprintf('/users/%d.json', $user->forgeId), [], 'the user');
+        } catch (ApiFailure $e) {
+            if (404 !== $e->status) {
+                return null;
+            }
+
+            return sprintf(
+                'Forge hides the user #%d (%s) from the account (404), but it showed the user on %s.'
+                . ' The role of the account in the project must see all active users.',
+                $user->forgeId,
+                $user->name,
+                $user->fetchedOn?->format('Y-m-d') ?? 'an earlier run',
+            );
+        }
+
+        return null;
     }
 
     /**

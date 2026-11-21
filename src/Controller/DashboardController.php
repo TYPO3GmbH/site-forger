@@ -27,6 +27,10 @@ class DashboardController extends AbstractController
     ) {
     }
 
+    /**
+     * Where work waits: the key figures and the short lists of what needs attention. The charts are on the page of
+     * statistics, for a look now and then.
+     */
     #[Route(name: 'index')]
     public function index(): Response
     {
@@ -39,11 +43,23 @@ class DashboardController extends AbstractController
             'closedIssues' => $this->keyFigures->closedIssues(),
             'newIssues' => $this->keyFigures->newIssues(),
             'readyToMerge' => $this->keyFigures->readyToMerge(),
+            'regressions' => $this->keyFigures->regressions(),
+            'recentlyMerged' => $this->keyFigures->recentlyMerged(),
             'changes' => $changes,
             'changeLabels' => Mergeable::LABELS,
             'changesTotal' => array_sum($changes),
             'waitingChanges' => $this->keyFigures->waitingChanges($today),
             'waitingFilter' => KeyFigures::waitingFilter($today),
+        ]);
+    }
+
+    /**
+     * The charts of the issues and changes over time.
+     */
+    #[Route(path: 'statistics', name: 'statistics', methods: ['GET'])]
+    public function statistics(): Response
+    {
+        return $this->render('dashboard/statistics.html.twig', [
             'chartOptions' => ChartStyle::options(),
             'chartOptionsWithLegend' => ChartStyle::options(legend: true),
             'chartOptionsHorizontal' => ChartStyle::options(horizontal: true),

@@ -17,6 +17,7 @@ services:
     autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
     bind:
       App\Http\ApiClient $forge: '@api.forge'
+      App\Http\ApiClient $forgePublic: '@api.forge.public'
       App\Http\ApiClient $gerrit: '@api.gerrit'
 
   # makes classes in src/ available to be used as services
@@ -59,6 +60,24 @@ services:
       $rateLimiter: '@limiter.api'
       # Stephan Großberndt asked for 50 to 100 ms between two requests (Slack #t3a-t3g-infra, 2024-04-15).
       # With 50 ms Forge answered 429 to a run that loads one issue per request, and the run waited most of its time.
+      $minPauseMs: 600
+
+  # Temporary: the issues as the public sees them, while the token may not view them. See ForgeIssueApi.
+  api.forge.public:
+    class: App\Http\ApiClient
+    arguments:
+      $name: 'Forge'
+      $client: !service
+        class: GuzzleHttp\Client
+        arguments:
+          - base_uri: '%env(FORGE_ENDPOINT)%'
+            connect_timeout: 10
+            timeout: 120
+            headers:
+              # forge.typo3.org rejects requests without a User-Agent (bot protection)
+              User-Agent: 'TYPO3 Forger'
+      $rateLimiter: '@limiter.api'
+      # The pause of api.forge
       $minPauseMs: 600
 
   api.gerrit:

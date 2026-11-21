@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Document;
 
 use App\Enum\ActivityEnum;
+use App\Enum\IssueMarkEnum;
 use App\Enum\IssueStatusEnum;
 use App\People\Person;
 
@@ -39,6 +40,7 @@ final readonly class Issue
      * @param int|null                            $parent       the issue this one is a subtask of
      * @param list<IssueRelation>                 $relations    the other relations of Forge
      * @param list<IssueAttachment>               $attachments  the files, the oldest first
+     * @param bool                                $regression   Forge marks it with "Is Regression"
      */
     public function __construct(
         public int $id,
@@ -65,6 +67,7 @@ final readonly class Issue
         public ?int $parent = null,
         public array $relations = [],
         public array $attachments = [],
+        public bool $regression = false,
     ) {
     }
 
@@ -98,6 +101,7 @@ final readonly class Issue
             parent: isset($document['parent']['id']) ? (int) $document['parent']['id'] : null,
             relations: IssueRelation::listFrom($document['issue_relations'] ?? []),
             attachments: IssueAttachment::listFrom($document['attachments'] ?? []),
+            regression: true === ($document['isregression'] ?? false),
         );
     }
 
@@ -107,6 +111,37 @@ final readonly class Issue
     public function statusEnum(): ?IssueStatusEnum
     {
         return isset($this->status['id']) ? IssueStatusEnum::tryFrom((int) $this->status['id']) : null;
+    }
+
+    /**
+     * The marks of the open issue, see IssueMarkEnum. A closed issue has none.
+     *
+     * @return list<IssueMarkEnum>
+     */
+    public function marks(): array
+    {
+        if (true === $this->statusEnum()?->isClosed()) {
+            return [];
+        }
+        $marks = [];
+        if ($this->regression) {
+            $marks[] = IssueMarkEnum::REGRESSION;
+        }
+        if ($this->isGoodFirstIssue()) {
+            $marks[] = IssueMarkEnum::GOOD_FIRST_ISSUE;
+        }
+
+        return $marks;
+    }
+
+    /**
+     * The rule of IssueMarkEnum::GOOD_FIRST_ISSUE, as IssueMarkQuery searches it.
+     */
+    private function isGoodFirstIssue(): bool
+    {
+        return in_array($this->complexity, IssueMarkEnum::EASY_COMPLEXITIES, true)
+            && in_array($this->statusEnum(), IssueMarkEnum::UNSTARTED_STATES, true)
+            && null === $this->assignedTo;
     }
 
     /**

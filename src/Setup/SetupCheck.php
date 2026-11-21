@@ -18,6 +18,8 @@ use App\Enum\SystemCheckEnum;
  *
  * A secret that is still the value of the committed .env is a placeholder, not set: .env.local or the server sets
  * the real one. The client ID is no secret, so the committed .env holds the real one.
+ *
+ * @phpstan-import-type ForgeCheck from ForgeLogin
  */
 final class SetupCheck
 {
@@ -26,7 +28,7 @@ final class SetupCheck
      */
     private const array SETTINGS = [
         'APP_SECRET' => 'Sessions and form tokens',
-        'FORGE_ACCESS_TOKEN' => 'Users from Forge',
+        'FORGE_ACCESS_TOKEN' => 'Issues and users from Forge',
         'KEYCLOAK_CLIENT_ID' => 'Keycloak client for the login with the TYPO3 account',
         'KEYCLOAK_CLIENT_SECRET' => 'Secret of the Keycloak client for the login',
     ];
@@ -40,9 +42,9 @@ final class SetupCheck
      * $environment holds the variables of the environment, like $_SERVER. $defaults holds the values of the committed
      * .env. $forge tells who Forge logs in as with the token, see ForgeLogin. It is null if Forge was not asked.
      *
-     * @param array<string, mixed>                                                                        $environment
-     * @param array<string, string>                                                                       $defaults
-     * @param array{account: string|null, error: string|null, project?: string, membersUrl?: string}|null $forge
+     * @param array<string, mixed>  $environment
+     * @param array<string, string> $defaults
+     * @param ForgeCheck|null       $forge
      *
      * @return list<SetupSetting>
      */
@@ -72,9 +74,10 @@ final class SetupCheck
     }
 
     /**
-     * The Forge token is a problem if Forge does not accept it, or if its account may not see the users.
+     * The Forge token is a problem if Forge does not accept it, if its account is no member of the project, or if
+     * Forge hides the issues or the users from it.
      *
-     * @param array{account: string|null, error: string|null, project?: string, membersUrl?: string} $forge
+     * @param ForgeCheck $forge
      */
     private static function forgeToken(string $usedFor, array $forge): SetupSetting
     {
@@ -83,7 +86,20 @@ final class SetupCheck
             return new SetupSetting($name, $usedFor, SystemCheckEnum::PROBLEM, $forge['error']);
         }
         $loggedIn = 'Logged in as ' . $forge['account'] . '.';
-        if (!isset($forge['project'])) {
+        $problems = [];
+        if (isset($forge['project'])) {
+            $problems[] = sprintf(
+                'The account is no member of the Forge project %s, so Forge hides most users from it.'
+                . ' Add it to the project with a role that may view the issues, for example "Bot".',
+                $forge['project'],
+            );
+        }
+        foreach (['issues', 'users'] as $key) {
+            if (isset($forge[$key])) {
+                $problems[] = $forge[$key];
+            }
+        }
+        if ([] === $problems) {
             return new SetupSetting($name, $usedFor, SystemCheckEnum::OK, $loggedIn);
         }
 
@@ -92,11 +108,7 @@ final class SetupCheck
             $usedFor,
             SystemCheckEnum::PROBLEM,
             $loggedIn,
-            sprintf(
-                'The account is no member of the Forge project %s, so Forge hides most users from it.'
-                . ' Add it to the project with any role, for example "Bot".',
-                $forge['project'],
-            ),
+            implode(' ', $problems),
             isset($forge['membersUrl']) ? ['label' => 'Members in Forge', 'url' => $forge['membersUrl']] : null,
         );
     }

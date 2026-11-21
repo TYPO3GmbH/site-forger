@@ -1,0 +1,86 @@
+{#
+ # The changes merged last, as cards that thank their authors: who wrote it and when it was merged, its type,
+ # its title without the tags, below a line the people who reviewed it, the branch and the issues it resolves. No
+ # ranking of people: each merge counts the same. Below them the invitation to the page "Get involved".
+ # Expects: changes (a SearchResult of App\Document\Change)
+ #}
+{% import '_macros/section.html.twig' as section %}
+<section class="overview-merged" aria-labelledby="overview-merged-title">
+    {{ section.heading(
+        'Recently merged',
+        'overview-merged-title',
+        'Every merge is the work of the people who wrote, tested and reviewed it.',
+    ) }}
+    {% if changes is empty %}
+        <p class="overview-list-empty">No change was merged yet.</p>
+    {% else %}
+        <ul class="overview-merged-cards">
+            {% for change in changes %}
+                {% set owner = change.ownerPerson %}
+                <li>
+                    <a
+                        class="info-card overview-merged-card"
+                        href="{{ change_path(change.id) }}"
+                        title="{{ change.subject }}"
+                    >
+                        <span class="overview-merged-head">
+                            <span class="overview-merged-avatar" aria-hidden="true">{{ user_avatar(owner, 40) }}</span>
+                            <span class="overview-merged-who">
+                                <span class="overview-merged-name">{{ owner.name ?? 'Somebody' }}</span>
+                                {% if change.updatedOn is not null %}
+                                    <time
+                                        datetime="{{ to_datetime(change.updatedOn)|date('c') }}"
+                                        title="Merged {{ change.updatedOn }}"
+                                    >merged {{ relativetime(to_datetime(change.updatedOn)) }}</time>
+                                {% endif %}
+                            </span>
+                            {% set type = change.type %}
+                            {% if type is not null %}
+                                <span class="tag-label tag-label-{{ type.severity }}">{{ type.value }}</span>
+                            {% endif %}
+                        </span>
+                        <span class="overview-merged-subject">{{ change.title }}</span>
+                        <span class="overview-merged-foot">
+                            {% set reviewers = change.reviewers %}
+                            {% if reviewers is not empty %}
+                                {% set shownReviewers = 4 %}
+                                {% set reviewerNames = reviewers|map(person => person.name)|join(', ') %}
+                                <span class="overview-merged-reviewers" title="Reviewed by {{ reviewerNames }}">
+                                    <span class="overview-merged-faces" aria-hidden="true">
+                                        {%- for person in reviewers|slice(0, shownReviewers) -%}
+                                            {{- user_avatar(person, 24) -}}
+                                        {%- endfor -%}
+                                    </span>
+                                    <span class="overview-merged-names">
+                                        <span class="sr-only">Reviewed by</span> {{ reviewerNames }}
+                                    </span>
+                                </span>
+                            {% else %}
+                                <span class="overview-merged-reviewers"></span>
+                            {% endif %}
+                            <span class="overview-merged-where">
+                                {% set branch = change.branch ?? 'main' %}
+                                <span class="tag-label{{ branch != 'main' ? ' is-backport' }}" title="Branch">
+                                    {{- branch -}}
+                                </span>
+                                {% if change.resolves is not empty %}
+                                    <span title="The issues it resolves">
+                                        {{- change.resolves|map(number => '#' ~ number)|join(', ') -}}
+                                    </span>
+                                {% endif %}
+                            </span>
+                        </span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    <a class="overview-invite" href="{{ path('get_involved') }}">
+        <span class="overview-invite-icon">{{ icon('actions-heart') }}</span>
+        <span class="overview-invite-text">
+            <strong>Your change could be next.</strong>
+            Test a small change, fix a good first issue or confirm a bug.
+        </span>
+        <span class="overview-invite-action">Get involved {{ icon('actions-arrow-right') }}</span>
+    </a>
+</section>

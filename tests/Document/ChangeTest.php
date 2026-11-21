@@ -45,6 +45,59 @@ final class ChangeTest extends TestCase
         self::assertFalse(Change::fromDocument(['reviewstatus' => 'NEW'])->isConflict());
     }
 
+    public function testAnOpenChangeHasTheRefOfItsCurrentPatchSet(): void
+    {
+        self::assertSame(
+            'refs/changes/34/81234/3',
+            Change::fromDocument(['id' => 81234, 'reviewstatus' => 'NEW', 'patchsets' => 3])->patchSetRef(),
+        );
+        self::assertSame(
+            'refs/changes/05/91205/1',
+            Change::fromDocument(['id' => 91205, 'reviewstatus' => 'NEW', 'patchsets' => 1])->patchSetRef(),
+        );
+        self::assertNull(
+            Change::fromDocument(['id' => 81234, 'reviewstatus' => 'MERGED', 'patchsets' => 3])->patchSetRef(),
+        );
+        self::assertNull(Change::fromDocument(['id' => 81234, 'reviewstatus' => 'NEW'])->patchSetRef());
+    }
+
+    public function testTheReviewersArePeopleWhoVotedForTheChange(): void
+    {
+        $vote = static fn (string $label, int $value, int $id, string $name): array => [
+            'label' => $label,
+            'value' => $value,
+            'account' => ['id' => $id, 'name' => $name],
+        ];
+        $change = Change::fromDocument([
+            'owner' => 'Benni Mack',
+            'owner_id' => 1,
+            'votes' => [
+                $vote('Verified', 1, 3, 'Garvin Hicking'),
+                $vote('Code-Review', 2, 2, 'Georg Ringer'),
+                // The owner, the CI and a vote against are no reviews
+                $vote('Code-Review', 1, 1, 'Benni Mack'),
+                $vote('Verified', 1, 49454, 'core-ci'),
+                $vote('Code-Review', -1, 4, 'Jane Doe'),
+                // The same person on both labels counts once
+                $vote('Verified', 1, 2, 'Georg Ringer'),
+            ],
+        ]);
+
+        self::assertSame(
+            ['Georg Ringer', 'Garvin Hicking'],
+            array_map(static fn (Person $person): string => $person->name, $change->reviewers()),
+        );
+        self::assertSame([], Change::fromDocument([])->reviewers());
+    }
+
+    public function testTheTitleIsTheSubjectWithoutItsTags(): void
+    {
+        $breaking = Change::fromDocument(['subject' => '[!!!][BUGFIX] Clear the cache']);
+        self::assertSame('Clear the cache', $breaking->title());
+        self::assertSame('Clear the [cache]', Change::fromDocument(['subject' => 'Clear the [cache]'])->title());
+        self::assertSame('[WIP]', Change::fromDocument(['subject' => '[WIP]'])->title());
+    }
+
     public function testNoTopicIsNoTopic(): void
     {
         self::assertTrue(Change::fromDocument(['topic' => 'cache'])->hasTopic());

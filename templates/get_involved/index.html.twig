@@ -1,0 +1,158 @@
+{% extends 'base.html.twig' %}
+{% block title %}Get involved{% endblock %}
+{#
+ # Where somebody new to the TYPO3 Core can start, see App\Report\GetInvolved: first the steps to a first
+ # contribution, each with its page of the Contribution Guide, then three short lists of things to do without
+ # experience, each with a link to all of its items.
+ # Expects: people (App\Report\MergePerson, the authors and reviewers of the last merges), smallReviews,
+ #          goodFirstIssues, newBugs (SearchResult objects)
+ #}
+{% block body %}
+    {% set firstIssues = {'filters': {'marked_as': {'Good_first_issue': 'true'}}, 'sort': 'updated'} %}
+    {% set bugs = {'filters': {'tracker': {'Bug': 'true'}, 'status': {'New': 'true'}}, 'sort': 'newest'} %}
+    {% import '_macros/section.html.twig' as section %}
+    {# A white hero, the steps on the gray of the page, the tasks white again #}
+    <section class="content-section content-section-small bg-default overview" aria-labelledby="get-involved-title">
+        <div class="container">
+            <div class="hero-layout">
+                <div class="hero">
+                    <h1 class="hero-title" id="get-involved-title">Help build TYPO3</h1>
+                    <p class="hero-lead">
+                        Thousands of websites run on what people like you write, test and review.
+                        You do not need to be an expert: a test of a small change helps already.
+                    </p>
+                    <p class="hero-actions">
+                        <a class="btn btn-primary" href="#get-involved-tasks">
+                            {{- icon('actions-arrow-down') }} Find a task
+                        </a>
+                        {% set quickStart = contribution_guide_url('Quickstart/Index.html') %}
+                        <a class="btn btn-default" href="{{ quickStart }}" target="_blank" rel="noopener">
+                            {{- icon('actions-book') }} Read the quick start
+                        </a>
+                    </p>
+                </div>
+                {% if people is not empty %}
+                    {# Each face in a place of its own, see _get-involved.scss, and leads to the change of the person #}
+                    <figure class="hero-people">
+                        <ul class="hero-people-faces">
+                            {% for mergePerson in people %}
+                                <li class="hero-face hero-face-{{ loop.index }}">
+                                    <a href="{{ change_path(mergePerson.change.id) }}" title="{{ mergePerson.deed }}">
+                                        {{- user_avatar(mergePerson.person, 128) -}}
+                                        <span class="sr-only">{{ mergePerson.deed }}</span>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        <figcaption>The people behind the last merges</figcaption>
+                    </figure>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <section class="content-section content-section-small overview" aria-labelledby="get-involved-steps">
+        <div class="container">
+            {{ section.heading('Your first contribution in four steps', 'get-involved-steps') }}
+            <ol class="get-involved-steps">
+                {{ _self.step(
+                    1,
+                    'Get your account',
+                    'One TYPO3 account logs you in to Forge, where the issues are,'
+                        ~ ' and to Gerrit, where patches get reviewed.',
+                    contribution_guide_url('Account/Index.html'),
+                    'Create an account',
+                ) }}
+                {{ _self.step(
+                    2,
+                    'Set up the Core',
+                    'Clone the TYPO3 Core and run it on your machine. It takes about 30 minutes.',
+                    contribution_guide_url('Quickstart/Index.html'),
+                    'Quick start',
+                ) }}
+                {{ _self.step(
+                    3,
+                    'Pick a task',
+                    'Test a change, fix an easy issue or confirm a bug. Say in a comment that you are on it.',
+                    '#get-involved-tasks',
+                    'Find a task',
+                ) }}
+                {{ _self.step(
+                    4,
+                    'Ask for help',
+                    'Stuck? The Core team and other contributors are happy to help you on Slack.',
+                    contribution_guide_url('Community/Index.html'),
+                    'Get help',
+                ) }}
+            </ol>
+        </div>
+    </section>
+
+    <section class="content-section content-section-small bg-default overview" aria-labelledby="get-involved-tasks">
+        <div class="container">
+            {{ section.heading(
+                'What do you want to do?',
+                'get-involved-tasks',
+                'Your first contribution does not have to be code. A good test counts just as much.',
+            ) }}
+            <div class="task-cards">
+                {% include 'get_involved/_task.html.twig' with {
+                    'id': 'get-involved-reviews',
+                    'icon': 'actions-eye',
+                    'title': 'Test a small change',
+                    'text': 'Changes of 50 lines or less wait for a review.'
+                        ~ ' Test one on your machine and vote in Gerrit.',
+                    'guide': {'url': contribution_guide_url('HandlingAPatch/Review.html'), 'label': 'How to review'},
+                    'chips': {'time': 'About 30 minutes', 'skill': 'No merge rights needed'},
+                    'url': path('reviews_ready', {'filters': {'size': {'Easy': 'true'}}}),
+                    'items': smallReviews,
+                    'kind': 'change',
+                    'empty': 'No small change waits for a review.',
+                } only %}
+                {% include 'get_involved/_task.html.twig' with {
+                    'id': 'get-involved-first-issues',
+                    'icon': 'actions-debug',
+                    'title': 'Fix a good first issue',
+                    'text': 'Easy issues nobody works on yet. Read the issue, then push a fix to Gerrit.',
+                    'guide': {
+                        'url': contribution_guide_url('BugfixingAZ/Index.html'),
+                        'label': 'How to create a patch',
+                    },
+                    'chips': {'time': '1 to 3 hours', 'skill': 'PHP or TypeScript'},
+                    'url': path('search_search', firstIssues),
+                    'items': goodFirstIssues,
+                    'kind': 'issue',
+                    'empty': 'There is no good first issue at the moment.',
+                } only %}
+                {% include 'get_involved/_task.html.twig' with {
+                    'id': 'get-involved-new-bugs',
+                    'icon': 'actions-check-circle',
+                    'title': 'Confirm a new bug',
+                    'text': 'Nobody looked at these bugs yet.'
+                        ~ ' Try one and say in Forge what you found, and on which version.',
+                    'chips': {'time': 'About 15 minutes', 'skill': 'Everyone'},
+                    'url': path('search_search', bugs),
+                    'items': newBugs,
+                    'kind': 'issue',
+                    'empty': 'There is no new bug.',
+                } only %}
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{#
+ # A step to the first contribution as an info card: its number, title and text, and a link to where it is done
+ # at its end. A link to another site opens in a new tab. The number is in the list already, the tile repeats it.
+ #}
+{% macro step(number, title, text, url, action) %}
+    {% set external = url starts with 'http' %}
+    <li class="info-card get-involved-step">
+        <span class="info-card-tile is-number" aria-hidden="true">{{ number }}</span>
+        <h3 class="info-card-title">{{ title }}</h3>
+        <p class="info-card-text">{{ text }}</p>
+        <a class="info-card-link" href="{{ url }}"{% if external %} target="_blank" rel="noopener"{% endif %}>
+            {{- action }} {{ icon(external ? 'actions-window-open' : 'actions-arrow-down') -}}
+        </a>
+    </li>
+{% endmacro %}

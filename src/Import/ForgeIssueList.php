@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace App\Import;
 
-use App\Http\ApiClient;
 use App\Http\ApiFailure;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -31,7 +30,7 @@ final readonly class ForgeIssueList
     public const int PAGE_SIZE = 100;
 
     public function __construct(
-        private ApiClient $forge,
+        private ForgeIssueApi $forge,
         #[Autowire('%redmine_project_id%')]
         private int $projectId,
     ) {
@@ -52,6 +51,28 @@ final readonly class ForgeIssueList
     }
 
     /**
+     * Why Forge does not list the issues of the project to the token, null if it does. A role of the account in the
+     * project without the permission "View issues" sees less than the public: Forge answers 403 or lists none.
+     *
+     * @throws ApiFailure when Forge could not be asked for another reason
+     */
+    public function accessProblem(): ?string
+    {
+        $grant = ' Give the role of the account in the project the permission "View issues".';
+        try {
+            $count = $this->count()['count'];
+        } catch (ApiFailure $e) {
+            if (403 !== $e->status) {
+                throw $e;
+            }
+
+            return 'Forge refuses the issues of the project (403).' . $grant;
+        }
+
+        return 0 === $count ? 'Forge lists no issues of the project.' . $grant : null;
+    }
+
+    /**
      * A page of all issues of the project, the newest first. With a filter of "updated_on" the oldest come first.
      *
      * @param string|null $updatedOn see ImportWatermark::redmineFilter()
@@ -62,7 +83,7 @@ final readonly class ForgeIssueList
      */
     public function page(int $offset, ?string $updatedOn = null): array
     {
-        return self::issueList($this->forge->object('/issues.json', [
+        return self::issueList($this->forge->client()->object('/issues.json', [
             'limit' => self::PAGE_SIZE,
             'offset' => $offset,
             'project_id' => $this->projectId,
@@ -130,9 +151,9 @@ final readonly class ForgeIssueList
      */
     private function get(string $path): array
     {
-        $answer = $this->forge->object($path, [], 'a list of issues');
+        $answer = $this->forge->client()->object($path, [], 'a list of issues');
         if (!array_key_exists('total_count', $answer)) {
-            throw ApiFailure::unexpected($this->forge->name, 'a list of issues', json_encode($answer));
+            throw ApiFailure::unexpected($this->forge->client()->name, 'a list of issues', json_encode($answer));
         }
 
         return self::issueList($answer);

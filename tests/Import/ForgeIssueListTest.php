@@ -11,8 +11,14 @@ declare(strict_types=1);
 
 namespace App\Tests\Import;
 
+use App\CommandRun\CommandRunRecorder;
+use App\Import\ForgeIssueApi;
 use App\Import\ForgeIssueList;
+use App\Tests\Http\MockApi;
+use Doctrine\DBAL\Connection;
+use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 
 final class ForgeIssueListTest extends TestCase
 {
@@ -41,5 +47,59 @@ final class ForgeIssueListTest extends TestCase
             '/issues.json?project_id=27&' . self::FILTERS . '&f[]=issue_id&op[issue_id]=%3D&v[issue_id][]=111513,111464&sort=id&limit=100&include=relations',
             ForgeIssueList::path(27, null, null, [111513, 111464], 100, 'id')
         );
+    }
+
+    public function testTheTokenThatSeesIssuesHasNoProblem(): void
+    {
+        self::assertNull($this->list([self::total(61205)])->accessProblem());
+    }
+
+    public function testARefusedTokenIsAProblem(): void
+    {
+        $list = $this->list([new Response(403)]);
+
+        self::assertStringStartsWith('Forge refuses the issues of the project (403).', (string) $list->accessProblem());
+    }
+
+    public function testNoIssuesAreAProblem(): void
+    {
+        $list = $this->list([self::total(0)]);
+
+        self::assertStringStartsWith('Forge lists no issues of the project.', (string) $list->accessProblem());
+    }
+
+    public function testThePublicApiAsksWithoutTheToken(): void
+    {
+        $token = $this->api([new Response(403)]);
+        $public = $this->api([self::total(61205)]);
+        $api = new ForgeIssueApi($token->client, $public->client);
+        $list = new ForgeIssueList($api, 27);
+
+        self::assertNotNull($list->accessProblem());
+        $api->usePublic();
+        self::assertNull($list->accessProblem());
+        self::assertTrue($api->isPublic());
+        self::assertSame('/issues.json', $public->request(0)->getUri()->getPath());
+    }
+
+    /**
+     * @param list<Response> $responses the answers of Forge to the token
+     */
+    private function list(array $responses): ForgeIssueList
+    {
+        return new ForgeIssueList(new ForgeIssueApi($this->api($responses)->client, $this->api([])->client), 27);
+    }
+
+    /**
+     * @param list<Response> $responses
+     */
+    private function api(array $responses): MockApi
+    {
+        return new MockApi($responses, new CommandRunRecorder($this->createStub(Connection::class), new NullLogger()));
+    }
+
+    private static function total(int $count): Response
+    {
+        return new Response(200, [], json_encode(['issues' => [], 'total_count' => $count], JSON_THROW_ON_ERROR));
     }
 }

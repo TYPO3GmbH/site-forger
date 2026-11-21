@@ -16,7 +16,9 @@ use App\Elastic\IndexSetup;
 use App\Http\ApiRequests;
 use App\Import\DuplicateImport;
 use App\Import\ForgeImport;
+use App\Import\ForgeIssueApi;
 use App\Import\ForgeIssueImporter;
+use App\Import\ForgeIssueList;
 use App\Import\ImportRun;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
@@ -31,6 +33,8 @@ final class ImportForgeCommand extends ImportJobCommand
         private readonly ForgeImport $forgeImport,
         private readonly ForgeIssueImporter $issueImporter,
         private readonly DuplicateImport $duplicateImport,
+        private readonly ForgeIssueList $forgeIssues,
+        private readonly ForgeIssueApi $forgeApi,
         IndexSetup $indexSetup,
         CommandRunRecorder $recorder,
         ApiRequests $apiRequests,
@@ -61,7 +65,11 @@ final class ImportForgeCommand extends ImportJobCommand
                 throw new \InvalidArgumentException('--remove needs the numbers of the issues');
             }
             $run->writeln(sprintf('Removed %d issues', $this->issueImporter->remove($ids)));
-        } elseif ([] !== $ids) {
+
+            return;
+        }
+        $this->checkAccess($run);
+        if ([] !== $ids) {
             $result = $this->issueImporter->update($ids);
             $run->writeln(sprintf('Updated %d issues, removed %d that Forge does not list', $result['updated'], $result['removed']));
         } elseif ($input->getOption('full')) {
@@ -70,6 +78,27 @@ final class ImportForgeCommand extends ImportJobCommand
         } else {
             $this->forgeImport->delta($run);
             $this->duplicateImport->run($run, new \DateTimeImmutable());
+        }
+    }
+
+    /**
+     * Reads the issues without the token when Forge refuses them to it. The system page shows the problem of the
+     * token, see ForgeLogin.
+     *
+     * Temporary, see ForgeIssueApi: without the fallback, the run stops here with the problem.
+     */
+    private function checkAccess(ImportRun $run): void
+    {
+        $problem = $this->forgeIssues->accessProblem();
+        if (null === $problem) {
+            return;
+        }
+        $this->forgeApi->usePublic();
+        $run->writeln('Warning: ' . $problem . ' Reading the public issues without the token.');
+        $this->logger?->warning($problem, ['fallback' => 'public']);
+        $problem = $this->forgeIssues->accessProblem();
+        if (null !== $problem) {
+            throw new \RuntimeException('Without the token too: ' . $problem);
         }
     }
 }
