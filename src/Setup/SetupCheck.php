@@ -16,8 +16,8 @@ use App\Enum\SystemCheckEnum;
 /**
  * Whether the tokens and secrets Forger needs are set in the environment, see SetupSetting.
  *
- * A value that is still the one of the committed .env is a placeholder, not set: .env.local or the server sets the
- * real one.
+ * A secret that is still the value of the committed .env is a placeholder, not set: .env.local or the server sets
+ * the real one. The client ID is no secret, so the committed .env holds the real one.
  */
 final class SetupCheck
 {
@@ -38,6 +38,11 @@ final class SetupCheck
     ];
 
     /**
+     * The settings whose value in the committed .env is a placeholder.
+     */
+    private const array SECRETS = ['APP_SECRET', 'FORGE_ACCESS_TOKEN', 'KEYCLOAK_CLIENT_SECRET'];
+
+    /**
      * @param array<string, mixed>  $environment the variables of the environment, like $_SERVER
      * @param array<string, string> $defaults    the values of the committed .env
      *
@@ -47,11 +52,12 @@ final class SetupCheck
     {
         $settings = [];
         foreach (self::SETTINGS as $name => $usedFor) {
+            $default = in_array($name, self::SECRETS, true) ? trim($defaults[$name] ?? '') : '';
             $value = $environment[$name] ?? '';
             $value = is_scalar($value) ? trim((string) $value) : '';
             $state = match (true) {
                 '' === $value => self::NOT_SET,
-                '' !== trim($defaults[$name] ?? '') && $value === trim($defaults[$name]) => self::PLACEHOLDER,
+                '' !== $default && $value === $default => self::PLACEHOLDER,
                 default => self::SET,
             };
             $result = self::SET === $state ? SystemCheckEnum::OK : SystemCheckEnum::PROBLEM;

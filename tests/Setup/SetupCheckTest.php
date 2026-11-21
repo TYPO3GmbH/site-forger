@@ -30,12 +30,13 @@ final class SetupCheckTest extends TestCase
     public function testThePlaceholderOfDotEnvIsNotSet(): void
     {
         $settings = self::byName(SetupCheck::settings(
-            ['KEYCLOAK_CLIENT_SECRET' => 'blabla', 'KEYCLOAK_CLIENT_ID' => 'forger'],
-            ['KEYCLOAK_CLIENT_SECRET' => 'blabla', 'KEYCLOAK_CLIENT_ID' => ''],
+            ['KEYCLOAK_CLIENT_SECRET' => 'blabla', 'KEYCLOAK_CLIENT_ID' => 'forger-typo3-com'],
+            ['KEYCLOAK_CLIENT_SECRET' => 'blabla', 'KEYCLOAK_CLIENT_ID' => 'forger-typo3-com'],
         ));
 
         self::assertSame(SystemCheckEnum::PROBLEM, $settings['KEYCLOAK_CLIENT_SECRET']->result);
         self::assertSame('still the placeholder from .env', $settings['KEYCLOAK_CLIENT_SECRET']->state);
+        // The client ID is no secret: the committed .env holds the real one
         self::assertSame(SystemCheckEnum::OK, $settings['KEYCLOAK_CLIENT_ID']->result);
     }
 
