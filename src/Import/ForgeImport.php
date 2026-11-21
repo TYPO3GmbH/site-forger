@@ -270,6 +270,10 @@ final readonly class ForgeImport
     private function skip(array $issue, \Exception $failure): void
     {
         $this->recorder->skipped('issue', (string) ($issue['id'] ?? '?'), $failure);
+        // The next delta starts after the issue, the next run loads it again with the older ones
+        if (isset($issue['id'])) {
+            $this->issueImporter->markOutdated((int) $issue['id']);
+        }
     }
 
     /**

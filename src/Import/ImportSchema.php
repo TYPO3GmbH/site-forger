@@ -34,8 +34,9 @@ final class ImportSchema
      * 2: the "duplicates" relations of Forge, in "duplicates" and "duplicated_by"; issues imported before the
      *    import kept the email of the assignee get it, too.
      * 3: the other relations of Forge, in "issue_relations", each with its type seen from the issue.
+     * 4: the journals of every issue, not only of those under review: the comments of Forge.
      */
-    public const int ISSUE = 3;
+    public const int ISSUE = 4;
 
     /**
      * 1: as before the versions

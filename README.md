@@ -120,8 +120,9 @@ The deltas only read what changed, and only load details for what they do not ha
   (`App\Import\ImportWatermark`). The index is the state of the import: after an outage, a failed or a
   skipped run, the next run catches up on everything changed since. There is no state to keep elsewhere.
 * **Forge:** lists the issues with `updated_on>=<start>`, the oldest first, and skips those the index has
-  with the same `updated_on`. Only changed issues are written, and only for those under review the journals
-  are loaded. A run ends after 2000 issues and reports a warning, the next run goes on from there.
+  with the same `updated_on`. Only changed issues are written. Each of them is loaded again with its journals,
+  the comments and changes, which no list of Forge has: one request per issue. A run ends after 2000 issues and
+  reports a warning, the next run goes on from there.
 * **Gerrit:** a light query lists the changes updated since the start (`after:`) with their update time,
   the details (votes, the current patch set with its files and commit) are loaded only for the changes the index does not have in this
   state. Gerrit lists the newest first, so the changes are written once all of them are loaded: a run that
