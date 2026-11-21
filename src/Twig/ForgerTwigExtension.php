@@ -11,7 +11,9 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
+use App\Document\IssueAttachment;
 use App\Elastic\Bucket;
+use App\Renderer\InlineAttachments;
 use App\Renderer\RedmineTextileRenderer;
 use App\Search\GlobalSearch;
 use Doctrine\Common\Collections\ReadableCollection;
@@ -125,10 +127,13 @@ class ForgerTwigExtension
             . '</div>';
     }
 
+    /**
+     * @param list<IssueAttachment> $attachments the files of the issue the text belongs to, for its images
+     */
     #[AsTwigFilter(name: 'forgeMarkdown', isSafe: ['html'])]
-    public function forgeMarkdown(string $markdown): string
+    public function forgeMarkdown(string $markdown, array $attachments = []): string
     {
-        return $this->redmineTextRenderer->render($markdown);
+        return InlineAttachments::resolve($this->redmineTextRenderer->render($markdown), $attachments);
     }
 
     /**

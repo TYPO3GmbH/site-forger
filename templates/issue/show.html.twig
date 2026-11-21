@@ -53,7 +53,7 @@
                         <section class="detail-section" aria-labelledby="description-title">
                             <h2 id="description-title" class="detail-section-title">Description</h2>
                             {% if (issue.description ?? '') is not empty %}
-                                <div class="detail-text">{{ issue.description|forgeMarkdown }}</div>
+                                <div class="detail-text">{{ issue.description|forgeMarkdown(issue.attachments) }}</div>
                             {% else %}
                                 <p class="detail-empty">No description.</p>
                             {% endif %}
@@ -132,10 +132,10 @@
                                     {% set earlierOfPeople = earlierEntries|filter(journal => not journal.isByBot)|length %}
                                     <details class="timeline-earlier{{ earlierOfPeople == 0 ? ' is-bots-only' }}">
                                         {{ timeline.earlier(earlierOfPeople, earlier) }}
-                                        {{ _self.history(earlierEntries) }}
+                                        {{ _self.history(earlierEntries, issue.attachments) }}
                                     </details>
                                 {% endif %}
-                                {{ _self.history(history|slice(earlier)) }}
+                                {{ _self.history(history|slice(earlier), issue.attachments) }}
                             </section>
                         {% endif %}
                     </div>
@@ -174,9 +174,9 @@
 {#
  # The history of an issue as a timeline, see App\Document\IssueJournal: who changed which fields, the comment of a
  # person in a box below. Gerrit names each patch set with its change. Relations::historyOf() left out the issues
- # Forger does not have, they may be private.
+ # Forger does not have, they may be private. files: the attachments of the issue, for the images of the comments.
  #}
-{% macro history(journals) %}
+{% macro history(journals, files) %}
     {% import '_macros/user.html.twig' as user %}
     <ol class="timeline-list">
         {% for journal in journals %}
@@ -205,7 +205,7 @@
                         {% endif %}
                     </p>
                     {% if journal.hasComment %}
-                        <div class="timeline-comment detail-text">{{ journal.notes|forgeMarkdown }}</div>
+                        <div class="timeline-comment detail-text">{{ journal.notes|forgeMarkdown(files) }}</div>
                     {% endif %}
                 </div>
             </li>
