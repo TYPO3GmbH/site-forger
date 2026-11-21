@@ -1,6 +1,6 @@
 {#
- # A Gerrit change in one row of a list: the branch, the subject, below it owner, votes, releases, topic and size,
- # the last update. A merge conflict shows in every row.
+ # A Gerrit change in one row of a list: the branch, the subject, below it the state unless ready, owner, votes,
+ # releases, topic and size, the last update. A merge conflict shows in every row.
  # Expects: change, an App\Document\Change
  # Optional: relation, how it belongs to the page, like "Resolves this issue";
  #           detailed, for the review lists: the whole subject, below it in one line the state unless ready, the owner with a small
@@ -42,6 +42,7 @@
         {% else %}
             <span class="overview-list-item-meta">
                 {% if relation is defined %}<span class="overview-list-relation">{{ relation }}</span>{% endif %}
+                {% if change.state.isNoteworthy %}{{ status.review(change) }}{% endif %}
                 {% if conflict %}<span class="status-pill status-pill-conflict" title="Gerrit cannot merge it, it needs a rebase">Merge conflict</span>{% endif %}
                 {{ owner }}
                 {{ status.votes(change) }}
