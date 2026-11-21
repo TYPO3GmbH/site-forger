@@ -107,6 +107,10 @@ services:
         method: 'mainFooter'
         alias: 'main-footer'
 
+  # The subscriber of the Keycloak bundle, without the stateless routes of the public API
+  T3G\Bundle\Keycloak\EventSubscriber\RequestSubscriber:
+    class: App\Security\StatelessAwareKeycloakSubscriber
+
   App\Security\LogoutSuccessHandler:
     class: App\Security\LogoutSuccessHandler
     arguments:
