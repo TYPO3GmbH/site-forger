@@ -3,6 +3,7 @@
 
 {% block body %}
     {% import '_macros/search.html.twig' as search %}
+    {% import '_macros/section.html.twig' as section %}
     {% set list = '_partials/short_list.html.twig' %}
     {% set regressionSearch = {'filters': {'marked_as': {'Regression': 'true'}}, 'sort': 'updated'} %}
 
@@ -61,7 +62,7 @@
     <div class="content-section content-section-small overview">
         <div class="container">
             {# Where work waits: for the mergers first, then for every reviewer and triager #}
-            <h2 class="overview-heading">What needs attention</h2>
+            {{ section.heading('What needs attention', 'overview-attention-title') }}
             <div class="overview-lists">
                 {% include 'dashboard/_ready_to_merge.html.twig' with {'changes': readyToMerge} only %}
                 {% include list with {

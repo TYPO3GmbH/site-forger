@@ -10,14 +10,32 @@
     {% set list = '_partials/short_list.html.twig' %}
     {% set firstIssues = {'filters': {'marked_as': {'Good_first_issue': 'true'}}, 'sort': 'updated'} %}
     {% set bugs = {'filters': {'tracker': {'Bug': 'true'}, 'status': {'New': 'true'}}, 'sort': 'newest'} %}
-    {# The welcome as a white section of the template bundle, the lists below on the gray of the page #}
+    {% import '_macros/section.html.twig' as section %}
+    {# A white hero, the steps on the gray of the page, the tasks white again #}
     <section class="content-section content-section-small bg-default overview" aria-labelledby="get-involved-title">
         <div class="container">
-            <h1 class="get-involved-title" id="get-involved-title">Help build the TYPO3 Core</h1>
-            <p class="get-involved-lead">
-                Thousands of websites run on what people like you write, test and review.
-                You do not need to be an expert: a test of a small change helps already.
-            </p>
+            <div class="hero">
+                <h1 class="hero-title" id="get-involved-title">Help build the TYPO3 Core</h1>
+                <p class="hero-lead">
+                    Thousands of websites run on what people like you write, test and review.
+                    You do not need to be an expert: a test of a small change helps already.
+                </p>
+                <p class="hero-actions">
+                    <a class="btn btn-primary" href="#get-involved-tasks">
+                        {{- icon('actions-arrow-down') }} Find a task
+                    </a>
+                    {% set quickStart = contribution_guide_url('Quickstart/Index.html') %}
+                    <a class="btn btn-default" href="{{ quickStart }}" target="_blank" rel="noopener">
+                        {{- icon('actions-book') }} Read the quick start
+                    </a>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="content-section content-section-small overview" aria-labelledby="get-involved-steps">
+        <div class="container">
+            {{ section.heading('Your first contribution in four steps', 'get-involved-steps') }}
             <ol class="get-involved-steps">
                 {{ _self.step(
                     'Get your account',
@@ -48,9 +66,13 @@
         </div>
     </section>
 
-    <div class="content-section content-section-small overview">
+    <section class="content-section content-section-small bg-default overview" aria-labelledby="get-involved-tasks">
         <div class="container">
-            <h2 class="get-involved-heading" id="get-involved-tasks">Pick something to do</h2>
+            {{ section.heading(
+                'What do you want to do?',
+                'get-involved-tasks',
+                'Your first contribution does not have to be code. A good test counts just as much.',
+            ) }}
             <div class="overview-lists">
                 {% include list with {
                     'id': 'get-involved-reviews',
@@ -58,6 +80,7 @@
                     'text': 'Changes of 50 lines or less that wait for a review.'
                         ~ ' Test one on your machine and vote in Gerrit.',
                     'guide': {'url': contribution_guide_url('HandlingAPatch/Review.html'), 'label': 'How to review'},
+                    'chips': {'time': 'About 30 minutes', 'skill': 'No merge rights needed'},
                     'url': path('reviews_ready', {'filters': {'size': {'Easy': 'true'}}}),
                     'items': smallReviews,
                     'kind': 'change',
@@ -71,6 +94,7 @@
                         'url': contribution_guide_url('BugfixingAZ/Index.html'),
                         'label': 'How to create a patch',
                     },
+                    'chips': {'time': '1 to 3 hours', 'skill': 'PHP or TypeScript'},
                     'url': path('search_search', firstIssues),
                     'items': goodFirstIssues,
                     'kind': 'issue',
@@ -81,6 +105,7 @@
                     'title': 'Confirm a new bug',
                     'text': 'Bugs nobody looked at yet.'
                         ~ ' Try to reproduce one and say in Forge what you found, and on which version.',
+                    'chips': {'time': 'About 15 minutes', 'skill': 'Everyone'},
                     'url': path('search_search', bugs),
                     'items': newBugs,
                     'kind': 'issue',
@@ -88,7 +113,7 @@
                 } only %}
             </div>
         </div>
-    </div>
+    </section>
 {% endblock %}
 
 {#

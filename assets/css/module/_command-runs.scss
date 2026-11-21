@@ -534,7 +534,7 @@ a.runs-job {
     max-width: 90ch;
     margin: .25rem 0 .35rem;
     padding: .6rem .85rem;
-    border-left: 3px solid var(--runs-message-color);
+    border: 1px solid var(--runs-message-color);
     border-radius: .4rem;
     background: var(--runs-message-background);
     font-size: .8125rem;
@@ -1073,7 +1073,7 @@ a.runs-job {
     gap: .75rem;
     align-items: flex-start;
     padding: .65rem .75rem .65rem 1rem;
-    border-left: 4px solid #2a78d6;
+    border: 1px solid #2a78d6;
     border-radius: .5rem;
     background: #fff;
     box-shadow: 0 .75rem 2rem rgba(0, 0, 0, .18);
@@ -1087,11 +1087,11 @@ a.runs-job {
 }
 
 .runs-toast-success {
-    border-left-color: #3f8f5b;
+    border-color: #3f8f5b;
 }
 
 .runs-toast-danger {
-    border-left-color: #b42318;
+    border-color: #b42318;
 }
 
 .runs-toast-close {

@@ -1,22 +1,7 @@
-// The page "Get involved", see templates/get_involved/index.html.twig. Its lists are the ones of the dashboard.
+// The page "Get involved", see templates/get_involved/index.html.twig. Its lists are the ones of the dashboard, its
+// heads those of _section-heading.scss.
 
-// The welcome on top, a white section of the template bundle: the steps to a first contribution as numbered cards
-.get-involved-title {
-    margin: 0 0 .5rem;
-    color: #0b0b0b;
-    font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
-    font-weight: 700;
-    line-height: 1.2;
-}
-
-.get-involved-lead {
-    max-width: 44rem;
-    margin: 0 0 1.5rem;
-    color: #374151;
-    font-size: 1.0625rem;
-    line-height: 1.55;
-}
-
+// The steps to a first contribution as numbered cards, four in a row
 .get-involved-steps {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -35,27 +20,27 @@
     }
 }
 
-// The number of the step in an orange circle, the button at the bottom, so the buttons of a row stand in a line
+// The number in a light orange tile, the button at the bottom, so the buttons of a row stand in a line
 .get-involved-step {
     display: flex;
     flex-direction: column;
     gap: .5rem;
-    padding: 1.25rem;
+    padding: 1.25rem 1.5rem;
     border: 1px solid var(--overview-border);
     border-radius: var(--overview-radius);
-    background: #f7f8fa;
+    background: #fff;
     counter-increment: get-involved-step;
 
     &::before {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 2.25rem;
-        height: 2.25rem;
-        margin-bottom: .25rem;
-        border-radius: 50%;
-        background: #1f2937;
-        color: #fff;
+        width: 2.5rem;
+        height: 2.5rem;
+        margin-bottom: .5rem;
+        border-radius: .625rem;
+        background: #fff1e6;
+        color: #c25700;
         content: counter(get-involved-step);
         font-size: 1.125rem;
         font-weight: 700;
@@ -68,29 +53,28 @@
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
         gap: .375rem .875rem;
-        padding: 1rem;
+        padding: 1.25rem;
 
         &::before {
             grid-row: span 3;
-            width: 2rem;
-            height: 2rem;
             margin-bottom: 0;
-            font-size: 1rem;
         }
     }
 }
 
 .get-involved-step-title {
     margin: 0;
-    font-size: 1.0625rem;
-    font-weight: 700;
+    // The size of the titles of all cards
+    font-size: 1.125rem;
+    font-weight: 500;
+    line-height: 1.2;
 }
 
 .get-involved-step-text {
     flex: 1;
     margin: 0;
     color: #4b5563;
-    font-size: .9375rem;
+    font-size: 1rem;
     line-height: 1.5;
 }
 
@@ -98,11 +82,5 @@
     // As wide as its label, in the column of the card and in the grid of a phone
     align-self: flex-start;
     justify-self: start;
-}
-
-.get-involved-heading {
-    margin: 0 0 1rem;
-    font-size: 1.25rem;
-    font-weight: 700;
-    scroll-margin-top: 1.5rem;
+    margin-top: .5rem;
 }

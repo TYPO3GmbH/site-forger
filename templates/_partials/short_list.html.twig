@@ -3,7 +3,8 @@
  # of them.
  # Expects: id, title, url (the list or search with the same filter), items (a SearchResult), kind ("issue" or
  #          "change"), empty (the text without items)
- # Optional: text, a line on what to do with the items; guide, a page of the Contribution Guide on it: url and label
+ # Optional: text, a line on what to do with the items; guide, a page of the Contribution Guide on it: url and label;
+ #           chips, what the task takes: time and skill
  #}
 <section class="overview-list" aria-labelledby="{{ id }}">
     <header class="overview-list-header">
@@ -19,6 +20,12 @@
                 <a href="{{ guide.url }}" target="_blank" rel="noopener">
                     {{- icon('actions-book') }} {{ guide.label -}}
                 </a>
+            {% endif %}
+            {% if chips is defined %}
+                <span class="overview-list-chips">
+                    <span class="effort-chip effort-chip-time" title="What it takes">{{ chips.time }}</span>
+                    <span class="effort-chip" title="What you need">{{ chips.skill }}</span>
+                </span>
             {% endif %}
         </p>
     {% endif %}
