@@ -200,7 +200,7 @@ class ApiV1Controller extends AbstractController
         ));
     }
 
-    #[Route(path: '/issues/{id}', name: 'issue', requirements: ['id' => '\d+'])]
+    #[Route(path: '/issues/{id}', name: 'issue', requirements: ['id' => '\d{1,9}'])]
     #[OA\Get(
         operationId: 'getIssue',
         description: 'One Forge issue with its description, its relations and the Gerrit changes that belong to it.',
@@ -237,7 +237,7 @@ class ApiV1Controller extends AbstractController
         ));
     }
 
-    #[Route(path: '/issues/{id}/duplicates', name: 'issue_duplicates', requirements: ['id' => '\d+'])]
+    #[Route(path: '/issues/{id}/duplicates', name: 'issue_duplicates', requirements: ['id' => '\d{1,9}'])]
     #[OA\Get(
         operationId: 'listDuplicates',
         description: 'The open issues that may describe the same as the issue: first those Forge relates as '
@@ -397,7 +397,7 @@ class ApiV1Controller extends AbstractController
         ));
     }
 
-    #[Route(path: '/changes/{number}', name: 'change', requirements: ['number' => '\d+'])]
+    #[Route(path: '/changes/{number}', name: 'change', requirements: ['number' => '\d{1,9}'])]
     #[OA\Get(
         operationId: 'getChange',
         description: 'One Gerrit change with its commit message, its files, its review log, its relation chain and '
