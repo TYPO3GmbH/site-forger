@@ -47,7 +47,8 @@ final class GerritChangeImporter
         'MESSAGES',
     ];
     /**
-     * The accounts of the CI, their votes are no reviews.
+     * The accounts of the CI. A positive vote of them is no review, a negative one counts: a red build keeps the
+     * change from being merged, see labels().
      */
     public const array CI_ACCOUNTS = [49454, 51735, 52386];
 
@@ -444,7 +445,8 @@ final class GerritChangeImporter
 
     /**
      * The sums of the positive and the negative votes of each label, and its lowest and highest single vote:
-     * only these tell the +2 and -2 of a merger from two +1 or -1, see ReviewVoteEnum.
+     * only these tell the +2 and -2 of a merger from two +1 or -1, see ReviewVoteEnum. The negative votes of the CI
+     * count, its positive ones do not, see CI_ACCOUNTS.
      *
      * @param array<string, mixed> $labels the labels Gerrit sends with DETAILED_LABELS
      *
@@ -464,10 +466,14 @@ final class GerritChangeImporter
                 throw new \InvalidArgumentException('Unknown Label type ' . $name);
             }
             foreach ($votes['all'] ?? [] as $vote) {
-                if (!isset($vote['value']) || in_array($vote['_account_id'], self::CI_ACCOUNTS, true)) {
+                if (!isset($vote['value'])) {
                     continue;
                 }
                 $value = (int) $vote['value'];
+                // A green build is no verification by a person, a red one blocks the merge like the -1 of a person
+                if ($value > 0 && in_array($vote['_account_id'], self::CI_ACCOUNTS, true)) {
+                    continue;
+                }
                 if ($value < -2 || $value > 2) {
                     throw new \InvalidArgumentException('Unknown Vote Type');
                 }

@@ -39,8 +39,6 @@ final class GerritChangeImporterTest extends TestCase
                 ['_account_id' => 3, 'value' => 0],
             ]],
             'Verified' => ['all' => [
-                // The CI is no reviewer
-                ['_account_id' => 49454, 'value' => -2],
                 ['_account_id' => 4, 'value' => -1],
                 ['_account_id' => 5, 'value' => 1],
             ]],
@@ -56,6 +54,17 @@ final class GerritChangeImporterTest extends TestCase
             'lowest_verification_vote' => -1,
             'highest_verification_vote' => 1,
         ], $labels);
+    }
+
+    public function testARedBuildCountsAGreenOneDoesNot(): void
+    {
+        $red = GerritChangeImporter::labels(['Verified' => ['all' => [['_account_id' => 49454, 'value' => -1]]]]);
+        $green = GerritChangeImporter::labels(['Verified' => ['all' => [['_account_id' => 49454, 'value' => 1]]]]);
+
+        // A red build keeps the change from being merged, as the -1 of a person
+        self::assertSame([1, -1], [$red['negative_verifications'], $red['lowest_verification_vote']]);
+        // A green build is no verification by a person
+        self::assertSame([0, 0], [$green['positive_verifications'], $green['highest_verification_vote']]);
     }
 
     public function testWithoutVotes(): void

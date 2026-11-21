@@ -114,7 +114,7 @@
                     <p>
                         The lists show open changes, the ones updated last first. Each list can be sorted and searched by subject, commit message, number, Change-Id, topic and owner.
                         Work in progress only appears in its own list and in the search. The filter "File" finds the changes that touch a file, by its path, or any file of a folder.
-                        Votes count when a person gave them, not the CI bot.
+                        Votes count when a person gave them. Of the CI bot only a red build counts, as Verified -1: it keeps the change from being merged.
                     </p>
                     <div class="link-tiles">
                         {{ help.tile('reviews_ready', 'actions-code-pull-request', 'Ready for review', 'Every open change that is not work in progress, has no negative vote and no merge conflict.') }}

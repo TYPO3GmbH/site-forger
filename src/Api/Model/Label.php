@@ -26,7 +26,8 @@ final readonly class Label
      */
     public function __construct(
         #[OA\Property(
-            description: 'The vote of the label, without the votes of the CI: the lowest negative vote if there is '
+            description: 'The vote of the label, with the negative votes of the CI but not its positive ones: a red '
+                . 'build blocks the merge, a green one is no review. The lowest negative vote if there is '
                 . 'one, else the highest. Only mergers vote +2 and -2.',
             enum: self::VOTES,
             example: 1,
