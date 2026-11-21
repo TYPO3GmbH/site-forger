@@ -43,20 +43,9 @@
     </{{ tag }}>
 {% endmacro %}
 
-{% macro bytes(bytes) %}
-    {%- if bytes is null -%}
-        –
-    {%- elseif bytes >= 1073741824 -%}
-        {{ (bytes / 1073741824)|number_format(1, '.', ',') }} GB
-    {%- elseif bytes >= 1048576 -%}
-        {{ (bytes / 1048576)|number_format(1, '.', ',') }} MB
-    {%- else -%}
-        {{ (bytes / 1024)|number_format(0, '.', ',') }} KB
-    {%- endif -%}
-{% endmacro %}
-
 {% block body %}
     {% import _self as system %}
+    {% import '_macros/format.html.twig' as format %}
     {% set configurationLabels = {
         'outdated': 'The configuration has changed. Run app:elasticsearch:setup to rebuild the index.',
         'unknown': 'Built before the configuration was stored. Run app:elasticsearch:setup to compare the mapping.',
@@ -124,7 +113,7 @@
                         'Indices',
                         checks['Indices'],
                         documents|number_format(0, '.', ','),
-                        'documents in ' ~ indices|length ~ ' indices · ' ~ system.bytes(bytes),
+                        'documents in ' ~ indices|length ~ ' indices · ' ~ format.bytes(bytes),
                         'system-indices',
                     ) }}
                     {{ system.tile(
@@ -247,7 +236,7 @@
                                             · {{ index.documents is null
                                                 ? '–'
                                                 : index.documents|number_format(0, '.', ',') }} documents
-                                            · <span class="runs-nowrap">{{ system.bytes(index.bytes) }}</span>
+                                            · <span class="runs-nowrap">{{ format.bytes(index.bytes) }}</span>
                                         {%- else -%}
                                             No index
                                         {%- endif -%}

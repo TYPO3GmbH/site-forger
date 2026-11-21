@@ -136,9 +136,9 @@ final class ForgeIssueImporter
     }
 
     /**
-     * Writes an issue as Forge lists it, loaded again with its journals: a list of Forge has none. The journals are
-     * the comments and changes of the issue, the pages show the comments, and the import reads the Gerrit changes
-     * they link. The private notes are left out.
+     * Writes an issue as Forge lists it, loaded again with its journals and attachments: a list of Forge has none.
+     * The journals are the comments and changes of the issue, the pages show the comments, and the import reads the
+     * Gerrit changes they link. The private notes and the files added with them are left out.
      *
      * @param array<string, mixed> $issue
      * @param bool                 $refresh whether the index shows the issue right away, for the page that asked
@@ -148,7 +148,7 @@ final class ForgeIssueImporter
      */
     public function import(array $issue, bool $refresh = false): void
     {
-        $issue = $this->issue((int) $issue['id'], 'journals,relations');
+        $issue = $this->issue((int) $issue['id'], 'journals,relations,attachments');
         // Private or moved since Forge listed it
         if (!$this->projectIssues->belongsToProject($issue)) {
             $this->remove([(int) $issue['id']]);
@@ -225,12 +225,42 @@ final class ForgeIssueImporter
                 ];
             }
         }
+        $issue['attachments'] = self::attachments($issue['attachments'] ?? []);
         $issue['updated_on'] = self::indexDate((string) $issue['updated_on']);
         $issue['created_on'] = self::indexDate((string) $issue['created_on']);
         unset($issue['start_date'], $issue['due_date'], $issue['relations']);
         $issue[ImportSchema::FIELD] = ImportSchema::ISSUE;
 
         return $issue;
+    }
+
+    /**
+     * The files of the issue, without the thumbnails: their address needs a login on Forge. The dates stay as Forge
+     * sends them, like those of the journals.
+     *
+     * @return list<array{id: int, filename: string, filesize: int, content_type: string, description: string,
+     *     content_url: string, author: array<string, mixed>|null, created_on: string}>
+     */
+    private static function attachments(mixed $attachments): array
+    {
+        $list = [];
+        foreach (is_array($attachments) ? $attachments : [] as $file) {
+            if (!is_array($file) || !isset($file['id'], $file['filename'], $file['content_url'])) {
+                continue;
+            }
+            $list[] = [
+                'id' => (int) $file['id'],
+                'filename' => (string) $file['filename'],
+                'filesize' => (int) ($file['filesize'] ?? 0),
+                'content_type' => (string) ($file['content_type'] ?? ''),
+                'description' => (string) ($file['description'] ?? ''),
+                'content_url' => (string) $file['content_url'],
+                'author' => is_array($file['author'] ?? null) ? $file['author'] : null,
+                'created_on' => (string) ($file['created_on'] ?? ''),
+            ];
+        }
+
+        return $list;
     }
 
     /**
@@ -244,7 +274,7 @@ final class ForgeIssueImporter
     /**
      * An issue as Forge shows it.
      *
-     * @param string $include what Forge adds to the issue, "journals,relations"
+     * @param string $include what Forge adds to the issue, "journals,relations,attachments"
      *
      * @return array<string, mixed>
      *

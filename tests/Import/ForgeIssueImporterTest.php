@@ -116,6 +116,41 @@ final class ForgeIssueImporterTest extends TestCase
         self::assertSame(['id' => 90000], $document['parent']);
     }
 
+    public function testDocumentKeepsTheFilesWithoutTheirThumbnails(): void
+    {
+        $document = ForgeIssueImporter::document([
+            'id' => 1,
+            'created_on' => '2026-11-01T10:00:00Z',
+            'updated_on' => '2026-11-01T10:00:00Z',
+            'attachments' => [
+                [
+                    'id' => 38811,
+                    'filename' => 'crop.png',
+                    'filesize' => 48213,
+                    'content_type' => 'image/png',
+                    'description' => '',
+                    'content_url' => 'https://forge.typo3.org/attachments/download/38811/crop.png',
+                    'thumbnail_url' => 'https://forge.typo3.org/attachments/thumbnail/38811',
+                    'author' => ['id' => 36415, 'name' => 'Jane Doe'],
+                    'created_on' => '2026-11-01T10:05:00Z',
+                ],
+                // Without an address it cannot be shown
+                ['id' => 38812, 'filename' => 'broken.txt'],
+            ],
+        ]);
+
+        self::assertSame([[
+            'id' => 38811,
+            'filename' => 'crop.png',
+            'filesize' => 48213,
+            'content_type' => 'image/png',
+            'description' => '',
+            'content_url' => 'https://forge.typo3.org/attachments/download/38811/crop.png',
+            'author' => ['id' => 36415, 'name' => 'Jane Doe'],
+            'created_on' => '2026-11-01T10:05:00Z',
+        ]], $document['attachments']);
+    }
+
     public function testDocumentWithoutRelationsHasNoDuplicates(): void
     {
         $document = ForgeIssueImporter::document(['id' => 1, 'created_on' => '2026-11-01T10:00:00Z', 'updated_on' => '2026-11-01T10:00:00Z']);
@@ -123,6 +158,7 @@ final class ForgeIssueImporterTest extends TestCase
         self::assertSame([], $document['duplicates']);
         self::assertSame([], $document['duplicated_by']);
         self::assertSame([], $document['issue_relations']);
+        self::assertSame([], $document['attachments']);
     }
 
     public function testErrorsOfForgeOtherThanNotFoundAreThrownByRefresh(): void

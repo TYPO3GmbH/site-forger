@@ -49,6 +49,16 @@ final class ApiFixtures
             'duplicates' => [101234],
             'duplicated_by' => [],
             'issue_relations' => [['type' => 'relates', 'issue' => 104990], ['type' => 'blocks', 'issue' => 101234]],
+            'attachments' => [[
+                'id' => 38811,
+                'filename' => 'crop.png',
+                'filesize' => 48213,
+                'content_type' => 'image/png',
+                'description' => 'The preview',
+                'content_url' => 'https://forge.typo3.org/attachments/download/38811/crop.png',
+                'author' => ['id' => 36415, 'name' => 'Jane Doe', 'email' => self::EMAIL],
+                'created_on' => '2026-11-20T10:05:00Z',
+            ]],
             'journals' => [
                 self::journal(36415, 'Jane Doe', '2026-11-20T10:00:00Z', 'Confirmed.'),
                 self::journal(36415, 'Jane Doe', '2026-11-20T11:00:00Z', ''),

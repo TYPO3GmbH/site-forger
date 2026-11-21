@@ -106,6 +106,21 @@
                             </section>
                         {% endif %}
 
+                        {% if issue.attachments is not empty %}
+                            <section class="detail-section" aria-labelledby="attachments-title">
+                                <h2 id="attachments-title" class="detail-section-title">
+                                    {#- -#}Files <span class="detail-count">{{ issue.attachments|length }}</span>
+                                {#- -#}</h2>
+                                <ul class="row-list">
+                                    {% for file in issue.attachments %}
+                                        <li>
+                                            {% include '_partials/row/attachment.html.twig' with {'file': file} only %}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </section>
+                        {% endif %}
+
                         {% if history is not empty %}
                             <section class="detail-section timeline" aria-labelledby="history-title">
                                 {{ timeline.header('history-title', 'History', history|length, botCount, 'Gerrit') }}

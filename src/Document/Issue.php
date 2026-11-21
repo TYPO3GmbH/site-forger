@@ -38,6 +38,7 @@ final readonly class Issue
      * @param list<int>                           $duplicatedBy the issues that duplicate this one
      * @param int|null                            $parent       the issue this one is a subtask of
      * @param list<IssueRelation>                 $relations    the other relations of Forge
+     * @param list<IssueAttachment>               $attachments  the files, the oldest first
      */
     public function __construct(
         public int $id,
@@ -63,6 +64,7 @@ final readonly class Issue
         public array $duplicatedBy = [],
         public ?int $parent = null,
         public array $relations = [],
+        public array $attachments = [],
     ) {
     }
 
@@ -95,6 +97,7 @@ final readonly class Issue
             duplicatedBy: self::numbers($document['duplicated_by'] ?? []),
             parent: isset($document['parent']['id']) ? (int) $document['parent']['id'] : null,
             relations: IssueRelation::listFrom($document['issue_relations'] ?? []),
+            attachments: IssueAttachment::listFrom($document['attachments'] ?? []),
         );
     }
 

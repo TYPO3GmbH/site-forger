@@ -45,4 +45,24 @@ final class ProjectIssuesTest extends TestCase
         self::assertSame([10, 12], array_column($this->projectIssues->withoutPrivateNotes($issue)['journals'], 'id'));
         self::assertSame(['id' => 1], $this->projectIssues->withoutPrivateNotes(['id' => 1]));
     }
+
+    public function testTheFilesOfPrivateNotesAreFiltered(): void
+    {
+        $issue = [
+            'id' => 1,
+            'journals' => [
+                ['id' => 10, 'details' => [['property' => 'attachment', 'name' => '501', 'new_value' => 'public.png']]],
+                [
+                    'id' => 11,
+                    'private_notes' => true,
+                    'details' => [['property' => 'attachment', 'name' => '502', 'new_value' => 'secret.png']],
+                ],
+            ],
+            'attachments' => [['id' => 500], ['id' => 501], ['id' => 502]],
+        ];
+
+        $filtered = $this->projectIssues->withoutPrivateNotes($issue);
+
+        self::assertSame([500, 501], array_column($filtered['attachments'], 'id'));
+    }
 }

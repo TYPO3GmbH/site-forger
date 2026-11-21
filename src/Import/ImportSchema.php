@@ -35,8 +35,9 @@ final class ImportSchema
      *    import kept the email of the assignee get it, too.
      * 3: the other relations of Forge, in "issue_relations", each with its type seen from the issue.
      * 4: the journals of every issue, not only of those under review: the comments of Forge.
+     * 5: the attachments, in "attachments", without those added with a private note.
      */
-    public const int ISSUE = 4;
+    public const int ISSUE = 5;
 
     /**
      * 1: as before the versions

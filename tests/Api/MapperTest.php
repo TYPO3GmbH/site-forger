@@ -63,6 +63,22 @@ final class MapperTest extends TestCase
         );
     }
 
+    public function testAnIssueHasItsFiles(): void
+    {
+        self::assertSame(
+            [[
+                'filename' => 'crop.png',
+                'contentType' => 'image/png',
+                'size' => 48213,
+                'description' => 'The preview',
+                'author' => ['id' => 36415, 'name' => 'Jane Doe'],
+                'createdOn' => '2026-11-20T10:05:00Z',
+                'url' => 'https://forge.typo3.org/attachments/download/38811/crop.png',
+            ]],
+            self::issueDetail()['attachments'],
+        );
+    }
+
     public function testLeavesOutTheRelatedIssuesForgerDoesNotHave(): void
     {
         // The token of the import sees private issues in the relations, the index has none of them

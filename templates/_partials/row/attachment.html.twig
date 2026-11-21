@@ -1,0 +1,31 @@
+{#
+ # A file of a Forge issue in one row, see App\Document\IssueAttachment: its name leads to the file on Forge, below
+ # it the size, who added it and when.
+ # Expects: file, an IssueAttachment
+ #}
+{% import '_macros/format.html.twig' as format %}
+{% import '_macros/user.html.twig' as user %}
+{% set type = file.contentType %}
+{% set fileIcon = type starts with 'image/' ? 'actions-file-image'
+    : type == 'application/pdf' ? 'actions-file-pdf'
+    : type starts with 'video/' ? 'actions-file-video'
+    : type starts with 'text/' ? 'actions-file-text'
+    : 'actions-file' %}
+<a class="overview-list-item" href="{{ file.url }}" target="_blank" rel="noopener"
+   title="{{ file.description ?: file.filename }}">
+    <span class="overview-list-item-main">
+        <span class="overview-list-item-title">
+            {#- -#}<span class="overview-list-item-id" title="{{ type ?: 'File' }}">{{ icon(fileIcon) }}</span>
+            {#- -#}{{ file.filename }}
+        {#- -#}</span>
+        <span class="overview-list-item-meta">
+            <span title="Size">{{ format.bytes(file.size) }}</span>
+            {% if file.description is not empty %}<span title="Description">{{ file.description }}</span>{% endif %}
+            {{ user.inline(file.author, role: 'Added by') }}
+        </span>
+    </span>
+    {% if file.createdOn is not null %}
+        <time class="overview-list-item-date" datetime="{{ file.createdOn|date('c') }}"
+              title="Added {{ file.createdOn|date('Y-m-d H:i') }}">{{ relativetime(date(file.createdOn)) }}</time>
+    {% endif %}
+</a>

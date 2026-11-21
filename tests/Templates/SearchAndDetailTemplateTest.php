@@ -1042,6 +1042,31 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringNotContainsString('Subtasks', $html);
         self::assertStringNotContainsString('Related issues', $html);
         self::assertStringNotContainsString('Parent task', $html);
+        self::assertStringNotContainsString('attachments-title', $html);
+    }
+
+    public function testTheIssuePageListsItsFilesWithALinkToForge(): void
+    {
+        $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', [
+            'issue' => Issue::fromDocument(self::ISSUE + ['attachments' => [[
+                'id' => 38811,
+                'filename' => 'crop.png',
+                'filesize' => 48213,
+                'content_type' => 'image/png',
+                'description' => '',
+                'content_url' => 'https://forge.typo3.org/attachments/download/38811/crop.png',
+                'author' => ['id' => 36415, 'name' => 'Jane Doe'],
+                'created_on' => '2026-11-20T10:05:00Z',
+            ]]]),
+            'changes' => [],
+            'unknownChanges' => [],
+        ]);
+
+        self::assertStringContainsString('Files <span class="detail-count">1</span>', $html);
+        self::assertMatchesRegularExpression(
+            '~href="https://forge.typo3.org/attachments/download/38811/crop.png".*crop.png.*47 KB.*Jane Doe~s',
+            $html,
+        );
     }
 
     public function testTheIssuePageShowsTheDuplicatesButtonOnlyWithDuplicates(): void

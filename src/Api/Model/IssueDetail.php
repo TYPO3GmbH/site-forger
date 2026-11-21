@@ -15,7 +15,8 @@ use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 
 /**
- * A single Forge issue: the fields of IssueSummary, the description, the relations and the changes.
+ * A single Forge issue: the fields of IssueSummary, the description, the relations, the changes, the comments and
+ * the files.
  */
 #[OA\Schema(description: 'A single issue: the fields of IssueSummary and more.')]
 final readonly class IssueDetail extends IssueSummary
@@ -28,6 +29,7 @@ final readonly class IssueDetail extends IssueSummary
      * @param list<int>           $duplicatedBy
      * @param list<IssueChange>   $changes
      * @param list<Comment>       $comments
+     * @param list<Attachment>    $attachments
      */
     public function __construct(
         IssueSummary $summary,
@@ -90,6 +92,13 @@ final readonly class IssueDetail extends IssueSummary
             items: new OA\Items(ref: new Model(type: Comment::class)),
         )]
         public array $comments,
+        #[OA\Property(
+            description: 'The files, the oldest first. A report about how something looks often has its evidence '
+                . 'here, as screenshots. Empty for documents of older imports, until the import loads them again.',
+            type: 'array',
+            items: new OA\Items(ref: new Model(type: Attachment::class)),
+        )]
+        public array $attachments,
     ) {
         parent::__construct(...get_object_vars($summary));
     }

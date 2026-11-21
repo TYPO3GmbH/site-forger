@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Api;
 
+use App\Api\Model\Attachment;
 use App\Api\Model\Bucket;
 use App\Api\Model\Comment;
 use App\Api\Model\Duplicate;
@@ -22,6 +23,7 @@ use App\Api\Model\IssueRelation;
 use App\Api\Model\IssueSummary;
 use App\Api\Model\Person;
 use App\Document\Issue;
+use App\Document\IssueAttachment;
 use App\Document\IssueRelation as ForgeRelation;
 use App\Document\RelatedChange;
 use App\Duplicates\DuplicateGroups;
@@ -107,6 +109,18 @@ final readonly class IssueMapper
                 url: sprintf(LinkTwigExtension::GERRIT_CHANGE, $related->change->id),
             ))->toArray()),
             comments: self::comments($issue),
+            attachments: array_map(
+                static fn (IssueAttachment $file): Attachment => new Attachment(
+                    filename: $file->filename,
+                    contentType: $file->contentType,
+                    size: $file->size,
+                    description: $file->description,
+                    author: self::person($file->author),
+                    createdOn: ApiDate::fromForge($file->createdOn),
+                    url: $file->url,
+                ),
+                $issue->attachments,
+            ),
         );
     }
 
