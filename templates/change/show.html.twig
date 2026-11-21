@@ -10,6 +10,7 @@
     {% import '_macros/detail.html.twig' as detail %}
     {% import '_macros/user.html.twig' as user %}
     {% import '_macros/timeline.html.twig' as timeline %}
+    {% import '_macros/copy.html.twig' as copy %}
     {% set tags = change.reviewTags ?? [] %}
     {# A closed change finds itself: the links to the search of the changes find the closed ones, too #}
     {% set closed = change.state.isClosed %}
@@ -69,6 +70,16 @@
                         </p>
                     </div>
                     <div class="detail-actions">
+                        {# The review starts on the commit message, Gerrit leads from there through the files #}
+                        {% if change.patchSetRef is not null %}
+                            <a
+                                class="btn btn-sm btn-primary"
+                                href="{{ gerrit_patch_set_url(change.id, change.patchsets, '/COMMIT_MSG') }}"
+                                target="gerrit{{ change.id }}"
+                            >
+                                {{- icon('actions-comment') }} Review in Gerrit
+                            </a>
+                        {% endif %}
                         <a class="btn btn-sm btn-default" href="{{ gerrit_change_url(change.id) }}" target="gerrit{{ change.id }}">{{ icon('actions-window-open') }} Open in Gerrit</a>
                         {{ refresh.change(change.id) }}
                     </div>
@@ -110,11 +121,11 @@
                                     </a>
                                 </p>
                                 <dl class="detail-commands">
-                                    {{ _self.command(
+                                    {{ copy.text(
                                         'Check out patch set ' ~ change.patchsets,
                                         fetch ~ ' && git checkout FETCH_HEAD',
                                     ) }}
-                                    {{ _self.command(
+                                    {{ copy.text(
                                         'Cherry-pick onto ' ~ (change.branch ?? 'your branch'),
                                         fetch ~ ' && git cherry-pick FETCH_HEAD',
                                     ) }}
@@ -209,7 +220,14 @@
                                 <div class="row-list detail-files">
                                     <ul>
                                         {% for file in files|slice(0, shown) %}
-                                            <li>{{ _self.file(file, closed, fileDetails[file] ?? null, change.hasConflict(file), change.commentCountOf(file)) }}</li>
+                                            <li>{{ _self.file(
+                                                file,
+                                                closed,
+                                                fileDetails[file] ?? null,
+                                                change.hasConflict(file),
+                                                change.commentCountOf(file),
+                                                change,
+                                            ) }}</li>
                                         {% endfor %}
                                     </ul>
                                     {% if files|length > shown %}
@@ -218,7 +236,14 @@
                                             <summary>Show {{ more }} more {{ more == 1 ? 'file' : 'files' }}</summary>
                                             <ul>
                                                 {% for file in files|slice(shown) %}
-                                                    <li>{{ _self.file(file, closed, fileDetails[file] ?? null, change.hasConflict(file), change.commentCountOf(file)) }}</li>
+                                                    <li>{{ _self.file(
+                                                        file,
+                                                        closed,
+                                                        fileDetails[file] ?? null,
+                                                        change.hasConflict(file),
+                                                        change.commentCountOf(file),
+                                                        change,
+                                                    ) }}</li>
                                                 {% endfor %}
                                             </ul>
                                         </details>
@@ -304,31 +329,11 @@
 {% endblock %}
 
 {#
- # A shell command with its label and a button that copies it, see assets/js/copy.js.
- #}
-{% macro command(label, command) %}
-    <div class="detail-command">
-        <dt>{{ label }}</dt>
-        <dd>
-            <code class="detail-command-text">{{ command }}</code>
-            <button
-                type="button"
-                class="btn btn-sm btn-default"
-                data-copy-text="{{ command }}"
-                title="Copy the command"
-            >
-                {{- icon('actions-clipboard') }} <span>Copy</span>
-            </button>
-        </dd>
-    </div>
-{% endmacro %}
-
-{#
  # A file in one line: the folder cut with an ellipsis when it is too long, the name always whole, then the lines it
  # adds and removes. It leads to the changes touching it, with the filter "File"; from a closed change the closed
  # ones, too. A file with a conflict in the current patch set is marked.
  #}
-{% macro file(path, closed = false, details = null, conflict = false, comments = 0) %}
+{% macro file(path, closed = false, details = null, conflict = false, comments = 0, change = null) %}
     {%- set name = path|split('/')|last -%}
     {%- set status = {'added': 'new', 'deleted': 'deleted', 'renamed': 'renamed', 'copied': 'copied'}[details.status ?? ''] ?? null -%}
     <a href="{{ path('search_changes', {'filters': {'file': {'path': path}}}|merge(closed ? {'searchClosed': '1'} : {})) }}" title="{{ path }}{{ details.oldPath ?? null ? ', was ' ~ details.oldPath }}: the changes touching this file">
@@ -344,6 +349,17 @@
             {%- endif -%}
         </span>
     {#- -#}</a>
+    {%- if change is not null and change.patchsets is not null -%}
+        <a
+            class="detail-file-gerrit"
+            href="{{ gerrit_patch_set_url(change.id, change.patchsets, path) }}"
+            target="gerrit{{ change.id }}"
+            title="The diff of {{ name }} in Gerrit"
+            aria-label="The diff of {{ name }} in Gerrit"
+        >
+            {{- icon('actions-window-open') -}}
+        </a>
+    {%- endif -%}
 {%- endmacro %}
 
 {#
@@ -361,7 +377,16 @@
                         {% set comments = change.commentsOf(message) %}
                         {% set event = comments is empty ? message.event : message.event.withComments %}
                         <span class="timeline-event">
-                            {{- event.label }}{% if event.namesPatchSet and message.patchSet is not null %} {{ message.patchSet }}{% endif -%}
+                            {{- event.label }}
+                            {%- if event.namesPatchSet and message.patchSet is not null %}
+                                <a
+                                    href="{{ gerrit_patch_set_url(change.id, message.patchSet) }}"
+                                    target="gerrit{{ change.id }}"
+                                    title="The patch set in Gerrit"
+                                >
+                                    {{- message.patchSet -}}
+                                </a>
+                            {%- endif -%}
                         </span>
                         {% for vote in message.votes %}
                             <span class="status-pill status-pill-vote status-pill-{{ vote.vote.severity }}" title="{{ vote.label.label }}">{{ vote.label.abbreviation }} {{ vote.vote.label }}</span>

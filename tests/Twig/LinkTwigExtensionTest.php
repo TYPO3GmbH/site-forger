@@ -29,6 +29,27 @@ final class LinkTwigExtensionTest extends KernelTestCase
         );
     }
 
+    public function testTheLinksToWhereTheWorkIsDone(): void
+    {
+        self::bootKernel();
+        /** @var Environment $twig */
+        $twig = self::getContainer()->get('twig');
+        $render = static fn (string $template): string => $twig->createTemplate($template)->render();
+        $change = 'https://review.typo3.org/c/Packages/TYPO3.CMS/+/81234/';
+
+        self::assertSame('https://forge.typo3.org/issues/91089/edit', $render('{{ forge_issue_edit_url(91089) }}'));
+        self::assertSame(
+            'https://forge.typo3.org/issues/91089#change-584554',
+            $render('{{ forge_journal_url(91089, 584554) }}'),
+        );
+        self::assertSame($change . '3', $render('{{ gerrit_patch_set_url(81234, 3) }}'));
+        self::assertSame($change . '3//COMMIT_MSG', $render("{{ gerrit_patch_set_url(81234, 3, '/COMMIT_MSG') }}"));
+        self::assertSame(
+            $change . '3/typo3/sysext/core/Tests/Fixture%20Files/a%23b.php',
+            $render("{{ gerrit_patch_set_url(81234, 3, 'typo3/sysext/core/Tests/Fixture Files/a#b.php') }}"),
+        );
+    }
+
     public function testThePagesOfTheContributionGuide(): void
     {
         self::bootKernel();

@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Twig;
 
 use App\Document\CommitMessage;
+use App\Document\Issue;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Attribute\AsTwigFilter;
 use Twig\Attribute\AsTwigFunction;
@@ -25,6 +26,8 @@ use Twig\Attribute\AsTwigFunction;
 final readonly class LinkTwigExtension
 {
     public const string FORGE_ISSUE = 'https://forge.typo3.org/issues/%d';
+    public const string FORGE_ISSUE_EDIT = 'https://forge.typo3.org/issues/%d/edit';
+    public const string FORGE_JOURNAL = 'https://forge.typo3.org/issues/%d#change-%d';
     public const string FORGE_USER = 'https://forge.typo3.org/users/%d';
     public const string GERRIT_CHANGE = 'https://review.typo3.org/c/Packages/TYPO3.CMS/+/%d/';
     public const string GERRIT_REPOSITORY = 'https://review.typo3.org/Packages/TYPO3.CMS';
@@ -112,10 +115,52 @@ final readonly class LinkTwigExtension
         return CommitMessage::parts($body);
     }
 
+    /**
+     * The form of Forge to comment on an issue and to change its fields. Forge asks to log in first.
+     */
+    #[AsTwigFunction(name: 'forge_issue_edit_url')]
+    public function forgeIssueEditUrl(int|string $id): string
+    {
+        return sprintf(self::FORGE_ISSUE_EDIT, (int) $id);
+    }
+
+    /**
+     * An entry of the history of an issue on Forge, by the id of its journal.
+     */
+    #[AsTwigFunction(name: 'forge_journal_url')]
+    public function forgeJournalUrl(int|string $issue, int $journal): string
+    {
+        return sprintf(self::FORGE_JOURNAL, (int) $issue, $journal);
+    }
+
+    /**
+     * @see CommitMessage::forIssue()
+     */
+    #[AsTwigFunction(name: 'issue_commit_message')]
+    public function issueCommitMessage(Issue $issue): string
+    {
+        return CommitMessage::forIssue($issue);
+    }
+
     #[AsTwigFunction(name: 'gerrit_change_url')]
     public function gerritChangeUrl(int|string $number): string
     {
         return sprintf(self::GERRIT_CHANGE, (int) $number);
+    }
+
+    /**
+     * A patch set of a change on Gerrit. With a path the diff of that file in it, "/COMMIT_MSG" is the commit message,
+     * the first page of a review.
+     */
+    #[AsTwigFunction(name: 'gerrit_patch_set_url')]
+    public function gerritPatchSetUrl(int|string $number, int $patchSet, string $path = ''): string
+    {
+        $url = sprintf(self::GERRIT_CHANGE, (int) $number) . $patchSet;
+        if ('' === $path) {
+            return $url;
+        }
+
+        return $url . '/' . implode('/', array_map(rawurlencode(...), explode('/', $path)));
     }
 
     /**

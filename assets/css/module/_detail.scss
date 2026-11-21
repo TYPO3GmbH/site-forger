@@ -207,6 +207,32 @@
     font-size: var(--detail-size-code);
     // The URL and the ref have no spaces, a phone breaks them anywhere
     overflow-wrap: anywhere;
+    // A commit message keeps its lines
+    white-space: pre-wrap;
+}
+
+// How to start a patch, below the empty list of the changes of an issue
+.detail-start {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f0f1f3;
+}
+
+.detail-start-title {
+    margin: 0 0 .375rem;
+    font-size: var(--detail-size-text);
+    font-weight: 700;
+}
+
+// The time of an entry of a timeline that leads to it in Forge or Gerrit
+a.timeline-time {
+    color: var(--overview-muted);
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: underline;
+    }
 }
 
 // "Linked, but not in Forger" below the changes
@@ -826,6 +852,16 @@
         border-top: 1px solid #f0f1f3;
     }
 
+    // The file leads to the changes touching it, the icon beside it to its diff in Gerrit
+    li {
+        display: flex;
+
+        > a:first-child {
+            flex: 1;
+            min-width: 0;
+        }
+    }
+
     // One line each: the folder gives way with an ellipsis, the name of the file stays whole
     a {
         display: flex;
@@ -844,6 +880,13 @@
             text-underline-offset: 3px;
         }
     }
+}
+
+.detail-files a.detail-file-gerrit {
+    align-items: center;
+    padding: .5rem .75rem;
+    border-left: 1px solid #f0f1f3;
+    color: var(--overview-muted);
 }
 
 .detail-file-folder {

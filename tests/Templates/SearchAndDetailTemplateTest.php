@@ -588,6 +588,24 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringNotContainsString('Test this change', $render(['reviewstatus' => 'MERGED'] + self::CHANGE));
     }
 
+    public function testAChangeLeadsToItsReviewAndItsFilesInGerrit(): void
+    {
+        $render = fn (array $change): string => $this->twig->load('change/show.html.twig')->renderBlock(
+            'body',
+            ['change' => Change::fromDocument($change), 'message' => '', 'issues' => []],
+        );
+        $patchSet = 'https://review.typo3.org/c/Packages/TYPO3.CMS/+/81234/3';
+
+        $html = $render(self::CHANGE + ['files' => ['typo3/sysext/core/Classes/Cache/CacheManager.php']]);
+        self::assertStringContainsString('href="' . $patchSet . '//COMMIT_MSG"', $html);
+        self::assertStringContainsString('Review in Gerrit', $html);
+        self::assertStringContainsString(
+            'href="' . $patchSet . '/typo3/sysext/core/Classes/Cache/CacheManager.php"',
+            $html,
+        );
+        self::assertStringNotContainsString('Review in Gerrit', $render(['reviewstatus' => 'MERGED'] + self::CHANGE));
+    }
+
     public function testTheFilesOfAChangeAreSortedAsATree(): void
     {
         $change = self::CHANGE + ['files' => ['composer.json', 'typo3/sysext/core/Classes/Cache.php', 'Build/Sources/cache.ts', 'typo3/sysext/backend/Classes/Page.php']];
@@ -922,6 +940,57 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', ['issue' => Issue::fromDocument(self::ISSUE), 'changes' => [], 'unknownChanges' => []]);
 
         self::assertStringContainsString('No change resolves or names this issue', $html);
+        self::assertStringContainsString('href="https://forge.typo3.org/issues/91089/edit"', $html);
+        self::assertStringContainsString('Fix this issue', $html);
+        self::assertStringContainsString(
+            '<code class="detail-command-text">[BUGFIX] Something is broken'
+                . "\n\nResolves: #91089\nReleases: main</code>",
+            $html,
+        );
+    }
+
+    public function testOnlyAnOpenIssueWithoutAnOpenChangeSaysHowToFixIt(): void
+    {
+        $render = fn (array $issue, array $changes): string => $this->twig->load('issue/show.html.twig')->renderBlock(
+            'body',
+            [
+                'issue' => Issue::fromDocument($issue),
+                'changes' => new ArrayCollection($changes),
+                'unknownChanges' => [],
+            ],
+        );
+        $abandonedChange = Change::fromDocument(['reviewstatus' => 'ABANDONED'] + self::CHANGE);
+        $abandoned = new RelatedChange($abandonedChange, 'Resolves');
+        $open = new RelatedChange(Change::fromDocument(self::CHANGE), 'Resolves');
+
+        $html = $render(self::ISSUE, [$abandoned]);
+        self::assertStringContainsString('Fix this issue', $html);
+        self::assertStringContainsString('The changes above were merged or abandoned', $html);
+        self::assertStringContainsString('status-pill-abandoned', $html);
+        self::assertStringNotContainsString('Fix this issue', $render(self::ISSUE, [$open]));
+        self::assertStringNotContainsString(
+            'Fix this issue',
+            $render(['status' => ['id' => 5, 'name' => 'Closed']] + self::ISSUE, []),
+        );
+    }
+
+    public function testEachEntryOfTheHistoryLeadsToItOnForge(): void
+    {
+        $journal = [
+            'id' => 584554,
+            'user' => ['name' => 'Benni Mack'],
+            'notes' => 'Works for me',
+            'created_on' => '2026-11-02T10:00:00Z',
+        ];
+        $issue = Issue::fromDocument(self::ISSUE + ['journals' => [$journal]]);
+        $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', [
+            'issue' => $issue,
+            'history' => $issue->history(),
+            'changes' => [],
+            'unknownChanges' => [],
+        ]);
+
+        self::assertStringContainsString('href="https://forge.typo3.org/issues/91089#change-584554"', $html);
     }
 
     public function testIssuePageTellsHowAChangeBelongsToIt(): void

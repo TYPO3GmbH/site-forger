@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace App\Document;
 
+use App\Enum\ReviewTypeEnum;
+use App\Enum\TrackerEnum;
 use App\Search\ReviewSearch;
 
 /**
@@ -45,6 +47,27 @@ final class CommitMessage
      * only with a value that starts as one.
      */
     private const string MISTYPED_TRAILER_LINE = '/^[ \t]*(?<key>resolves|related|releases?)[ \t]*[.;=]?[ \t]*(?<value>(?:#|\d|main\b|master\b).*)$/i';
+
+    /**
+     * The start of the commit message of a patch for the issue: the type of its tracker and its subject, the
+     * trailers that link the change to the issue and name the releases. The author adds the text and the versions.
+     */
+    public static function forIssue(Issue $issue): string
+    {
+        $type = match (TrackerEnum::tryFrom((int) ($issue->tracker['id'] ?? 0))) {
+            TrackerEnum::BUG => ReviewTypeEnum::BUGFIX,
+            TrackerEnum::FEATURE, TrackerEnum::MAJOR_FEATURE => ReviewTypeEnum::FEATURE,
+            default => ReviewTypeEnum::TASK,
+        };
+
+        return sprintf(
+            "[%s] %s\n\n%s: #%d\nReleases: main",
+            $type->value,
+            trim($issue->subject),
+            self::RESOLVES,
+            $issue->id,
+        );
+    }
 
     /**
      * The fields of the review index the message gives: its text without subject and trailers, which the search
