@@ -67,4 +67,11 @@ final class IssueSearchTest extends TestCase
     {
         self::assertSame('a\\:b \\"c\\" d\\/e', IssueSearch::escape('a:b "c" d/e'));
     }
+
+    public function testTheOperatorsInCapitalsAreWords(): void
+    {
+        // "foo AND" would fail the query
+        self::assertSame('foo and', IssueSearch::escape('foo AND'));
+        self::assertSame('ANDROID or not', IssueSearch::escape('ANDROID OR NOT'));
+    }
 }

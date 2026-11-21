@@ -116,7 +116,13 @@ final class IssueSearch
         $pattern = '/(\+|-|&&|\|\||!|\(|\)|\{|}|\[|]|\^|"|~|\*|\?|:|\\\)/';
         $replace = '\\\$1';
         $escapedString = preg_replace($pattern, $replace, $value);
+        // The operators in capitals: "foo AND" fails the query, in small letters they are words
+        $words = preg_replace_callback(
+            '/\b(AND|OR|NOT)\b/',
+            static fn (array $match): string => strtolower($match[1]),
+            $escapedString ?? $value,
+        );
 
-        return str_replace('/', '\/', $escapedString ?? $value);
+        return str_replace('/', '\/', $words ?? $value);
     }
 }
