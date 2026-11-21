@@ -65,6 +65,13 @@ final class ImportSchemaTest extends TestCase
         $fields = array_keys($document);
         sort($fields);
 
-        self::assertSame([2, ['complexity', 'created_on', 'custom_fields', 'duplicated_by', 'duplicates', 'focus', 'id', ImportSchema::FIELD, 'isregression', 'php_version', 'tags', 'typo3_version', 'updated_on']], [ImportSchema::ISSUE, $fields]);
+        self::assertSame(
+            [3, [
+                'complexity', 'created_on', 'custom_fields', 'duplicated_by', 'duplicates', 'focus', 'id',
+                ImportSchema::FIELD, 'isregression', 'issue_relations', 'php_version', 'tags', 'typo3_version',
+                'updated_on',
+            ]],
+            [ImportSchema::ISSUE, $fields],
+        );
     }
 }

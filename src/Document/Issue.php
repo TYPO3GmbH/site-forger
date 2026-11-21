@@ -36,6 +36,8 @@ final readonly class Issue
      * @param list<array<string, mixed>>          $journals     the comments and changes, as Forge lists them
      * @param list<int>                           $duplicates   the issues this one duplicates, a relation of Forge
      * @param list<int>                           $duplicatedBy the issues that duplicate this one
+     * @param int|null                            $parent       the issue this one is a subtask of
+     * @param list<IssueRelation>                 $relations    the other relations of Forge
      */
     public function __construct(
         public int $id,
@@ -59,6 +61,8 @@ final readonly class Issue
         public array $journals = [],
         public array $duplicates = [],
         public array $duplicatedBy = [],
+        public ?int $parent = null,
+        public array $relations = [],
     ) {
     }
 
@@ -89,6 +93,8 @@ final readonly class Issue
             journals: array_values((array) ($document['journals'] ?? [])),
             duplicates: self::numbers($document['duplicates'] ?? []),
             duplicatedBy: self::numbers($document['duplicated_by'] ?? []),
+            parent: isset($document['parent']['id']) ? (int) $document['parent']['id'] : null,
+            relations: IssueRelation::listFrom($document['issue_relations'] ?? []),
         );
     }
 

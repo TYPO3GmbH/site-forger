@@ -86,12 +86,43 @@ final class ForgeIssueImporterTest extends TestCase
         self::assertArrayNotHasKey('relations', $document);
     }
 
+    public function testDocumentHasTheOtherRelationsSeenFromTheIssue(): void
+    {
+        $document = ForgeIssueImporter::document([
+            'id' => 91089,
+            'created_on' => '2026-11-01T10:00:00Z',
+            'updated_on' => '2026-11-01T10:00:00Z',
+            'parent' => ['id' => 90000],
+            'relations' => [
+                ['id' => 1, 'issue_id' => 91089, 'issue_to_id' => 80001, 'relation_type' => 'duplicates'],
+                ['id' => 2, 'issue_id' => 91089, 'issue_to_id' => 80002, 'relation_type' => 'relates'],
+                ['id' => 3, 'issue_id' => 91089, 'issue_to_id' => 80003, 'relation_type' => 'blocks'],
+                // Named from the other side: 80004 blocks this issue, 80005 precedes it
+                ['id' => 4, 'issue_id' => 80004, 'issue_to_id' => 91089, 'relation_type' => 'blocks'],
+                ['id' => 5, 'issue_id' => 80005, 'issue_to_id' => 91089, 'relation_type' => 'precedes'],
+                ['id' => 6, 'issue_id' => 80006, 'issue_to_id' => 91089, 'relation_type' => 'copied_to'],
+                ['id' => 7, 'issue_id' => 91089, 'issue_to_id' => 80007, 'relation_type' => 'unknown'],
+            ],
+        ]);
+
+        self::assertSame([
+            ['type' => 'relates', 'issue' => 80002],
+            ['type' => 'blocks', 'issue' => 80003],
+            ['type' => 'blocked', 'issue' => 80004],
+            ['type' => 'follows', 'issue' => 80005],
+            ['type' => 'copied_from', 'issue' => 80006],
+        ], $document['issue_relations']);
+        self::assertSame([80001], $document['duplicates']);
+        self::assertSame(['id' => 90000], $document['parent']);
+    }
+
     public function testDocumentWithoutRelationsHasNoDuplicates(): void
     {
         $document = ForgeIssueImporter::document(['id' => 1, 'created_on' => '2026-11-01T10:00:00Z', 'updated_on' => '2026-11-01T10:00:00Z']);
 
         self::assertSame([], $document['duplicates']);
         self::assertSame([], $document['duplicated_by']);
+        self::assertSame([], $document['issue_relations']);
     }
 
     public function testErrorsOfForgeOtherThanNotFoundAreThrownByRefresh(): void

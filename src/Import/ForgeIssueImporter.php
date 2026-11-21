@@ -14,6 +14,7 @@ namespace App\Import;
 use App\CommandRun\CommandRunRecorder;
 use App\CommandRun\JobStopped;
 use App\Elastic\Indices;
+use App\Enum\IssueRelationEnum;
 use App\Enum\IssueStatusEnum;
 use App\Http\ApiClient;
 use App\Http\ApiFailure;
@@ -183,18 +184,25 @@ final class ForgeIssueImporter
                 default:
             }
         }
-        // "duplicates" relations of Forge, from both sides: "issue_id" duplicates "issue_to_id". Kept as the numbers
-        // of the other issues, the other relations are not needed
+        // The relations of Forge, from both sides: "issue_id" relates to "issue_to_id" as "relation_type" says.
+        // The duplicates as the numbers of the other issues, the others with their type seen from this issue.
         $issue['duplicates'] = [];
         $issue['duplicated_by'] = [];
+        $issue['issue_relations'] = [];
         foreach ($issue['relations'] ?? [] as $relation) {
-            if ('duplicates' !== ($relation['relation_type'] ?? null)) {
+            $fromThisIssue = (int) ($relation['issue_id'] ?? 0) === (int) $issue['id'];
+            $other = (int) ($fromThisIssue ? ($relation['issue_to_id'] ?? 0) : ($relation['issue_id'] ?? 0));
+            $type = (string) ($relation['relation_type'] ?? '');
+            if ('duplicates' === $type) {
+                $issue[$fromThisIssue ? 'duplicates' : 'duplicated_by'][] = $other;
                 continue;
             }
-            if ((int) ($relation['issue_id'] ?? 0) === (int) $issue['id']) {
-                $issue['duplicates'][] = (int) $relation['issue_to_id'];
-            } else {
-                $issue['duplicated_by'][] = (int) $relation['issue_id'];
+            $relationType = IssueRelationEnum::tryFrom($type);
+            if (null !== $relationType && $other > 0) {
+                $issue['issue_relations'][] = [
+                    'type' => ($fromThisIssue ? $relationType : $relationType->reverse())->value,
+                    'issue' => $other,
+                ];
             }
         }
         $issue['updated_on'] = self::indexDate((string) $issue['updated_on']);

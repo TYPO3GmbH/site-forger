@@ -16,6 +16,7 @@ use App\Document\DuplicatePair;
 use App\Document\Issue;
 use App\Document\RelatedChange;
 use App\Document\RelatedIssue;
+use App\Document\Relations;
 use App\DTO\Pagination;
 use App\Duplicates\DuplicateGroups;
 use App\Duplicates\DuplicateHit;
@@ -818,6 +819,43 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         );
 
         self::assertSame([], $rows);
+    }
+
+    public function testTheIssuePageShowsItsParentSubtasksAndRelatedIssuesApart(): void
+    {
+        $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', [
+            'issue' => Issue::fromDocument(self::ISSUE),
+            'changes' => [],
+            'unknownChanges' => [],
+            'parent' => new RelatedIssue(90000, Relations::PARENT, self::issue(90000)),
+            'subtasks' => new ArrayCollection([self::issue(91100), self::issue(91200)]),
+            'relatedIssues' => new ArrayCollection([new RelatedIssue(80004, 'Blocked by', null)]),
+        ]);
+
+        self::assertMatchesRegularExpression(
+            '~<dt>Parent task</dt>\s*<dd><a href="/issue/90000">#90000 Something is broken</a></dd>~',
+            $html,
+        );
+        self::assertMatchesRegularExpression(
+            '~Subtasks <span class="detail-count">2</span>.*href="/issue/91100".*href="/issue/91200"'
+            . '.*Related issues <span class="detail-count">1</span>~s',
+            $html,
+        );
+        // Not in Forger: a link to Forge
+        self::assertMatchesRegularExpression('~href="https://forge.typo3.org/issues/80004".*Blocked by~s', $html);
+    }
+
+    public function testAnIssueWithoutRelationsHasNoSectionsForThem(): void
+    {
+        $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', [
+            'issue' => Issue::fromDocument(self::ISSUE),
+            'changes' => [],
+            'unknownChanges' => [],
+        ]);
+
+        self::assertStringNotContainsString('Subtasks', $html);
+        self::assertStringNotContainsString('Related issues', $html);
+        self::assertStringNotContainsString('Parent task', $html);
     }
 
     public function testTheIssuePageShowsTheDuplicatesButtonOnlyWithDuplicates(): void

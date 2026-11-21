@@ -43,6 +43,9 @@ class IssueController extends AbstractController
             'issue' => $issue,
             'duplicates' => $this->duplicateGroups($issue),
             'changes' => $changes,
+            'parent' => $this->relations->parentOf($issue),
+            'subtasks' => $this->relations->subtasksOf($issue),
+            'relatedIssues' => $this->relations->relatedIssuesOf($issue),
             // Linked in a comment, but not imported: closed long ago, or in another project
             'unknownChanges' => Relations::unknownChanges($issue, $changes),
         ]);

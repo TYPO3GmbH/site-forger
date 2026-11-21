@@ -12,12 +12,13 @@ declare(strict_types=1);
 namespace App\Document;
 
 /**
- * An issue the footer of a change names, and how: see Relations::issuesOf().
+ * An issue related to a change or to another issue, and how: see Relations::issuesOf() and relatedIssuesOf().
  */
 final readonly class RelatedIssue
 {
     /**
-     * @param string     $relation CommitMessage::RESOLVES or CommitMessage::RELATED
+     * @param string     $relation for a change CommitMessage::RESOLVES or CommitMessage::RELATED, for an issue
+     *                             Relations::PARENT or the label of an IssueRelationEnum
      * @param Issue|null $issue    null if Forger does not have the issue: it is in another project, or private
      */
     public function __construct(

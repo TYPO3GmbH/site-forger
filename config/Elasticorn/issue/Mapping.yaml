@@ -61,6 +61,18 @@ subject:
 description:
   type: text
   analyzer: english
+# The other relations of Forge, each with its type seen from this issue, see App\Enum\IssueRelationEnum
+issue_relations:
+  properties:
+    type:
+      type: keyword
+    issue:
+      type: integer
+# The issue this one is a subtask of, as Forge sends it. Its subtasks are the issues with its number here.
+parent:
+  properties:
+    id:
+      type: integer
 # The issues this one duplicates and those that duplicate it, from the relations of Forge
 duplicates:
   type: integer

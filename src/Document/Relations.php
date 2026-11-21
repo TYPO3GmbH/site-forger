@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Document;
 
+use App\Enum\IssueRelationEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -27,6 +28,8 @@ final readonly class Relations
     private const int CHANGES = 50;
 
     public const string LINKED = 'Linked';
+
+    public const string PARENT = 'Parent task';
 
     public function __construct(
         private ChangeRepository $changes,
@@ -72,6 +75,67 @@ final readonly class Relations
         $found = $changes->map(static fn (RelatedChange $related): int => $related->change->id)->toArray();
 
         return array_values(array_diff($issue->changeNumbers(), $found));
+    }
+
+    /**
+     * The issue the issue is a subtask of, null when it has none.
+     */
+    public function parentOf(Issue $issue): ?RelatedIssue
+    {
+        if (null === $issue->parent) {
+            return null;
+        }
+
+        return new RelatedIssue($issue->parent, self::PARENT, $this->issues->byId($issue->parent));
+    }
+
+    /**
+     * The subtasks of the issue, the lowest numbers first. The index finds them by their parent, so each of them
+     * is in Forger.
+     *
+     * @return ReadableCollection<int, Issue>
+     */
+    public function subtasksOf(Issue $issue): ReadableCollection
+    {
+        return $this->issues->subtasksOf($issue->id);
+    }
+
+    /**
+     * The issues Forge relates to the issue by their type, as IssueRelationEnum orders them. Duplicates are left
+     * out, the duplicates page has them.
+     *
+     * @return ReadableCollection<int, RelatedIssue>
+     */
+    public function relatedIssuesOf(Issue $issue): ReadableCollection
+    {
+        $relations = self::sorted($issue->relations);
+        $found = $this->issues->byIds(array_map(static fn (IssueRelation $relation): int => $relation->issue, $relations));
+
+        return new ArrayCollection(array_map(
+            static fn (IssueRelation $relation): RelatedIssue => new RelatedIssue(
+                $relation->issue,
+                $relation->type->label(),
+                $found->get($relation->issue),
+            ),
+            $relations,
+        ));
+    }
+
+    /**
+     * @param list<IssueRelation> $relations
+     *
+     * @return list<IssueRelation> by their type, as IssueRelationEnum orders them, then by number
+     */
+    private static function sorted(array $relations): array
+    {
+        $order = array_flip(array_map(
+            static fn (IssueRelationEnum $type): string => $type->value,
+            IssueRelationEnum::cases(),
+        ));
+        usort($relations, static fn (IssueRelation $a, IssueRelation $b): int => [$order[$a->type->value], $a->issue]
+            <=> [$order[$b->type->value], $b->issue]);
+
+        return $relations;
     }
 
     /**

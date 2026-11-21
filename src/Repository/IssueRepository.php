@@ -29,6 +29,11 @@ final readonly class IssueRepository
 {
     private const int SCROLL_SIZE = 5000;
 
+    /**
+     * More subtasks no issue of TYPO3 Core has.
+     */
+    private const int SUBTASKS = 200;
+
     public function __construct(
         private Indices $indices,
     ) {
@@ -62,6 +67,20 @@ final readonly class IssueRepository
             $issues->map(static fn (Issue $issue): int => $issue->id)->toArray(),
             $issues->toArray(),
         ));
+    }
+
+    /**
+     * The issues whose parent is the issue, the lowest numbers first.
+     *
+     * @return SearchResult<Issue>
+     */
+    public function subtasksOf(int $id): SearchResult
+    {
+        return $this->search([
+            'query' => ['term' => ['parent.id' => $id]],
+            'sort' => [['id' => 'asc']],
+            'size' => self::SUBTASKS,
+        ]);
     }
 
     /**
