@@ -18,6 +18,7 @@
         {id: 'data', icon: 'actions-database', title: 'Where the data comes from'},
         {id: 'activity', icon: 'actions-clock', title: 'Activity'},
         {id: 'reviews', icon: 'actions-code-pull-request', title: 'Reviews'},
+        {id: 'get-involved', icon: 'actions-heart', title: 'Get involved'},
         {id: 'issues', icon: 'actions-list', title: 'Issues'},
         {id: 'dashboard', icon: 'actions-viewmode-tiles', title: 'Dashboard'},
         {id: 'my-work', icon: 'actions-user', title: 'My Work'},
@@ -147,6 +148,21 @@
                             </div>
                         {% endfor %}
                     </div>
+                </section>
+
+                {# Get involved #}
+                <section id="get-involved" class="help-section">
+                    <header class="help-section-header">
+                        <span class="help-section-icon">{{ icon('actions-heart') }}</span>
+                        <h2>Get involved</h2>
+                    </header>
+                    <p>
+                        <a href="{{ path('get_involved') }}">Get involved</a> is the place to start if you are new to
+                        the TYPO3 Core. Its first steps, from the account to the first patch, link to the
+                        <a href="{{ contribution_guide_url() }}" target="_blank" rel="noopener">Contribution Guide</a>.
+                        Below them it lists small changes to test, good first issues, new bugs to confirm and
+                        regressions, each with a link to all of them.
+                    </p>
                 </section>
 
                 {# Issues #}

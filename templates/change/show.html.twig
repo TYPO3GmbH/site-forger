@@ -104,6 +104,10 @@
                                 <p class="detail-hint">
                                     Run a command in your clone of the TYPO3 Core.
                                     Then try what the change does and vote on Verified in Gerrit.
+                                    {% set reviewGuide = contribution_guide_url('HandlingAPatch/Review.html') %}
+                                    <a href="{{ reviewGuide }}" target="_blank" rel="noopener">
+                                        {{- 'How to review a patch' -}}
+                                    </a>
                                 </p>
                                 <dl class="detail-commands">
                                     {{ _self.command(

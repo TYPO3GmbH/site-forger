@@ -28,6 +28,7 @@ final readonly class LinkTwigExtension
     public const string FORGE_USER = 'https://forge.typo3.org/users/%d';
     public const string GERRIT_CHANGE = 'https://review.typo3.org/c/Packages/TYPO3.CMS/+/%d/';
     public const string GERRIT_REPOSITORY = 'https://review.typo3.org/Packages/TYPO3.CMS';
+    public const string CONTRIBUTION_GUIDE = 'https://docs.typo3.org/m/typo3/guide-contributionworkflow/main/en-us/';
 
     public function __construct(
         private UrlGeneratorInterface $urlGenerator,
@@ -124,5 +125,15 @@ final readonly class LinkTwigExtension
     public function gerritRepositoryUrl(): string
     {
         return self::GERRIT_REPOSITORY;
+    }
+
+    /**
+     * A page of the Contribution Guide of the TYPO3 Core, by its path like "Account/Index.html". Without a path
+     * its start page.
+     */
+    #[AsTwigFunction(name: 'contribution_guide_url')]
+    public function contributionGuideUrl(string $page = ''): string
+    {
+        return self::CONTRIBUTION_GUIDE . ltrim($page, '/');
     }
 }

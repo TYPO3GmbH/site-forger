@@ -1,0 +1,119 @@
+{% extends 'base.html.twig' %}
+{% block title %}Get involved{% endblock %}
+{#
+ # Where somebody new to the TYPO3 Core can start, see App\Report\GetInvolved: first the steps to a first
+ # contribution, each with its page of the Contribution Guide, then four short lists of things to do, each with a
+ # link to all of its items.
+ # Expects: smallReviews, goodFirstIssues, regressions, newBugs (SearchResult objects)
+ #}
+{% block body %}
+    {% set list = 'get_involved/_list.html.twig' %}
+    {% set firstIssues = {'filters': {'marked_as': {'Good_first_issue': 'true'}}, 'sort': 'updated'} %}
+    {% set bugs = {'filters': {'tracker': {'Bug': 'true'}, 'status': {'New': 'true'}}, 'sort': 'newest'} %}
+    {% set regressionFilter = {'filters': {'marked_as': {'Regression': 'true'}}, 'sort': 'updated'} %}
+    <div class="content-section content-section-small overview">
+        <div class="container">
+            <section class="get-involved-welcome" aria-labelledby="get-involved-title">
+                <h1 class="get-involved-title" id="get-involved-title">Help build the TYPO3 Core</h1>
+                <p class="get-involved-lead">
+                    Thousands of websites run on what people like you write, test and review.
+                    You do not need to be an expert: a test of a small change helps already.
+                </p>
+                <ol class="get-involved-steps">
+                    {{ _self.step(
+                        'Get your account',
+                        'One TYPO3 account logs you in to Forge, where the issues are,'
+                            ~ ' and to Gerrit, where patches get reviewed.',
+                        contribution_guide_url('Account/Index.html'),
+                        'Create an account',
+                    ) }}
+                    {{ _self.step(
+                        'Set up the Core',
+                        'Clone the TYPO3 Core and run it on your machine. It takes about 30 minutes.',
+                        contribution_guide_url('Quickstart/Index.html'),
+                        'Quick start',
+                    ) }}
+                    {{ _self.step(
+                        'Pick a task',
+                        'Test a change, fix an easy issue or confirm a bug. Say in a comment that you are on it.',
+                        '#get-involved-tasks',
+                        'Find a task',
+                    ) }}
+                    {{ _self.step(
+                        'Ask for help',
+                        'Stuck? The Core team and other contributors are happy to help you on Slack.',
+                        contribution_guide_url('Community/Index.html'),
+                        'Meet the community',
+                    ) }}
+                </ol>
+            </section>
+
+            <h2 class="get-involved-heading" id="get-involved-tasks">Pick something to do</h2>
+            <div class="overview-lists">
+                {% include list with {
+                    'id': 'get-involved-reviews',
+                    'title': 'Test a small change',
+                    'text': 'Changes of 50 lines or less that wait for a review.'
+                        ~ ' Test one on your machine and vote in Gerrit.',
+                    'guide': {'url': contribution_guide_url('HandlingAPatch/Review.html'), 'label': 'How to review'},
+                    'url': path('reviews_ready', {'filters': {'size': {'Easy': 'true'}}}),
+                    'items': smallReviews,
+                    'kind': 'change',
+                    'empty': 'No small change waits for a review.',
+                } only %}
+                {% include list with {
+                    'id': 'get-involved-first-issues',
+                    'title': 'Fix a good first issue',
+                    'text': 'Easy issues nobody works on yet. Read the issue, then push a fix to Gerrit.',
+                    'guide': {
+                        'url': contribution_guide_url('BugfixingAZ/Index.html'),
+                        'label': 'How to create a patch',
+                    },
+                    'url': path('search_search', firstIssues),
+                    'items': goodFirstIssues,
+                    'kind': 'issue',
+                    'empty': 'There is no good first issue at the moment.',
+                } only %}
+                {% include list with {
+                    'id': 'get-involved-new-bugs',
+                    'title': 'Confirm a new bug',
+                    'text': 'Bugs nobody looked at yet.'
+                        ~ ' Try to reproduce one and say in Forge what you found, and on which version.',
+                    'url': path('search_search', bugs),
+                    'items': newBugs,
+                    'kind': 'issue',
+                    'empty': 'There is no new bug.',
+                } only %}
+                {% include list with {
+                    'id': 'get-involved-regressions',
+                    'title': 'Help with a regression',
+                    'text': 'Something that worked in an earlier version is broken.'
+                        ~ ' Find the change that broke it, or test a fix.',
+                    'url': path('search_search', regressionFilter),
+                    'items': regressions,
+                    'kind': 'issue',
+                    'empty': 'There is no open regression.',
+                } only %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{#
+ # A step to the first contribution as a card: its number, title and text, and a button to where it is done. A link
+ # to another site opens in a new tab.
+ #}
+{% macro step(title, text, url, action) %}
+    {% set external = url starts with 'http' %}
+    <li class="get-involved-step">
+        <h2 class="get-involved-step-title">{{ title }}</h2>
+        <p class="get-involved-step-text">{{ text }}</p>
+        <a
+            class="btn btn-sm btn-default get-involved-step-action"
+            href="{{ url }}"
+            {%- if external %} target="_blank" rel="noopener"{% endif %}
+        >
+            {{- icon(external ? 'actions-book' : 'actions-arrow-down') }} {{ action -}}
+        </a>
+    </li>
+{% endmacro %}

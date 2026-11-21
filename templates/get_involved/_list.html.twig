@@ -1,0 +1,36 @@
+{#
+ # A short list of the page "Get involved": its title and count, a line on what to do, the first rows and a link to
+ # all of them.
+ # Expects: id, title, text, url (the list or search with the same filter), items (a SearchResult), kind ("issue" or
+ #          "change"), empty (the text without items)
+ # Optional: guide, a page of the Contribution Guide on the task: url and label
+ #}
+<section class="overview-list" aria-labelledby="{{ id }}">
+    <header class="overview-list-header">
+        <h2 class="overview-list-title" id="{{ id }}">
+            {{- title }} <span class="overview-list-count">{{ items.total }}</span>
+        </h2>
+        <a class="overview-list-all" href="{{ url }}">Show all</a>
+    </header>
+    <p class="get-involved-text">
+        {{ text }}
+        {% if guide is defined %}
+            <a href="{{ guide.url }}" target="_blank" rel="noopener">{{ icon('actions-book') }} {{ guide.label }}</a>
+        {% endif %}
+    </p>
+    {% if items is empty %}
+        <p class="overview-list-empty">{{ empty }}</p>
+    {% else %}
+        <ul class="overview-list-items">
+            {% for item in items %}
+                <li>
+                    {% if kind == 'change' %}
+                        {% include '_partials/row/change.html.twig' with {'change': item} only %}
+                    {% else %}
+                        {% include '_partials/row/issue.html.twig' with {'issue': item} only %}
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</section>

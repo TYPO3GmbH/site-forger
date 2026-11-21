@@ -29,6 +29,20 @@ final class LinkTwigExtensionTest extends KernelTestCase
         );
     }
 
+    public function testThePagesOfTheContributionGuide(): void
+    {
+        self::bootKernel();
+        /** @var Environment $twig */
+        $twig = self::getContainer()->get('twig');
+        $guide = 'https://docs.typo3.org/m/typo3/guide-contributionworkflow/main/en-us/';
+
+        self::assertSame(
+            $guide . ' ' . $guide . 'Account/Index.html',
+            $twig->createTemplate("{{ contribution_guide_url() }} {{ contribution_guide_url('/Account/Index.html') }}")
+                ->render(),
+        );
+    }
+
     public function testTheIssuesOfTheFootersAreLinked(): void
     {
         self::bootKernel();

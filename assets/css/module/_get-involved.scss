@@ -1,0 +1,139 @@
+// The page "Get involved", see templates/get_involved/index.html.twig. Its lists are the ones of the dashboard.
+
+// The welcome on top: a warm band with the steps to a first contribution as numbered cards
+.get-involved-welcome {
+    margin-bottom: 2rem;
+    padding: 2rem 2rem 1.75rem;
+    border: 1px solid #fbd9c3;
+    border-radius: var(--overview-radius);
+    background: linear-gradient(135deg, #fff7f1 0%, #fff 60%);
+
+    @media (max-width: 575.98px) {
+        padding: 1.5rem 1.25rem 1.25rem;
+    }
+}
+
+.get-involved-title {
+    margin: 0 0 .5rem;
+    color: #0b0b0b;
+    font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.get-involved-lead {
+    max-width: 44rem;
+    margin: 0 0 1.5rem;
+    color: #374151;
+    font-size: 1.0625rem;
+    line-height: 1.55;
+}
+
+.get-involved-steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: get-involved-step;
+
+    @media (max-width: 991.98px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 575.98px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+// The number of the step in an orange circle, the button at the bottom, so the buttons of a row stand in a line
+.get-involved-step {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    padding: 1.25rem;
+    border: 1px solid var(--overview-border);
+    border-radius: var(--overview-radius);
+    background: #fff;
+    box-shadow: var(--overview-shadow);
+    counter-increment: get-involved-step;
+
+    &::before {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        margin-bottom: .25rem;
+        border-radius: 50%;
+        background: var(--bs-primary, #ed6d05);
+        color: #fff;
+        content: counter(get-involved-step);
+        font-size: 1.125rem;
+        font-weight: 700;
+    }
+}
+
+// On a phone the number stands beside the step, so that the tasks below come sooner
+@media (max-width: 575.98px) {
+    .get-involved-step {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: .375rem .875rem;
+        padding: 1rem;
+
+        &::before {
+            grid-row: span 3;
+            width: 2rem;
+            height: 2rem;
+            margin-bottom: 0;
+            font-size: 1rem;
+        }
+    }
+}
+
+.get-involved-step-title {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 700;
+}
+
+.get-involved-step-text {
+    flex: 1;
+    margin: 0;
+    color: #4b5563;
+    font-size: .9375rem;
+    line-height: 1.5;
+}
+
+.get-involved-step-action {
+    // As wide as its label, in the column of the card and in the grid of a phone
+    align-self: flex-start;
+    justify-self: start;
+}
+
+.get-involved-heading {
+    margin: 0 0 1rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    scroll-margin-top: 1.5rem;
+}
+
+// What to do with the items of a list, between its title and its rows
+.get-involved-text {
+    margin: 0;
+    padding: .75rem 1.25rem;
+    border-bottom: 1px solid var(--overview-border);
+    color: #4b5563;
+    font-size: .875rem;
+
+    a {
+        display: inline-flex;
+        gap: .25rem;
+        align-items: center;
+        margin-left: .25rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+}
