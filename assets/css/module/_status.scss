@@ -85,6 +85,13 @@
 .status-pill-vote-disliked { --status-color: #b42318; --status-background: #fdecea; }
 .status-pill-vote-rejected { --status-color: #fff; --status-background: #b42318; }
 
+// What a label of a Gerrit change lacks for a merge, see App\Enum\ReviewLabelStateEnum
+.status-pill-label-ok { --status-color: #166534; --status-background: #e5f6eb; }
+.status-pill-label-need { --status-color: #8a4b00; --status-background: #fff3dc; }
+.status-pill-label-reject { --status-color: #b42318; --status-background: #fdecea; }
+.status-pill-label-impossible { --status-color: #fff; --status-background: #b42318; }
+.status-pill-label-may { --status-color: #5c6670; --status-background: #eef0f2; }
+
 // Activity of Gerrit changes and Forge issues, see App\Enum\ActivityEnum
 .status-pill-icon {
     &::before {

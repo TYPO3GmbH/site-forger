@@ -58,6 +58,22 @@ final readonly class LinkTwigExtension
     }
 
     /**
+     * A plain text as HTML, its web addresses linked, like the pipeline the CI names. They open in a new tab.
+     */
+    #[AsTwigFilter(name: 'autolink', isSafe: ['html'])]
+    public function autolink(string $text): string
+    {
+        $html = htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE);
+
+        // A dot or a bracket at the end belongs to the sentence, not to the address
+        return (string) preg_replace(
+            '~https?://[^\s<>"\']+[^\s<>"\'.,;:!?)\]]~',
+            '<a href="$0" target="_blank" rel="noopener">$0</a>',
+            $html,
+        );
+    }
+
+    /**
      * A commit message as HTML, the issues of its footers "Resolves:" and "Related:" linked to their pages.
      * Only imported issues have a page, the others stay text, as do numbers elsewhere in the message.
      *

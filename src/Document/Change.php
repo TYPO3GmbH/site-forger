@@ -13,6 +13,7 @@ namespace App\Document;
 
 use App\Enum\ActivityEnum;
 use App\Enum\ReviewLabelEnum;
+use App\Enum\ReviewLabelStateEnum;
 use App\Enum\ReviewSizeEnum;
 use App\Enum\ReviewStateEnum;
 use App\Enum\ReviewStatusEnum;
@@ -158,9 +159,37 @@ final readonly class Change
     /**
      * What a label lacks for a merge, null when Gerrit did not tell or the change was imported before.
      */
-    public function labelState(ReviewLabelEnum $label): ?string
+    public function labelState(ReviewLabelEnum $label): ?ReviewLabelStateEnum
     {
-        return $this->labelStates[$label->value] ?? null;
+        return ReviewLabelStateEnum::tryFrom($this->labelStates[$label->value] ?? '');
+    }
+
+    /**
+     * The votes on a label, those of people first, the strongest first.
+     *
+     * @return list<SingleVote>
+     */
+    public function votesOn(ReviewLabelEnum $label): array
+    {
+        $votes = array_values(array_filter(
+            $this->singleVotes,
+            static fn (SingleVote $vote): bool => $label === $vote->label,
+        ));
+        usort(
+            $votes,
+            static fn (SingleVote $a, SingleVote $b): int => [$a->isByCi(), -abs($a->value)]
+                <=> [$b->isByCi(), -abs($b->value)],
+        );
+
+        return $votes;
+    }
+
+    /**
+     * Whether a file has a conflict in the current patch set.
+     */
+    public function hasConflict(string $path): bool
+    {
+        return in_array($path, $this->conflicts, true);
     }
 
     /**

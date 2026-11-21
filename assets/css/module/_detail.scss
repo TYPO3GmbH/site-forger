@@ -433,6 +433,242 @@
     }
 }
 
+// The labels of a change: the vote and what it lacks in one line, who voted how below it
+
+.detail-labels {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.detail-label + .detail-label {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f0f1f3;
+}
+
+.detail-label-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+}
+
+.detail-label-name {
+    min-width: 7rem;
+    font-weight: 600;
+}
+
+.detail-voters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1.25rem;
+    margin: .625rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.detail-voter {
+    display: inline-flex;
+    gap: .375rem;
+    align-items: center;
+
+    // The CI votes on every patch set, a person counts more
+    &.is-ci {
+        color: var(--overview-muted);
+    }
+}
+
+.detail-voter-note,
+.detail-fact-note {
+    color: var(--overview-muted);
+    font-size: var(--detail-size-label);
+}
+
+// The review log as a timeline: an avatar on a line for each message, the comments of people in a box
+
+.timeline-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1rem;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+
+    .detail-section-title {
+        margin-bottom: 0;
+    }
+}
+
+.timeline-ci {
+    display: inline-flex;
+    gap: .5rem;
+    align-items: center;
+    color: var(--overview-muted);
+    font-size: var(--detail-size-label);
+    cursor: pointer;
+}
+
+// Without the switch the messages of the CI stay hidden
+.timeline:has(.timeline-ci-toggle:not(:checked)) .timeline-entry.is-ci {
+    display: none;
+}
+
+.timeline-list {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    // The line through the avatars
+    &::before {
+        position: absolute;
+        top: .5rem;
+        bottom: .5rem;
+        left: 15px;
+        width: 2px;
+        background: #eef0f2;
+        content: '';
+    }
+}
+
+.timeline-entry {
+    position: relative;
+    display: flex;
+    gap: .75rem;
+    padding: .375rem 0;
+
+    &.is-ci {
+        color: var(--overview-muted);
+    }
+}
+
+.timeline-avatar {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+
+    .avatar {
+        border: 2px solid #fff;
+        border-radius: 50%;
+    }
+}
+
+.timeline-body {
+    min-width: 0;
+    padding-top: .25rem;
+}
+
+.timeline-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem .5rem;
+    align-items: center;
+    margin: 0;
+    font-size: .9375rem;
+}
+
+.timeline-event,
+.timeline-note,
+.timeline-time {
+    color: var(--overview-muted);
+}
+
+.timeline-note {
+    overflow-wrap: anywhere;
+
+    a {
+        color: inherit;
+    }
+}
+
+.timeline-time {
+    font-size: var(--detail-size-label);
+}
+
+.timeline-outdated {
+    color: var(--overview-muted);
+    font-size: var(--detail-size-label);
+}
+
+.timeline-comment {
+    margin-top: .5rem;
+    padding: .625rem .875rem;
+    border: 1px solid var(--overview-border);
+    border-radius: .5rem;
+    background: #fff;
+    color: #1f2937;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.timeline-earlier {
+    position: relative;
+
+    // The line goes on through the toggle to the messages below it
+    &::before {
+        position: absolute;
+        top: 1rem;
+        bottom: -.5rem;
+        left: 15px;
+        width: 2px;
+        background: #eef0f2;
+        content: '';
+    }
+
+    // Open, the toggle goes and the messages go on in the line
+    &[open] > .timeline-earlier-toggle {
+        display: none;
+    }
+
+    > .timeline-list::before {
+        bottom: 0;
+    }
+}
+
+// A line of the timeline: an icon on the line, the toggle next to it
+.timeline-earlier-toggle {
+    align-items: center;
+    list-style: none;
+    cursor: pointer;
+
+    &::-webkit-details-marker {
+        display: none;
+    }
+
+    &:hover .timeline-earlier-label,
+    &:focus-visible .timeline-earlier-label {
+        border-color: #d1d5db;
+        color: #1f2937;
+    }
+}
+
+.timeline-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #eef0f2;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--overview-muted);
+}
+
+.timeline-earlier-label {
+    padding: .125rem .625rem;
+    border: 1px solid var(--overview-border);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--overview-muted);
+    font-size: var(--detail-size-label);
+}
+
+// The numbers follow the switch of the CI
+.timeline:has(.timeline-ci-toggle:not(:checked)) .timeline-with-ci,
+.timeline:has(.timeline-ci-toggle:checked) .timeline-without-ci,
+.timeline:has(.timeline-ci-toggle:not(:checked)) .timeline-earlier.is-ci-only {
+    display: none;
+}
+
 // Files of a change
 
 .detail-files {
@@ -479,6 +715,50 @@
 
 .detail-file-name {
     flex-shrink: 0;
+}
+
+// The lines, the status and the conflict of a file, at the end of its line
+.detail-file-facts {
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: .5rem;
+    align-items: center;
+    margin-left: auto;
+    padding-left: 1rem;
+}
+
+.detail-file-status {
+    color: var(--overview-muted);
+    font-family: var(--bs-body-font-family, sans-serif);
+    font-size: var(--detail-size-label);
+}
+
+.detail-file-conflict {
+    color: #b42318;
+}
+
+.detail-file-facts .is-added { color: #15803d; }
+.detail-file-facts .is-removed { color: #b42318; }
+
+// On a phone the lines go below the path, a long name would push them out
+@media (max-width: 575px) {
+    .detail-files a {
+        flex-wrap: wrap;
+    }
+
+    .detail-file-name {
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .detail-file-facts {
+        flex-basis: 100%;
+        margin-left: 0;
+        padding-top: .125rem;
+        padding-left: 0;
+    }
 }
 
 // The files after the first ones, on a click. Open, the line goes: the list goes on where it was

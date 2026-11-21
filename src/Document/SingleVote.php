@@ -12,6 +12,8 @@ declare(strict_types=1);
 namespace App\Document;
 
 use App\Enum\ReviewLabelEnum;
+use App\Enum\ReviewVoteEnum;
+use App\Import\GerritChangeImporter;
 use App\People\Person;
 
 /**
@@ -40,5 +42,21 @@ final readonly class SingleVote
             Change::account($vote['account'] ?? null),
             isset($vote['date']) ? (string) $vote['date'] : null,
         );
+    }
+
+    /**
+     * The vote as the pills show it.
+     */
+    public function vote(): ReviewVoteEnum
+    {
+        return ReviewVoteEnum::tryFrom($this->value) ?? ReviewVoteEnum::NONE;
+    }
+
+    /**
+     * Whether the CI wrote it, not a person, see GerritChangeImporter::CI_ACCOUNTS.
+     */
+    public function isByCi(): bool
+    {
+        return in_array($this->account?->gerritId, GerritChangeImporter::CI_ACCOUNTS, true);
     }
 }

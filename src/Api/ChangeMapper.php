@@ -26,7 +26,6 @@ use App\Document\RelatedIssue;
 use App\Document\ReviewMessage as StoredMessage;
 use App\Document\SingleVote;
 use App\Enum\ReviewLabelEnum;
-use App\Import\GerritChangeImporter;
 use App\People\Person;
 use App\Twig\LinkTwigExtension;
 use Doctrine\Common\Collections\ReadableCollection;
@@ -111,7 +110,7 @@ final readonly class ChangeMapper
                     self::account($message->author),
                     ApiDate::fromIndex($message->date),
                     $message->patchSet,
-                    self::isBot($message->author),
+                    $message->isByCi(),
                     $message->text,
                 ),
                 $change->messages,
@@ -126,20 +125,17 @@ final readonly class ChangeMapper
      */
     private static function label(Change $change, ReviewLabelEnum $label): Label
     {
-        $votes = array_values(array_filter(
-            $change->singleVotes,
-            static fn (SingleVote $vote): bool => $label === $vote->label,
-        ));
+        $votes = $change->votesOn($label);
 
         return new Label(
             $change->vote($label)->value,
-            $change->labelState($label),
+            $change->labelState($label)?->value,
             array_map(
                 static fn (SingleVote $vote): Vote => new Vote(
                     self::account($vote->account),
                     $vote->value,
                     ApiDate::fromIndex($vote->date),
-                    self::isBot($vote->account),
+                    $vote->isByCi(),
                 ),
                 $votes,
             ),
@@ -156,11 +152,6 @@ final readonly class ChangeMapper
             $person->name,
             self::publicUsername($person->username),
         );
-    }
-
-    private static function isBot(?Person $person): bool
-    {
-        return in_array($person?->gerritId, GerritChangeImporter::CI_ACCOUNTS, true);
     }
 
     /**
