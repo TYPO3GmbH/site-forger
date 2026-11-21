@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Setup;
 
 use App\CommandRun\CommandRunRecorder;
+use App\Import\ForgeIssueApi;
 use App\Import\ForgeIssueList;
 use App\People\User;
 use App\Repository\UserRepository;
@@ -124,7 +125,7 @@ final class ForgeLoginTest extends TestCase
         $users = $this->createStub(UserRepository::class);
         $users->method('lastFetched')->willReturn($lastFetched);
 
-        $issues = new ForgeIssueList($api->client, 27);
+        $issues = new ForgeIssueList(new ForgeIssueApi($api->client, $api->client), 27);
 
         return new ForgeLogin($issues, $api->client, $users, 27);
     }

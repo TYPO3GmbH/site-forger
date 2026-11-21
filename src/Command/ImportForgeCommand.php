@@ -16,6 +16,7 @@ use App\Elastic\IndexSetup;
 use App\Http\ApiRequests;
 use App\Import\DuplicateImport;
 use App\Import\ForgeImport;
+use App\Import\ForgeIssueApi;
 use App\Import\ForgeIssueImporter;
 use App\Import\ForgeIssueList;
 use App\Import\ImportRun;
@@ -33,6 +34,7 @@ final class ImportForgeCommand extends ImportJobCommand
         private readonly ForgeIssueImporter $issueImporter,
         private readonly DuplicateImport $duplicateImport,
         private readonly ForgeIssueList $forgeIssues,
+        private readonly ForgeIssueApi $forgeApi,
         IndexSetup $indexSetup,
         CommandRunRecorder $recorder,
         ApiRequests $apiRequests,
@@ -66,7 +68,7 @@ final class ImportForgeCommand extends ImportJobCommand
 
             return;
         }
-        $this->checkAccess();
+        $this->checkAccess($run);
         if ([] !== $ids) {
             $result = $this->issueImporter->update($ids);
             $run->writeln(sprintf('Updated %d issues, removed %d that Forge does not list', $result['updated'], $result['removed']));
@@ -80,14 +82,23 @@ final class ImportForgeCommand extends ImportJobCommand
     }
 
     /**
-     * Stops before the import when Forge refuses the issues to the token. Without this check the import fails on its
-     * first list with a bare 403. The system page checks the token as well, see ForgeLogin.
+     * Reads the issues without the token when Forge refuses them to it. The system page shows the problem of the
+     * token, see ForgeLogin.
+     *
+     * Temporary, see ForgeIssueApi: without the fallback, the run stops here with the problem.
      */
-    private function checkAccess(): void
+    private function checkAccess(ImportRun $run): void
     {
         $problem = $this->forgeIssues->accessProblem();
+        if (null === $problem) {
+            return;
+        }
+        $this->forgeApi->usePublic();
+        $run->writeln('Warning: ' . $problem . ' Reading the public issues without the token.');
+        $this->logger?->warning($problem, ['fallback' => 'public']);
+        $problem = $this->forgeIssues->accessProblem();
         if (null !== $problem) {
-            throw new \RuntimeException($problem);
+            throw new \RuntimeException('Without the token too: ' . $problem);
         }
     }
 }

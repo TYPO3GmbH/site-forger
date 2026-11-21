@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Import;
 
 use App\CommandRun\CommandRunRecorder;
+use App\Import\ForgeIssueApi;
 use App\Import\ForgeIssueList;
 use App\Tests\Http\MockApi;
 use Doctrine\DBAL\Connection;
@@ -67,12 +68,26 @@ final class ForgeIssueListTest extends TestCase
         self::assertStringStartsWith('Forge lists no issues of the project.', (string) $list->accessProblem());
     }
 
+    public function testThePublicApiAsksWithoutTheToken(): void
+    {
+        $token = $this->api([new Response(403)]);
+        $public = $this->api([self::total(61205)]);
+        $api = new ForgeIssueApi($token->client, $public->client);
+        $list = new ForgeIssueList($api, 27);
+
+        self::assertNotNull($list->accessProblem());
+        $api->usePublic();
+        self::assertNull($list->accessProblem());
+        self::assertTrue($api->isPublic());
+        self::assertSame('/issues.json', $public->request(0)->getUri()->getPath());
+    }
+
     /**
      * @param list<Response> $responses the answers of Forge to the token
      */
     private function list(array $responses): ForgeIssueList
     {
-        return new ForgeIssueList($this->api($responses)->client, 27);
+        return new ForgeIssueList(new ForgeIssueApi($this->api($responses)->client, $this->api([])->client), 27);
     }
 
     /**

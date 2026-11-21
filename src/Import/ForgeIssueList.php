@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace App\Import;
 
-use App\Http\ApiClient;
 use App\Http\ApiFailure;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -31,7 +30,7 @@ final readonly class ForgeIssueList
     public const int PAGE_SIZE = 100;
 
     public function __construct(
-        private ApiClient $forge,
+        private ForgeIssueApi $forge,
         #[Autowire('%redmine_project_id%')]
         private int $projectId,
     ) {
@@ -84,7 +83,7 @@ final readonly class ForgeIssueList
      */
     public function page(int $offset, ?string $updatedOn = null): array
     {
-        return self::issueList($this->forge->object('/issues.json', [
+        return self::issueList($this->forge->client()->object('/issues.json', [
             'limit' => self::PAGE_SIZE,
             'offset' => $offset,
             'project_id' => $this->projectId,
@@ -152,9 +151,9 @@ final readonly class ForgeIssueList
      */
     private function get(string $path): array
     {
-        $answer = $this->forge->object($path, [], 'a list of issues');
+        $answer = $this->forge->client()->object($path, [], 'a list of issues');
         if (!array_key_exists('total_count', $answer)) {
-            throw ApiFailure::unexpected($this->forge->name, 'a list of issues', json_encode($answer));
+            throw ApiFailure::unexpected($this->forge->client()->name, 'a list of issues', json_encode($answer));
         }
 
         return self::issueList($answer);
