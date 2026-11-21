@@ -54,16 +54,38 @@ final class DuplicateQuery
     }
 
     /**
+     * The issues most like a text: the words that set it apart, picked like those of an issue, see query(). A long
+     * search, like a pasted report, is searched this way, see IssueSearch::query(). The text is subject and
+     * description at once, the subject counts more.
+     *
+     * @return array<string, mixed>
+     */
+    public static function likeText(string $text): array
+    {
+        $like = [['doc' => ['subject' => $text, 'description' => $text]]];
+
+        return ['bool' => [
+            'should' => [
+                self::moreLikeThis($like, 'subject', self::SUBJECT_TERMS, self::SUBJECT_BOOST),
+                self::moreLikeThis($like, 'description', self::DESCRIPTION_TERMS, 1),
+            ],
+            'minimum_should_match' => 1,
+        ]];
+    }
+
+    /**
      * @param array<string, mixed> $filter
      *
      * @return array<string, mixed>
      */
     private static function like(int $id, array $filter): array
     {
+        $like = [['_id' => (string) $id]];
+
         return ['bool' => [
             'should' => [
-                self::moreLikeThis($id, 'subject', self::SUBJECT_TERMS, self::SUBJECT_BOOST),
-                self::moreLikeThis($id, 'description', self::DESCRIPTION_TERMS, 1),
+                self::moreLikeThis($like, 'subject', self::SUBJECT_TERMS, self::SUBJECT_BOOST, true),
+                self::moreLikeThis($like, 'description', self::DESCRIPTION_TERMS, 1, true),
             ],
             'minimum_should_match' => 1,
             'filter' => [$filter],
@@ -71,20 +93,28 @@ final class DuplicateQuery
     }
 
     /**
+     * @param list<array<string, mixed>> $like    an issue by its id, or an artificial document
+     * @param bool                       $include whether the issue of the "like" is found, too
+     *
      * @return array<string, mixed>
      */
-    private static function moreLikeThis(int $id, string $field, int $terms, int $boost): array
-    {
+    private static function moreLikeThis(
+        array $like,
+        string $field,
+        int $terms,
+        int $boost,
+        bool $include = false,
+    ): array {
         return ['more_like_this' => [
             'fields' => [$field],
-            'like' => [['_id' => (string) $id]],
+            'like' => $like,
             // Subjects name each word once
             'min_term_freq' => 1,
             // A word no other issue has finds nothing
             'min_doc_freq' => 2,
             'max_query_terms' => $terms,
             'minimum_should_match' => '30%',
-            'include' => true,
+            'include' => $include,
             'boost' => $boost,
         ]];
     }

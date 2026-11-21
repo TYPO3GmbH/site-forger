@@ -5,3 +5,8 @@ framework:
             policy: token_bucket
             limit: 10
             rate: { interval: '1 second', amount: 10 }
+        # The public API at /api/v1, a bucket for each client address, see ApiRateLimitSubscriber
+        public_api:
+            policy: token_bucket
+            limit: 120
+            rate: { interval: '1 minute', amount: 120 }

@@ -79,4 +79,16 @@ final class IssueReconciliationTest extends TestCase
             self::assertLessThanOrEqual(IssueReconciliation::LISTED, $to - $from + 1);
         }
     }
+
+    public function testStopsAtTheMostRangesAndTakesTheNewestFirst(): void
+    {
+        $forge = static fn (int $from, int $to): int => $to - $from + 1;
+        $index = static fn (int $from, int $to): int => 0;
+
+        $ranges = IssueReconciliation::ranges(1, 10000, 10000, 0, $forge, $index, 100, 2);
+
+        self::assertCount(2, $ranges);
+        self::assertSame(10000, $ranges[0][1]);
+        self::assertLessThan($ranges[0][0], $ranges[1][1]);
+    }
 }

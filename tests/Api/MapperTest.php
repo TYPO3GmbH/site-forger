@@ -1,0 +1,250 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
+
+namespace App\Tests\Api;
+
+use App\Api\ChangeMapper;
+use App\Api\IssueMapper;
+use App\Document\Change;
+use App\Document\Issue;
+use App\Duplicates\DuplicateGroups;
+use App\Duplicates\DuplicateHit;
+use App\Elastic\SearchResult;
+use Doctrine\Common\Collections\ArrayCollection;
+use PHPUnit\Framework\TestCase;
+
+final class MapperTest extends TestCase
+{
+    public function testAnIssueHasItsFieldsAndItsRelations(): void
+    {
+        $issue = self::issueDetail();
+
+        self::assertSame(105403, $issue['id']);
+        self::assertSame('Bug', $issue['tracker']);
+        self::assertFalse($issue['closed']);
+        self::assertSame(['id' => 36415, 'name' => 'Jane Doe'], $issue['author']);
+        self::assertSame('2026-11-20T23:40:03Z', $issue['createdOn']);
+        self::assertSame('https://forge.typo3.org/issues/105403', $issue['url']);
+        self::assertSame('https://forger.test/issue_show/105403', $issue['forgerUrl']);
+        self::assertSame(105000, $issue['parent']);
+        self::assertSame([105500], $issue['subtasks']);
+        self::assertSame([['type' => 'blocks', 'issue' => 101234]], $issue['relations']);
+        self::assertSame([101234], $issue['duplicates']);
+        self::assertSame('linked', $issue['changes'][0]['relation']);
+        self::assertSame('ready', $issue['changes'][0]['state']);
+    }
+
+    public function testAnIssueHasItsCommentsWithoutTheChangesAndThePrivateNotes(): void
+    {
+        $comments = self::issueDetail()['comments'];
+
+        self::assertSame(
+            [
+                [['id' => 36415, 'name' => 'Jane Doe'], '2026-11-20T10:00:00Z', false, 'Confirmed.'],
+                [['id' => 1, 'name' => 'Gerrit Code Review'], '2026-11-21T08:00:00Z', true, 'Patch set 1 was pushed.'],
+            ],
+            array_map(
+                static fn (array $comment): array => [
+                    $comment['author'],
+                    $comment['createdOn'],
+                    $comment['bot'],
+                    $comment['text'],
+                ],
+                $comments,
+            ),
+        );
+    }
+
+    public function testAnIssueHasItsFiles(): void
+    {
+        self::assertSame(
+            [[
+                'filename' => 'crop.png',
+                'contentType' => 'image/png',
+                'size' => 48213,
+                'description' => 'The preview',
+                'author' => ['id' => 36415, 'name' => 'Jane Doe'],
+                'createdOn' => '2026-11-20T10:05:00Z',
+                'url' => 'https://forge.typo3.org/attachments/download/38811/crop.png',
+            ]],
+            self::issueDetail()['attachments'],
+        );
+    }
+
+    public function testLeavesOutTheRelatedIssuesForgerDoesNotHave(): void
+    {
+        // The token of the import sees private issues in the relations, the index has none of them
+        $issue = new IssueMapper(ApiFixtures::urls())->detail(
+            ApiFixtures::issue(),
+            ApiFixtures::changesOfTheIssue(),
+            ApiFixtures::subtasks(),
+            [],
+        );
+
+        self::assertNull($issue->parent);
+        self::assertSame([], $issue->relations);
+        self::assertSame([], $issue->duplicates);
+    }
+
+    public function testListsTheMarkedDuplicatesBeforeTheSimilarIssues(): void
+    {
+        $marked = new DuplicateHit(Issue::fromDocument(['id' => 101234, 'subject' => 'Marked']), null);
+        $similar = DuplicateHit::checked(Issue::fromDocument(['id' => 104000, 'subject' => 'Similar']), 70, 60);
+        $groups = new DuplicateGroups([$marked->withRelation(DuplicateGroups::DUPLICATES)], [$similar]);
+
+        $list = self::decoded(new IssueMapper(ApiFixtures::urls())->duplicates(ApiFixtures::issue(), $groups));
+
+        self::assertSame(105403, $list['issue']);
+        self::assertSame(DuplicateGroups::MIN_SIMILARITY, $list['minimumSimilarity']);
+        self::assertSame(
+            [[101234, null, 'duplicates'], [104000, 65, null]],
+            array_map(
+                static fn (array $item): array => [$item['issue']['id'], $item['similarity'], $item['relation']],
+                $list['items'],
+            ),
+        );
+    }
+
+    public function testAChangeHasItsFieldsAndItsIssues(): void
+    {
+        $change = self::changeDetail();
+
+        self::assertSame(97865, $change['number']);
+        self::assertSame('ready', $change['state']);
+        self::assertSame('crop', $change['topic']);
+        self::assertTrue($change['mergeable']);
+        self::assertSame(1, $change['votes']['codeReview']['vote']);
+        self::assertSame('NEED', $change['votes']['codeReview']['state']);
+        self::assertSame(
+            [['id' => 14410, 'name' => 'Jane Doe', 'username' => 'jdoe'], 1, '2026-11-20T23:30:00Z', false],
+            array_values($change['votes']['codeReview']['votes'][0]),
+        );
+        self::assertSame('REJECT', $change['votes']['verified']['state']);
+        // The CI votes, too, and is no person
+        self::assertTrue($change['votes']['verified']['votes'][0]['bot']);
+        self::assertSame([4, 1], [$change['commentCount'], $change['unresolvedCommentCount']]);
+        self::assertSame(
+            ['typo3/sysext/backend/Classes/Preview/StandardContentPreviewRenderer.php', 'modified', 21, 6, false, null],
+            array_values($change['files'][0]),
+        );
+        self::assertSame(['Uploaded patch set 1.', 1, false], [
+            $change['messages'][0]['text'],
+            $change['messages'][0]['patchSet'],
+            $change['messages'][0]['bot'],
+        ]);
+        self::assertSame(['composer.json'], $change['conflicts']);
+        self::assertSame(97000, $change['cherryPickOf']);
+        self::assertSame(
+            ['c1', 'm1', 'composer.json', 3, true, 'Why this version?'],
+            [
+                $change['comments'][0]['id'],
+                $change['comments'][0]['messageId'],
+                $change['comments'][0]['file'],
+                $change['comments'][0]['line'],
+                $change['comments'][0]['unresolved'],
+                $change['comments'][0]['text'],
+            ],
+        );
+        self::assertSame('m1', $change['messages'][0]['id']);
+        self::assertSame(
+            [[97900, 'above', null, false], [97865, 'this', 'ready', true], [97800, 'below', null, false]],
+            array_map(
+                static fn (array $link): array => [$link['number'], $link['place'], $link['state'], $link['outdated']],
+                $change['chain'],
+            ),
+        );
+        self::assertSame(['id' => 14410, 'name' => 'Jane Doe', 'username' => 'jdoe'], $change['owner']);
+        self::assertSame('resolves', $change['issues'][0]['relation']);
+        self::assertSame('Under Review', $change['issues'][0]['status']);
+        self::assertSame(['id' => 99999, 'relation' => 'related', 'subject' => null, 'status' => null], array_slice(
+            $change['issues'][1],
+            0,
+            4,
+        ));
+    }
+
+    public function testNoEmailAddressLeavesForger(): void
+    {
+        $json = (string) json_encode([self::issueDetail(), self::changeDetail()]);
+
+        self::assertStringNotContainsString(ApiFixtures::EMAIL, $json);
+        self::assertStringNotContainsStringIgnoringCase('email', $json);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function issueDetail(): array
+    {
+        $issue = new IssueMapper(ApiFixtures::urls())->detail(
+            ApiFixtures::issue(),
+            ApiFixtures::changesOfTheIssue(),
+            ApiFixtures::subtasks(),
+            ApiFixtures::indexedRelatedIssues(),
+        );
+
+        return self::decoded($issue);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function changeDetail(): array
+    {
+        $change = new ChangeMapper(ApiFixtures::urls())->detail(
+            ApiFixtures::change(),
+            ApiFixtures::issuesOfTheChange(),
+            new ArrayCollection([97865 => ApiFixtures::change()]),
+        );
+
+        return self::decoded($change);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function decoded(object $model): array
+    {
+        return (array) json_decode((string) json_encode($model), true);
+    }
+
+    public function testCountsHowTheIssuesSpread(): void
+    {
+        $found = SearchResult::ofDocuments([], 0, [
+            'status' => ['buckets' => [['key' => 'New', 'doc_count' => 3]]],
+            'category' => ['buckets' => [['key' => 'none', 'doc_count' => 2]]],
+            'createdYear' => ['buckets' => [['key' => 1356998400000, 'key_as_string' => '2013', 'doc_count' => 1]]],
+        ]);
+
+        $breakdown = new IssueMapper(ApiFixtures::urls())->breakdown($found);
+
+        self::assertSame([['name' => 'New', 'count' => 3]], self::decoded($breakdown)['status']);
+        self::assertSame([['name' => 'none', 'count' => 2]], self::decoded($breakdown)['category']);
+        self::assertSame([['name' => '2013', 'count' => 1]], self::decoded($breakdown)['createdYear']);
+        self::assertSame([], $breakdown->tracker);
+    }
+
+    public function testAChangeOfAnOlderImportHasThePathsOfItsFiles(): void
+    {
+        $change = Change::fromDocument(['id' => 1, 'subject' => 'Old', 'files' => ['composer.json']]);
+
+        $detail = new ChangeMapper(ApiFixtures::urls())->detail($change, new ArrayCollection(), new ArrayCollection());
+        $files = self::decoded($detail)['files'];
+
+        self::assertSame([['composer.json', null, null, null, null, null]], array_map(array_values(...), $files));
+    }
+
+    public function testLeavesOutAUsernameThatIsAnEmailAddress(): void
+    {
+        self::assertSame('jdoe', ChangeMapper::publicUsername('jdoe'));
+        self::assertNull(ChangeMapper::publicUsername(ApiFixtures::EMAIL));
+    }
+}

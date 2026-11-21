@@ -1,0 +1,40 @@
+{#
+ # The parts every timeline shares, the review log of a change and the history of an issue, see the styles of
+ # ".timeline" in assets/css/module/_detail.scss. A switch shows the entries of bots, "is-bot", in their place.
+ #}
+
+{#
+ # A number of entries that follows the switch of the bots: without them, or with them.
+ #}
+{% macro counts(withoutBots, withBots, class = '') %}
+    {%- if withoutBots == withBots -%}
+        {%- if class %}<span class="{{ class }}">{{ withBots }}</span>{% else %}{{ withBots }}{% endif -%}
+    {%- else -%}
+        <span class="{{ class ? class ~ ' ' }}timeline-without-bots">{{ withoutBots }}</span><span class="{{ class ? class ~ ' ' }}timeline-with-bots">{{ withBots }}</span>
+    {%- endif -%}
+{% endmacro %}
+
+{#
+ # The title with the number of entries, and the switch when bots wrote some.
+ #}
+{% macro header(id, title, total, bots, botsLabel) %}
+    <header class="timeline-header">
+        <h2 id="{{ id }}" class="detail-section-title">{{ title }} {{ _self.counts(total - bots, total, 'detail-count') }}</h2>
+        {% if bots > 0 %}
+            <label class="timeline-bots">
+                <input type="checkbox" class="timeline-bot-toggle">
+                <span>Show the {{ bots }} {{ bots == 1 ? 'message' : 'messages' }} of {{ botsLabel }}</span>
+            </label>
+        {% endif %}
+    </header>
+{% endmacro %}
+
+{#
+ # The toggle of the earlier entries, a line of the timeline. It is the summary of their "details".
+ #}
+{% macro earlier(withoutBots, withBots) %}
+    <summary class="timeline-entry timeline-earlier-toggle">
+        <span class="timeline-avatar timeline-icon" aria-hidden="true">{{ icon('actions-history') }}</span>
+        <span class="timeline-earlier-label">Show {{ _self.counts(withoutBots, withBots) }} earlier messages</span>
+    </summary>
+{% endmacro %}

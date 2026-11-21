@@ -68,6 +68,10 @@ issue_relations:
       type: keyword
     issue:
       type: integer
+# The files of the issue, see ForgeIssueImporter::attachments(). Kept for the pages and the API, not searched.
+attachments:
+  type: object
+  enabled: false
 # The issue this one is a subtask of, as Forge sends it. Its subtasks are the issues with its number here.
 parent:
   properties:

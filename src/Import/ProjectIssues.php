@@ -41,16 +41,35 @@ final readonly class ProjectIssues
     }
 
     /**
+     * The issue without its private notes and without the files added with them. The public sees neither, the token
+     * of Forger does. A private note names its files as changes of the field "attachment", by their id.
+     *
      * @param array<string, mixed> $issue
      *
      * @return array<string, mixed>
      */
     public function withoutPrivateNotes(array $issue): array
     {
-        if (isset($issue['journals']) && is_array($issue['journals'])) {
-            $issue['journals'] = array_values(array_filter(
-                $issue['journals'],
-                static fn (array $journal): bool => true !== ($journal['private_notes'] ?? false),
+        if (!isset($issue['journals']) || !is_array($issue['journals'])) {
+            return $issue;
+        }
+        $isPrivate = static fn (array $journal): bool => true === ($journal['private_notes'] ?? false);
+        $privateFiles = [];
+        foreach (array_filter($issue['journals'], $isPrivate) as $journal) {
+            foreach ((array) ($journal['details'] ?? []) as $detail) {
+                if ('attachment' === ($detail['property'] ?? null)) {
+                    $privateFiles[(int) ($detail['name'] ?? 0)] = true;
+                }
+            }
+        }
+        $issue['journals'] = array_values(array_filter(
+            $issue['journals'],
+            static fn (array $journal): bool => !$isPrivate($journal),
+        ));
+        if ([] !== $privateFiles && is_array($issue['attachments'] ?? null)) {
+            $issue['attachments'] = array_values(array_filter(
+                $issue['attachments'],
+                static fn (mixed $file): bool => !isset($privateFiles[(int) ($file['id'] ?? 0)]),
             ));
         }
 

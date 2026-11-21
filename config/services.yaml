@@ -57,8 +57,9 @@ services:
               # forge.typo3.org rejects requests without a User-Agent (bot protection)
               User-Agent: 'TYPO3 Forger'
       $rateLimiter: '@limiter.api'
-      # Stephan Großberndt asked for 50 to 100 ms between two requests (Slack #t3a-t3g-infra, 2024-04-15)
-      $minPauseMs: 50
+      # Stephan Großberndt asked for 50 to 100 ms between two requests (Slack #t3a-t3g-infra, 2024-04-15).
+      # With 50 ms Forge answered 429 to a run that loads one issue per request, and the run waited most of its time.
+      $minPauseMs: 600
 
   api.gerrit:
     class: App\Http\ApiClient
@@ -106,6 +107,10 @@ services:
       - name: 'knp_menu.menu_builder'
         method: 'mainFooter'
         alias: 'main-footer'
+
+  # The subscriber of the Keycloak bundle, without the stateless routes of the public API
+  T3G\Bundle\Keycloak\EventSubscriber\RequestSubscriber:
+    class: App\Security\StatelessAwareKeycloakSubscriber
 
   App\Security\LogoutSuccessHandler:
     class: App\Security\LogoutSuccessHandler

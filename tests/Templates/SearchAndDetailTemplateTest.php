@@ -643,6 +643,185 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringNotContainsString('detail-files-more', $html);
     }
 
+    public function testAChangeShowsEachLabelWithItsVotesItsFilesWithTheirLinesAndItsReviewLog(): void
+    {
+        $account = static fn (int $id, string $name): array => ['id' => $id, 'name' => $name, 'username' => null];
+        $file = static fn (string $path, string $status, int $insertions, int $deletions): array => [
+            'path' => $path,
+            'status' => $status,
+            'insertions' => $insertions,
+            'deletions' => $deletions,
+        ];
+        $vote = static fn (string $label, int $value, int $id, string $name): array => [
+            'label' => $label,
+            'value' => $value,
+            'account' => $account($id, $name),
+            'date' => '2026/11/02 09:00:00',
+        ];
+        $message = static fn (int $id, string $name, string $text): array => [
+            'author' => $account($id, $name),
+            'date' => '2026/11/02 09:00:00',
+            'patch_set' => 3,
+            'message' => "Patch Set 3:\n\n" . $text,
+        ];
+        $change = self::CHANGE + [
+            'files' => ['composer.json', 'typo3/sysext/core/Classes/Cache.php'],
+            'file_details' => [
+                $file('composer.json', 'modified', 2, 1),
+                $file('typo3/sysext/core/Classes/Cache.php', 'added', 40, 0),
+            ],
+            'votes' => [$vote('Code-Review', 1, 7, 'Jane Doe'), $vote('Verified', -1, 49454, 'core-ci')],
+            'label_states' => ['Code-Review' => 'NEED', 'Verified' => 'REJECT'],
+            'conflicts' => ['composer.json'],
+            'messages' => [$message(7, 'Jane Doe', 'Looks good.'), $message(49454, 'core-ci', 'Tests fail.')],
+            'comment_count' => 4,
+            'unresolved_comment_count' => 1,
+            'cherry_pick_of' => 80000,
+        ];
+        $change['messages'][0]['id'] = 'm1';
+        $change['comments'] = [[
+            'id' => 'c1',
+            'message_id' => 'm1',
+            'file' => 'composer.json',
+            'line' => 3,
+            'unresolved' => true,
+            'date' => '2026/11/02 09:00:00',
+            'message' => 'Why this version?',
+        ]];
+
+        $html = $this->twig->load('change/show.html.twig')->renderBlock(
+            'body',
+            ['change' => Change::fromDocument($change), 'message' => '', 'issues' => []],
+        );
+
+        // The state of a label next to its vote, who voted below it, the CI apart
+        self::assertStringContainsString(
+            'status-pill-label-need" title="What Code review lacks for a merge">Needs a vote</span>',
+            $html,
+        );
+        self::assertStringContainsString(
+            'status-pill-label-reject" title="What Verified lacks for a merge">Blocked</span>',
+            $html,
+        );
+        self::assertStringContainsString('Jane Doe', $html);
+        self::assertStringContainsString('<li class="detail-voter is-ci">', $html);
+        // The lines and the status of a file, the conflict marked
+        self::assertStringContainsString(
+            '<span class="is-added">+40</span> <span class="is-removed">&minus;0</span>',
+            $html,
+        );
+        self::assertStringContainsString('<span class="detail-file-status">new</span>', $html);
+        self::assertSame(1, substr_count($html, 'title="Conflict in the current patch set"'));
+        // The review log in its order, the CI with a switch, the comment of a person in a box
+        // Without the CI one message, with it two
+        self::assertStringContainsString(
+            'Review log <span class="detail-count timeline-without-bots">1</span>'
+                . '<span class="detail-count timeline-with-bots">2</span>',
+            $html,
+        );
+        self::assertStringContainsString('<span>Show the 1 message of the CI</span>', $html);
+        self::assertSame(1, substr_count($html, '<li class="timeline-entry is-bot">'));
+        self::assertLessThan(strpos($html, 'Tests fail.'), strpos($html, 'Looks good.'));
+        self::assertStringContainsString('<div class="timeline-comment-text">Looks good.</div>', $html);
+        self::assertStringContainsString('<span class="timeline-note">Tests fail.</span>', $html);
+        self::assertStringContainsString('<span class="detail-fact-note">1 unresolved</span>', $html);
+        // The comment under the message it was published with, open, and counted on its file
+        self::assertStringContainsString('<code title="composer.json">composer.json:3</code>', $html);
+        self::assertStringContainsString('<div class="timeline-comment-text">Why this version?</div>', $html);
+        self::assertStringContainsString('<div class="timeline-comment is-open">', $html);
+        self::assertStringContainsString('title="Comments on this file">', $html);
+        self::assertStringContainsString('href="/change/80000">Change 80000</a>', $html);
+    }
+
+    public function testTheEarlierMessagesOfALongReviewLogAreOnAClick(): void
+    {
+        $messages = array_map(static fn (int $patchSet): array => [
+            'author' => ['id' => 7, 'name' => 'Jane Doe'],
+            'patch_set' => $patchSet,
+            'message' => 'Uploaded patch set ' . $patchSet . '.',
+        ], range(1, 30));
+
+        $html = $this->twig->load('change/show.html.twig')->renderBlock(
+            'body',
+            [
+                'change' => Change::fromDocument(self::CHANGE + ['messages' => $messages]),
+                'message' => '',
+                'issues' => [],
+            ],
+        );
+
+        [$earlier, $recent] = explode('</details>', $html);
+        self::assertStringContainsString(
+            '<span class="timeline-earlier-label">Show 5 earlier messages</span>',
+            $earlier,
+        );
+        self::assertSame(5, substr_count($earlier, '<li class="timeline-entry">'));
+        self::assertSame(25, substr_count($recent, '<li class="timeline-entry">'));
+        self::assertStringNotContainsString('timeline-bot-toggle', $html);
+    }
+
+    public function testAChangeShowsItsRelationChainWithTheRowsOfTheChangesForgerHas(): void
+    {
+        $chain = [
+            ['number' => 81300, 'patch_set' => 1, 'current_patch_set' => 1, 'status' => 'NEW', 'subject' => 'Above'],
+            ['number' => 81234, 'patch_set' => 2, 'current_patch_set' => 3, 'status' => 'NEW', 'subject' => 'This'],
+            ['number' => 81100, 'patch_set' => 5, 'current_patch_set' => 5, 'status' => 'NEW', 'subject' => 'Below'],
+        ];
+        $above = Change::fromDocument(['id' => 81300, 'subject' => '[TASK] Above'] + self::CHANGE);
+
+        $html = $this->twig->load('change/show.html.twig')->renderBlock('body', [
+            'change' => Change::fromDocument(self::CHANGE + ['chain' => $chain]),
+            'message' => '',
+            'issues' => [],
+            'chain' => [81300 => $above],
+        ]);
+
+        self::assertStringContainsString('Relation chain <span class="detail-count">3</span>', $html);
+        // Forger has the change above: its row; not the one below: its number and subject
+        self::assertStringContainsString('href="/change/81300"', $html);
+        self::assertStringContainsString('Based on this change', $html);
+        self::assertStringContainsString('<span class="detail-number">81100</span>', $html);
+        self::assertStringContainsString('This change is based on it', $html);
+        self::assertStringContainsString('<li class="is-this">', $html);
+        self::assertStringContainsString('The chain has patch set 2 of 3', $html);
+        self::assertLessThan(strpos($html, '81100'), strpos($html, '81300'));
+
+        $html = $this->twig->load('change/show.html.twig')->renderBlock(
+            'body',
+            ['change' => Change::fromDocument(self::CHANGE), 'message' => '', 'issues' => []],
+        );
+        self::assertStringNotContainsString('chain-title', $html);
+    }
+
+    public function testAChangeShowsTheChangesItConflictsWith(): void
+    {
+        $other = Change::fromDocument(['id' => 95192, 'subject' => '[TASK] Rework'] + self::CHANGE);
+
+        $html = $this->twig->load('change/show.html.twig')->renderBlock('body', [
+            'change' => Change::fromDocument(self::CHANGE + ['merge_conflicts' => [95192, 94029]]),
+            'message' => '',
+            'issues' => [],
+            'mergeConflicts' => [95192 => $other],
+        ]);
+
+        self::assertStringContainsString('Merge conflicts <span class="detail-count">2</span>', $html);
+        self::assertStringContainsString('href="/change/95192"', $html);
+        self::assertStringContainsString('Conflicts with this change', $html);
+        // Not in Forger: its number leads to Gerrit
+        self::assertStringContainsString('target="gerrit94029"', $html);
+    }
+
+    public function testAChangeOfAnOlderImportHasNoReviewLog(): void
+    {
+        $html = $this->twig->load('change/show.html.twig')->renderBlock(
+            'body',
+            ['change' => Change::fromDocument(self::CHANGE), 'message' => '', 'issues' => []],
+        );
+
+        self::assertStringNotContainsString('log-title', $html);
+        self::assertStringContainsString('Imported before Forger kept the single votes', $html);
+    }
+
     public function testTheSearchFormKeepsWordsAndClosedOnes(): void
     {
         $html = $this->twig->render('_partials/search_form.html.twig', ['route' => 'search_changes', 'query' => 'cache "warm"', 'searchClosed' => '1']);
@@ -699,8 +878,15 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
     public function testIssuePage(): void
     {
+        $journal = [
+            'user' => ['name' => 'Gerrit Code Review'],
+            'notes' => 'Pushed',
+            'created_on' => '2026-11-02T10:00:00Z',
+        ];
+        $issue = Issue::fromDocument(self::ISSUE + ['journals' => [$journal]]);
         $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', [
-            'issue' => Issue::fromDocument(self::ISSUE + ['journals' => [['user' => ['name' => 'Gerrit Code Review'], 'notes' => 'Pushed', 'created_on' => '2026-11-02T10:00:00Z']]]),
+            'issue' => $issue,
+            'history' => $issue->history(),
             'changes' => [],
             'unknownChanges' => [81234],
         ]);
@@ -856,6 +1042,31 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringNotContainsString('Subtasks', $html);
         self::assertStringNotContainsString('Related issues', $html);
         self::assertStringNotContainsString('Parent task', $html);
+        self::assertStringNotContainsString('attachments-title', $html);
+    }
+
+    public function testTheIssuePageListsItsFilesWithALinkToForge(): void
+    {
+        $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', [
+            'issue' => Issue::fromDocument(self::ISSUE + ['attachments' => [[
+                'id' => 38811,
+                'filename' => 'crop.png',
+                'filesize' => 48213,
+                'content_type' => 'image/png',
+                'description' => '',
+                'content_url' => 'https://forge.typo3.org/attachments/download/38811/crop.png',
+                'author' => ['id' => 36415, 'name' => 'Jane Doe'],
+                'created_on' => '2026-11-20T10:05:00Z',
+            ]]]),
+            'changes' => [],
+            'unknownChanges' => [],
+        ]);
+
+        self::assertStringContainsString('Files <span class="detail-count">1</span>', $html);
+        self::assertMatchesRegularExpression(
+            '~href="https://forge.typo3.org/attachments/download/38811/crop.png".*crop.png.*47 KB.*Jane Doe~s',
+            $html,
+        );
     }
 
     public function testTheIssuePageShowsTheDuplicatesButtonOnlyWithDuplicates(): void

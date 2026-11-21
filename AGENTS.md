@@ -32,8 +32,16 @@ Rules for everyone who works on this repository, people and coding agents.
 - Templates: `bin/console lint:twig templates`
 - Assets: `ddev exec npm run dev`
 
+## Deployment
+- The CI deploys with `deploy.php` once its checks are green: a push to `develop` goes to stage.forger.typo3.com, a push to `master` to forger.typo3.com.
+- Before the new release goes live, the deployment migrates the database, pauses the jobs and runs `app:elasticsearch:setup`. A new field in `config/Elasticorn/*/Mapping.yaml` needs no step by hand.
+- Raise `ImportSchema::ISSUE` or `ImportSchema::REVIEW` when an import reads more data. The imports then load the older documents again, a share with each run.
+
 ## Conventions
 - Enums: back an enum only when its value goes outside: a source system's id (Redmine id, Gerrit value), a URL parameter or a database column. Otherwise use a pure enum. `label()` returns the name, `severity()` the style key. Not every enum needs `severity()`. Each severity needs a rule in `assets/css/module/_status.scss`, and a test checks that.
 - Enums hold no Elasticsearch queries. Put those in `App\Search`.
 - Repositories go in `App\Repository`, whatever the storage. Read Elasticsearch documents through the value objects in `App\Document`.
 - Elasticsearch date histograms need `extended_bounds` in the format of their keys. Align series through `App\Charts\TimeSeries`.
+- Every field of the API needs an OpenAPI description. `tests/Api/ApiDocumentationTest.php` checks that.
+- The Forge token of Forger sees more than the public: private issues and notes, the relations to private issues, the files of private notes. None of this may reach a page or the API. Keep email addresses in storage for matching, but never show them on a page or in the API.
+- Show detail data on detail pages only, like comments, files and the review log. Lists stay lean, in the UI and in the API.

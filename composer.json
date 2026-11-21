@@ -12,6 +12,7 @@
         "doctrine/orm": "^3.3",
         "guzzlehttp/guzzle": "^7.7.0",
         "knplabs/knp-menu-bundle": "^3.2",
+        "nelmio/api-doc-bundle": "^5.14",
         "netcarver/textile": "^4.1",
         "psr/log": "^3.0",
         "ruflin/elastica": "^7.3",
@@ -37,7 +38,8 @@
         "t3g/symfony-keycloak-bundle": "^4.0",
         "t3g/symfony-template-bundle": "^6.1",
         "twig/twig": "^3.15",
-        "typo3/html-sanitizer": "^2.3"
+        "typo3/html-sanitizer": "^2.3",
+        "zircote/swagger-php": "^6.20"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.18",

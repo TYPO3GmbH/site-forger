@@ -10,7 +10,10 @@
     {% import '_macros/detail.html.twig' as detail %}
     {% import '_macros/user.html.twig' as user %}
     {% set tracker = issue_tracker(issue.tracker.name ?? null) %}
-    {% set comments = (issue.journals ?? [])|filter(journal => (journal.notes ?? '') is not empty) %}
+    {% import '_macros/timeline.html.twig' as timeline %}
+    {# The history as Relations::historyOf() leaves it #}
+    {% set history = history ?? [] %}
+    {% set botCount = history|filter(journal => journal.isByBot)|length %}
     {# How a change belongs to the issue: its commit message resolves or names it, or a comment links it #}
     {% set relations = {'Resolves': 'Resolves this issue', 'Related': 'Related to this issue', 'Linked': 'Linked in a comment'} %}
 
@@ -50,7 +53,7 @@
                         <section class="detail-section" aria-labelledby="description-title">
                             <h2 id="description-title" class="detail-section-title">Description</h2>
                             {% if (issue.description ?? '') is not empty %}
-                                <div class="detail-text">{{ issue.description|forgeMarkdown }}</div>
+                                <div class="detail-text">{{ issue.description|forgeMarkdown(issue.attachments) }}</div>
                             {% else %}
                                 <p class="detail-empty">No description.</p>
                             {% endif %}
@@ -103,23 +106,36 @@
                             </section>
                         {% endif %}
 
-                        {% if comments is not empty %}
-                            <section class="detail-section" aria-labelledby="comments-title">
-                                <h2 id="comments-title" class="detail-section-title">Comments <span class="detail-count">{{ comments|length }}</span></h2>
-                                <ol class="detail-journal">
-                                    {% for journal in comments %}
-                                        <li class="detail-journal-entry">
-                                            <div class="detail-journal-meta">
-                                                <strong>{{ journal.user.name ?? 'Unknown' }}</strong>
-                                                {% if journal.created_on is defined %}
-                                                    {# Forge's own format, the import keeps it in the journals #}
-                                                    <span>{{ relativetime(date(journal.created_on)) }}</span>
-                                                {% endif %}
-                                            </div>
-                                            <div class="detail-text">{{ journal.notes|forgeMarkdown }}</div>
+                        {% if issue.attachments is not empty %}
+                            <section class="detail-section" aria-labelledby="attachments-title">
+                                <h2 id="attachments-title" class="detail-section-title">
+                                    {#- -#}Files <span class="detail-count">{{ issue.attachments|length }}</span>
+                                {#- -#}</h2>
+                                <ul class="row-list">
+                                    {% for file in issue.attachments %}
+                                        <li>
+                                            {% include '_partials/row/attachment.html.twig' with {'file': file} only %}
                                         </li>
                                     {% endfor %}
-                                </ol>
+                                </ul>
+                            </section>
+                        {% endif %}
+
+                        {% if history is not empty %}
+                            <section class="detail-section timeline" aria-labelledby="history-title">
+                                {{ timeline.header('history-title', 'History', history|length, botCount, 'Gerrit') }}
+                                {# In the order of Forge, the last ones open, the earlier ones on a click #}
+                                {% set recent = 25 %}
+                                {% set earlier = max(0, history|length - recent) %}
+                                {% if earlier > 0 %}
+                                    {% set earlierEntries = history|slice(0, earlier) %}
+                                    {% set earlierOfPeople = earlierEntries|filter(journal => not journal.isByBot)|length %}
+                                    <details class="timeline-earlier{{ earlierOfPeople == 0 ? ' is-bots-only' }}">
+                                        {{ timeline.earlier(earlierOfPeople, earlier) }}
+                                        {{ _self.history(earlierEntries, issue.attachments) }}
+                                    </details>
+                                {% endif %}
+                                {{ _self.history(history|slice(earlier), issue.attachments) }}
                             </section>
                         {% endif %}
                     </div>
@@ -154,3 +170,75 @@
     </div>
 
 {% endblock %}
+
+{#
+ # The history of an issue as a timeline, see App\Document\IssueJournal: who changed which fields, the comment of a
+ # person in a box below. Gerrit names each patch set with its change. Relations::historyOf() left out the issues
+ # Forger does not have, they may be private. files: the attachments of the issue, for the images of the comments.
+ #}
+{% macro history(journals, files) %}
+    {% import '_macros/user.html.twig' as user %}
+    <ol class="timeline-list">
+        {% for journal in journals %}
+            {% set changes = journal.changes %}
+            <li class="timeline-entry{{ journal.isByBot ? ' is-bot' }}">
+                <span class="timeline-avatar" aria-hidden="true">{{ user_avatar(journal.author, 32) }}</span>
+                <div class="timeline-body">
+                    <p class="timeline-line">
+                        <strong class="timeline-name">{{ journal.author.name ?? 'Forge' }}</strong>
+                        {% if journal.change is not null %}
+                            <span class="timeline-event">pushed patch set {{ journal.patchSet }} for {{ journal.branch }} to</span>
+                            <a href="{{ change_path(journal.change) }}">change {{ journal.change }}</a>
+                        {% elseif journal.hasComment %}
+                            <span class="timeline-event">{{ changes is empty ? 'commented' : 'commented and changed' }}</span>
+                        {% elseif changes is not empty %}
+                            <span class="timeline-event">changed</span>
+                        {% endif %}
+                        {% for change in changes %}
+                            {{ _self.change(change) }}
+                        {% endfor %}
+                        {% if journal.createdOn is not null %}
+                            <span class="timeline-time" title="{{ journal.createdOn }}">{{ relativetime(date(journal.createdOn)) }}</span>
+                        {% endif %}
+                        {% if journal.isByBot and journal.change is null and journal.notes is not empty %}
+                            <span class="timeline-note">{{ journal.notes|autolink }}</span>
+                        {% endif %}
+                    </p>
+                    {% if journal.hasComment %}
+                        <div class="timeline-comment detail-text">{{ journal.notes|forgeMarkdown(files) }}</div>
+                    {% endif %}
+                </div>
+            </li>
+        {% endfor %}
+    </ol>
+{% endmacro %}
+
+{#
+ # A changed field as a chip: the name, the value before struck through, the value after. A relation or a file that
+ # goes is struck through as a whole.
+ #}
+{% macro change(change) %}
+    {% import '_macros/user.html.twig' as user %}
+    {% set field = change.field.name %}
+    <span class="timeline-change">
+        {%- if field in ['RELATION', 'PARENT', 'SUBTASK'] -%}
+            {%- set number = change.to ?? change.from -%}
+            {%- set link -%}<a href="{{ issue_path(number) }}">#{{ number }}</a>{%- endset -%}
+            {%- if change.isRemoved %}<s>{{ change.name }} {{ link }}</s>{% else %}{{ change.name }} {{ link }}{% endif -%}
+        {%- elseif field == 'ATTACHMENT' -%}
+            {%- if change.isRemoved %}<s>{{ change.from }}</s>{% else %}attached {{ change.to }}{% endif -%}
+        {%- elseif field == 'ASSIGNEE' -%}
+            {%- if change.to is null -%}
+                removed the assignee
+            {%- else -%}
+                assigned to {{ user.inline(forge_person(change.to), 20) ?: 'user ' ~ change.to }}
+            {%- endif -%}
+        {%- elseif not change.field.showsValues -%}
+            {{ change.name }}
+        {%- else -%}
+            {{ change.name }}
+            {%- if change.from is not null %} <s>{{ change.from }}</s>{% endif -%}
+            {%- if change.to is not null %} <span class="timeline-change-to">{{ change.to }}</span>{% endif -%}
+        {%- endif -%}
+    </span>
+{% endmacro %}

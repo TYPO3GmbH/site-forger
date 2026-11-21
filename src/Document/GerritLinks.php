@@ -14,7 +14,7 @@ namespace App\Document;
 /**
  * The Gerrit changes an issue links to in its journals, mostly the notes Gerrit writes when a patch set is pushed.
  *
- * The import keeps the journals of the issues under review only, the others link no change here.
+ * Documents of an import before version 4 of ImportSchema have the journals of the issues under review only.
  */
 final class GerritLinks
 {

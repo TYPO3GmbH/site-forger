@@ -51,6 +51,22 @@ final class LinkTwigExtensionTest extends KernelTestCase
     /**
      * An issue or a change is linked through the helpers only, so all lists lead to the same place.
      */
+    public function testLinksTheAddressesOfAText(): void
+    {
+        self::bootKernel();
+        /** @var Environment $twig */
+        $twig = self::getContainer()->get('twig');
+        $template = $twig->createTemplate('{{ text|autolink }}');
+        $render = static fn (string $text): string => $template->render(['text' => $text]);
+
+        self::assertSame(
+            'Core CI is not happy: <a href="https://git.typo3.org/p/1" target="_blank" rel="noopener">'
+                . 'https://git.typo3.org/p/1</a>.',
+            $render('Core CI is not happy: https://git.typo3.org/p/1.'),
+        );
+        self::assertSame('&lt;b&gt;no link&lt;/b&gt;', $render('<b>no link</b>'));
+    }
+
     public function testTemplatesUseTheHelpers(): void
     {
         $finder = new Finder()->files()->in(__DIR__ . '/../../templates')->name('*.twig');

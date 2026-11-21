@@ -120,11 +120,17 @@ The deltas only read what changed, and only load details for what they do not ha
   (`App\Import\ImportWatermark`). The index is the state of the import: after an outage, a failed or a
   skipped run, the next run catches up on everything changed since. There is no state to keep elsewhere.
 * **Forge:** lists the issues with `updated_on>=<start>`, the oldest first, and skips those the index has
-  with the same `updated_on`. Only changed issues are written, and only for those under review the journals
-  are loaded. A run ends after 2000 issues and reports a warning, the next run goes on from there.
+  with the same `updated_on`. Only changed issues are written. Each of them is loaded again with its journals,
+  the comments and changes, which no list of Forge has: one request per issue. A run ends after 2000 issues and
+  reports a warning, the next run goes on from there.
 * **Gerrit:** a light query lists the changes updated since the start (`after:`) with their update time,
-  the details (votes, the current patch set with its files and commit) are loaded only for the changes the index does not have in this
-  state. Gerrit lists the newest first, so the changes are written once all of them are loaded: a run that
+  the details (votes, the current patch set with its files and commit, the review log) are loaded only for the changes the index does not have in this
+  state. An open change takes one more request for its relation chain, one it can merge one for its merge conflicts,
+  and a change with comments one for them: Gerrit tells these for one change at a time. After the updated changes
+  the run loads again the open changes they affect without updating them in Gerrit
+  (`App\Search\AffectedChangesQuery`): those on the branch of a merged change that touch its files, as the merge
+  can make them unmergeable, and those of their relation chains and merge conflicts. The comments are those on the code and on the patch sets, which the review
+  log only counts. Gerrit lists the newest first, so the changes are written once all of them are loaded: a run that
   fails half way leaves the index as it was, and the next run tries again. Beyond 3000 updated changes the
   newest would move the start past the older ones: the run takes the oldest window from the start that fits
   instead (a day, halved until it fits, `ImportWatermark::catchUpWindow()`), notes it, and the next runs go on.
@@ -132,7 +138,7 @@ The deltas only read what changed, and only load details for what they do not ha
   number of issues with Forge, in one request (`App\Import\IssueReconciliation`): Forge counts the issues of the
   project, not private, as the index holds them. Where the numbers differ the range of numbers is halved, one
   count each, until a part holds a page; it is listed, the issues missing or not up to date are imported, those
-  Forge does not list are removed. At most 15 counts per run, the next run goes on. So issues deleted on Forge,
+  Forge does not list are removed. At most 15 counts and 2 listed parts per run, the next run goes on. So issues deleted on Forge,
   private now, or never imported get in line without a full import.
 * **Authors and assignees:** the issues keep only their number and name, as Forge lists them. The rest is in
   the index `user`, see [The users](#the-users).
@@ -154,8 +160,8 @@ emails. Forge and Gerrit both log in with the TYPO3 account: the Forge login and
 are its username, the id of the document. A person of Forge is `forge:<forge_id>` until Forge told it.
 
 **Gerrit** tells all of the owner of a change with the change (`DETAILED_ACCOUNTS`): number, name, username and
-email. The import of the changes writes the owners the index `user` lacks at once (`UserRepository::ensureGerrit()`),
-and adds the number on Gerrit to a person it has by the username. When Forge tells the username of a person later,
+email. The import of the changes writes the owners, reviewers and authors of the review log the index `user` lacks
+at once (`UserRepository::ensureGerrit()`), and adds the number on Gerrit to a person it has by the username. When Forge tells the username of a person later,
 "Update users" joins the two documents. A change shows its owner, who uploaded it, with the account of Gerrit
 (`owner_id`, `owner_username`), not the author of its commit, who has no account.
 
@@ -180,7 +186,7 @@ The avatars are Gravatar's, by the first email the index `user` knows of the num
 account on Gerrit, the placeholder of Gravatar. `user_avatar()` and the macros of `templates/_macros/user.html.twig`
 render a person of Forge or Gerrit alike; changes imported before the owner's account show the avatar of the email. "My Work" finds the
 issues and changes by the numbers of the account on Forge and Gerrit: by its username, else by its email.
-`/api/<type>/<id>` serves only issues and changes, the index `user` holds email addresses.
+The API (see [API](#api)) serves only issues and changes, the index `user` holds email addresses.
 
 ### How the full imports work
 
@@ -203,8 +209,9 @@ written before the versions count as version 1.
   A change of the mapping alone needs no new version: `app:elasticsearch:setup` copies the documents over.
 * **The deltas load them again over time:** after its changes, each delta loads up to 300
   documents of an older version again, those changed last first, and asks the source only for them (Forge by
-  `issue_id`, Gerrit by `change:`). Three or twelve requests every five minutes: all of them in about a day, with
-  no load peak. Those the source does not show any more are removed, so they are not chosen again in every run.
+  `issue_id`, Gerrit by `change:`), and for each of them the requests of its details: the journals of an issue,
+  the chain, the merge conflicts and the comments of a change. So a version that loads them takes days, with no
+  load peak. Those the source does not show any more are removed, so they are not chosen again in every run.
   The runs page notes how many are left.
 * **Any import that meets one** loads it again, too: a document of an older version counts as changed.
 
@@ -401,6 +408,26 @@ deltas run once. `rm -rf var/scheduler` forgets what the schedule started. The t
 What happened is on the command runs page. The output of the last run of each job (`*.lastrun`, overwritten
 by every run) is still worth keeping: it is the only trace of a run that fails before the console starts.
 Whether the worker runs at all shows `systemctl status 'forger-scheduler@*'`, why it does not its journal.
+
+## API
+
+`/api/v1` is the public API: the issues and changes of the index as JSON, read only and without a login
+(`App\Controller\ApiV1Controller`). It returns the objects in `App\Api\Model`, `App\Api\IssueMapper` and
+`App\Api\ChangeMapper` build them from the documents. The storage models of the index keep the email addresses
+of the people, to match them for the avatars and "My Work"; the output models of the API have none. Texts stay as
+their authors wrote them, so a merged commit message names its reviewers with their addresses, as Git does.
+
+The routes are stateless. `App\Subscriber\ApiRateLimitSubscriber` limits the requests of each address
+(`public_api` in `config/packages/rate_limiter.yaml`) and marks the answers as public for a minute.
+`App\Security\StatelessAwareKeycloakSubscriber` replaces the subscriber of the Keycloak bundle, which opens the
+session on every request to refresh the token: on the API that would send a cookie and make every answer private.
+
+The documentation is at `/api/doc`, linked as "API" in the footer, and the OpenAPI document at `/api/doc.json`.
+NelmioApiDocBundle builds both from the attributes of the controller and the models.
+`templates/bundles/NelmioApiDocBundle/SwaggerUi/index.html.twig` shows Swagger UI in the layout of Forger,
+without its info block: the section "API" of the help explains how the API works (dates, pages, errors,
+versions). `tests/Api/ApiDocumentationTest.php` checks that every endpoint and every field the API returns is
+documented: describe a new field where you add it.
 
 ## Keycloak
 

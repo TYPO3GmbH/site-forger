@@ -12,7 +12,10 @@ declare(strict_types=1);
 namespace App\Import;
 
 use App\CommandRun\CommandRunRecorder;
+use App\Document\Change;
 use App\Elastic\Indices;
+use App\Repository\ChangeRepository;
+use App\Search\AffectedChangesQuery;
 use Symfony\Component\Console\Helper\ProgressBar;
 
 /**
@@ -30,6 +33,7 @@ final readonly class GerritImport
     public const string STEP_DELTA_LOAD = 'Load the updated changes from Gerrit';
     public const string STEP_LATEST = 'Load the latest changes, the index is empty';
     public const string STEP_OUTDATED = 'Load changes of an older import again';
+    public const string STEP_AFFECTED = 'Load the open changes the updated ones affect';
 
     private const int DELTA_LIMIT = 3000;
 
@@ -44,6 +48,12 @@ final readonly class GerritImport
      */
     private const int OUTDATED_LIMIT = 300;
 
+    /**
+     * The most open changes a run loads again because updated ones affect them, see importAffected(). A merge into
+     * a busy folder touches many, the next runs do not catch up on the rest: they stay as they were.
+     */
+    private const int AFFECTED_LIMIT = 200;
+
     private const int LATEST_COUNT = 100;
 
     /**
@@ -56,6 +66,7 @@ final readonly class GerritImport
         private ImportWatermark $watermark,
         private ProjectChanges $projectChanges,
         private GerritChangeImporter $changeImporter,
+        private ChangeRepository $changes,
     ) {
     }
 
@@ -108,6 +119,28 @@ final readonly class GerritImport
             $documents += $this->documents($run, GerritChangeImporter::changes($batch), count($batch), $bar, self::STEP_DELTA_LOAD);
         }
         $this->changeImporter->writeAll($documents);
+        $this->importAffected($run, array_values($documents));
+    }
+
+    /**
+     * Loads again the open changes the updated ones affect without updating them in Gerrit: their mergeability,
+     * their relation chain, their merge conflicts, see AffectedChangesQuery.
+     *
+     * @param list<array<string, mixed>> $documents the documents the delta wrote
+     */
+    private function importAffected(ImportRun $run, array $documents): void
+    {
+        $request = AffectedChangesQuery::request($documents, self::AFFECTED_LIMIT);
+        if (null === $request) {
+            return;
+        }
+        $numbers = $this->changes->search($request)->map(static fn (Change $change): int => $change->id)->getValues();
+        if ([] === $numbers) {
+            return;
+        }
+        $run->writeln(sprintf('%d open changes the updated ones affect, loading them again', count($numbers)));
+        $bar = $run->progressBar(count($numbers));
+        $this->changeImporter->update($numbers, $this->afterChange($run, $bar, self::STEP_AFFECTED));
     }
 
     /**

@@ -78,15 +78,14 @@ final readonly class Relations
     }
 
     /**
-     * The issue the issue is a subtask of, null when it has none.
+     * The issue the issue is a subtask of, null when it has none or the index does not have it: it may be private,
+     * see indexedRelatedIssues().
      */
     public function parentOf(Issue $issue): ?RelatedIssue
     {
-        if (null === $issue->parent) {
-            return null;
-        }
+        $parent = null === $issue->parent ? null : $this->issues->byId($issue->parent);
 
-        return new RelatedIssue($issue->parent, self::PARENT, $this->issues->byId($issue->parent));
+        return null === $parent ? null : new RelatedIssue($parent->id, self::PARENT, $parent);
     }
 
     /**
@@ -102,23 +101,35 @@ final readonly class Relations
 
     /**
      * The issues Forge relates to the issue by their type, as IssueRelationEnum orders them. Duplicates are left
-     * out, the duplicates page has them.
+     * out, the duplicates page has them. So are the issues the index does not have: they may be private, see
+     * indexedRelatedIssues().
      *
      * @return ReadableCollection<int, RelatedIssue>
      */
     public function relatedIssuesOf(Issue $issue): ReadableCollection
     {
-        $relations = self::sorted($issue->relations);
-        $found = $this->issues->byIds(array_map(static fn (IssueRelation $relation): int => $relation->issue, $relations));
+        $numbers = array_map(static fn (IssueRelation $relation): int => $relation->issue, $issue->relations);
 
-        return new ArrayCollection(array_map(
-            static fn (IssueRelation $relation): RelatedIssue => new RelatedIssue(
-                $relation->issue,
-                $relation->type->label(),
-                $found->get($relation->issue),
-            ),
-            $relations,
-        ));
+        return new ArrayCollection(self::related($issue->relations, $this->issues->byIds($numbers)));
+    }
+
+    /**
+     * @param list<IssueRelation>            $relations
+     * @param ReadableCollection<int, Issue> $found     the related issues the index has, by number
+     *
+     * @return list<RelatedIssue> in the order of sorted(), without the issues the index does not have
+     */
+    public static function related(array $relations, ReadableCollection $found): array
+    {
+        $related = [];
+        foreach (self::sorted($relations) as $relation) {
+            $other = $found->get($relation->issue);
+            if (null !== $other) {
+                $related[] = new RelatedIssue($relation->issue, $relation->type->label(), $other);
+            }
+        }
+
+        return $related;
     }
 
     /**
@@ -136,6 +147,66 @@ final readonly class Relations
             <=> [$order[$b->type->value], $b->issue]);
 
         return $relations;
+    }
+
+    /**
+     * The numbers of the issues Forge relates to the issue that the index has: the other relations, the duplicates
+     * and the parent. The token of the import also sees the private issues, and Forge names them in the relations
+     * of public ones. The index has no private issue, so only the numbers it has are public.
+     *
+     * @return array<int, true> by number
+     */
+    public function indexedRelatedIssues(Issue $issue): array
+    {
+        $numbers = [
+            ...array_map(static fn (IssueRelation $relation): int => $relation->issue, $issue->relations),
+            ...$issue->duplicateNumbers(),
+            ...(null === $issue->parent ? [] : [$issue->parent]),
+        ];
+
+        return array_fill_keys($this->issues->byIds($numbers)->getKeys(), true);
+    }
+
+    /**
+     * The history of the issue as its page shows it. It names private issues, too, in relations, as parent or
+     * subtask: those changes are left out, and so are the entries nothing is left of. The index has no private issue.
+     *
+     * @return list<IssueJournal>
+     */
+    public function historyOf(Issue $issue): array
+    {
+        $history = $issue->history();
+        $numbers = array_merge(...array_map(
+            static fn (IssueJournal $journal): array => $journal->issueNumbers(),
+            $history,
+        ));
+        $known = array_fill_keys($this->issues->byIds($numbers)->getKeys(), true);
+
+        return array_values(array_filter(array_map(
+            static fn (IssueJournal $journal): ?IssueJournal => $journal->withIssuesOf($known),
+            $history,
+        )));
+    }
+
+    /**
+     * The changes of the relation chain of a change as the index has them, by number: their votes and owners, which
+     * the chain does not tell. A change of the chain the index does not have is left out.
+     *
+     * @return ReadableCollection<int, Change>
+     */
+    public function chainOf(Change $change): ReadableCollection
+    {
+        return $this->changes->byNumbers(array_map(static fn (ChainLink $link): int => $link->number, $change->chain));
+    }
+
+    /**
+     * The open changes that conflict with a change as the index has them, by number, see chainOf().
+     *
+     * @return ReadableCollection<int, Change>
+     */
+    public function mergeConflictsOf(Change $change): ReadableCollection
+    {
+        return $this->changes->byNumbers($change->mergeConflicts);
     }
 
     /**

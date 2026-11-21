@@ -199,7 +199,7 @@ import 'ace-builds/src-noconflict/theme-github.js';
             trigger.disabled = true;
             document.querySelector(Selectors.flashMessageContainer).replaceChildren();
             try {
-                const data = await fetchJson('/api/issue/' + ticketId);
+                const data = await fetchJson('/api/v1/issues/' + ticketId);
                 titleField.value = data.subject;
                 Rst.render();
             } catch (error) {

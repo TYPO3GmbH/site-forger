@@ -72,3 +72,40 @@ related:
 # The version of the import that wrote the document, see App\Import\ImportSchema
 import_schema:
   type: integer
+# The review log, the single votes, the files with their lines and the chain are read with a change, never searched
+messages:
+  type: object
+  enabled: false
+votes:
+  type: object
+  enabled: false
+file_details:
+  type: object
+  enabled: false
+# The relation chain of an open change, the top first, see GerritChangeImporter::chain()
+chain:
+  type: object
+  enabled: false
+# The open changes that conflict with an open change, see GerritChangeImporter::mergeConflicts(). Searched for the
+# changes to load again when one of them changes, see App\Search\AffectedChangesQuery
+merge_conflicts:
+  type: integer
+# The comments on the code and on the patch sets, see GerritChangeImporter::comments()
+comments:
+  type: object
+  enabled: false
+# What each label lacks for a merge, by the name of the label: OK, NEED, REJECT, IMPOSSIBLE or MAY
+label_states:
+  properties:
+    Code-Review:
+      type: keyword
+    Verified:
+      type: keyword
+conflicts:
+  type: keyword
+cherry_pick_of:
+  type: integer
+comment_count:
+  type: integer
+unresolved_comment_count:
+  type: integer

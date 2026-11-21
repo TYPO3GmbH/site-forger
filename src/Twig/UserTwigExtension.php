@@ -54,6 +54,15 @@ final readonly class UserTwigExtension
     }
 
     /**
+     * A user of Forge by number, as the history of an issue names the assignee. Null for one Forger does not know.
+     */
+    #[AsTwigFunction(name: 'forge_person')]
+    public function forgePerson(int|string $id): ?Person
+    {
+        return $this->users->personOf('forge:' . (int) $id);
+    }
+
+    /**
      * The avatar of a person, the placeholder of Gravatar if no email of it is known: every person looks alike, and
      * the names start at the same place. Markup, so it stays an image when a template keeps it in a variable.
      */

@@ -7,7 +7,7 @@
 export class RequestError extends Error {
     /**
      * @param {number} status
-     * @param {?string} detail the message of the server, if it sent one as a JSON string
+     * @param {?string} detail the message of the server, if it sent one: a JSON string, or "error" of the API
      */
     constructor(status, detail = null) {
         super(detail ?? 'The request failed with status ' + status + '.');
@@ -30,7 +30,8 @@ async function request(url, type, options) {
     const contentType = response.headers.get('Content-Type') || '';
     if (!response.ok || response.redirected || !contentType.includes(type)) {
         const detail = contentType.includes('json') ? await response.json().catch(() => null) : null;
-        throw new RequestError(response.status, typeof detail === 'string' ? detail : null);
+        const message = typeof detail === 'string' ? detail : detail?.error;
+        throw new RequestError(response.status, typeof message === 'string' ? message : null);
     }
 
     return type === 'json' ? response.json() : response.text();

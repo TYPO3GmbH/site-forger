@@ -14,6 +14,7 @@ namespace App\Controller;
 use App\Document\CommitMessage;
 use App\Document\Relations;
 use App\Repository\ChangeRepository;
+use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -42,6 +43,8 @@ class ChangeController extends AbstractController
             'change' => $change,
             'message' => CommitMessage::body($change->commitMessage),
             'issues' => $this->relations->issuesOf($change),
+            'chain' => $change->hasChain() ? $this->relations->chainOf($change) : new ArrayCollection(),
+            'mergeConflicts' => $this->relations->mergeConflictsOf($change),
         ]);
     }
 }

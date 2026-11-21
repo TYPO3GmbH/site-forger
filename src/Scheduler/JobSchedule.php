@@ -76,7 +76,7 @@ final readonly class JobSchedule implements ScheduleProviderInterface
                 DuplicateImport::STEP,
             ],
         ],
-        'reviewDelta' => ['label' => 'Update Gerrit changes', 'every' => '5 minutes', 'command' => ['app:import:review'], 'lock' => GerritImport::LOCK, 'steps' => [GerritImport::STEP_DELTA_LIST, GerritImport::STEP_DELTA_LOAD, GerritImport::STEP_OUTDATED]],
+        'reviewDelta' => ['label' => 'Update Gerrit changes', 'every' => '5 minutes', 'command' => ['app:import:review'], 'lock' => GerritImport::LOCK, 'steps' => [GerritImport::STEP_DELTA_LIST, GerritImport::STEP_DELTA_LOAD, GerritImport::STEP_AFFECTED, GerritImport::STEP_OUTDATED]],
         'users' => [
             'label' => 'Update users',
             'every' => '5 minutes',

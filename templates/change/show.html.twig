@@ -9,11 +9,19 @@
     {% import '_macros/refresh.html.twig' as refresh %}
     {% import '_macros/detail.html.twig' as detail %}
     {% import '_macros/user.html.twig' as user %}
+    {% import '_macros/timeline.html.twig' as timeline %}
     {% set tags = change.reviewTags ?? [] %}
     {# A closed change finds itself: the links to the search of the changes find the closed ones, too #}
     {% set closed = change.state.isClosed %}
     {# As a file tree: on every level the folders first, see PathTwigExtension #}
     {% set files = (change.files ?? [])|sort_paths %}
+    {# The lines of each file by its path, changes imported before have the paths only #}
+    {% set fileDetails = {} %}
+    {% for file in change.fileDetails %}
+        {% set fileDetails = fileDetails|merge({(file.path): file}) %}
+    {% endfor %}
+    {# The CI writes on every patch set, the log hides its messages until asked #}
+    {% set ciCount = change.messages|filter(message => message.isByCi)|length %}
     {# How an issue belongs to the change: the footer of its commit message #}
     {% set relations = {'Resolves': 'Resolved by this change', 'Related': 'Related to this change'} %}
 
@@ -23,7 +31,12 @@
                 {% if change.conflict %}
                     <p class="detail-notice detail-notice-danger" role="status">
                         <strong>Merge conflict</strong>
-                        <span>Gerrit cannot merge this change. It needs a rebase onto {{ change.branch ?? 'its branch' }}.</span>
+                        <span>
+                            Gerrit cannot merge this change. It needs a rebase onto {{ change.branch ?? 'its branch' }}.
+                            {% if change.conflicts is not empty %}
+                                The conflicts are in {{ change.conflicts|map(path => path|split('/')|last)|join(', ') }}.
+                            {% endif %}
+                        </span>
                     </p>
                 {% endif %}
                 <header class="detail-header">
@@ -82,6 +95,74 @@
                             {% endif %}
                         </section>
 
+                        {# Each label with its vote, what it lacks for a merge, and who voted how #}
+                        <section class="detail-section" aria-labelledby="review-title">
+                            <h2 id="review-title" class="detail-section-title">Review</h2>
+                            <ul class="detail-labels">
+                                {% for label in enum_cases('App\\Enum\\ReviewLabelEnum') %}
+                                    {% set state = change.labelState(label) %}
+                                    {% set votes = change.votesOn(label) %}
+                                    <li class="detail-label">
+                                        <div class="detail-label-head">
+                                            <span class="detail-label-name">{{ label.label }}</span>
+                                            {{ status.vote(change, label) }}
+                                            {% if state is not null %}
+                                                <span class="status-pill status-pill-{{ state.severity }}" title="What {{ label.label }} lacks for a merge">{{ state.label }}</span>
+                                            {% endif %}
+                                        </div>
+                                        {% if votes is not empty %}
+                                            <ul class="detail-voters">
+                                                {% for vote in votes %}
+                                                    <li class="detail-voter{{ vote.isByCi ? ' is-ci' }}">
+                                                        {{ user.inline(vote.account, 24) }}
+                                                        <span class="status-pill status-pill-vote status-pill-{{ vote.vote.severity }}">{{ vote.vote.label }}</span>
+                                                        {% if vote.isByCi %}<span class="detail-voter-note">CI</span>{% endif %}
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% elseif change.messages is empty %}
+                                            <p class="detail-empty">Imported before Forger kept the single votes, the next import adds them.</p>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </section>
+
+                        {# The changes it is based on and those based on it, the top first, as Gerrit shows them #}
+                        {% if change.hasChain %}
+                            <section class="detail-section" aria-labelledby="chain-title">
+                                <h2 id="chain-title" class="detail-section-title">Relation chain <span class="detail-count">{{ change.chain|length }}</span></h2>
+                                <ol class="row-list detail-chain">
+                                    {% for link in change.chainAbove %}
+                                        <li>{{ _self.chainLink(link, chain[link.number] ?? null, 'Based on this change') }}</li>
+                                    {% endfor %}
+                                    <li class="is-this">{{ _self.chainLink(change.chainLink, null, 'This change') }}</li>
+                                    {% for link in change.chainBelow %}
+                                        <li>{{ _self.chainLink(link, chain[link.number] ?? null, 'This change is based on it') }}</li>
+                                    {% endfor %}
+                                </ol>
+                            </section>
+                        {% endif %}
+
+                        {# The open changes Gerrit cannot merge together with this one, as its section "Merge conflicts" #}
+                        {% if change.mergeConflicts is not empty %}
+                            <section class="detail-section" aria-labelledby="conflicts-title">
+                                <h2 id="conflicts-title" class="detail-section-title">Merge conflicts <span class="detail-count">{{ change.mergeConflicts|length }}</span></h2>
+                                <ul class="row-list detail-chain">
+                                    {% for number in change.mergeConflicts %}
+                                        {% set other = (mergeConflicts ?? {})[number] ?? null %}
+                                        <li>
+                                            {% if other is not null %}
+                                                {% include '_partials/row/change.html.twig' with {'change': other, 'relation': 'Conflicts with this change'} only %}
+                                            {% else %}
+                                                <p class="detail-chain-plain"><a href="{{ gerrit_change_url(number) }}" target="gerrit{{ number }}"><span class="detail-number">{{ number }}</span></a></p>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </section>
+                        {% endif %}
+
                         {% if issues is not empty %}
                             <section class="detail-section" aria-labelledby="issues-title">
                                 <h2 id="issues-title" class="detail-section-title">Issues <span class="detail-count">{{ issues|length }}</span></h2>
@@ -101,7 +182,7 @@
                                 <div class="row-list detail-files">
                                     <ul>
                                         {% for file in files|slice(0, shown) %}
-                                            <li>{{ _self.file(file, closed) }}</li>
+                                            <li>{{ _self.file(file, closed, fileDetails[file] ?? null, change.hasConflict(file), change.commentCountOf(file)) }}</li>
                                         {% endfor %}
                                     </ul>
                                     {% if files|length > shown %}
@@ -110,7 +191,7 @@
                                             <summary>Show {{ more }} more {{ more == 1 ? 'file' : 'files' }}</summary>
                                             <ul>
                                                 {% for file in files|slice(shown) %}
-                                                    <li>{{ _self.file(file, closed) }}</li>
+                                                    <li>{{ _self.file(file, closed, fileDetails[file] ?? null, change.hasConflict(file), change.commentCountOf(file)) }}</li>
                                                 {% endfor %}
                                             </ul>
                                         </details>
@@ -120,6 +201,24 @@
                                 <p class="detail-empty">No files imported.</p>
                             {% endif %}
                         </section>
+
+                        {% if change.messages is not empty %}
+                            <section class="detail-section timeline" aria-labelledby="log-title">
+                                {{ timeline.header('log-title', 'Review log', change.messages|length, ciCount, 'the CI') }}
+                                {# In the order of Gerrit, the last ones open, the earlier ones on a click #}
+                                {% set recent = 25 %}
+                                {% set earlier = max(0, change.messages|length - recent) %}
+                                {% if earlier > 0 %}
+                                    {% set earlierMessages = change.messages|slice(0, earlier) %}
+                                    {% set earlierOfPeople = earlierMessages|filter(message => not message.isByCi)|length %}
+                                    <details class="timeline-earlier{{ earlierOfPeople == 0 ? ' is-bots-only' }}">
+                                        {{ timeline.earlier(earlierOfPeople, earlier) }}
+                                        {{ _self.timeline(earlierMessages, change) }}
+                                    </details>
+                                {% endif %}
+                                {{ _self.timeline(change.messages|slice(earlier), change) }}
+                            </section>
+                        {% endif %}
                     </div>
 
                     <aside class="detail-aside" aria-label="Details">
@@ -143,6 +242,23 @@
                                     <dd class="detail-tags">{{ status.reviewTags(change, true, closed) }}</dd>
                                 </div>
                             {% endif %}
+                            {% if change.commentCount %}
+                                <div class="detail-fact">
+                                    <dt>Comments</dt>
+                                    <dd>
+                                        <a href="{{ gerrit_change_url(change.id) }}" target="gerrit{{ change.id }}" title="The comments in Gerrit">{{ change.commentCount }}</a>
+                                        {% if change.unresolvedCommentCount %}
+                                            <span class="detail-fact-note">{{ change.unresolvedCommentCount }} unresolved</span>
+                                        {% endif %}
+                                    </dd>
+                                </div>
+                            {% endif %}
+                            {% if change.cherryPickOf is not null %}
+                                <div class="detail-fact">
+                                    <dt>Cherry-pick of</dt>
+                                    <dd><a href="{{ change_path(change.cherryPickOf) }}">Change {{ change.cherryPickOf }}</a></dd>
+                                </div>
+                            {% endif %}
                             {{ detail.fact('Patch sets', change.patchsets, detail.changeSearch('patchsets', change.patchsets ?? '', closed), 'Changes with as many patch sets') }}
                             {{ detail.date('Created', change.createdOn) }}
                             {% if change.changeId is not empty %}
@@ -161,10 +277,102 @@
 {% endblock %}
 
 {#
- # A file in one line: the folder cut with an ellipsis when it is too long, the name always whole. It leads to the
- # changes touching it, with the filter "File"; from a closed change the closed ones, too.
+ # A file in one line: the folder cut with an ellipsis when it is too long, the name always whole, then the lines it
+ # adds and removes. It leads to the changes touching it, with the filter "File"; from a closed change the closed
+ # ones, too. A file with a conflict in the current patch set is marked.
  #}
-{% macro file(path, closed = false) %}
+{% macro file(path, closed = false, details = null, conflict = false, comments = 0) %}
     {%- set name = path|split('/')|last -%}
-    <a href="{{ path('search_changes', {'filters': {'file': {'path': path}}}|merge(closed ? {'searchClosed': '1'} : {})) }}" title="{{ path }}: the changes touching this file"><span class="detail-file-folder">{{ path|slice(0, path|length - name|length) }}</span><span class="detail-file-name">{{ name }}</span></a>
+    {%- set status = {'added': 'new', 'deleted': 'deleted', 'renamed': 'renamed', 'copied': 'copied'}[details.status ?? ''] ?? null -%}
+    <a href="{{ path('search_changes', {'filters': {'file': {'path': path}}}|merge(closed ? {'searchClosed': '1'} : {})) }}" title="{{ path }}{{ details.oldPath ?? null ? ', was ' ~ details.oldPath }}: the changes touching this file">
+        {#- -#}<span class="detail-file-folder">{{ path|slice(0, path|length - name|length) }}</span><span class="detail-file-name">{{ name }}</span>
+        {#- -#}<span class="detail-file-facts">
+            {%- if conflict %}<span class="detail-file-conflict" title="Conflict in the current patch set">{{ icon('actions-exclamation-triangle') }}</span>{% endif -%}
+            {%- if comments > 0 %}<span class="detail-file-comments" title="Comments on this file">{{ icon('actions-comment') }}{{ comments }}</span>{% endif -%}
+            {%- if status %}<span class="detail-file-status">{{ status }}</span>{% endif -%}
+            {%- if details is not null and details.insertions is not null and not details.binary -%}
+                <span class="is-added">+{{ details.insertions }}</span> <span class="is-removed">&minus;{{ details.deletions }}</span>
+            {%- elseif details.binary ?? false -%}
+                <span class="detail-file-status">binary</span>
+            {%- endif -%}
+        </span>
+    {#- -#}</a>
 {%- endmacro %}
+
+{#
+ # Messages of the review log as a timeline, see App\Document\ReviewMessage: who did what on which patch set, the
+ # votes as pills, the votes a new patch set made outdated struck through, and the comment of a person below.
+ #}
+{% macro timeline(messages, change) %}
+    <ol class="timeline-list">
+        {% for message in messages %}
+            <li class="timeline-entry{{ message.isByCi ? ' is-bot' }}">
+                <span class="timeline-avatar" aria-hidden="true">{{ user_avatar(message.author, 32) }}</span>
+                <div class="timeline-body">
+                    <p class="timeline-line">
+                        <strong class="timeline-name">{{ message.author.name ?? 'Gerrit' }}</strong>
+                        {% set comments = change.commentsOf(message) %}
+                        {% set event = comments is empty ? message.event : message.event.withComments %}
+                        <span class="timeline-event">
+                            {{- event.label }}{% if event.namesPatchSet and message.patchSet is not null %} {{ message.patchSet }}{% endif -%}
+                        </span>
+                        {% for vote in message.votes %}
+                            <span class="status-pill status-pill-vote status-pill-{{ vote.vote.severity }}" title="{{ vote.label.label }}">{{ vote.label.abbreviation }} {{ vote.vote.label }}</span>
+                        {% endfor %}
+                        {% for vote in message.outdatedVotes %}
+                            <s class="timeline-outdated" title="{{ vote.label.label }} {{ vote.vote.label }}, outdated by the new patch set">{{ vote.label.abbreviation }} {{ vote.vote.label }}</s>
+                        {% endfor %}
+                        {# Changes imported before Forger kept the comments know their number only #}
+                        {% if message.inlineComments and comments is empty %}
+                            <span class="timeline-note">{{ message.inlineComments }} {{ message.inlineComments == 1 ? 'comment' : 'comments' }}</span>
+                        {% endif %}
+                        {% if message.date is not null %}
+                            <span class="timeline-time" title="{{ message.date }}">{{ relativetime(to_datetime(message.date)) }}</span>
+                        {% endif %}
+                        {# The note of the CI fits the line, the comment of a person gets a box below it #}
+                        {% if message.isByCi and message.comment is not empty %}
+                            <span class="timeline-note">{{ message.comment|autolink }}</span>
+                        {% endif %}
+                    </p>
+                    {% if not message.isByCi and message.comment is not empty %}
+                        <div class="timeline-comment"><div class="timeline-comment-text">{{ message.comment|autolink }}</div></div>
+                    {% endif %}
+                    {% for comment in comments %}
+                        {% set open = change.isOpen(comment) %}
+                        <div class="timeline-comment{{ open ? ' is-open' }}">
+                            {% if comment.file is not null or open or comment.inReplyTo is not null %}
+                                <p class="timeline-comment-head">
+                                    {% if comment.file is not null %}
+                                        <code title="{{ comment.file }}">{{ comment.fileName }}{{ comment.line ? ':' ~ comment.line }}</code>
+                                    {% endif %}
+                                    {% if comment.inReplyTo is not null %}<span>Reply</span>{% endif %}
+                                    {% if open %}<span class="status-pill status-pill-label-need" title="The thread is not resolved">Unresolved</span>{% endif %}
+                                </p>
+                            {% endif %}
+                            <div class="timeline-comment-text">{{ comment.text|autolink }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </li>
+        {% endfor %}
+    </ol>
+{% endmacro %}
+
+{#
+ # A change of the relation chain: the row of the lists when Forger has it, with its votes and owner, else its
+ # number and subject leading to Gerrit. An older patch set than the current one in the chain is marked.
+ #}
+{% macro chainLink(link, indexed, relation) %}
+    {% if indexed is not null %}
+        {% include '_partials/row/change.html.twig' with {'change': indexed, 'relation': relation} only %}
+    {% else %}
+        <p class="detail-chain-plain">
+            <span class="detail-number">{{ link.number }}</span>
+            <span>{{ link.subject }}</span>
+            <span class="detail-chain-note">{{ relation }}</span>
+        </p>
+    {% endif %}
+    {% if link.isOutdated(indexed) %}
+        <p class="detail-chain-outdated">{{ icon('actions-exclamation-triangle') }} The chain has patch set {{ link.patchSet }} of {{ link.currentPatchSet }}, the changes above it need a rebase.</p>
+    {% endif %}
+{% endmacro %}
