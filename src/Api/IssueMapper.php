@@ -111,24 +111,22 @@ final readonly class IssueMapper
     }
 
     /**
-     * The journals with a note, as the page of the issue shows them. The import left out the private notes.
+     * The comments and the notes of bots of the history, as the page of the issue shows them.
      *
      * @return list<Comment>
      */
     private static function comments(Issue $issue): array
     {
         $comments = [];
-        foreach ($issue->journals as $journal) {
-            $text = trim((string) ($journal['notes'] ?? ''));
-            if ('' === $text || true === ($journal['private_notes'] ?? false)) {
+        foreach ($issue->history() as $journal) {
+            if ('' === $journal->notes) {
                 continue;
             }
-            $author = IndexedPerson::fromIssue($journal['user'] ?? null);
             $comments[] = new Comment(
-                self::person($author),
-                ApiDate::fromForge(isset($journal['created_on']) ? (string) $journal['created_on'] : null),
-                in_array($author?->name, Comment::BOTS, true),
-                $text,
+                self::person($journal->author),
+                ApiDate::fromForge($journal->createdOn),
+                $journal->isByBot(),
+                $journal->notes,
             );
         }
 

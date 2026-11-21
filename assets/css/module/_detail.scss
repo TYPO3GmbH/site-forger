@@ -308,34 +308,6 @@
     }
 }
 
-// Comments
-
-.detail-journal {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-.detail-journal-entry + .detail-journal-entry {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid #f0f1f3;
-}
-
-.detail-journal-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .5rem;
-    align-items: baseline;
-    margin-bottom: .375rem;
-    color: var(--overview-muted);
-    font-size: var(--detail-size-label);
-
-    strong {
-        color: #0b0b0b;
-    }
-}
-
 // Facts: the label above the value, so long values have the whole width
 
 .detail-aside {
@@ -474,7 +446,7 @@
     align-items: center;
 
     // The CI votes on every patch set, a person counts more
-    &.is-ci {
+    &.is-bot {
         color: var(--overview-muted);
     }
 }
@@ -500,7 +472,7 @@
     }
 }
 
-.timeline-ci {
+.timeline-bots {
     display: inline-flex;
     gap: .5rem;
     align-items: center;
@@ -509,8 +481,8 @@
     cursor: pointer;
 }
 
-// Without the switch the messages of the CI stay hidden
-.timeline:has(.timeline-ci-toggle:not(:checked)) .timeline-entry.is-ci {
+// Without the switch the entries of bots stay hidden
+.timeline:has(.timeline-bot-toggle:not(:checked)) .timeline-entry.is-bot {
     display: none;
 }
 
@@ -538,7 +510,7 @@
     gap: .75rem;
     padding: .375rem 0;
 
-    &.is-ci {
+    &.is-bot {
         color: var(--overview-muted);
     }
 }
@@ -591,6 +563,31 @@
     font-size: var(--detail-size-label);
 }
 
+.timeline-change {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    align-items: center;
+    padding: .0625rem .5rem;
+    border: 1px solid var(--overview-border);
+    border-radius: 999px;
+    color: var(--overview-muted);
+    font-size: var(--detail-size-label);
+
+    s {
+        opacity: .75;
+    }
+
+    .user-name {
+        color: #1f2937;
+    }
+}
+
+.timeline-change-to {
+    color: #1f2937;
+    font-weight: 600;
+}
+
 .timeline-comment {
     margin-top: .5rem;
     padding: .625rem .875rem;
@@ -600,6 +597,15 @@
     color: #1f2937;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+}
+
+.timeline-comment.detail-text {
+    // Textile of Forge as HTML, its paragraphs make the lines
+    white-space: normal;
+
+    > :last-child {
+        margin-bottom: 0;
+    }
 }
 
 .timeline-earlier {
@@ -662,10 +668,10 @@
     font-size: var(--detail-size-label);
 }
 
-// The numbers follow the switch of the CI
-.timeline:has(.timeline-ci-toggle:not(:checked)) .timeline-with-ci,
-.timeline:has(.timeline-ci-toggle:checked) .timeline-without-ci,
-.timeline:has(.timeline-ci-toggle:not(:checked)) .timeline-earlier.is-ci-only {
+// The numbers follow the switch of the bots
+.timeline:has(.timeline-bot-toggle:not(:checked)) .timeline-with-bots,
+.timeline:has(.timeline-bot-toggle:checked) .timeline-without-bots,
+.timeline:has(.timeline-bot-toggle:not(:checked)) .timeline-earlier.is-bots-only {
     display: none;
 }
 

@@ -9,6 +9,7 @@
     {% import '_macros/refresh.html.twig' as refresh %}
     {% import '_macros/detail.html.twig' as detail %}
     {% import '_macros/user.html.twig' as user %}
+    {% import '_macros/timeline.html.twig' as timeline %}
     {% set tags = change.reviewTags ?? [] %}
     {# A closed change finds itself: the links to the search of the changes find the closed ones, too #}
     {% set closed = change.state.isClosed %}
@@ -21,7 +22,6 @@
     {% endfor %}
     {# The CI writes on every patch set, the log hides its messages until asked #}
     {% set ciCount = change.messages|filter(message => message.isByCi)|length %}
-    {% set peopleCount = change.messages|length - ciCount %}
     {# How an issue belongs to the change: the footer of its commit message #}
     {% set relations = {'Resolves': 'Resolved by this change', 'Related': 'Related to this change'} %}
 
@@ -169,26 +169,15 @@
 
                         {% if change.messages is not empty %}
                             <section class="detail-section timeline" aria-labelledby="log-title">
-                                <header class="timeline-header">
-                                    <h2 id="log-title" class="detail-section-title">Review log {{ _self.counts(peopleCount, change.messages|length, 'detail-count') }}</h2>
-                                    {% if ciCount > 0 %}
-                                        <label class="timeline-ci">
-                                            <input type="checkbox" class="timeline-ci-toggle">
-                                            <span>Show the {{ ciCount }} {{ ciCount == 1 ? 'message' : 'messages' }} of the CI</span>
-                                        </label>
-                                    {% endif %}
-                                </header>
+                                {{ timeline.header('log-title', 'Review log', change.messages|length, ciCount, 'the CI') }}
                                 {# In the order of Gerrit, the last ones open, the earlier ones on a click #}
                                 {% set recent = 25 %}
                                 {% set earlier = max(0, change.messages|length - recent) %}
                                 {% if earlier > 0 %}
                                     {% set earlierMessages = change.messages|slice(0, earlier) %}
                                     {% set earlierOfPeople = earlierMessages|filter(message => not message.isByCi)|length %}
-                                    <details class="timeline-earlier{{ earlierOfPeople == 0 ? ' is-ci-only' }}">
-                                        <summary class="timeline-entry timeline-earlier-toggle">
-                                            <span class="timeline-avatar timeline-icon" aria-hidden="true">{{ icon('actions-history') }}</span>
-                                            <span class="timeline-earlier-label">Show {{ _self.counts(earlierOfPeople, earlier) }} earlier messages</span>
-                                        </summary>
+                                    <details class="timeline-earlier{{ earlierOfPeople == 0 ? ' is-bots-only' }}">
+                                        {{ timeline.earlier(earlierOfPeople, earlier) }}
                                         {{ _self.timeline(earlierMessages) }}
                                     </details>
                                 {% endif %}
@@ -275,24 +264,13 @@
 {%- endmacro %}
 
 {#
- # A number of messages that follows the switch of the CI: without the CI, or with it.
- #}
-{% macro counts(withoutCi, withCi, class = '') %}
-    {%- if withoutCi == withCi -%}
-        {%- if class %}<span class="{{ class }}">{{ withCi }}</span>{% else %}{{ withCi }}{% endif -%}
-    {%- else -%}
-        <span class="{{ class ? class ~ ' ' }}timeline-without-ci">{{ withoutCi }}</span><span class="{{ class ? class ~ ' ' }}timeline-with-ci">{{ withCi }}</span>
-    {%- endif -%}
-{% endmacro %}
-
-{#
  # Messages of the review log as a timeline, see App\Document\ReviewMessage: who did what on which patch set, the
  # votes as pills, the votes a new patch set made outdated struck through, and the comment of a person below.
  #}
 {% macro timeline(messages) %}
     <ol class="timeline-list">
         {% for message in messages %}
-            <li class="timeline-entry{{ message.isByCi ? ' is-ci' }}">
+            <li class="timeline-entry{{ message.isByCi ? ' is-bot' }}">
                 <span class="timeline-avatar" aria-hidden="true">{{ user_avatar(message.author, 32) }}</span>
                 <div class="timeline-body">
                     <p class="timeline-line">

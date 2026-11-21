@@ -168,6 +168,27 @@ final readonly class Relations
     }
 
     /**
+     * The history of the issue as its page shows it. It names private issues, too, in relations, as parent or
+     * subtask: those changes are left out, and so are the entries nothing is left of. The index has no private issue.
+     *
+     * @return list<IssueJournal>
+     */
+    public function historyOf(Issue $issue): array
+    {
+        $history = $issue->history();
+        $numbers = array_merge(...array_map(
+            static fn (IssueJournal $journal): array => $journal->issueNumbers(),
+            $history,
+        ));
+        $known = array_fill_keys($this->issues->byIds($numbers)->getKeys(), true);
+
+        return array_values(array_filter(array_map(
+            static fn (IssueJournal $journal): ?IssueJournal => $journal->withIssuesOf($known),
+            $history,
+        )));
+    }
+
+    /**
      * The issues of the footer of a change, in its order: those it resolves first.
      *
      * @return ReadableCollection<int, RelatedIssue>

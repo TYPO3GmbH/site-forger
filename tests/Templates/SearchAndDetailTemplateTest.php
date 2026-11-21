@@ -705,12 +705,12 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         // The review log in its order, the CI with a switch, the comment of a person in a box
         // Without the CI one message, with it two
         self::assertStringContainsString(
-            'Review log <span class="detail-count timeline-without-ci">1</span>'
-                . '<span class="detail-count timeline-with-ci">2</span>',
+            'Review log <span class="detail-count timeline-without-bots">1</span>'
+                . '<span class="detail-count timeline-with-bots">2</span>',
             $html,
         );
         self::assertStringContainsString('<span>Show the 1 message of the CI</span>', $html);
-        self::assertSame(1, substr_count($html, '<li class="timeline-entry is-ci">'));
+        self::assertSame(1, substr_count($html, '<li class="timeline-entry is-bot">'));
         self::assertLessThan(strpos($html, 'Tests fail.'), strpos($html, 'Looks good.'));
         self::assertStringContainsString('<div class="timeline-comment">Looks good.</div>', $html);
         self::assertStringContainsString('<span class="timeline-note">Tests fail.</span>', $html);
@@ -742,7 +742,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         );
         self::assertSame(5, substr_count($earlier, '<li class="timeline-entry">'));
         self::assertSame(25, substr_count($recent, '<li class="timeline-entry">'));
-        self::assertStringNotContainsString('timeline-ci-toggle', $html);
+        self::assertStringNotContainsString('timeline-bot-toggle', $html);
     }
 
     public function testAChangeOfAnOlderImportHasNoReviewLog(): void
@@ -812,8 +812,15 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
     public function testIssuePage(): void
     {
+        $journal = [
+            'user' => ['name' => 'Gerrit Code Review'],
+            'notes' => 'Pushed',
+            'created_on' => '2026-11-02T10:00:00Z',
+        ];
+        $issue = Issue::fromDocument(self::ISSUE + ['journals' => [$journal]]);
         $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', [
-            'issue' => Issue::fromDocument(self::ISSUE + ['journals' => [['user' => ['name' => 'Gerrit Code Review'], 'notes' => 'Pushed', 'created_on' => '2026-11-02T10:00:00Z']]]),
+            'issue' => $issue,
+            'history' => $issue->history(),
             'changes' => [],
             'unknownChanges' => [81234],
         ]);

@@ -18,11 +18,6 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(description: 'A comment on an issue, as Forge shows it. Private comments are not in Forger.')]
 final readonly class Comment
 {
-    /**
-     * The accounts on Forge that write notes for a tool, not as a person.
-     */
-    public const array BOTS = ['Gerrit Code Review', 'Mr. Hudson'];
-
     public function __construct(
         #[OA\Property(
             description: 'Who wrote it.',

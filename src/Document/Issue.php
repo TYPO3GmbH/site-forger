@@ -121,6 +121,22 @@ final readonly class Issue
     }
 
     /**
+     * The history: the comments and the changes of the fields, the oldest first.
+     *
+     * @return list<IssueJournal>
+     */
+    public function history(): array
+    {
+        return array_values(array_map(
+            IssueJournal::fromJournal(...),
+            array_filter(
+                $this->journals,
+                static fn (array $journal): bool => true !== ($journal['private_notes'] ?? false),
+            ),
+        ));
+    }
+
+    /**
      * The Gerrit changes the journals link, see GerritLinks.
      *
      * @return list<int>
