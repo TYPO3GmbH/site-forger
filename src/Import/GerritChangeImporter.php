@@ -35,7 +35,8 @@ final class GerritChangeImporter
     /**
      * The details of a change, the same for the refresh of one change, the full import and the delta: the votes,
      * the current patch set with its files and commit, the review log, and the accounts with name, username and
-     * email. The relation chain of an open change takes a request of its own, see chain().
+     * email. The relation chain of an open change and the comments take a request of their own, see chain() and
+     * comments().
      */
     public const array DETAIL_OPTIONS = [
         'DETAILED_LABELS',
@@ -166,8 +167,8 @@ final class GerritChangeImporter
     }
 
     /**
-     * The people of a change for the index "user": its owner, and those who voted or wrote in its review log, but
-     * the CI. So their avatars and their work are found, too.
+     * The people of a change for the index "user": its owner, and those who voted, commented or wrote in its review
+     * log, but the CI. So their avatars and their work are found, too.
      *
      * @param array<string, mixed> $document see documents()
      *
@@ -176,8 +177,8 @@ final class GerritChangeImporter
     public static function accounts(array $document): array
     {
         $accounts = array_column((array) ($document['votes'] ?? []), 'account');
-        foreach ((array) ($document['messages'] ?? []) as $message) {
-            $accounts[] = $message['author'] ?? null;
+        foreach ([...(array) ($document['messages'] ?? []), ...(array) ($document['comments'] ?? [])] as $entry) {
+            $accounts[] = $entry['author'] ?? null;
         }
         $users = array_filter([self::owner($document)]);
         foreach ($accounts as $account) {
@@ -293,6 +294,9 @@ final class GerritChangeImporter
                 'chain' => ReviewStatusEnum::NEW->value === $change['status']
                     ? $this->chain((int) $change['_number'])
                     : [],
+                'comments' => (int) ($change['total_comment_count'] ?? 0) > 0
+                    ? $this->comments((int) $change['_number'])
+                    : [],
             ];
         }
 
@@ -309,9 +313,79 @@ final class GerritChangeImporter
      */
     private function chain(int $number): array
     {
-        $related = $this->gerrit->object(sprintf('/changes/%d/revisions/current/related', $number), [], 'the chain');
+        $related = $this->ofChange(sprintf('/changes/%d/revisions/current/related', $number), 'the chain');
 
         return self::chainOf((array) ($related['changes'] ?? []));
+    }
+
+    /**
+     * An answer about a change that Gerrit listed a moment ago. A change made private or deleted since answers 404:
+     * it goes without, and the next refresh removes it. Otherwise one such change would stop every delta.
+     *
+     * @return array<mixed>
+     *
+     * @throws ApiFailure
+     */
+    private function ofChange(string $path, string $expected): array
+    {
+        try {
+            return $this->gerrit->object($path, [], $expected);
+        } catch (ApiFailure $failure) {
+            if ($failure->isNotFound()) {
+                return [];
+            }
+            throw $failure;
+        }
+    }
+
+    /**
+     * The comments of a change: those on the code and those on a patch set, which Gerrit does not write into the
+     * review log. Gerrit tells them in a request of their own, so only the changes with comments ask for them.
+     *
+     * @return list<array<string, mixed>>
+     *
+     * @throws ApiFailure
+     */
+    private function comments(int $number): array
+    {
+        return self::commentsOf($this->ofChange(sprintf('/changes/%d/comments', $number), 'the comments'));
+    }
+
+    /**
+     * The comments of the answer of "comments", by file, as the index keeps them: the oldest first, each with the
+     * message of the review log it was published with.
+     *
+     * @param array<mixed> $files the comments by the path of their file, "/PATCHSET_LEVEL" for a patch set
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function commentsOf(array $files): array
+    {
+        $comments = [];
+        foreach ($files as $path => $list) {
+            foreach ((array) $list as $comment) {
+                if (!is_array($comment) || !isset($comment['id'])) {
+                    continue;
+                }
+                $comments[] = [
+                    'id' => (string) $comment['id'],
+                    'message_id' => isset($comment['change_message_id'])
+                        ? (string) $comment['change_message_id']
+                        : null,
+                    'in_reply_to' => isset($comment['in_reply_to']) ? (string) $comment['in_reply_to'] : null,
+                    'author' => self::account($comment['author'] ?? null),
+                    'date' => self::gerritDate((string) ($comment['updated'] ?? '')),
+                    'patch_set' => isset($comment['patch_set']) ? (int) $comment['patch_set'] : null,
+                    'file' => str_starts_with((string) $path, '/') ? null : (string) $path,
+                    'line' => isset($comment['line']) ? (int) $comment['line'] : null,
+                    'unresolved' => true === ($comment['unresolved'] ?? false),
+                    'message' => (string) ($comment['message'] ?? ''),
+                ];
+            }
+        }
+        usort($comments, static fn (array $a, array $b): int => strcmp($a['date'], $b['date']));
+
+        return $comments;
     }
 
     /**
@@ -421,15 +495,42 @@ final class GerritChangeImporter
                 continue;
             }
             $log[] = [
+                'id' => isset($message['id']) ? (string) $message['id'] : null,
                 'author' => self::account($message['author'] ?? null),
                 'date' => self::gerritDate((string) ($message['date'] ?? '')),
                 'patch_set' => isset($message['_revision_number']) ? (int) $message['_revision_number'] : null,
                 'tag' => isset($message['tag']) ? (string) $message['tag'] : null,
-                'message' => (string) ($message['message'] ?? ''),
+                'message' => self::withAccountNames(
+                    (string) ($message['message'] ?? ''),
+                    (array) ($message['accounts_in_message'] ?? []),
+                ),
             ];
         }
 
         return $log;
+    }
+
+    /**
+     * The text of a message with the names of the accounts it names: Gerrit writes "<GERRIT_ACCOUNT_7334>" and
+     * sends the accounts apart. One it does not send stays "someone".
+     *
+     * @param array<mixed> $accounts the "accounts_in_message" of the message
+     */
+    public static function withAccountNames(string $text, array $accounts): string
+    {
+        $names = [];
+        foreach ($accounts as $account) {
+            if (is_array($account) && isset($account['_account_id'])) {
+                $name = $account['name'] ?? $account['username'] ?? 'someone';
+                $names[(int) $account['_account_id']] = (string) $name;
+            }
+        }
+
+        return (string) preg_replace_callback(
+            '/<GERRIT_ACCOUNT_(\d+)>/',
+            static fn (array $match): string => $names[(int) $match[1]] ?? 'someone',
+            $text,
+        );
     }
 
     /**

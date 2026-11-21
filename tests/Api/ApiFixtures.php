@@ -100,6 +100,7 @@ final class ApiFixtures
             ],
             'label_states' => ['Code-Review' => 'NEED', 'Verified' => 'REJECT'],
             'messages' => [[
+                'id' => 'm1',
                 'author' => self::account(14410),
                 'date' => '2026/11/20 23:18:19',
                 'patch_set' => 1,
@@ -108,6 +109,18 @@ final class ApiFixtures
             ]],
             'conflicts' => ['composer.json'],
             'cherry_pick_of' => 97000,
+            'comments' => [[
+                'id' => 'c1',
+                'message_id' => 'm1',
+                'in_reply_to' => null,
+                'author' => self::account(14410),
+                'date' => '2026/11/20 23:18:19',
+                'patch_set' => 1,
+                'file' => 'composer.json',
+                'line' => 3,
+                'unresolved' => true,
+                'message' => 'Why this version?',
+            ]],
             'comment_count' => 4,
             'unresolved_comment_count' => 1,
             'chain' => [

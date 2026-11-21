@@ -50,6 +50,7 @@ final readonly class ReviewMessage
         public array $outdatedVotes = [],
         public ?int $inlineComments = null,
         public string $comment = '',
+        public ?string $id = null,
     ) {
     }
 
@@ -80,6 +81,7 @@ final readonly class ReviewMessage
             outdatedVotes: $outdated,
             inlineComments: $inline,
             comment: $comment,
+            id: isset($message['id']) ? (string) $message['id'] : null,
         );
     }
 

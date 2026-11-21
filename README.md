@@ -125,7 +125,9 @@ The deltas only read what changed, and only load details for what they do not ha
   reports a warning, the next run goes on from there.
 * **Gerrit:** a light query lists the changes updated since the start (`after:`) with their update time,
   the details (votes, the current patch set with its files and commit, the review log) are loaded only for the changes the index does not have in this
-  state. An open change takes one more request for its relation chain, which Gerrit tells for one change at a time. Gerrit lists the newest first, so the changes are written once all of them are loaded: a run that
+  state. An open change takes one more request for its relation chain, and a change with comments one for them: Gerrit
+  tells both for one change at a time. The comments are those on the code and on the patch sets, which the review
+  log only counts. Gerrit lists the newest first, so the changes are written once all of them are loaded: a run that
   fails half way leaves the index as it was, and the next run tries again. Beyond 3000 updated changes the
   newest would move the start past the older ones: the run takes the oldest window from the start that fits
   instead (a day, halved until it fits, `ImportWatermark::catchUpWindow()`), notes it, and the next runs go on.

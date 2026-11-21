@@ -16,6 +16,7 @@ use App\Api\Model\ChangeDetail;
 use App\Api\Model\ChangeFile;
 use App\Api\Model\ChangeIssue;
 use App\Api\Model\ChangeSummary;
+use App\Api\Model\CodeComment;
 use App\Api\Model\GerritAccount;
 use App\Api\Model\Label;
 use App\Api\Model\ReviewMessage;
@@ -24,6 +25,7 @@ use App\Api\Model\Votes;
 use App\Document\ChainLink;
 use App\Document\Change;
 use App\Document\ChangedFile;
+use App\Document\CodeComment as StoredComment;
 use App\Document\RelatedIssue;
 use App\Document\ReviewMessage as StoredMessage;
 use App\Document\SingleVote;
@@ -117,6 +119,7 @@ final readonly class ChangeMapper
             ))->toArray()),
             messages: array_map(
                 static fn (StoredMessage $message): ReviewMessage => new ReviewMessage(
+                    $message->id,
                     self::account($message->author),
                     ApiDate::fromIndex($message->date),
                     $message->patchSet,
@@ -140,6 +143,21 @@ final readonly class ChangeMapper
                 ),
                 $change->chain,
             ) : [],
+            comments: array_map(
+                static fn (StoredComment $comment): CodeComment => new CodeComment(
+                    id: $comment->id,
+                    messageId: $comment->messageId,
+                    inReplyTo: $comment->inReplyTo,
+                    author: self::account($comment->author),
+                    createdOn: ApiDate::fromIndex($comment->date),
+                    patchSet: $comment->patchSet,
+                    file: $comment->file,
+                    line: $comment->line,
+                    unresolved: $change->isOpen($comment),
+                    text: $comment->text,
+                ),
+                $change->comments,
+            ),
         );
     }
 

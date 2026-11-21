@@ -13,6 +13,7 @@ namespace App\Tests\Document;
 
 use App\Document\ChainLink;
 use App\Document\Change;
+use App\Document\ReviewMessage;
 use App\People\Person;
 use PHPUnit\Framework\TestCase;
 
@@ -70,5 +71,31 @@ final class ChangeTest extends TestCase
         self::assertFalse($link->isOutdated());
         // The change got a patch set since the chain was loaded
         self::assertTrue($link->isOutdated(Change::fromDocument(['id' => 2, 'subject' => 'Base', 'patchsets' => 4])));
+    }
+
+    public function testTheCommentsOfAMessageAndTheOpenThreads(): void
+    {
+        $comment = static fn (string $id, ?string $replyTo, string $message, bool $open, ?string $file): array => [
+            'id' => $id,
+            'in_reply_to' => $replyTo,
+            'message_id' => $message,
+            'unresolved' => $open,
+            'file' => $file,
+            'date' => '2026/11/20 10:00:0' . strlen($id),
+        ];
+        $change = Change::fromDocument(['id' => 1, 'subject' => 'Change', 'comments' => [
+            $comment('a', null, 'm1', true, 'composer.json'),
+            $comment('aa', 'a', 'm2', true, 'composer.json'),
+            $comment('bbb', null, 'm2', true, null),
+        ]]);
+        $message = ReviewMessage::fromDocument(['id' => 'm2', 'message' => 'Patch Set 1:']);
+
+        // The comment on the patch set before the one on a file
+        $ids = array_map(static fn ($item): string => $item->id, $change->commentsOf($message));
+        self::assertSame(['bbb', 'aa'], $ids);
+        // A thread is open by its last comment
+        self::assertSame([false, true, true], array_map($change->isOpen(...), $change->comments));
+        self::assertSame(2, $change->commentCountOf('composer.json'));
+        self::assertSame([], $change->commentsOf(ReviewMessage::fromDocument(['message' => 'No id'])));
     }
 }

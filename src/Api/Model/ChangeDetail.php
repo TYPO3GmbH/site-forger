@@ -27,6 +27,7 @@ final readonly class ChangeDetail extends ChangeSummary
      * @param list<ReviewMessage> $messages
      * @param list<string>        $conflicts
      * @param list<ChainChange>   $chain
+     * @param list<CodeComment>   $comments
      */
     public function __construct(
         ChangeSummary $summary,
@@ -76,6 +77,13 @@ final readonly class ChangeDetail extends ChangeSummary
             items: new OA\Items(ref: new Model(type: ChainChange::class)),
         )]
         public array $chain,
+        #[OA\Property(
+            description: 'The comments on the code and on the patch sets, the oldest first. Gerrit publishes them with '
+                . 'a message of the review log, see "messageId". Empty for a change imported before Forger kept them.',
+            type: 'array',
+            items: new OA\Items(ref: new Model(type: CodeComment::class)),
+        )]
+        public array $comments,
     ) {
         parent::__construct(...get_object_vars($summary));
     }

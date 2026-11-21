@@ -595,8 +595,45 @@
     border-radius: .5rem;
     background: #fff;
     color: #1f2937;
-    white-space: pre-wrap;
     overflow-wrap: anywhere;
+}
+
+// The text as Gerrit has it, its line breaks kept
+.timeline-comment-text {
+    white-space: pre-wrap;
+}
+
+.timeline-comment + .timeline-comment {
+    margin-top: .375rem;
+}
+
+// A thread the owner still has to answer
+.timeline-comment.is-open {
+    border-left: 3px solid #d97706;
+}
+
+.timeline-comment-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+    align-items: center;
+    margin: 0 0 .375rem;
+    color: var(--overview-muted);
+    font-size: var(--detail-size-label);
+    white-space: normal;
+
+    code {
+        color: #374151;
+    }
+}
+
+.detail-file-comments {
+    display: inline-flex;
+    gap: .125rem;
+    align-items: center;
+    color: var(--overview-muted);
+    font-family: var(--bs-body-font-family, sans-serif);
+    font-size: var(--detail-size-label);
 }
 
 .timeline-comment.detail-text {

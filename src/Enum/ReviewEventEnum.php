@@ -47,6 +47,14 @@ enum ReviewEventEnum
     }
 
     /**
+     * The event of a message Gerrit published comments with: a vote with comments is a comment.
+     */
+    public function withComments(): self
+    {
+        return self::VOTED === $this ? self::COMMENTED : $this;
+    }
+
+    /**
      * Whether the label ends with the number of the patch set.
      */
     public function namesPatchSet(): bool

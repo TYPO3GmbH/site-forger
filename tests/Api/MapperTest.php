@@ -127,6 +127,18 @@ final class MapperTest extends TestCase
         self::assertSame(['composer.json'], $change['conflicts']);
         self::assertSame(97000, $change['cherryPickOf']);
         self::assertSame(
+            ['c1', 'm1', 'composer.json', 3, true, 'Why this version?'],
+            [
+                $change['comments'][0]['id'],
+                $change['comments'][0]['messageId'],
+                $change['comments'][0]['file'],
+                $change['comments'][0]['line'],
+                $change['comments'][0]['unresolved'],
+                $change['comments'][0]['text'],
+            ],
+        );
+        self::assertSame('m1', $change['messages'][0]['id']);
+        self::assertSame(
             [[97900, 'above', null, false], [97865, 'this', 'ready', true], [97800, 'below', null, false]],
             array_map(
                 static fn (array $link): array => [$link['number'], $link['place'], $link['state'], $link['outdated']],

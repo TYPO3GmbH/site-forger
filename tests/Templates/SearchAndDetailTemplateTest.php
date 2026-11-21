@@ -678,6 +678,16 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
             'unresolved_comment_count' => 1,
             'cherry_pick_of' => 80000,
         ];
+        $change['messages'][0]['id'] = 'm1';
+        $change['comments'] = [[
+            'id' => 'c1',
+            'message_id' => 'm1',
+            'file' => 'composer.json',
+            'line' => 3,
+            'unresolved' => true,
+            'date' => '2026/11/02 09:00:00',
+            'message' => 'Why this version?',
+        ]];
 
         $html = $this->twig->load('change/show.html.twig')->renderBlock(
             'body',
@@ -712,9 +722,14 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('<span>Show the 1 message of the CI</span>', $html);
         self::assertSame(1, substr_count($html, '<li class="timeline-entry is-bot">'));
         self::assertLessThan(strpos($html, 'Tests fail.'), strpos($html, 'Looks good.'));
-        self::assertStringContainsString('<div class="timeline-comment">Looks good.</div>', $html);
+        self::assertStringContainsString('<div class="timeline-comment-text">Looks good.</div>', $html);
         self::assertStringContainsString('<span class="timeline-note">Tests fail.</span>', $html);
         self::assertStringContainsString('<span class="detail-fact-note">1 unresolved</span>', $html);
+        // The comment under the message it was published with, open, and counted on its file
+        self::assertStringContainsString('<code title="composer.json">composer.json:3</code>', $html);
+        self::assertStringContainsString('<div class="timeline-comment-text">Why this version?</div>', $html);
+        self::assertStringContainsString('<div class="timeline-comment is-open">', $html);
+        self::assertStringContainsString('title="Comments on this file">', $html);
         self::assertStringContainsString('href="/change/80000">Change 80000</a>', $html);
     }
 

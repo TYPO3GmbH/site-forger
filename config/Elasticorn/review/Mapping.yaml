@@ -86,6 +86,10 @@ file_details:
 chain:
   type: object
   enabled: false
+# The comments on the code and on the patch sets, see GerritChangeImporter::comments()
+comments:
+  type: object
+  enabled: false
 # What each label lacks for a merge, by the name of the label: OK, NEED, REJECT, IMPOSSIBLE or MAY
 label_states:
   properties:

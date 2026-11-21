@@ -46,6 +46,7 @@ final readonly class Change
      * @param int|null              $cherryPickOf the change this one is a cherry-pick of
      * @param list<ChainLink>       $chain        the relation chain of an open change, the top first, the change
      *                                            itself among them; empty without a chain
+     * @param list<CodeComment>     $comments     the comments on the code and on the patch sets, the oldest first
      */
     public function __construct(
         public int $id,
@@ -82,6 +83,7 @@ final readonly class Change
         public ?int $commentCount = null,
         public ?int $unresolvedCommentCount = null,
         public array $chain = [],
+        public array $comments = [],
     ) {
     }
 
@@ -140,7 +142,71 @@ final readonly class Change
             commentCount: self::intOrNull($document['comment_count'] ?? null),
             unresolvedCommentCount: self::intOrNull($document['unresolved_comment_count'] ?? null),
             chain: self::chain($document),
+            comments: array_values(array_map(
+                CodeComment::fromDocument(...),
+                array_filter((array) ($document['comments'] ?? []), is_array(...)),
+            )),
         );
+    }
+
+    /**
+     * The comments Gerrit published with a message of the review log, on the patch set first, then by file and line.
+     *
+     * @return list<CodeComment>
+     */
+    public function commentsOf(ReviewMessage $message): array
+    {
+        if (null === $message->id) {
+            return [];
+        }
+        $comments = array_values(array_filter(
+            $this->comments,
+            static fn (CodeComment $comment): bool => $message->id === $comment->messageId,
+        ));
+        usort($comments, static fn (CodeComment $a, CodeComment $b): int => [null !== $a->file, $a->file, $a->line]
+            <=> [null !== $b->file, $b->file, $b->line]);
+
+        return $comments;
+    }
+
+    /**
+     * How many comments a file has, on any patch set.
+     */
+    public function commentCountOf(string $path): int
+    {
+        return count(array_filter($this->comments, static fn (CodeComment $comment): bool => $path === $comment->file));
+    }
+
+    /**
+     * Whether a comment is the last one of a thread that is not resolved: what the owner still has to answer.
+     */
+    public function isOpen(CodeComment $comment): bool
+    {
+        return $comment->unresolved && in_array($comment->id, $this->lastOfThreads(), true);
+    }
+
+    /**
+     * The last comment of each thread, by the comment that starts it.
+     *
+     * @return list<string>
+     */
+    private function lastOfThreads(): array
+    {
+        $parents = [];
+        foreach ($this->comments as $comment) {
+            $parents[$comment->id] = $comment->inReplyTo;
+        }
+        $last = [];
+        foreach ($this->comments as $comment) {
+            $root = $comment->id;
+            // Up the replies to the comment that starts the thread, as far as the change has them
+            while (null !== ($parents[$root] ?? null) && array_key_exists((string) $parents[$root], $parents)) {
+                $root = (string) $parents[$root];
+            }
+            $last[$root] = $comment->id;
+        }
+
+        return array_values($last);
     }
 
     /**

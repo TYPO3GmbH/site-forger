@@ -20,6 +20,11 @@ final readonly class ReviewMessage
 {
     public function __construct(
         #[OA\Property(
+            description: 'The id of the message on Gerrit, the "messageId" of its comments.',
+            example: 'cf7c66d8',
+        )]
+        public ?string $id,
+        #[OA\Property(
             description: 'Who wrote it.',
             nullable: true,
             allOf: [new OA\Schema(ref: new Model(type: GerritAccount::class))],
