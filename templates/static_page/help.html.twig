@@ -116,7 +116,7 @@
                         Votes count when a person gave them, not the CI bot.
                     </p>
                     <div class="link-tiles">
-                        {{ help.tile('reviews_ready', 'actions-code-pull-request', 'Ready for review', 'Every open change that is not work in progress.') }}
+                        {{ help.tile('reviews_ready', 'actions-code-pull-request', 'Ready for review', 'Every open change that is not work in progress, has no negative vote and no merge conflict.') }}
                         {{ help.tile('reviews_wip', 'actions-code-pull-request-draft', 'Work in progress', 'Marked as work in progress in Gerrit or with [WIP] or [POC] in the subject, the oldest first.') }}
                         {{ help.tile('reviews_needs_review', 'actions-comment', 'Needs review', 'Verified, but no positive code review yet.') }}
                         {{ help.tile('reviews_needs_verification', 'actions-check-circle', 'Needs verification', 'A positive code review, but not verified yet.') }}

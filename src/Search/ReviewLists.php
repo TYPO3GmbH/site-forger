@@ -70,11 +70,14 @@ final class ReviewLists
         $closed = ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]];
         $workInProgress = ['term' => ['work_in_progress' => true]];
         $open = [$closed, $workInProgress];
+        // A change with a -1 or -2 or with a merge conflict waits for its owner, not for a review
+        $negativeVotes = [self::range('negative_reviews', 'gte'), self::range('negative_verifications', 'gte')];
+        $mergeable = ['term' => ['mergeable' => 'yes']];
 
         return match ($list) {
             self::READY => self::bool(
-                must: [['terms' => ['reviewstatus' => [ReviewStatusEnum::NEW->value]]]],
-                mustNot: $open
+                must: [['terms' => ['reviewstatus' => [ReviewStatusEnum::NEW->value]]], $mergeable],
+                mustNot: [...$open, ...$negativeVotes]
             ),
             self::REVIEWED_AND_VERIFIED => self::bool(
                 must: [self::range('positive_reviews', 'gte'), self::range('positive_verifications', 'gte')],
@@ -104,9 +107,9 @@ final class ReviewLists
                 must: [
                     self::range('positive_reviews', 'gte'),
                     self::range('positive_verifications', 'gte'),
-                    ['term' => ['mergeable' => 'yes']],
+                    $mergeable,
                 ],
-                mustNot: [...$open, self::range('negative_reviews', 'gte'), self::range('negative_verifications', 'gte')]
+                mustNot: [...$open, ...$negativeVotes]
             ),
             self::SEARCH => $includeClosed ? ['match_all' => new \stdClass()] : self::bool(mustNot: [$closed]),
             default => null,

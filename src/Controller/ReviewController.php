@@ -45,7 +45,7 @@ class ReviewController extends AbstractController
         return $this->listView(
             ReviewLists::READY,
             'Ready for review',
-            ReviewLists::aggregations(),
+            ReviewLists::aggregations(without: ['Mergeable']),
         );
     }
 

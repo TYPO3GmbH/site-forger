@@ -15,7 +15,6 @@ use App\Document\Change;
 use App\Document\Issue;
 use App\Elastic\SearchResult;
 use App\Enum\IssueSortEnum;
-use App\Enum\ReviewStatusEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
 use App\Search\IssueSearch;
@@ -63,14 +62,11 @@ final readonly class KeyFigures
     }
 
     /**
-     * The open changes, without the ones in progress.
+     * The changes of the list "Ready for review", with its query, so the number is what the list shows.
      */
-    public function openChanges(): int
+    public function readyForReview(): int
     {
-        return $this->changes->count(self::filtered([], [
-            ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]],
-            self::workInProgress(),
-        ]));
+        return $this->changes->count(self::filtered([(array) ReviewLists::query(ReviewLists::READY)]));
     }
 
     /**
@@ -157,13 +153,5 @@ final readonly class KeyFigures
     private static function closedStatus(): array
     {
         return IssueSearch::closed();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private static function workInProgress(): array
-    {
-        return ['term' => ['work_in_progress' => true]];
     }
 }

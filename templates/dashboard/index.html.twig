@@ -46,7 +46,8 @@
                     <span class="overview-stat-note">+{{ openedIssues }} opened, {{ closedIssues }} closed in 30 days</span>
                 </a>
 
-                <a class="overview-stat overview-stat-wide" href="{{ path('reviews_ready') }}">
+                {# All open changes, work in progress too, as the search without search words shows them #}
+                <a class="overview-stat overview-stat-wide" href="{{ path('search_changes') }}">
                     <span class="overview-stat-label">Open Gerrit changes</span>
                     <span class="overview-stat-value overview-tone-changes">{{ changesTotal }}</span>
                     {% if changesTotal > 0 %}

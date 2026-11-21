@@ -33,7 +33,7 @@ final class ReviewListsTest extends TestCase
     public static function openLists(): iterable
     {
         foreach ([
-            ReviewLists::READY, ReviewLists::REVIEWED_AND_VERIFIED, ReviewLists::NEEDS_VERIFICATION,
+            ReviewLists::REVIEWED_AND_VERIFIED, ReviewLists::NEEDS_VERIFICATION,
             ReviewLists::NEEDS_REVIEW, ReviewLists::NEEDS_REBASE, ReviewLists::NEGATIVE_VOTES,
         ] as $list) {
             yield $list => [$list];
@@ -44,6 +44,20 @@ final class ReviewListsTest extends TestCase
     public function testListsLeaveOutClosedChangesAndWorkInProgress(string $list): void
     {
         self::assertSame([self::CLOSED, self::WORK_IN_PROGRESS], self::listQuery($list)['bool']['must_not']);
+    }
+
+    public function testReadyForReviewHasNoNegativeVoteAndNoConflict(): void
+    {
+        self::assertSame(
+            [['terms' => ['reviewstatus' => ['NEW']]], ['term' => ['mergeable' => 'yes']]],
+            self::listQuery(ReviewLists::READY)['bool']['must'],
+        );
+        self::assertSame([
+            self::CLOSED,
+            self::WORK_IN_PROGRESS,
+            ['range' => ['negative_reviews' => ['gte' => 1]]],
+            ['range' => ['negative_verifications' => ['gte' => 1]]],
+        ], self::listQuery(ReviewLists::READY)['bool']['must_not']);
     }
 
     public function testReadyToMergeHasPositiveAndNoNegativeVotes(): void
