@@ -70,6 +70,12 @@
                 </a>
             </div>
 
+            {# Where work waits, right below the figures: the charts are for a look now and then #}
+            <div class="overview-lists">
+                {% include 'dashboard/_new_issues.html.twig' with {'issues': newIssues} only %}
+                {% include 'dashboard/_ready_to_merge.html.twig' with {'changes': readyToMerge} only %}
+            </div>
+
             <div class="overview-charts">
                 {{ dashboard.chart('Issues opened and closed', 'Per week, the last 12 weeks', 'bar', path('chart', {'chartName': 'opened_closed'}), chartOptionsWithLegend, 'Week') }}
                 {{ dashboard.chart('Changes waiting for review', 'Open changes by their last activity, without work in progress', 'bar', path('chart', {'chartName': 'open_reviews'}), chartOptionsHorizontal, 'Last activity') }}
@@ -77,11 +83,6 @@
                 {{ dashboard.chart('Open changes', 'At the end of each month, the last 3 years, without work in progress', 'line', path('chart', {'chartName': 'reviews_over_time'}), chartOptions, 'Month') }}
                 {{ dashboard.chart('Closed issues per year', 'Summed up month by month', 'line', path('chart', {'chartName': 'ticket_progress'}), chartOptionsWithLegend, 'Month') }}
                 {{ dashboard.chart('Closed changes per year', 'Merged or abandoned, summed up month by month', 'line', path('chart', {'chartName': 'review_progress'}), chartOptionsWithLegend, 'Month') }}
-            </div>
-
-            <div class="overview-lists">
-                {% include 'dashboard/_new_issues.html.twig' with {'issues': newIssues} only %}
-                {% include 'dashboard/_ready_to_merge.html.twig' with {'changes': readyToMerge} only %}
             </div>
 
         </div>
