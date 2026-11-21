@@ -1,9 +1,9 @@
 {#
- # A short list of the page "Get involved": its title and count, a line on what to do, the first rows and a link to
- # all of them.
- # Expects: id, title, text, url (the list or search with the same filter), items (a SearchResult), kind ("issue" or
+ # A short list of the dashboard or of the page "Get involved": its title and count, the first rows and a link to all
+ # of them.
+ # Expects: id, title, url (the list or search with the same filter), items (a SearchResult), kind ("issue" or
  #          "change"), empty (the text without items)
- # Optional: guide, a page of the Contribution Guide on the task: url and label
+ # Optional: text, a line on what to do with the items; guide, a page of the Contribution Guide on it: url and label
  #}
 <section class="overview-list" aria-labelledby="{{ id }}">
     <header class="overview-list-header">
@@ -12,12 +12,16 @@
         </h2>
         <a class="overview-list-all" href="{{ url }}">Show all</a>
     </header>
-    <p class="get-involved-text">
-        {{ text }}
-        {% if guide is defined %}
-            <a href="{{ guide.url }}" target="_blank" rel="noopener">{{ icon('actions-book') }} {{ guide.label }}</a>
-        {% endif %}
-    </p>
+    {% if text is defined %}
+        <p class="overview-list-text">
+            {{ text }}
+            {% if guide is defined %}
+                <a href="{{ guide.url }}" target="_blank" rel="noopener">
+                    {{- icon('actions-book') }} {{ guide.label -}}
+                </a>
+            {% endif %}
+        </p>
+    {% endif %}
     {% if items is empty %}
         <p class="overview-list-empty">{{ empty }}</p>
     {% else %}

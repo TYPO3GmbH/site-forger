@@ -1,35 +1,10 @@
 {% extends 'base.html.twig' %}
 {% block title %}Dashboard{% endblock %}
 
-{#
- # A chart card. The template bundle draws the canvas with Chart.js and the options given here.
- # The table shows the same data in the same place, for screen readers and the colors that are hard to tell apart.
- #}
-{% macro chart(title, subtitle, type, source, options, categoryLabel) %}
-    <figure class="overview-chart" data-chart-card>
-        <figcaption class="overview-chart-header">
-            <span>
-                <span class="overview-chart-title">{{ title }}</span>
-                <span class="overview-chart-subtitle">{{ subtitle }}</span>
-            </span>
-            <span class="overview-view-toggle" role="group" aria-label="View of {{ title }}">
-                <button type="button" class="is-active" aria-pressed="true" data-chart-view="chart">Chart</button>
-                <button type="button" aria-pressed="false" data-chart-view="table">Table</button>
-            </span>
-        </figcaption>
-        <div class="overview-chart-body">
-            <div class="overview-chart-canvas" data-chart-pane="chart">
-                <canvas class="js-chart" role="img" aria-label="{{ title }}, {{ subtitle }}" data-chart-type="{{ type }}" data-src="{{ source }}" data-options="{{ options|json_encode }}"></canvas>
-            </div>
-            <div class="overview-chart-table" data-chart-pane="table" data-chart-table="{{ source }}" data-category-label="{{ categoryLabel }}" tabindex="0" hidden></div>
-        </div>
-    </figure>
-{% endmacro %}
-
 {% block body %}
-    {% import _self as dashboard %}
-
     {% import '_macros/search.html.twig' as search %}
+    {% set list = '_partials/short_list.html.twig' %}
+    {% set regressionSearch = {'filters': {'marked_as': {'Regression': 'true'}}, 'sort': 'updated'} %}
 
     <div class="content-section content-section-small overview">
         <div class="container">
@@ -44,15 +19,6 @@
                     <span class="overview-stat-label">Open issues</span>
                     <span class="overview-stat-value overview-tone-issues">{{ openIssues }}</span>
                     <span class="overview-stat-note">+{{ openedIssues }} opened, {{ closedIssues }} closed in 30 days</span>
-                </a>
-
-                {% set regressionFilter = {'marked_as': {'Regression': 'true'}} %}
-                <a class="overview-stat" href="{{ path('search_search', {'filters': regressionFilter}) }}">
-                    <span class="overview-stat-label">Open regressions</span>
-                    <span class="overview-stat-value{{ openRegressions > 0 ? ' overview-tone-warning' }}">
-                        {{- openRegressions -}}
-                    </span>
-                    <span class="overview-stat-note">Issues of something that worked in an earlier version</span>
                 </a>
 
                 {# All open changes, work in progress too, as the search without search words shows them #}
@@ -76,26 +42,52 @@
                 {# The list with the filter the number counts by, in its own order #}
                 <a class="overview-stat" href="{{ path('reviews_ready', {'filters': waitingFilter}) }}">
                     <span class="overview-stat-label">Waiting over a month</span>
-                    <span class="overview-stat-value{{ waitingChanges > 0 ? ' overview-tone-warning' }}">{{ waitingChanges }}</span>
+                    {% set waiting = waitingChanges.total %}
+                    <span class="overview-stat-value{{ waiting > 0 ? ' overview-tone-warning' }}">{{ waiting }}</span>
                     <span class="overview-stat-note">Changes ready for review without activity for 30 days</span>
                 </a>
             </div>
+        </div>
+    </div>
 
-            {# Where work waits, right below the figures: the charts are for a look now and then #}
+    {# The merges right below the figures, as thanks and as a spur: what the people of the Core got done, and the
+       invitation to be next #}
+    <div class="content-section content-section-small bg-default overview">
+        <div class="container">
+            {% include 'dashboard/_recently_merged.html.twig' with {'changes': recentlyMerged} only %}
+        </div>
+    </div>
+
+    <div class="content-section content-section-small overview">
+        <div class="container">
+            {# Where work waits: for the mergers first, then for every reviewer and triager #}
+            <h2 class="overview-heading">What needs attention</h2>
             <div class="overview-lists">
-                {% include 'dashboard/_new_issues.html.twig' with {'issues': newIssues} only %}
                 {% include 'dashboard/_ready_to_merge.html.twig' with {'changes': readyToMerge} only %}
+                {% include list with {
+                    'id': 'overview-waiting',
+                    'title': 'Waiting over a month',
+                    'url': path('reviews_ready', {'filters': waitingFilter, 'sort': 'least-updated'}),
+                    'items': waitingChanges,
+                    'kind': 'change',
+                    'empty': 'No change ready for review waits for a month.',
+                } only %}
+                {% include list with {
+                    'id': 'overview-regressions',
+                    'title': 'Open regressions',
+                    'url': path('search_search', regressionSearch),
+                    'items': regressions,
+                    'kind': 'issue',
+                    'empty': 'There is no open regression.',
+                } only %}
+                {% include 'dashboard/_new_issues.html.twig' with {'issues': newIssues} only %}
             </div>
 
-            <div class="overview-charts">
-                {{ dashboard.chart('Issues opened and closed', 'Per week, the last 12 weeks', 'bar', path('chart', {'chartName': 'opened_closed'}), chartOptionsWithLegend, 'Week') }}
-                {{ dashboard.chart('Changes waiting for review', 'Open changes by their last activity, without work in progress', 'bar', path('chart', {'chartName': 'open_reviews'}), chartOptionsHorizontal, 'Last activity') }}
-                {{ dashboard.chart('Open issues', 'At the end of each month, the last 3 years', 'line', path('chart', {'chartName': 'tickets_over_time'}), chartOptions, 'Month') }}
-                {{ dashboard.chart('Open changes', 'At the end of each month, the last 3 years, without work in progress', 'line', path('chart', {'chartName': 'reviews_over_time'}), chartOptions, 'Month') }}
-                {{ dashboard.chart('Closed issues per year', 'Summed up month by month', 'line', path('chart', {'chartName': 'ticket_progress'}), chartOptionsWithLegend, 'Month') }}
-                {{ dashboard.chart('Closed changes per year', 'Merged or abandoned, summed up month by month', 'line', path('chart', {'chartName': 'review_progress'}), chartOptionsWithLegend, 'Month') }}
-            </div>
-
+            <p class="overview-more">
+                <a class="btn btn-default" href="{{ path('dashboard_statistics') }}">
+                    {{- 'Statistics: the issues and changes over time' }} {{ icon('actions-arrow-right') -}}
+                </a>
+            </p>
         </div>
     </div>
 {% endblock %}

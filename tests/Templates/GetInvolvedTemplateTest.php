@@ -48,8 +48,7 @@ final class GetInvolvedTemplateTest extends KernelTestCase
         $html = $this->twig->load('get_involved/index.html.twig')->renderBlock('body', [
             'smallReviews' => SearchResult::ofDocuments([$change], 61),
             'goodFirstIssues' => SearchResult::ofDocuments([$issue], 23),
-            'regressions' => SearchResult::ofDocuments([], 0),
-            'newBugs' => SearchResult::ofDocuments([$issue], 350),
+            'newBugs' => SearchResult::ofDocuments([], 0),
         ]);
 
         self::assertStringContainsString('<span class="overview-list-count">61</span>', $html);
@@ -63,7 +62,9 @@ final class GetInvolvedTemplateTest extends KernelTestCase
             'href="/search?filters%5Btracker%5D%5BBug%5D=true&amp;filters%5Bstatus%5D%5BNew%5D=true&amp;sort=newest"',
             $html,
         );
-        self::assertStringContainsString('There is no open regression.', $html);
+        self::assertStringContainsString('There is no new bug.', $html);
+        // Regressions are rarely a first contribution, the dashboard lists them
+        self::assertStringNotContainsString('regression', strtolower($html));
         self::assertStringContainsString(
             'href="https://docs.typo3.org/m/typo3/guide-contributionworkflow/main/en-us/Account/Index.html"',
             $html,

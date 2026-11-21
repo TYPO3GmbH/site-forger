@@ -1,0 +1,62 @@
+{#
+ # The changes merged last, as cards that thank their authors: the avatar and the name first, then the change, the
+ # issues it resolves and when it was merged. No ranking of people: each merge counts the same. Below them the link
+ # to all merges and the invitation to the page "Get involved".
+ # Expects: changes (a SearchResult of App\Document\Change)
+ #}
+<section class="overview-merged" aria-labelledby="overview-merged-title">
+    <header class="overview-merged-header">
+        <h2 class="overview-heading" id="overview-merged-title">{{ icon('actions-heart') }} Recently merged</h2>
+        <p class="overview-merged-lead">Thank you to everybody who wrote, tested and reviewed these changes.</p>
+    </header>
+    {% if changes is empty %}
+        <p class="overview-list-empty">No change was merged yet.</p>
+    {% else %}
+        <ul class="overview-merged-cards">
+            {% for change in changes %}
+                {% set owner = change.ownerPerson %}
+                <li>
+                    <a class="overview-merged-card" href="{{ change_path(change.id) }}" title="{{ change.subject }}">
+                        <span class="overview-merged-person">
+                            <span class="overview-merged-avatar" aria-hidden="true">{{ user_avatar(owner, 40) }}</span>
+                            <span class="overview-merged-name">{{ owner.name ?? 'Somebody' }}</span>
+                        </span>
+                        <span class="overview-merged-subject">{{ change.subject }}</span>
+                        <span class="overview-merged-meta">
+                            {% set branch = change.branch ?? 'main' %}
+                            <span class="tag-label{{ branch != 'main' ? ' is-backport' }}" title="Branch">
+                                {{- branch -}}
+                            </span>
+                            {% if change.resolves is not empty %}
+                                <span title="The issues it resolves">
+                                    Resolves {{ change.resolves|map(number => '#' ~ number)|join(', ') }}
+                                </span>
+                            {% endif %}
+                            {% if change.updatedOn is not null %}
+                                <time
+                                    datetime="{{ to_datetime(change.updatedOn)|date('c') }}"
+                                    title="Merged {{ change.updatedOn }}"
+                                >
+                                    {{- relativetime(to_datetime(change.updatedOn)) -}}
+                                </time>
+                            {% endif %}
+                        </span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    {% set merged = {'searchClosed': '1', 'sort': 'updated', 'filters': {'reviewstatus': {'MERGED': 'true'}}} %}
+    <footer class="overview-merged-footer">
+        <a class="overview-list-all" href="{{ path('search_changes', merged) }}">Show all merged changes</a>
+        <p class="overview-invite">
+            <span>
+                <strong>Your change could be next.</strong>
+                Test a small change, fix a good first issue or confirm a bug.
+            </span>
+            <a class="btn btn-default" href="{{ path('get_involved') }}">
+                {{- 'Get involved' }} {{ icon('actions-arrow-right') -}}
+            </a>
+        </p>
+    </footer>
+</section>

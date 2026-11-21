@@ -7,12 +7,12 @@
     --overview-shadow: 0 1px 2px rgba(16, 24, 40, .05);
 }
 
-// Key figures: three of them and the wide one of the changes in one row
+// Key figures
 .overview-stats {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
 
     @media (max-width: 991.98px) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -69,6 +69,143 @@
 .overview-stat-note {
     color: var(--overview-muted);
     font-size: .8125rem;
+}
+
+// Below the merges: the link to all of them, and on the right the invitation to the page "Get involved"
+.overview-merged-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1rem;
+}
+
+.overview-invite {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1rem;
+    align-items: center;
+    margin: 0;
+    color: #374151;
+}
+
+.overview-heading {
+    margin: 0 0 1rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+// The thanks for the changes merged last: cards with the author first, three in a row
+.overview-merged {
+    margin: 0;
+}
+
+.overview-merged-header {
+    margin-bottom: 1rem;
+
+    .overview-heading {
+        display: flex;
+        gap: .5rem;
+        align-items: center;
+        margin-bottom: .25rem;
+
+        .icon {
+            color: var(--overview-muted);
+        }
+    }
+}
+
+.overview-merged-lead {
+    margin: 0;
+    color: #4b5563;
+}
+
+.overview-merged-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @media (max-width: 991.98px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 575.98px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.overview-merged-card {
+    display: flex;
+    flex-direction: column;
+    gap: .625rem;
+    height: 100%;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--overview-border);
+    border-radius: var(--overview-radius);
+    // Cards on a white section are gray, as the steps of "Get involved"
+    background: #f7f8fa;
+    color: inherit;
+    text-decoration: none;
+    transition: box-shadow .15s, transform .15s;
+
+    &:hover,
+    &:focus-visible {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16, 24, 40, .08);
+        color: inherit;
+
+        .overview-merged-subject {
+            text-decoration: underline;
+        }
+    }
+}
+
+.overview-merged-person {
+    display: flex;
+    gap: .625rem;
+    align-items: center;
+    min-width: 0;
+}
+
+.overview-merged-avatar .avatar {
+    display: block;
+    border-radius: 50%;
+}
+
+.overview-merged-name {
+    overflow: hidden;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+// Two lines of the subject at most, the title of the card has all of it
+.overview-merged-subject {
+    display: -webkit-box;
+    flex: 1;
+    overflow: hidden;
+    font-size: .9375rem;
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.overview-merged-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem .75rem;
+    align-items: center;
+    color: var(--overview-muted);
+    font-size: .8125rem;
+}
+
+// The link to the charts, below the lists
+.overview-more {
+    margin: 0;
 }
 
 // The figure carries the color of its series in the charts, the text stays ink
@@ -317,6 +454,11 @@
     gap: 1rem;
     margin-bottom: 1.5rem;
 
+    // A last list alone in its row takes the whole row
+    > :last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+    }
+
     @media (max-width: 767.98px) {
         grid-template-columns: minmax(0, 1fr);
     }
@@ -458,6 +600,24 @@
     color: var(--overview-muted);
     font-size: .875rem;
     white-space: nowrap;
+}
+
+// What to do with the items of a list, between its title and its rows
+.overview-list-text {
+    margin: 0;
+    padding: .75rem 1.25rem;
+    border-bottom: 1px solid var(--overview-border);
+    color: #4b5563;
+    font-size: .875rem;
+
+    a {
+        display: inline-flex;
+        gap: .25rem;
+        align-items: center;
+        margin-left: .25rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
 }
 
 .overview-list-empty {

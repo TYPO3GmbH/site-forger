@@ -27,9 +27,9 @@ use App\Search\ReviewLists;
 use App\Search\ReviewSizeQuery;
 
 /**
- * The short lists of the page "Get involved": where somebody new to the TYPO3 Core can start. Each list counts all
- * of its documents and has the first few, like the lists of the dashboard. Its link in the template leads to the
- * list or search with the same filter.
+ * The short lists of the page "Get involved": what somebody new to the TYPO3 Core can do without experience. Each
+ * list counts all of its documents and has the first few, like the lists of the dashboard. Its link in the template
+ * leads to the list or search with the same filter.
  */
 final readonly class GetInvolved
 {
@@ -65,16 +65,6 @@ final readonly class GetInvolved
     public function goodFirstIssues(): SearchResult
     {
         return $this->markedIssues(IssueMarkEnum::GOOD_FIRST_ISSUE);
-    }
-
-    /**
-     * The open regressions, updated last first.
-     *
-     * @return SearchResult<Issue>
-     */
-    public function regressions(): SearchResult
-    {
-        return $this->markedIssues(IssueMarkEnum::REGRESSION);
     }
 
     /**

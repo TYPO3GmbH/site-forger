@@ -191,13 +191,18 @@
                     </header>
                     <dl class="help-facts">
                         <div><dt>Open issues</dt><dd>with those opened and closed in the last 30 days</dd></div>
-                        <div><dt>Open regressions</dt><dd>open issues Forge marks with "Is Regression"</dd></div>
                         <div><dt>Open Gerrit changes</dt><dd>mergeable, with a conflict or work in progress</dd></div>
                         <div><dt>Waiting over a month</dt><dd>ready for review, no update for 30 days</dd></div>
                     </dl>
                     <p>
-                        The charts show the issues opened and closed per week, how long changes have been waiting, the open issues and changes
-                        over three years and what was closed per year. Each chart switches to a table.
+                        Below the figures, "What needs attention" lists the changes ready to merge, the changes that
+                        wait for a review for over a month, the open regressions, as Forge marks them with "Is
+                        Regression", and the new issues.
+                    </p>
+                    <p>
+                        The <a href="{{ path('dashboard_statistics') }}">statistics</a> show the issues opened and
+                        closed per week, how long changes have been waiting, the open issues and changes over three
+                        years and what was closed per year. Each chart switches to a table.
                     </p>
                     <p class="help-muted">The history is worked out from when issues and changes were created and closed, so it is close to, not exactly, what Forge and Gerrit showed back then.</p>
                 </section>

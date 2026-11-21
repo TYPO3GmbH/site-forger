@@ -29,7 +29,6 @@ class GetInvolvedController extends AbstractController
         return $this->render('get_involved/index.html.twig', [
             'smallReviews' => $this->getInvolved->smallReviews(),
             'goodFirstIssues' => $this->getInvolved->goodFirstIssues(),
-            'regressions' => $this->getInvolved->regressions(),
             'newBugs' => $this->getInvolved->newBugs(),
         ]);
     }
