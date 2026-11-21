@@ -20,11 +20,24 @@ final class IssueSearchTest extends TestCase
     {
         self::assertSame(
             ['bool' => [
-                'must' => [['query_string' => ['query' => 'form \\(editor\\)']]],
+                'must' => [['query_string' => [
+                    'query' => 'form \\(editor\\)',
+                    'fields' => IssueSearch::SEARCHED_FIELDS,
+                    'lenient' => true,
+                ]]],
                 'must_not' => [['terms' => ['status.id' => [5, 6, 3]]]],
             ]],
             IssueSearch::query(' form (editor) ')
         );
+    }
+
+    public function testDoesNotSearchTheEmailAddresses(): void
+    {
+        // The index keeps them for the avatars, a search must not tell whose they are
+        foreach (IssueSearch::SEARCHED_FIELDS as $field) {
+            self::assertStringNotContainsStringIgnoringCase('email', $field);
+            self::assertStringNotContainsString('*', $field);
+        }
     }
 
     public function testFindsAllIssuesWithoutSearchWords(): void

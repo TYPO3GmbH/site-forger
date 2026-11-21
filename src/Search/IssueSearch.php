@@ -22,6 +22,38 @@ use App\Enum\IssueStatusEnum;
 final class IssueSearch
 {
     /**
+     * The fields the search words are searched in: what Forge shows of an issue. Without a list Elasticsearch
+     * searches every field, also the email addresses the index keeps for the avatars. A search for an address would
+     * then find the issues of its owner, also of people who hide it on Forge.
+     */
+    public const array SEARCHED_FIELDS = [
+        'id',
+        'subject',
+        'description',
+        'tags',
+        'tracker.name',
+        'status.name',
+        'priority.name',
+        'category.name',
+        'fixed_version.name',
+        'target_version',
+        'project.name',
+        'focus.name',
+        'complexity',
+        'typo3_version',
+        'php_version',
+        'author.name',
+        'assigned_to.name',
+        'custom_fields.name',
+        'custom_fields.value',
+        'journals.notes',
+        'journals.user.name',
+        'journals.details.name',
+        'journals.details.old_value',
+        'journals.details.new_value',
+    ];
+
+    /**
      * @param bool $includeClosed whether resolved, closed and rejected issues are found, too
      *
      * @return array<string, mixed>
@@ -32,7 +64,12 @@ final class IssueSearch
         $searchTerms = trim($searchTerms);
         $match = '' === $searchTerms
             ? ['match_all' => new \stdClass()]
-            : ['query_string' => ['query' => self::escape($searchTerms)]];
+            : ['query_string' => [
+                'query' => self::escape($searchTerms),
+                'fields' => self::SEARCHED_FIELDS,
+                // A word in a number field, like "id", matches nothing instead of failing the search
+                'lenient' => true,
+            ]];
         $bool = ['must' => [$match]];
         if (!$includeClosed) {
             $bool['must_not'] = [self::closed()];
