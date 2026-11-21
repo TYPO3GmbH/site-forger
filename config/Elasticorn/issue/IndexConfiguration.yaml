@@ -1,2 +1,33 @@
-number_of_shards: 4
+# One shard: the duplicates page picks the words that set an issue apart by how many issues have them, and
+# Elasticsearch counts that per shard. Spread over shards, each one picked other words and scored on its own.
+# Forge has some 100 000 issues, far below what one shard holds.
+number_of_shards: 1
 number_of_replicas: 1
+analysis:
+  char_filter:
+    # Forge descriptions are Textile: headings and paragraphs like "h3. ", "@code@", "*bold*", <pre> blocks
+    textile:
+      type: pattern_replace
+      pattern: '(?m)^(h[1-6]|p|bq|fn\d+)\.\s|[@*]|</?(pre|code)>'
+      replacement: ' '
+  filter:
+    english_stop:
+      type: stop
+      stopwords: _english_
+    english_stemmer:
+      type: stemmer
+      language: english
+    english_possessive_stemmer:
+      type: stemmer
+      language: possessive_english
+    # Single letters left over from markup and lists ("a)", "b)")
+    no_single_letters:
+      type: length
+      min: 2
+  analyzer:
+    # The built-in "english" analyzer with the markup removed, the name the mapping of the language uses
+    english:
+      type: custom
+      tokenizer: standard
+      char_filter: [html_strip, textile]
+      filter: [english_possessive_stemmer, lowercase, english_stop, english_stemmer, no_single_letters]

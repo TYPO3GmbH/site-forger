@@ -34,7 +34,13 @@
                     </div>
                     <div class="detail-actions">
                         <a class="btn btn-sm btn-default" href="{{ forge_issue_url(issue.id) }}" target="issue{{ issue.id }}">{{ icon('actions-window-open') }} Open in Forge</a>
-                        <a class="btn btn-sm btn-default" href="{{ path('issue_duplicates', {'id': issue.id}) }}">{{ icon('actions-duplicates') }} Possible duplicates</a>
+                        {# The marked and the similar open issues, see DuplicateGroups #}
+                        {% set duplicateCount = duplicates.offered ?? 0 %}
+                        {% if duplicateCount > 0 %}
+                            <a class="btn btn-sm btn-primary duplicates-button" href="{{ path('issue_duplicates', {'id': issue.id}) }}">
+                                {{- icon('actions-duplicates') }} Possible duplicates <span class="detail-count">{{ duplicateCount }}</span>
+                            </a>
+                        {% endif %}
                         {{ refresh.issue(issue.id) }}
                     </div>
                 </header>

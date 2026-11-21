@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+{% block title %}Possible duplicates{% endblock %}
+{#
+ # The pairs of open issues that may be duplicates, the most similar first, see App\Report\DuplicatePairs. Each row
+ # has the similarity on the left, as on the duplicates page of an issue, and the two issues beside it: the newer
+ # one first, it is the likely duplicate. "Compare" opens the duplicates page of the newer one, which searches live.
+ # Expects: rows (DuplicatePairRow objects), totalResults, startingAtItem, endingAtItem, pagesToLinkTo, currentPage
+ #}
+{% block body %}
+    <div class="content-section content-section-small">
+        <div class="container">
+            <header class="page-intro">
+                <h1 class="page-intro-title">Possible duplicates</h1>
+                <p class="page-intro-summary">
+                    {% if totalResults == 0 %}
+                        No two open issues are much alike, or the import has not checked them yet.
+                    {% else %}
+                        <strong>{{ totalResults }}</strong> pairs of open issues with {{ constant('App\\Duplicates\\DuplicateGroups::MIN_SIMILARITY') }} % or more of their distinctive wording in common, the most similar first.
+                        Pairs that Forge already relates as duplicates are left out.
+                    {% endif %}
+                </p>
+            </header>
+
+            {% if rows is not empty %}
+                <div class="results-toolbar">
+                    {% include '_partials/pagination.html.twig' with {
+                        'resultsTotal': totalResults,
+                        'resultsFrom': startingAtItem,
+                        'resultsTo': endingAtItem,
+                    } only %}
+                </div>
+                <ul class="row-list row-list-panel duplicates-list">
+                    {% for row in rows %}
+                        <li class="duplicates-row duplicates-pair">
+                            <span class="duplicates-side">
+                                <span class="duplicates-score">
+                                    <span class="duplicates-score-value">{{ row.pair.similarity }} %</span>
+                                    <span class="duplicates-score-meter" aria-hidden="true"><span style="width: {{ row.pair.similarity }}%"></span></span>
+                                    <span class="duplicates-score-directions" title="Seen from #{{ row.newer.id }}: {{ row.pair.fromHigher }} %. Seen from #{{ row.older.id }}: {{ row.pair.fromLower }} %.">
+                                        {{- row.pair.fromHigher }} % · {{ row.pair.fromLower }} %
+                                    </span>
+                                </span>
+                                <a class="btn btn-sm btn-default duplicates-compare" href="{{ path('issue_duplicates', {'id': row.newer.id}) }}">{{ icon('actions-duplicates') }} Compare</a>
+                            </span>
+                            <div class="duplicates-pair-issues">
+                                {% include '_partials/row/issue.html.twig' with {'issue': row.newer, 'detailed': true} only %}
+                                {% include '_partials/row/issue.html.twig' with {'issue': row.older, 'detailed': true} only %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% include '_partials/pagination.html.twig' with {
+                    'pages': pagesToLinkTo,
+                    'current': currentPage,
+                    'last': lastPage ?? null,
+                    'routeName': 'issues_duplicates',
+                    'arguments': {},
+                } only %}
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

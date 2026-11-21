@@ -11,10 +11,8 @@ declare(strict_types=1);
 
 namespace App\Document;
 
-use App\Elastic\SearchResult;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
-use App\Search\IssueSearch;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\ReadableCollection;
 
@@ -27,11 +25,6 @@ final readonly class Relations
      * The page of an issue shows this many changes at most, the ones updated last first.
      */
     private const int CHANGES = 50;
-
-    /**
-     * The duplicates page shows this many issues, the most similar first.
-     */
-    private const int DUPLICATES = 25;
 
     public const string LINKED = 'Linked';
 
@@ -105,33 +98,5 @@ final readonly class Relations
         }
 
         return new ArrayCollection($issues);
-    }
-
-    /**
-     * The open issues most like the issue, all issues with $includeClosed.
-     *
-     * @return SearchResult<Issue>
-     */
-    public function duplicatesOf(int $id, bool $includeClosed): SearchResult
-    {
-        $bool = [
-            'must' => [[
-                'more_like_this' => [
-                    'fields' => ['subject', 'description'],
-                    'like' => [['_id' => (string) $id]],
-                    'min_term_freq' => 2,
-                    'max_query_terms' => 25,
-                    'minimum_should_match' => '50%',
-                ],
-            ]],
-        ];
-        if (!$includeClosed) {
-            $bool['must_not'] = [IssueSearch::closed()];
-        }
-
-        return $this->issues->search([
-            'query' => ['bool' => $bool],
-            'size' => self::DUPLICATES,
-        ]);
     }
 }

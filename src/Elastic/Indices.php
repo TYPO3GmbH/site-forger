@@ -22,6 +22,7 @@ final readonly class Indices
     public const string ISSUE = 'issue';
     public const string REVIEW = 'review';
     public const string USER = 'user';
+    public const string DUPLICATE = 'duplicate';
     private const string LANGUAGE = 'english';
 
     public function __construct(
@@ -47,6 +48,11 @@ final readonly class Indices
     public function users(): Index
     {
         return $this->get(self::USER);
+    }
+
+    public function duplicates(): Index
+    {
+        return $this->get(self::DUPLICATE);
     }
 
     public function client(): Client

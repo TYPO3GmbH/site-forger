@@ -136,6 +136,12 @@ The deltas only read what changed, and only load details for what they do not ha
   private now, or never imported get in line without a full import.
 * **Authors and assignees:** the issues keep only their number and name, as Forge lists them. The rest is in
   the index `user`, see [The users](#the-users).
+* **Possible duplicates:** last, the Forge import checks the open issues for duplicates
+  (`App\Import\DuplicateImport`) and keeps the pairs in the index `duplicate` for the list "Possible duplicates".
+  It asks Forge nothing. It checks the issues changed since their last check and the new ones, at most 200 per
+  run, and removes those no longer open. The similarity is the same from both sides, so a new issue finds its
+  pairs with the older ones by itself. The rest of the 200 renews checks older than a week. On an empty index
+  the first runs check all open issues, a share each.
 
 On an empty index the deltas import the latest 100 issues or changes and report a
 warning: run the full import once, by hand. The comparison with Forge would fill it too, but a page at a time.

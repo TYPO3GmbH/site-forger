@@ -12,9 +12,13 @@ declare(strict_types=1);
 namespace App\Tests\Templates;
 
 use App\Document\Change;
+use App\Document\DuplicatePair;
 use App\Document\Issue;
 use App\Document\RelatedChange;
 use App\Document\RelatedIssue;
+use App\DTO\Pagination;
+use App\Duplicates\DuplicateGroups;
+use App\Duplicates\DuplicateHit;
 use App\Elastic\Bucket;
 use App\Elastic\SearchResult;
 use App\Enum\IssueSortEnum;
@@ -24,6 +28,7 @@ use App\Enum\TrackerEnum;
 use App\Report\Backport\BackportRow;
 use App\Report\Backport\BackportVersion;
 use App\Report\CategoryOverview;
+use App\Report\DuplicatePairs;
 use App\Report\LinkedChange;
 use App\Report\MonthOverview;
 use App\Report\StaleIssue;
@@ -699,7 +704,8 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
             'unknownChanges' => [81234],
         ]);
 
-        self::assertStringContainsString('href="/issue/91089/duplicates"', $html);
+        // Without possible duplicates there is no button to them
+        self::assertStringNotContainsString('href="/issue/91089/duplicates"', $html);
         self::assertStringContainsString('href="https://forge.typo3.org/issues/91089"', $html);
         self::assertStringContainsString('Change 81234</a>', $html);
         self::assertStringContainsString('Gerrit Code Review', $html);
@@ -739,6 +745,120 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('<nav class="breadcrumb-nav" aria-label="Breadcrumb">', $html);
         self::assertStringContainsString('<li class="breadcrumb-item"><a href="/issue/91089">#91089</a></li>', $html);
         self::assertStringContainsString('<li class="breadcrumb-item active" aria-current="page">Possible duplicates</li>', $html);
+    }
+
+    public function testTheDuplicatesStandInGroupsWithTheirSimilarityBeside(): void
+    {
+        $groups = new DuplicateGroups(
+            marked: [new DuplicateHit(self::issue(80001), null, relation: DuplicateGroups::DUPLICATES)],
+            similar: [DuplicateHit::checked(self::issue(91100), 50, 34)],
+        );
+        $html = $this->twig->load('issue/duplicates.html.twig')->renderBlock('body', [
+            'issue' => Issue::fromDocument(self::ISSUE),
+            'groups' => $groups,
+        ]);
+
+        self::assertStringContainsString(
+            '<h1 class="detail-title">Possible duplicates <span class="detail-count">2</span></h1>',
+            $html,
+        );
+        self::assertMatchesRegularExpression(
+            '~<h2 id="duplicates-compared" class="detail-section-title">Compared with</h2>.*href="/issue/91089".*'
+            . 'Steps to reproduce.*Marked on Forge~s',
+            $html,
+        );
+        self::assertMatchesRegularExpression(
+            '~Marked on Forge.*href="/issue/80001".*This issue duplicates it~s',
+            $html,
+        );
+        self::assertMatchesRegularExpression(
+            '~Similar issues <span class="detail-count">1</span>.*href="/issue/91100"~s',
+            $html,
+        );
+        self::assertMatchesRegularExpression(
+            '~<span class="duplicates-score-value">42 %</span>\s*'
+            . '<span class="duplicates-score-meter" aria-hidden="true"><span style="width: 42%"></span></span>~',
+            $html,
+        );
+        self::assertMatchesRegularExpression(
+            '~<span class="duplicates-score-directions" title="Seen from #91089: 50 %. Seen from #91100: 34 %.">'
+            . '50 % · 34 %\s*</span>~',
+            $html,
+        );
+        self::assertStringContainsString('Only issues with 40 % or more are listed.', $html);
+        self::assertStringNotContainsString('<form', $html);
+    }
+
+    public function testTheListOfPossibleDuplicatesShowsEachPairWithBothIssues(): void
+    {
+        $rows = DuplicatePairs::rows(
+            [new DuplicatePair(80001, 91100, 45, 30, 60, '2026/11/21 10:00:00')],
+            new ArrayCollection([80001 => self::issue(80001), 91100 => self::issue(91100)]),
+        );
+        $html = $this->twig->load('issue/duplicate_pairs.html.twig')->renderBlock(
+            'body',
+            (new Pagination(1, 1))->viewData() + ['rows' => $rows],
+        );
+
+        self::assertStringContainsString('<strong>1</strong> pairs of open issues with 40 % or more', $html);
+        self::assertMatchesRegularExpression(
+            '~<span class="duplicates-score-value">45 %</span>.*Seen from #91100: 60 %. Seen from #80001: 30 %.~s',
+            $html,
+        );
+        self::assertMatchesRegularExpression('~href="/issue/91100/duplicates">.*Compare</a>~s', $html);
+        // The newer one first, it is the likely duplicate
+        self::assertMatchesRegularExpression('~href="/issue/91100".*href="/issue/80001"~s', $html);
+    }
+
+    public function testAPairWhoseIssueLeftTheIndexIsLeftOut(): void
+    {
+        $rows = DuplicatePairs::rows(
+            [new DuplicatePair(80001, 91100, 45, 30, 60, '2026/11/21 10:00:00')],
+            new ArrayCollection([91100 => self::issue(91100)]),
+        );
+
+        self::assertSame([], $rows);
+    }
+
+    public function testTheIssuePageShowsTheDuplicatesButtonOnlyWithDuplicates(): void
+    {
+        $render = fn (DuplicateGroups $duplicates): string => $this->twig->load('issue/show.html.twig')->renderBlock(
+            'body',
+            [
+                'issue' => Issue::fromDocument(self::ISSUE),
+                'changes' => [],
+                'unknownChanges' => [],
+                'duplicates' => $duplicates,
+            ],
+        );
+        $hits = static fn (int ...$ids): array => array_values(array_map(
+            static fn (int $id): DuplicateHit => new DuplicateHit(self::issue($id), 40),
+            $ids,
+        ));
+
+        $html = $render(new DuplicateGroups($hits(80001), $hits(91100, 91200)));
+        self::assertMatchesRegularExpression(
+            '~<a class="btn btn-sm btn-primary duplicates-button" href="/issue/91089/duplicates">.*'
+            . 'Possible duplicates <span class="detail-count">3</span>\s*</a>~s',
+            $html,
+        );
+        self::assertStringNotContainsString('similar issue', $html);
+        self::assertStringNotContainsString('/issue/91089/duplicates', $render(new DuplicateGroups()));
+    }
+
+    public function testWithoutDuplicatesThePageSaysSo(): void
+    {
+        $html = $this->twig->load('issue/duplicates.html.twig')->renderBlock('body', [
+            'issue' => Issue::fromDocument(self::ISSUE),
+            'groups' => new DuplicateGroups(),
+        ]);
+
+        self::assertStringContainsString('No open issue is much like this one.', $html);
+    }
+
+    private static function issue(int $id): Issue
+    {
+        return Issue::fromDocument(['id' => $id] + self::ISSUE);
     }
 
     public function testDetailPagesHaveABreadcrumb(): void

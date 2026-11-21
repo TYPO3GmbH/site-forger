@@ -80,6 +80,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         // The most important first: where work waits, then the overviews
         $issues = $menu->addChild('issues', ['label' => 'Issues', 'route' => 'search_search']);
         $this->addLink($issues, 'gerrit_stale_issues', 'Stale issues', 'gerrit_stale_issues', 'actions-clock');
+        $this->addLink($issues, 'issues_duplicates', 'Possible duplicates', 'issues_duplicates', 'actions-duplicates');
         $this->addLink($issues, 'management-by-category', 'By category', 'management_bycategory', 'actions-tag');
         $this->addLink($issues, 'management-by-year', 'By month', 'management_index', 'actions-calendar');
 
