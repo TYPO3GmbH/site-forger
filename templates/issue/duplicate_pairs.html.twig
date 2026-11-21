@@ -3,7 +3,7 @@
 {#
  # The pairs of open issues that may be duplicates, the most similar first, see App\Report\DuplicatePairs. Each row
  # has the similarity on the left, as on the duplicates page of an issue, and the two issues beside it: the newer
- # one first, it is the likely duplicate. "Compare" opens the duplicates page of the newer one, which searches live.
+ # one first, it is the likely duplicate. "Compare" below them opens the duplicates page of the newer one, which searches live.
  # Expects: rows (DuplicatePairRow objects), totalResults, startingAtItem, endingAtItem, pagesToLinkTo, currentPage
  #}
 {% block body %}
@@ -40,11 +40,13 @@
                                         {{- row.pair.fromHigher }} % · {{ row.pair.fromLower }} %
                                     </span>
                                 </span>
-                                <a class="btn btn-sm btn-default duplicates-compare" href="{{ path('issue_duplicates', {'id': row.newer.id}) }}">{{ icon('actions-duplicates') }} Compare</a>
                             </span>
                             <div class="duplicates-pair-issues">
                                 {% include '_partials/row/issue.html.twig' with {'issue': row.newer, 'detailed': true} only %}
                                 {% include '_partials/row/issue.html.twig' with {'issue': row.older, 'detailed': true} only %}
+                                <div class="duplicates-pair-actions">
+                                    <a class="btn btn-sm btn-default duplicates-compare" href="{{ path('issue_duplicates', {'id': row.newer.id}) }}">{{ icon('actions-duplicates') }} Compare</a>
+                                </div>
                             </div>
                         </li>
                     {% endfor %}

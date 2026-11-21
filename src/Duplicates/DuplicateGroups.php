@@ -25,9 +25,10 @@ final readonly class DuplicateGroups
 
     /**
      * The similarity in percent an issue needs to be offered as a duplicate. Known duplicates reached 40 to 50 %,
-     * unrelated issues mostly stayed below 20 %.
+     * unrelated issues mostly stayed below 20 %. Below 50 % the list of pairs held too many issues that only share
+     * a topic.
      */
-    public const int MIN_SIMILARITY = 40;
+    public const int MIN_SIMILARITY = 50;
 
     /**
      * @param list<DuplicateHit> $marked  the issues Forge relates, with their similarity when the search found them

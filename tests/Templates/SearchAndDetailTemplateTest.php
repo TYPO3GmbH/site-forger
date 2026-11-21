@@ -786,7 +786,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
             . '50 % · 34 %\s*</span>~',
             $html,
         );
-        self::assertStringContainsString('Only issues with 40 % or more are listed.', $html);
+        self::assertStringContainsString('Only issues with 50 % or more are listed.', $html);
         self::assertStringNotContainsString('<form', $html);
     }
 
@@ -801,7 +801,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
             (new Pagination(1, 1))->viewData() + ['rows' => $rows],
         );
 
-        self::assertStringContainsString('<strong>1</strong> pairs of open issues with 40 % or more', $html);
+        self::assertStringContainsString('<strong>1</strong> pairs of open issues with 50 % or more', $html);
         self::assertMatchesRegularExpression(
             '~<span class="duplicates-score-value">45 %</span>.*Seen from #91100: 60 %. Seen from #80001: 30 %.~s',
             $html,
@@ -870,7 +870,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
             ],
         );
         $hits = static fn (int ...$ids): array => array_values(array_map(
-            static fn (int $id): DuplicateHit => new DuplicateHit(self::issue($id), 40),
+            static fn (int $id): DuplicateHit => new DuplicateHit(self::issue($id), 50),
             $ids,
         ));
 

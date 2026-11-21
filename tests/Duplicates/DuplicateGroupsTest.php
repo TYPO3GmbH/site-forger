@@ -24,7 +24,7 @@ final class DuplicateGroupsTest extends TestCase
     {
         $groups = DuplicateGroups::of(
             self::issue(91089),
-            self::hits([91100 => 45, 91200 => 40, 91300 => 39]),
+            self::hits([91100 => 55, 91200 => 50, 91300 => 49]),
             new ArrayCollection(),
         );
 
@@ -36,7 +36,7 @@ final class DuplicateGroupsTest extends TestCase
     {
         $issue = new Issue(91089, 'Issue', duplicates: [80001], duplicatedBy: [91500, 99999]);
         $known = new ArrayCollection([80001 => self::issue(80001), 91500 => self::issue(91500)]);
-        $groups = DuplicateGroups::of($issue, self::hits([80001 => 12, 91200 => 45]), $known);
+        $groups = DuplicateGroups::of($issue, self::hits([80001 => 12, 91200 => 55]), $known);
 
         // 99999 is not in the index: another project, or deleted
         self::assertSame(

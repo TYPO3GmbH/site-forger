@@ -13,6 +13,7 @@ namespace App\Repository;
 
 use App\Document\DuplicateCheck;
 use App\Document\DuplicatePair;
+use App\Duplicates\DuplicateGroups;
 use App\Elastic\Indices;
 use App\Elastic\SearchResult;
 use Elastica\Document;
@@ -60,7 +61,11 @@ final readonly class DuplicateRepository
     public function pairs(int $from, int $size): SearchResult
     {
         $resultSet = $this->indices->duplicates()->createSearch([
-            'query' => ['term' => ['kind' => DuplicatePair::KIND]],
+            // Pairs stored under a lower minimum stay until their check is renewed
+            'query' => ['bool' => ['filter' => [
+                ['term' => ['kind' => DuplicatePair::KIND]],
+                ['range' => ['similarity' => ['gte' => DuplicateGroups::MIN_SIMILARITY]]],
+            ]]],
             'sort' => [['similarity' => 'desc'], ['issues' => 'desc']],
             'from' => $from,
             'size' => $size,
