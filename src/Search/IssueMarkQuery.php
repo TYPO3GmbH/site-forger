@@ -13,6 +13,7 @@ namespace App\Search;
 
 use App\Elastic\Bucket;
 use App\Enum\IssueMarkEnum;
+use App\Enum\IssueStatusEnum;
 use Doctrine\Common\Collections\ReadableCollection;
 
 /**
@@ -70,6 +71,16 @@ final class IssueMarkQuery
     {
         return match ($mark) {
             IssueMarkEnum::REGRESSION => ['term' => ['isregression' => true]],
+            IssueMarkEnum::GOOD_FIRST_ISSUE => ['bool' => [
+                'filter' => [
+                    ['terms' => ['complexity' => IssueMarkEnum::EASY_COMPLEXITIES]],
+                    ['terms' => ['status.id' => array_map(
+                        static fn (IssueStatusEnum $state): int => $state->value,
+                        IssueMarkEnum::UNSTARTED_STATES,
+                    )]],
+                ],
+                'must_not' => [['exists' => ['field' => 'assigned_to.id']]],
+            ]],
         };
     }
 }

@@ -22,10 +22,26 @@ enum IssueMarkEnum
      */
     case REGRESSION;
 
+    /**
+     * Easy to start with: Forge rates it easy or less, nobody is assigned and nobody started on it.
+     */
+    case GOOD_FIRST_ISSUE;
+
+    /**
+     * The values of the field "Complexity" of Forge that a good first issue has.
+     */
+    public const array EASY_COMPLEXITIES = ['no-brainer', 'trivial', 'easy'];
+
+    /**
+     * The states of a good first issue: "In Progress" or "Under Review" mean that somebody works on it.
+     */
+    public const array UNSTARTED_STATES = [IssueStatusEnum::NEW, IssueStatusEnum::ACCEPTED];
+
     public function label(): string
     {
         return match ($this) {
             self::REGRESSION => 'Regression',
+            self::GOOD_FIRST_ISSUE => 'Good first issue',
         };
     }
 
@@ -36,6 +52,7 @@ enum IssueMarkEnum
     {
         return match ($this) {
             self::REGRESSION => 'mark-regression',
+            self::GOOD_FIRST_ISSUE => 'mark-good-first-issue',
         };
     }
 
@@ -43,6 +60,7 @@ enum IssueMarkEnum
     {
         return match ($this) {
             self::REGRESSION => 'actions-history',
+            self::GOOD_FIRST_ISSUE => 'actions-lightbulb',
         };
     }
 
@@ -50,6 +68,7 @@ enum IssueMarkEnum
     {
         return match ($this) {
             self::REGRESSION => 'It worked in an earlier version',
+            self::GOOD_FIRST_ISSUE => 'Easy to start with, and nobody works on it yet',
         };
     }
 

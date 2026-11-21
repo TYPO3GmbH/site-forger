@@ -123,8 +123,25 @@ final readonly class Issue
         if (true === $this->statusEnum()?->isClosed()) {
             return [];
         }
+        $marks = [];
+        if ($this->regression) {
+            $marks[] = IssueMarkEnum::REGRESSION;
+        }
+        if ($this->isGoodFirstIssue()) {
+            $marks[] = IssueMarkEnum::GOOD_FIRST_ISSUE;
+        }
 
-        return $this->regression ? [IssueMarkEnum::REGRESSION] : [];
+        return $marks;
+    }
+
+    /**
+     * The rule of IssueMarkEnum::GOOD_FIRST_ISSUE, as IssueMarkQuery searches it.
+     */
+    private function isGoodFirstIssue(): bool
+    {
+        return in_array($this->complexity, IssueMarkEnum::EASY_COMPLEXITIES, true)
+            && in_array($this->statusEnum(), IssueMarkEnum::UNSTARTED_STATES, true)
+            && null === $this->assignedTo;
     }
 
     /**

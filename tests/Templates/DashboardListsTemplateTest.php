@@ -103,6 +103,10 @@ final class DashboardListsTemplateTest extends KernelTestCase
             $render(self::ISSUE + ['isregression' => true]),
         );
         self::assertStringNotContainsString('status-pill-mark-regression', $render(self::ISSUE));
+        self::assertStringContainsString(
+            'status-pill-mark-good-first-issue" title="Easy to start with, and nobody works on it yet">',
+            $render(self::ISSUE + ['complexity' => 'easy']),
+        );
     }
 
     public function testChangeReadyToMergeWithAllDetails(): void
