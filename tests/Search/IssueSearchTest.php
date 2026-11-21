@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Search;
 
+use App\Search\DuplicateQuery;
 use App\Search\IssueSearch;
 use PHPUnit\Framework\TestCase;
 
@@ -38,6 +39,20 @@ final class IssueSearchTest extends TestCase
             self::assertStringNotContainsStringIgnoringCase('email', $field);
             self::assertStringNotContainsString('*', $field);
         }
+    }
+
+    public function testSearchesALongTextLikeTheDuplicates(): void
+    {
+        $text = 'The crop of an image is ignored in the preview of the page module';
+
+        self::assertTrue(IssueSearch::isText($text));
+        self::assertSame([DuplicateQuery::likeText($text)], IssueSearch::query($text, true)['bool']['must']);
+    }
+
+    public function testSearchesAFewWordsAsWords(): void
+    {
+        self::assertFalse(IssueSearch::isText(' image  crop preview '));
+        self::assertArrayHasKey('query_string', IssueSearch::query('image crop preview', true)['bool']['must'][0]);
     }
 
     public function testFindsAllIssuesWithoutSearchWords(): void

@@ -32,6 +32,7 @@ use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
 use App\Search\ApiChangeQuery;
 use App\Search\ApiIssueQuery;
+use App\Search\IssueSearch;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -75,8 +76,11 @@ class ApiV1Controller extends AbstractController
     )]
     #[OA\Parameter(
         name: 'q',
-        description: 'Search words. They are searched in the subject and the description, with stems: "caching" also '
-            . 'finds "cache". With words the default order is "relevance".',
+        description: 'Search words, or a whole text. A few words are searched in what Forge shows of an issue, with '
+            . 'stems: "caching" also finds "cache", a number finds its issue. A text of more than '
+            . IssueSearch::TEXT_WORDS . ' words, like a report, finds the issues with the most similar wording, as '
+            . 'the duplicates do: paste a report to find out whether somebody already filed it. With words the '
+            . 'default order is "relevance".',
         in: 'query',
         schema: new OA\Schema(type: 'string'),
         example: 'image cache',

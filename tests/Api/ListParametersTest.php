@@ -90,4 +90,13 @@ final class ListParametersTest extends TestCase
         self::assertNull(ListParameters::optional(Request::create('/?tracker=%20'), 'tracker'));
         self::assertSame('Bug', ListParameters::optional(Request::create('/?tracker=Bug'), 'tracker'));
     }
+
+    public function testTakesANumberInItsRange(): void
+    {
+        self::assertSame(10, ListParameters::number(Request::create('/'), 'limit', 10, 1, 25));
+        self::assertSame(25, ListParameters::number(Request::create('/?limit=25'), 'limit', 10, 1, 25));
+
+        $this->expectException(InvalidParameter::class);
+        ListParameters::number(Request::create('/?limit=26'), 'limit', 10, 1, 25);
+    }
 }

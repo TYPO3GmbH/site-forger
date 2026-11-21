@@ -22,6 +22,12 @@ use App\Enum\IssueStatusEnum;
 final class IssueSearch
 {
     /**
+     * A search of more words is a text, like a pasted report, and is searched like the duplicates of an issue. With
+     * the search below a single common word of it would be enough for a hit.
+     */
+    public const int TEXT_WORDS = 8;
+
+    /**
      * The fields the search words are searched in: what Forge shows of an issue. Without a list Elasticsearch
      * searches every field, also the email addresses the index keeps for the avatars. A search for an address would
      * then find the issues of its owner, also of people who hide it on Forge.
@@ -62,20 +68,30 @@ final class IssueSearch
     {
         // Without search terms all issues are found, so links can lead straight to a filtered list
         $searchTerms = trim($searchTerms);
-        $match = '' === $searchTerms
-            ? ['match_all' => new \stdClass()]
-            : ['query_string' => [
+        $match = match (true) {
+            '' === $searchTerms => ['match_all' => new \stdClass()],
+            self::isText($searchTerms) => DuplicateQuery::likeText($searchTerms),
+            default => ['query_string' => [
                 'query' => self::escape($searchTerms),
                 'fields' => self::SEARCHED_FIELDS,
                 // A word in a number field, like "id", matches nothing instead of failing the search
                 'lenient' => true,
-            ]];
+            ]],
+        };
         $bool = ['must' => [$match]];
         if (!$includeClosed) {
             $bool['must_not'] = [self::closed()];
         }
 
         return ['bool' => $bool];
+    }
+
+    /**
+     * Whether the search words are a text rather than words to look for, see TEXT_WORDS.
+     */
+    public static function isText(string $searchTerms): bool
+    {
+        return count(preg_split('/\s+/', trim($searchTerms), -1, PREG_SPLIT_NO_EMPTY) ?: []) > self::TEXT_WORDS;
     }
 
     /**

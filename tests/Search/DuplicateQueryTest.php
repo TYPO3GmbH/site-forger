@@ -46,4 +46,21 @@ final class DuplicateQueryTest extends TestCase
         self::assertSame([['ids' => ['values' => ['91100', '91089']]]], $query['filter']);
         self::assertSame([['_id' => '91100']], $query['should'][0]['more_like_this']['like']);
     }
+
+    public function testComparesATextAsSubjectAndDescription(): void
+    {
+        $query = DuplicateQuery::likeText('Image crop is ignored in the preview')['bool'];
+
+        self::assertArrayNotHasKey('must_not', $query);
+        foreach ($query['should'] as $clause) {
+            self::assertSame(
+                [['doc' => [
+                    'subject' => 'Image crop is ignored in the preview',
+                    'description' => 'Image crop is ignored in the preview',
+                ]]],
+                $clause['more_like_this']['like'],
+            );
+            self::assertFalse($clause['more_like_this']['include']);
+        }
+    }
 }

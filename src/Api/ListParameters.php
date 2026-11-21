@@ -39,10 +39,7 @@ final readonly class ListParameters
      */
     public static function fromRequest(Request $request): self
     {
-        $limit = self::integer($request, 'limit', self::DEFAULT_LIMIT);
-        if ($limit < 1 || $limit > self::MAX_LIMIT) {
-            throw InvalidParameter::outOfRange('limit', 1, self::MAX_LIMIT);
-        }
+        $limit = self::number($request, 'limit', self::DEFAULT_LIMIT, 1, self::MAX_LIMIT);
         $offset = self::integer($request, 'offset', 0);
         if ($offset < 0 || $offset + $limit > self::MAX_WINDOW) {
             throw InvalidParameter::beyondWindow(self::MAX_WINDOW);
@@ -89,6 +86,21 @@ final readonly class ListParameters
         $value = trim(self::string($request, $name));
 
         return '' === $value ? null : $value;
+    }
+
+    /**
+     * A whole number between a minimum and a maximum, the default without the parameter.
+     *
+     * @throws InvalidParameter
+     */
+    public static function number(Request $request, string $name, int $default, int $minimum, int $maximum): int
+    {
+        $value = self::integer($request, $name, $default);
+        if ($value < $minimum || $value > $maximum) {
+            throw InvalidParameter::outOfRange($name, $minimum, $maximum);
+        }
+
+        return $value;
     }
 
     /**

@@ -240,6 +240,11 @@
                         <li>The "Tags" filter of the issue search shows the most used tags of the issues found, and the ones you selected.</li>
                         <li>The filters of people, "Owner" of the review lists and "Author" and "Assigned to" of the issue search, show the ten with the most results. Their search finds the others in the list while you type and filters by the one you pick.</li>
                         <li>The search in the header finds issues from every page.</li>
+                        <li>
+                            A text of more than {{ constant('App\\Search\\IssueSearch::TEXT_WORDS') }} words, like a
+                            pasted report, finds the issues with the most similar wording, as the duplicates do.
+                            So you can find out whether somebody already reported something.
+                        </li>
                     </ul>
                 </section>
                 {# API #}
