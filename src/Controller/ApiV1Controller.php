@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Api\ChangeFilters;
 use App\Api\ChangeMapper;
 use App\Api\InvalidParameter;
 use App\Api\IssueFilters;
@@ -25,6 +26,7 @@ use App\Api\Model\IssuePage;
 use App\Document\Relations;
 use App\Duplicates\DuplicateGroups;
 use App\Duplicates\DuplicateSearch;
+use App\Enum\ChangeListEnum;
 use App\Enum\ChangeStateFilterEnum;
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStateFilterEnum;
@@ -308,6 +310,59 @@ class ApiV1Controller extends AbstractController
         schema: new OA\Schema(type: 'string'),
     )]
     #[OA\Parameter(
+        name: 'list',
+        description: 'Only the open changes of a review list, as the review pages of Forger have them: "ready" has no '
+            . 'negative vote and no conflict, "needs-review" is verified without a positive review, '
+            . '"needs-verification" the other way round, "verified" has both, "ready-to-merge" has both and no '
+            . 'negative vote or conflict, "wip" is work in progress.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', enum: ChangeListEnum::class),
+    )]
+    #[OA\Parameter(
+        name: 'path',
+        description: 'Only changes whose current patch set touches this file, or a file in this folder, as the path '
+            . 'in the repository, like "typo3/sysext/core/Classes/Cache".',
+        in: 'query',
+        schema: new OA\Schema(type: 'string'),
+    )]
+    #[OA\Parameter(
+        name: 'owner',
+        description: 'Only changes this person uploaded. A number is the account on Gerrit, as "owner.id" of a '
+            . 'change has it. Words are searched in the name, in any case, and may fit several people.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string'),
+    )]
+    #[OA\Parameter(
+        name: 'maxLines',
+        description: 'Only changes that add and remove at most this many lines together: the quick reviews.',
+        in: 'query',
+        schema: new OA\Schema(type: 'integer', maximum: ChangeFilters::MAX_LINES, minimum: 0),
+    )]
+    #[OA\Parameter(
+        name: 'createdSince',
+        description: 'Only changes uploaded on this day or later, as YYYY-MM-DD in UTC.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', format: 'date'),
+    )]
+    #[OA\Parameter(
+        name: 'createdBefore',
+        description: 'Only changes uploaded before this day, as YYYY-MM-DD in UTC.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', format: 'date'),
+    )]
+    #[OA\Parameter(
+        name: 'updatedSince',
+        description: 'Only changes that changed on this day or later, as YYYY-MM-DD in UTC.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', format: 'date'),
+    )]
+    #[OA\Parameter(
+        name: 'updatedBefore',
+        description: 'Only changes nothing happened to since this day, as YYYY-MM-DD in UTC.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', format: 'date'),
+    )]
+    #[OA\Parameter(
         name: 'sort',
         description: 'The order of the changes. The default is "relevance" with search words and "updated" without '
             . 'them. "smallest" sorts by the lines added and removed together.',
@@ -325,8 +380,7 @@ class ApiV1Controller extends AbstractController
             $list = ListParameters::fromRequest($request);
             $search = ApiChangeQuery::request(
                 $list,
-                ListParameters::choice($request, 'status', ChangeStateFilterEnum::class, ChangeStateFilterEnum::OPEN),
-                ListParameters::optional($request, 'branch'),
+                ChangeFilters::fromRequest($request),
                 ListParameters::choice($request, 'sort', ReviewSortEnum::class, self::changeSort($list)),
             );
         } catch (InvalidParameter $e) {

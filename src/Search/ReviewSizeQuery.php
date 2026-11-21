@@ -45,6 +45,21 @@ final class ReviewSizeQuery
     }
 
     /**
+     * The Gerrit changes with at most this many lines added and removed together. A change imported without lines
+     * counts as empty.
+     *
+     * @return array<string, mixed>
+     */
+    public static function atMost(int $lines): array
+    {
+        return ['script' => ['script' => [
+            'lang' => 'painless',
+            'source' => self::LINES_SCRIPT . ' <= params.maximum',
+            'params' => ['maximum' => $lines],
+        ]]];
+    }
+
+    /**
      * A "filters" aggregation counting the changes per size, see facet().
      *
      * @return array<string, mixed>

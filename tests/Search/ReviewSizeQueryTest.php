@@ -45,4 +45,12 @@ final class ReviewSizeQueryTest extends TestCase
                 ->toArray(),
         );
     }
+
+    public function testFindsTheChangesUpToSomeLines(): void
+    {
+        $script = ReviewSizeQuery::atMost(50)['script']['script'];
+
+        self::assertSame(['maximum' => 50], $script['params']);
+        self::assertStringStartsWith(ReviewSizeQuery::LINES_SCRIPT, $script['source']);
+    }
 }

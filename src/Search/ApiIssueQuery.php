@@ -34,11 +34,6 @@ final class ApiIssueQuery
     private const int BUCKETS = 200;
 
     /**
-     * The format of the index for a range of days, see the mapping of "created_on".
-     */
-    private const string INDEX_DAY = 'Y/m/d H:i:s';
-
-    /**
      * @param bool $breakdown whether the request counts how all issues of the search spread, see breakdown()
      *
      * @return array<string, mixed>
@@ -104,8 +99,8 @@ final class ApiIssueQuery
      */
     private static function filters(IssueFilters $filters): array
     {
-        $created = self::days('created_on', $filters->createdSince, $filters->createdBefore);
-        $updated = self::days('updated_on', $filters->updatedSince, $filters->updatedBefore);
+        $created = DayRange::query('created_on', $filters->createdSince, $filters->createdBefore);
+        $updated = DayRange::query('updated_on', $filters->updatedSince, $filters->updatedBefore);
 
         return array_values(array_filter([
             IssueStateFilterEnum::CLOSED === $filters->state ? IssueSearch::closed() : null,
@@ -148,18 +143,5 @@ final class ApiIssueQuery
         }
 
         return ['term' => ['category.name' => $category]];
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    private static function days(string $field, ?\DateTimeImmutable $since, ?\DateTimeImmutable $before): ?array
-    {
-        $range = array_filter([
-            'gte' => $since?->format(self::INDEX_DAY),
-            'lt' => $before?->format(self::INDEX_DAY),
-        ]);
-
-        return [] === $range ? null : ['range' => [$field => $range]];
     }
 }
