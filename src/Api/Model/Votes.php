@@ -11,27 +11,23 @@ declare(strict_types=1);
 
 namespace App\Api\Model;
 
+use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 
-#[OA\Schema(description: 'The votes on a change, without the votes of the CI.')]
+#[OA\Schema(description: 'The labels of a change people vote on.')]
 final readonly class Votes
 {
-    private const string DESCRIPTION = 'The lowest negative vote if there is one, else the highest. '
-        . 'Only mergers vote +2 and -2.';
-
     public function __construct(
         #[OA\Property(
-            description: 'The vote of the label "Code-Review". ' . self::DESCRIPTION,
-            enum: [-2, -1, 0, 1, 2],
-            example: 1,
+            description: 'The label "Code-Review": whether the code is good.',
+            allOf: [new OA\Schema(ref: new Model(type: Label::class))],
         )]
-        public int $codeReview,
+        public Label $codeReview,
         #[OA\Property(
-            description: 'The vote of the label "Verified". ' . self::DESCRIPTION,
-            enum: [-2, -1, 0, 1, 2],
-            example: 0,
+            description: 'The label "Verified": whether the change works, the CI votes on it, too.',
+            allOf: [new OA\Schema(ref: new Model(type: Label::class))],
         )]
-        public int $verified,
+        public Label $verified,
     ) {
     }
 }

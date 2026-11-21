@@ -12,13 +12,22 @@ declare(strict_types=1);
 namespace App\Api;
 
 use App\Api\Model\ChangeDetail;
+use App\Api\Model\ChangeFile;
 use App\Api\Model\ChangeIssue;
 use App\Api\Model\ChangeSummary;
-use App\Api\Model\Owner;
+use App\Api\Model\GerritAccount;
+use App\Api\Model\Label;
+use App\Api\Model\ReviewMessage;
+use App\Api\Model\Vote;
 use App\Api\Model\Votes;
 use App\Document\Change;
+use App\Document\ChangedFile;
 use App\Document\RelatedIssue;
+use App\Document\ReviewMessage as StoredMessage;
+use App\Document\SingleVote;
 use App\Enum\ReviewLabelEnum;
+use App\Import\GerritChangeImporter;
+use App\People\Person;
 use App\Twig\LinkTwigExtension;
 use Doctrine\Common\Collections\ReadableCollection;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -49,10 +58,12 @@ final readonly class ChangeMapper
             deletions: $change->deletions,
             patchSets: $change->patchsets,
             votes: new Votes(
-                $change->vote(ReviewLabelEnum::CODE_REVIEW)->value,
-                $change->vote(ReviewLabelEnum::VERIFIED)->value,
+                self::label($change, ReviewLabelEnum::CODE_REVIEW),
+                self::label($change, ReviewLabelEnum::VERIFIED),
             ),
-            owner: null === $change->owner ? null : new Owner(
+            commentCount: $change->commentCount,
+            unresolvedCommentCount: $change->unresolvedCommentCount,
+            owner: null === $change->owner ? null : new GerritAccount(
                 $change->ownerId,
                 $change->owner,
                 self::publicUsername($change->ownerUsername),
@@ -77,7 +88,17 @@ final readonly class ChangeMapper
             summary: $this->summary($change),
             commitMessage: $change->commitMessage,
             releases: $change->releases,
-            files: $change->files,
+            files: array_map(
+                static fn (ChangedFile $file): ChangeFile => new ChangeFile(
+                    $file->path,
+                    $file->status,
+                    $file->insertions,
+                    $file->deletions,
+                    $file->binary,
+                    $file->oldPath,
+                ),
+                $change->fileDetails,
+            ),
             issues: array_values($issues->map(static fn (RelatedIssue $related): ChangeIssue => new ChangeIssue(
                 id: $related->id,
                 relation: strtolower($related->relation),
@@ -85,7 +106,61 @@ final readonly class ChangeMapper
                 status: $related->issue?->status['name'] ?? null,
                 url: sprintf(LinkTwigExtension::FORGE_ISSUE, $related->id),
             ))->toArray()),
+            messages: array_map(
+                static fn (StoredMessage $message): ReviewMessage => new ReviewMessage(
+                    self::account($message->author),
+                    ApiDate::fromIndex($message->date),
+                    $message->patchSet,
+                    self::isBot($message->author),
+                    $message->text,
+                ),
+                $change->messages,
+            ),
+            conflicts: $change->conflicts,
+            cherryPickOf: $change->cherryPickOf,
         );
+    }
+
+    /**
+     * A label with its vote, what it lacks for a merge, and each vote.
+     */
+    private static function label(Change $change, ReviewLabelEnum $label): Label
+    {
+        $votes = array_values(array_filter(
+            $change->singleVotes,
+            static fn (SingleVote $vote): bool => $label === $vote->label,
+        ));
+
+        return new Label(
+            $change->vote($label)->value,
+            $change->labelState($label),
+            array_map(
+                static fn (SingleVote $vote): Vote => new Vote(
+                    self::account($vote->account),
+                    $vote->value,
+                    ApiDate::fromIndex($vote->date),
+                    self::isBot($vote->account),
+                ),
+                $votes,
+            ),
+        );
+    }
+
+    /**
+     * A person of Gerrit without the email address the index keeps to match people.
+     */
+    private static function account(?Person $person): ?GerritAccount
+    {
+        return null === $person ? null : new GerritAccount(
+            $person->gerritId,
+            $person->name,
+            self::publicUsername($person->username),
+        );
+    }
+
+    private static function isBot(?Person $person): bool
+    {
+        return in_array($person?->gerritId, GerritChangeImporter::CI_ACCOUNTS, true);
     }
 
     /**

@@ -30,12 +30,19 @@ final readonly class Change
     private const string NO_TOPIC = 'no topic';
 
     /**
-     * @param list<string>       $releases   the versions of the footer "Releases:"
-     * @param list<string>       $reviewTags the tags of the subject, like "BUGFIX"
-     * @param list<string>       $files      the paths the current patch set changes
-     * @param list<int>          $resolves   the issues of the footer "Resolves:"
-     * @param list<int>          $related    the issues of the footer "Related:"
-     * @param array<string, int> $votes      the sums and the lowest and highest votes of the labels, see vote()
+     * @param list<string>          $releases     the versions of the footer "Releases:"
+     * @param list<string>          $reviewTags   the tags of the subject, like "BUGFIX"
+     * @param list<string>          $files        the paths the current patch set changes
+     * @param list<int>             $resolves     the issues of the footer "Resolves:"
+     * @param list<int>             $related      the issues of the footer "Related:"
+     * @param array<string, int>    $votes        the sums and the lowest and highest votes of the labels, see vote()
+     * @param list<ChangedFile>     $fileDetails  the files with their lines, the paths only for older imports
+     * @param list<SingleVote>      $singleVotes  each vote with who gave it, the CI too
+     * @param array<string, string> $labelStates  what each label lacks for a merge, by its name: OK, NEED, REJECT,
+     *                                            IMPOSSIBLE or MAY
+     * @param list<ReviewMessage>   $messages     the review log, the oldest first
+     * @param list<string>          $conflicts    the files with a conflict in the current patch set
+     * @param int|null              $cherryPickOf the change this one is a cherry-pick of
      */
     public function __construct(
         public int $id,
@@ -63,6 +70,14 @@ final readonly class Change
         public array $resolves = [],
         public array $related = [],
         private array $votes = [],
+        public array $fileDetails = [],
+        public array $singleVotes = [],
+        public array $labelStates = [],
+        public array $messages = [],
+        public array $conflicts = [],
+        public ?int $cherryPickOf = null,
+        public ?int $commentCount = null,
+        public ?int $unresolvedCommentCount = null,
     ) {
     }
 
@@ -106,7 +121,68 @@ final readonly class Change
             resolves: array_values(array_map('intval', (array) ($document['resolves'] ?? []))),
             related: array_values(array_map('intval', (array) ($document['related'] ?? []))),
             votes: $votes,
+            fileDetails: self::fileDetails($document),
+            singleVotes: array_values(array_filter(array_map(
+                static fn (mixed $vote): ?SingleVote => is_array($vote) ? SingleVote::fromDocument($vote) : null,
+                (array) ($document['votes'] ?? []),
+            ))),
+            labelStates: array_map('strval', (array) ($document['label_states'] ?? [])),
+            messages: array_values(array_map(
+                ReviewMessage::fromDocument(...),
+                array_filter((array) ($document['messages'] ?? []), is_array(...)),
+            )),
+            conflicts: array_values(array_map('strval', (array) ($document['conflicts'] ?? []))),
+            cherryPickOf: self::intOrNull($document['cherry_pick_of'] ?? null),
+            commentCount: self::intOrNull($document['comment_count'] ?? null),
+            unresolvedCommentCount: self::intOrNull($document['unresolved_comment_count'] ?? null),
         );
+    }
+
+    /**
+     * An account of the review log or of a vote, as the import keeps it: number, name, username and email.
+     */
+    public static function account(mixed $account): ?Person
+    {
+        if (!is_array($account) || '' === trim((string) ($account['name'] ?? ''))) {
+            return null;
+        }
+
+        return new Person(
+            trim((string) $account['name']),
+            gerritId: isset($account['id']) ? (int) $account['id'] : null,
+            username: isset($account['username']) ? (string) $account['username'] : null,
+            email: isset($account['email']) ? (string) $account['email'] : null,
+        );
+    }
+
+    /**
+     * What a label lacks for a merge, null when Gerrit did not tell or the change was imported before.
+     */
+    public function labelState(ReviewLabelEnum $label): ?string
+    {
+        return $this->labelStates[$label->value] ?? null;
+    }
+
+    /**
+     * The files with their lines. A change imported before version 4 of the review import has the paths only.
+     *
+     * @param array<string, mixed> $document
+     *
+     * @return list<ChangedFile>
+     */
+    private static function fileDetails(array $document): array
+    {
+        if (isset($document['file_details']) && is_array($document['file_details'])) {
+            return array_values(array_map(
+                ChangedFile::fromDocument(...),
+                array_filter($document['file_details'], is_array(...)),
+            ));
+        }
+
+        return array_values(array_map(
+            static fn (mixed $path): ChangedFile => new ChangedFile((string) $path),
+            (array) ($document['files'] ?? []),
+        ));
     }
 
     public function state(): ReviewStateEnum

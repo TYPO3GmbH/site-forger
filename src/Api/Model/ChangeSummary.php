@@ -63,16 +63,23 @@ readonly class ChangeSummary
         #[OA\Property(description: 'The number of the current patch set.', example: 2)]
         public ?int $patchSets,
         #[OA\Property(
-            description: 'The votes on the change.',
+            description: 'The labels people vote on, with the votes and what each lacks for a merge.',
             allOf: [new OA\Schema(ref: new Model(type: Votes::class))],
         )]
         public Votes $votes,
+        #[OA\Property(description: 'How many comments the change has in all.', example: 4)]
+        public ?int $commentCount,
+        #[OA\Property(
+            description: 'How many threads of comments are not resolved: what the owner still has to answer.',
+            example: 1,
+        )]
+        public ?int $unresolvedCommentCount,
         #[OA\Property(
             description: 'Who uploaded the change.',
             nullable: true,
-            allOf: [new OA\Schema(ref: new Model(type: Owner::class))],
+            allOf: [new OA\Schema(ref: new Model(type: GerritAccount::class))],
         )]
-        public ?Owner $owner,
+        public ?GerritAccount $owner,
         #[OA\Property(
             description: 'When the change was uploaded. ' . ApiDate::DESCRIPTION,
             format: 'date-time',

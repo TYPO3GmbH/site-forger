@@ -265,7 +265,8 @@
                             <strong>Data.</strong> The API has what the pages have. Forger imports Forge and Gerrit
                             every five minutes, so a new issue or patch set shows up after the next import. The
                             <code>url</code> of each issue and change leads to the original. The API never returns
-                            email addresses.
+                            the email addresses Forger keeps to match people. Texts stay as their authors wrote them:
+                            a merged commit message names its reviewers with their addresses, as Git does.
                         </li>
                         <li>
                             <strong>Format.</strong> Dates are ISO 8601 in UTC, like

@@ -13,10 +13,12 @@ namespace App\Tests\Api;
 
 use App\Api\ChangeMapper;
 use App\Api\IssueMapper;
+use App\Document\Change;
 use App\Document\Issue;
 use App\Duplicates\DuplicateGroups;
 use App\Duplicates\DuplicateHit;
 use App\Elastic\SearchResult;
+use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\TestCase;
 
 final class MapperTest extends TestCase
@@ -103,7 +105,27 @@ final class MapperTest extends TestCase
         self::assertSame('ready', $change['state']);
         self::assertSame('crop', $change['topic']);
         self::assertTrue($change['mergeable']);
-        self::assertSame(['codeReview' => 1, 'verified' => -1], $change['votes']);
+        self::assertSame(1, $change['votes']['codeReview']['vote']);
+        self::assertSame('NEED', $change['votes']['codeReview']['state']);
+        self::assertSame(
+            [['id' => 14410, 'name' => 'Jane Doe', 'username' => 'jdoe'], 1, '2026-11-20T23:30:00Z', false],
+            array_values($change['votes']['codeReview']['votes'][0]),
+        );
+        self::assertSame('REJECT', $change['votes']['verified']['state']);
+        // The CI votes, too, and is no person
+        self::assertTrue($change['votes']['verified']['votes'][0]['bot']);
+        self::assertSame([4, 1], [$change['commentCount'], $change['unresolvedCommentCount']]);
+        self::assertSame(
+            ['typo3/sysext/backend/Classes/Preview/StandardContentPreviewRenderer.php', 'modified', 21, 6, false, null],
+            array_values($change['files'][0]),
+        );
+        self::assertSame(['Uploaded patch set 1.', 1, false], [
+            $change['messages'][0]['text'],
+            $change['messages'][0]['patchSet'],
+            $change['messages'][0]['bot'],
+        ]);
+        self::assertSame(['composer.json'], $change['conflicts']);
+        self::assertSame(97000, $change['cherryPickOf']);
         self::assertSame(['id' => 14410, 'name' => 'Jane Doe', 'username' => 'jdoe'], $change['owner']);
         self::assertSame('resolves', $change['issues'][0]['relation']);
         self::assertSame('Under Review', $change['issues'][0]['status']);
@@ -172,6 +194,15 @@ final class MapperTest extends TestCase
         self::assertSame([['name' => 'none', 'count' => 2]], self::decoded($breakdown)['category']);
         self::assertSame([['name' => '2013', 'count' => 1]], self::decoded($breakdown)['createdYear']);
         self::assertSame([], $breakdown->tracker);
+    }
+
+    public function testAChangeOfAnOlderImportHasThePathsOfItsFiles(): void
+    {
+        $change = Change::fromDocument(['id' => 1, 'subject' => 'Old', 'files' => ['composer.json']]);
+
+        $files = self::decoded(new ChangeMapper(ApiFixtures::urls())->detail($change, new ArrayCollection()))['files'];
+
+        self::assertSame([['composer.json', null, null, null, null, null]], array_map(array_values(...), $files));
     }
 
     public function testLeavesOutAUsernameThatIsAnEmailAddress(): void

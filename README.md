@@ -155,8 +155,8 @@ emails. Forge and Gerrit both log in with the TYPO3 account: the Forge login and
 are its username, the id of the document. A person of Forge is `forge:<forge_id>` until Forge told it.
 
 **Gerrit** tells all of the owner of a change with the change (`DETAILED_ACCOUNTS`): number, name, username and
-email. The import of the changes writes the owners the index `user` lacks at once (`UserRepository::ensureGerrit()`),
-and adds the number on Gerrit to a person it has by the username. When Forge tells the username of a person later,
+email. The import of the changes writes the owners, reviewers and authors of the review log the index `user` lacks
+at once (`UserRepository::ensureGerrit()`), and adds the number on Gerrit to a person it has by the username. When Forge tells the username of a person later,
 "Update users" joins the two documents. A change shows its owner, who uploaded it, with the account of Gerrit
 (`owner_id`, `owner_username`), not the author of its commit, who has no account.
 
@@ -407,7 +407,9 @@ Whether the worker runs at all shows `systemctl status 'forger-scheduler@*'`, wh
 
 `/api/v1` is the public API: the issues and changes of the index as JSON, read only and without a login
 (`App\Controller\ApiV1Controller`). It returns the objects in `App\Api\Model`, `App\Api\IssueMapper` and
-`App\Api\ChangeMapper` build them from the documents. No email address leaves Forger.
+`App\Api\ChangeMapper` build them from the documents. The storage models of the index keep the email addresses
+of the people, to match them for the avatars and "My Work"; the output models of the API have none. Texts stay as
+their authors wrote them, so a merged commit message names its reviewers with their addresses, as Git does.
 
 The routes are stateless. `App\Subscriber\ApiRateLimitSubscriber` limits the requests of each address
 (`public_api` in `config/packages/rate_limiter.yaml`) and marks the answers as public for a minute.

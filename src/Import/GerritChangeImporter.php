@@ -33,9 +33,17 @@ final class GerritChangeImporter
     public const string PROJECT = 'project:Packages/TYPO3.CMS';
     /**
      * The details of a change, the same for the refresh of one change, the full import and the delta: the votes,
-     * the current patch set with its files and commit, and the accounts with name, username and email.
+     * the current patch set with its files and commit, the review log, and the accounts with name, username and
+     * email.
      */
-    public const array DETAIL_OPTIONS = ['DETAILED_LABELS', 'CURRENT_REVISION', 'CURRENT_FILES', 'CURRENT_COMMIT', 'DETAILED_ACCOUNTS'];
+    public const array DETAIL_OPTIONS = [
+        'DETAILED_LABELS',
+        'CURRENT_REVISION',
+        'CURRENT_FILES',
+        'CURRENT_COMMIT',
+        'DETAILED_ACCOUNTS',
+        'MESSAGES',
+    ];
     /**
      * The accounts of the CI, their votes are no reviews.
      */
@@ -49,6 +57,27 @@ final class GerritChangeImporter
      * Changes per request with their details.
      */
     public const int DETAIL_BATCH = 25;
+
+    /**
+     * The sentence of the review log above the files with a conflict, from a rebase or a cherry-pick.
+     */
+    private const string CONFLICTS = 'The following files contain Git conflicts:';
+
+    /**
+     * How bad a state of a label is, when several rules name it: the worst counts.
+     */
+    private const array LABEL_STATES = ['MAY' => 0, 'OK' => 1, 'NEED' => 2, 'IMPOSSIBLE' => 3, 'REJECT' => 4];
+
+    /**
+     * The status Gerrit sends for each file, as the index keeps it. Without one a file is modified.
+     */
+    private const array FILE_STATUS = [
+        'A' => 'added',
+        'D' => 'deleted',
+        'R' => 'renamed',
+        'C' => 'copied',
+        'W' => 'rewritten',
+    ];
 
     public function __construct(
         private readonly Indices $indices,
@@ -125,7 +154,7 @@ final class GerritChangeImporter
     public function writeAll(array $documents, bool $refresh = false): void
     {
         // The owners the index "user" lacks, complete: Gerrit told all of them with the change
-        $this->users->ensureGerrit(array_values(array_filter(array_map(self::owner(...), array_values($documents)))));
+        $this->users->ensureGerrit(array_merge(...array_map(self::accounts(...), array_values($documents))));
         foreach (array_chunk(array_values($documents), self::BULK_SIZE) as $chunk) {
             $this->indices->reviews()->addDocuments(array_map(static fn (array $document): Document => new Document((string) $document['id'], $document), $chunk));
             $this->recorder->document(count($chunk));
@@ -133,6 +162,30 @@ final class GerritChangeImporter
         if ($refresh && [] !== $documents) {
             $this->indices->reviews()->refresh();
         }
+    }
+
+    /**
+     * The people of a change for the index "user": its owner, and those who voted or wrote in its review log, but
+     * the CI. So their avatars and their work are found, too.
+     *
+     * @param array<string, mixed> $document see documents()
+     *
+     * @return list<User>
+     */
+    public static function accounts(array $document): array
+    {
+        $accounts = array_column((array) ($document['votes'] ?? []), 'account');
+        foreach ((array) ($document['messages'] ?? []) as $message) {
+            $accounts[] = $message['author'] ?? null;
+        }
+        $users = array_filter([self::owner($document)]);
+        foreach ($accounts as $account) {
+            if (is_array($account) && !in_array($account['id'] ?? null, self::CI_ACCOUNTS, true)) {
+                $users[] = User::fromGerrit(['_account_id' => $account['id'] ?? null] + $account);
+            }
+        }
+
+        return array_values(array_filter($users));
     }
 
     /**
@@ -235,7 +288,7 @@ final class GerritChangeImporter
                 'work_in_progress' => ReviewSubject::isWorkInProgress($reviewTags) || ($change['work_in_progress'] ?? false),
                 'commit_message' => $commitMessage,
                 ImportSchema::FIELD => ImportSchema::REVIEW,
-            ] + CommitMessage::fields($commitMessage);
+            ] + CommitMessage::fields($commitMessage) + self::details($change);
         }
 
         return $out;
@@ -281,5 +334,181 @@ final class GerritChangeImporter
         }
 
         return $out;
+    }
+
+    /**
+     * The fields of a change beyond the votes and the commit: the review log, the single votes, the files with
+     * their lines, what the labels still lack, the conflicts, and the comments.
+     *
+     * @param array<string, mixed> $change a change as Gerrit sends it with DETAIL_OPTIONS
+     *
+     * @return array<string, mixed>
+     */
+    private static function details(array $change): array
+    {
+        $messages = (array) ($change['messages'] ?? []);
+        $revision = (array) ($change['revisions'][$change['current_revision'] ?? ''] ?? []);
+        $patchSet = (int) ($revision['_number'] ?? 0);
+
+        return [
+            'messages' => self::messages($messages),
+            'votes' => self::singleVotes((array) ($change['labels'] ?? [])),
+            'file_details' => self::fileDetails((array) ($revision['files'] ?? [])),
+            'label_states' => self::labelStates((array) ($change['submit_records'] ?? [])),
+            'conflicts' => self::conflicts($messages, $patchSet),
+            'cherry_pick_of' => isset($change['cherry_pick_of_change']) ? (int) $change['cherry_pick_of_change'] : null,
+            'comment_count' => (int) ($change['total_comment_count'] ?? 0),
+            'unresolved_comment_count' => (int) ($change['unresolved_comment_count'] ?? 0),
+        ];
+    }
+
+    /**
+     * The review log, the oldest first: each message with its author, its date and its patch set.
+     *
+     * @param array<mixed> $messages
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function messages(array $messages): array
+    {
+        $log = [];
+        foreach ($messages as $message) {
+            if (!is_array($message)) {
+                continue;
+            }
+            $log[] = [
+                'author' => self::account($message['author'] ?? null),
+                'date' => self::gerritDate((string) ($message['date'] ?? '')),
+                'patch_set' => isset($message['_revision_number']) ? (int) $message['_revision_number'] : null,
+                'tag' => isset($message['tag']) ? (string) $message['tag'] : null,
+                'message' => (string) ($message['message'] ?? ''),
+            ];
+        }
+
+        return $log;
+    }
+
+    /**
+     * Each vote of the labels Forger knows, with who gave it and when. The votes of the CI are kept, too.
+     *
+     * @param array<mixed> $labels the labels Gerrit sends with DETAILED_LABELS
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function singleVotes(array $labels): array
+    {
+        $votes = [];
+        foreach (ReviewLabelEnum::cases() as $label) {
+            foreach ((array) ($labels[$label->value]['all'] ?? []) as $vote) {
+                if (!is_array($vote) || !isset($vote['value']) || 0 === (int) $vote['value']) {
+                    continue;
+                }
+                $votes[] = [
+                    'label' => $label->value,
+                    'value' => (int) $vote['value'],
+                    'account' => self::account($vote),
+                    'date' => isset($vote['date']) ? self::gerritDate((string) $vote['date']) : null,
+                ];
+            }
+        }
+
+        return $votes;
+    }
+
+    /**
+     * The files of the current patch set with their lines, sorted by path.
+     *
+     * @param array<mixed> $files the files Gerrit sends with CURRENT_FILES, by path
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function fileDetails(array $files): array
+    {
+        $details = [];
+        foreach ($files as $path => $file) {
+            $file = is_array($file) ? $file : [];
+            $details[] = [
+                'path' => (string) $path,
+                'status' => self::FILE_STATUS[$file['status'] ?? ''] ?? 'modified',
+                'insertions' => (int) ($file['lines_inserted'] ?? 0),
+                'deletions' => (int) ($file['lines_deleted'] ?? 0),
+                'binary' => true === ($file['binary'] ?? false),
+                'old_path' => isset($file['old_path']) ? (string) $file['old_path'] : null,
+            ];
+        }
+        usort($details, static fn (array $a, array $b): int => strcmp($a['path'], $b['path']));
+
+        return $details;
+    }
+
+    /**
+     * What each label lacks for a merge, by its name: OK, NEED, REJECT, IMPOSSIBLE or MAY. When several rules name
+     * a label, the worst state counts.
+     *
+     * @param array<mixed> $records the "submit_records" Gerrit sends
+     *
+     * @return array<string, string>
+     */
+    public static function labelStates(array $records): array
+    {
+        $states = [];
+        foreach ($records as $record) {
+            foreach ((array) ($record['labels'] ?? []) as $label) {
+                $name = (string) ($label['label'] ?? '');
+                $state = (string) ($label['status'] ?? '');
+                if (null === ReviewLabelEnum::tryFrom($name) || !isset(self::LABEL_STATES[$state])) {
+                    continue;
+                }
+                if (!isset($states[$name]) || self::LABEL_STATES[$state] > self::LABEL_STATES[$states[$name]]) {
+                    $states[$name] = $state;
+                }
+            }
+        }
+
+        return $states;
+    }
+
+    /**
+     * The files with a conflict in the current patch set, as the review log names them.
+     *
+     * @param array<mixed> $messages
+     *
+     * @return list<string>
+     */
+    public static function conflicts(array $messages, int $patchSet): array
+    {
+        $files = [];
+        foreach ($messages as $message) {
+            $text = (string) ($message['message'] ?? '');
+            $position = strpos($text, self::CONFLICTS);
+            if ($patchSet !== (int) ($message['_revision_number'] ?? 0) || false === $position) {
+                continue;
+            }
+            $after = substr($text, $position + strlen(self::CONFLICTS));
+            preg_match_all('/^\s*\* (\S.*?)\s*$/m', $after, $matches);
+            $files = [...$files, ...$matches[1]];
+        }
+
+        return array_values(array_unique($files));
+    }
+
+    /**
+     * An account as Gerrit sends it: number, name, username and email. The email is kept to match the person with
+     * the users of Forge, for the avatars and "My Work". It never leaves Forger, see App\Api\ChangeMapper.
+     *
+     * @return array{id: int, name: string, username: string|null, email: string|null}|null
+     */
+    private static function account(mixed $account): ?array
+    {
+        if (!is_array($account) || !isset($account['_account_id'])) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $account['_account_id'],
+            'name' => (string) ($account['name'] ?? ''),
+            'username' => isset($account['username']) ? (string) $account['username'] : null,
+            'email' => isset($account['email']) ? (string) $account['email'] : null,
+        ];
     }
 }

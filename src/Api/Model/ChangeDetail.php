@@ -21,9 +21,11 @@ use OpenApi\Attributes as OA;
 final readonly class ChangeDetail extends ChangeSummary
 {
     /**
-     * @param list<string>      $releases
-     * @param list<string>      $files
-     * @param list<ChangeIssue> $issues
+     * @param list<string>        $releases
+     * @param list<ChangeFile>    $files
+     * @param list<ChangeIssue>   $issues
+     * @param list<ReviewMessage> $messages
+     * @param list<string>        $conflicts
      */
     public function __construct(
         ChangeSummary $summary,
@@ -40,10 +42,9 @@ final readonly class ChangeDetail extends ChangeSummary
         )]
         public array $releases,
         #[OA\Property(
-            description: 'The paths the current patch set changes.',
+            description: 'The files the current patch set touches, by path.',
             type: 'array',
-            items: new OA\Items(type: 'string'),
-            example: ['typo3/sysext/backend/Classes/Preview/StandardContentPreviewRenderer.php'],
+            items: new OA\Items(ref: new Model(type: ChangeFile::class)),
         )]
         public array $files,
         #[OA\Property(
@@ -52,6 +53,21 @@ final readonly class ChangeDetail extends ChangeSummary
             items: new OA\Items(ref: new Model(type: ChangeIssue::class)),
         )]
         public array $issues,
+        #[OA\Property(
+            description: 'The review log, the oldest first: votes, new patch sets, comments and notes of the CI. '
+                . 'Empty for a change imported before Forger kept it.',
+            type: 'array',
+            items: new OA\Items(ref: new Model(type: ReviewMessage::class)),
+        )]
+        public array $messages,
+        #[OA\Property(
+            description: 'The files with a conflict in the current patch set, as the review log names them.',
+            type: 'array',
+            items: new OA\Items(type: 'string'),
+        )]
+        public array $conflicts,
+        #[OA\Property(description: 'The change this one is a cherry-pick of, a backport mostly.', example: null)]
+        public ?int $cherryPickOf,
     ) {
         parent::__construct(...get_object_vars($summary));
     }

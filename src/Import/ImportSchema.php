@@ -44,8 +44,10 @@ final class ImportSchema
      *    work in progress for "[POC]" in the subject, the tag "!!!" from the subject.
      * 3: the owner of the change with the account of Gerrit, "owner_id" and "owner_username", and in the index
      *    "user"; "owner" and "ownerEmail" are those of the owner now, not of the author of the commit.
+     * 4: the review log, the single votes, the files with their lines, the states of the labels, the conflicts,
+     *    the change it is a cherry-pick of, and the counts of the comments, see GerritChangeImporter::documents().
      */
-    public const int REVIEW = 3;
+    public const int REVIEW = 4;
 
     /**
      * @param 'issue'|'review' $index
