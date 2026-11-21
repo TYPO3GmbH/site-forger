@@ -209,6 +209,8 @@ final readonly class GerritImport
         if ([] === $numbers) {
             return;
         }
+        // The note belongs to the step that loads them
+        $this->recorder->progress(self::STEP_OUTDATED, 0, count($numbers));
         $run->writeln(sprintf('%d changes of an older import, loading %d again', $total, count($numbers)));
         $this->recorder->note(sprintf('%s changes of an older import left, each run loads %s again.', number_format(max(0, $total - count($numbers))), number_format(self::OUTDATED_LIMIT)));
 

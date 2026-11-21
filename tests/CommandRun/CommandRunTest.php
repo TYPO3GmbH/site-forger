@@ -279,8 +279,9 @@ final class CommandRunTest extends TestCase
     public function testALogOfNotesOnlyCanBeFolded(): void
     {
         $note = ['at' => '2026-11-19T15:55:00+01:00', 'level' => 'info', 'message' => 'Catching up'];
+        $wait = ['at' => '2026-11-19T15:55:30+01:00', 'level' => 'notice', 'message' => 'Waiting 10 s'];
         $warning = ['at' => '2026-11-19T15:56:00+01:00', 'level' => 'warning', 'message' => 'Skipped Forge issue #2'];
-        $notes = $this->commandRun('-5 minutes', CommandRunStatusEnum::SUCCESS, more: ['log' => [$note]]);
+        $notes = $this->commandRun('-5 minutes', CommandRunStatusEnum::SUCCESS, more: ['log' => [$note, $wait]]);
         $withWarning = $this->commandRun(
             '-5 minutes',
             CommandRunStatusEnum::WARNING,

@@ -188,6 +188,8 @@ final readonly class ForgeImport
         if ([] === $ids) {
             return;
         }
+        // The note belongs to the step that loads them
+        $this->recorder->progress(self::STEP_OUTDATED, 0, count($ids));
         $this->reportOutdated($run, $total, count($ids));
         $bar = $run->progressBar(count($ids));
         $removed = $this->reloadOrRemove($run, $ids, self::STEP_OUTDATED, $bar);

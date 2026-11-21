@@ -399,7 +399,11 @@ class CommandRun
     public function hasNotesOnly(): bool
     {
         $log = $this->getLog();
-        $notNotes = array_filter($log, static fn (array $entry): bool => 'info' !== ($entry['level'] ?? null));
+        // A wait for a rate limit is a note as well, only a warning or an error needs attention
+        $notNotes = array_filter(
+            $log,
+            static fn (array $entry): bool => !in_array($entry['level'] ?? null, ['info', 'notice'], true),
+        );
 
         return [] !== $log && [] === $notNotes && 0 === $this->getWarningsNotLogged();
     }
