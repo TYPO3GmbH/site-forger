@@ -30,7 +30,7 @@ class QueuedJob
     private ?int $id = null;
 
     public function __construct(
-        /** The job as its runs are recorded, like "app:import --mode=forgeDelta" */
+        /** The job as its runs are recorded, like "app:import:forge" */
         #[ORM\Column(type: Types::STRING, length: 255)]
         private string $job,
         /** Who or what queued it, as the page shows it: "Run now by dev-admin", "interrupted, a deployment" */
@@ -38,9 +38,6 @@ class QueuedJob
         private string $queuedBy,
         #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
         private \DateTimeImmutable $queuedAt,
-        /** To import everything again, also what did not change: started with --force, see JobSchedule::JOBS */
-        #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
-        private bool $forced = false,
     ) {
     }
 
@@ -62,10 +59,5 @@ class QueuedJob
     public function getQueuedAt(): \DateTimeImmutable
     {
         return $this->queuedAt;
-    }
-
-    public function isForced(): bool
-    {
-        return $this->forced;
     }
 }

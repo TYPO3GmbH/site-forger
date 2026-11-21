@@ -21,6 +21,9 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
+/**
+ * @extends AbstractType<\App\Entity\SprintBoard>
+ */
 class SprintBoard extends AbstractType
 {
     /**
@@ -80,7 +83,6 @@ class SprintBoard extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => \App\Entity\SprintBoard::class,
-            'csrf_protection' => 'test' !== getenv('APP_ENV'),
             'entity_manager' => null,
         ]);
     }

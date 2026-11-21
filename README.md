@@ -15,8 +15,8 @@ no Packagist or GitHub credentials are needed to install them.
 4. `ddev exec npm ci`
 5. `ddev exec npm run build`
 6. `ddev exec bin/console doctrine:migrations:migrate`
-7. `ddev exec bin/console app:import --mode=forgeDelta` to import the latest Forge issues (on an empty index the
-   latest 100, `--mode=forgeFull` imports all of them), see [Imports](#imports)
+7. `ddev exec bin/console app:import:forge` to import the latest Forge issues (on an empty index the latest 100,
+   `--full` imports all of them), see [Imports](#imports)
 8. Open https://forger.ddev.site
 
 ### Elasticsearch indices
@@ -64,47 +64,60 @@ FORGE_ACCESS_TOKEN=...
 
 | Variable | Needed for | How to get it |
 |---|---|---|
-| `FORGE_ACCESS_TOKEN` | `forgeFull`, `forgeDelta` imports. Works without, but anonymous requests hit Forge's rate limit quickly. | Log in at [forge.typo3.org](https://forge.typo3.org), open [My account](https://forge.typo3.org/my/account) and click **Show** below **API access key** in the sidebar. |
+| `FORGE_ACCESS_TOKEN` | `app:import:forge` and `app:import:users`. Works without, but anonymous requests hit Forge's rate limit quickly. | Log in at [forge.typo3.org](https://forge.typo3.org), open [My account](https://forge.typo3.org/my/account) and click **Show** below **API access key** in the sidebar. |
 
-Gerrit imports (`reviewFull`, `reviewDelta`) read the public API of review.typo3.org and need no token.
+The Gerrit import (`app:import:review`) reads the public API of review.typo3.org and need no token.
 
 ## Imports
 
-`bin/console app:import --mode=<mode>` reads Forge (Redmine) and Gerrit into Elasticsearch.
-Prefix the commands with `ddev exec` in the dev environment.
+The import commands read Forge (Redmine) and Gerrit into Elasticsearch. Prefix them with `ddev exec` in the dev
+environment.
 
-| Mode | Reads | Meant for |
+| Command | Reads | Meant for |
 |---|---|---|
-| `forgeFull [--force]` | Every Forge issue of the TYPO3 Core project | An empty index, a weekly safety net |
-| `forgeDelta` | The Forge issues changed since the last import | The schedule, every 5 minutes |
-| `reviewFull [--force]` | Every Gerrit change of `Packages/TYPO3.CMS` | An empty index, a weekly safety net |
-| `reviewDelta` | The Gerrit changes updated since the last import | The schedule, every 5 minutes |
+| `app:import:forge` | The Forge issues changed since the last import | The schedule, every 5 minutes |
+| `app:import:forge --full` | Every Forge issue of the TYPO3 Core project | An empty index, by hand |
+| `app:import:review` | The Gerrit changes updated since the last import | The schedule, every 5 minutes |
+| `app:import:review --full` | Every Gerrit change of `Packages/TYPO3.CMS` | An empty index, by hand |
+| `app:import:users` | Some users that are due | The schedule, every 5 minutes |
 
-An unknown mode ends with an error. `--startAt=<n>` lets a full import begin at the n-th issue or change.
+`--start-at=<n>` lets a full import begin at the n-th issue or change. The full imports are no jobs of the schedule:
+the deltas keep the index complete on their own, see [How the deltas work](#how-the-deltas-work).
+
+All three commands also take numbers. They load these issues, changes or users again, and remove the ones the source
+does not have any more. With `--remove` they remove them from the index:
+
+```sh
+bin/console app:import:forge 91089 91090
+bin/console app:import:review 95026 --remove
+bin/console app:import:users 320
+```
 
 Other commands:
 
-* `app:backports` writes the list of the backport view (`var/backports.json`)
+* `app:backports` writes the list of the backport view (`var/backports.json`), for the releases of the
+  parameter `backport_releases`
 * `app:truncate-type <issue|review>` deletes all documents of an index type
 * `app:elasticsearch:setup`, see [Elasticsearch indices](#elasticsearch-indices)
 
 ### The project
 
 Forge lists the issues of subprojects with those of a project. The import keeps the issues of the project itself
-(`redmine_project_id`, 27) only (`App\Elastic\ProjectIssues`), so the figures match the project on Forge. Every
-Forge import removes issues of other projects from the index, e.g. after an issue was moved; after a complete
-`forgeFull` the issues Forge did not list any more are checked one by one and removed if they are gone.
+(`redmine_project_id`, 27) only (`App\Import\ProjectIssues`), so the figures match the project on Forge. Every
+Forge import removes issues of other projects from the index, e.g. after an issue was moved. Issues Forge does not
+list any more are asked for in batches of 100 (`App\Import\ForgeIssueList`), those it does not list for the index
+then (deleted, private, in another project) are removed.
 
 Forger shows only what Gerrit shows to everyone, the Gerrit imports ask without an account. A refresh of a change
-Gerrit does not show any more (private now, deleted) removes it, and so does a complete `reviewFull` for the changes
-Gerrit did not list (`App\Elastic\ProjectChanges`): it asks Gerrit for them again first.
+Gerrit does not show any more (private now, deleted) removes it, and so does a complete `app:import:review --full` for the changes
+Gerrit did not list (`App\Import\ProjectChanges`): it asks Gerrit for them again first.
 
 ### How the deltas work
 
 The deltas only read what changed, and only load details for what they do not have yet:
 
 * **Where to start:** the latest `updated_on` in the index, minus an overlap of 10 minutes
-  (`App\Elastic\ImportWatermark`). The index is the state of the import: after an outage, a failed or a
+  (`App\Import\ImportWatermark`). The index is the state of the import: after an outage, a failed or a
   skipped run, the next run catches up on everything changed since. There is no state to keep elsewhere.
 * **Forge:** lists the issues with `updated_on>=<start>`, the oldest first, and skips those the index has
   with the same `updated_on`. Only changed issues are written, and only for those under review the journals
@@ -113,22 +126,81 @@ The deltas only read what changed, and only load details for what they do not ha
   the details (votes, the current patch set with its files and commit) are loaded only for the changes the index does not have in this
   state. Gerrit lists the newest first, so the changes are written once all of them are loaded: a run that
   fails half way leaves the index as it was, and the next run tries again. Beyond 3000 updated changes the
-  older ones are missing until the next `reviewFull`, the run reports a warning.
-* **Authors:** the emails of Forge users are cached for a day.
+  newest would move the start past the older ones: the run takes the oldest window from the start that fits
+  instead (a day, halved until it fits, `ImportWatermark::catchUpWindow()`), notes it, and the next runs go on.
+* **Forge, what no list of changes shows:** after its changes, a Forge delta that is up to date compares the
+  number of issues with Forge, in one request (`App\Import\IssueReconciliation`): Forge counts the issues of the
+  project, not private, as the index holds them. Where the numbers differ the range of numbers is halved, one
+  count each, until a part holds a page; it is listed, the issues missing or not up to date are imported, those
+  Forge does not list are removed. At most 15 counts per run, the next run goes on. So issues deleted on Forge,
+  private now, or never imported get in line without a full import.
+* **Authors and assignees:** the issues keep only their number and name, as Forge lists them. The rest is in
+  the index `user`, see [The users](#the-users).
 
-On an empty index `forgeDelta` and `reviewDelta` import the latest 100 issues or changes and report a
-warning: run the full import once.
+On an empty index the deltas import the latest 100 issues or changes and report a
+warning: run the full import once, by hand. The comparison with Forge would fill it too, but a page at a time.
+
+### The users
+
+The index `user` holds the people of Forge and Gerrit, one document per TYPO3 account (`App\Repository\UserRepository`,
+`App\People\User`): the username, the number on Forge (`forge_id`) and on Gerrit (`gerrit_id`), the name, the known
+emails. Forge and Gerrit both log in with the TYPO3 account: the Forge login and the Gerrit username
+are its username, the id of the document. A person of Forge is `forge:<forge_id>` until Forge told it.
+
+**Gerrit** tells all of the owner of a change with the change (`DETAILED_ACCOUNTS`): number, name, username and
+email. The import of the changes writes the owners the index `user` lacks at once (`UserRepository::ensureGerrit()`),
+and adds the number on Gerrit to a person it has by the username. When Forge tells the username of a person later,
+"Update users" joins the two documents. A change shows its owner, who uploaded it, with the account of Gerrit
+(`owner_id`, `owner_username`), not the author of its commit, who has no account.
+
+Forge tells more than the number and the name of a user only user by user, one request each: it lists users to its
+admins only. So the imports of Forge do not wait for the users. The job "Update users" (`app:import:users`)
+runs every five minutes with a lock of its own, so it does not wait for the Forge import. Both share the rate
+limit of Forge, because the limiter keeps its state in the cache. Its name
+says what it keeps, not where from: the source of the users is Forge for now (`App\Import\ForgeUserSync`), and
+may be another one later under the same command:
+
+* **The importer** writes the author and the assignee of every issue it writes to the index `user`, if it lacks
+  them: empty but for the number and the name (`UserRepository::ensure()`). The job fills them.
+* **First** the job takes the authors and assignees of the issues already in the index over that the index `user`
+  lacks, without a request, with the email the import kept there before the index `user` existed. So the index
+  `user` gets complete again by itself, also when it was lost.
+* **Then** it asks Forge for 30 users (`--limit`): those never asked for, the ones without an email first, then
+  those asked for more than 30 days ago.
+  A rate limit ends the run, it does not wait.
+
+The avatars are Gravatar's, by the first email the index `user` knows of the number on Forge or Gerrit, cached for
+10 minutes: the same avatar for a person on both. Without an email, as of users who hide it on Forge and have no
+account on Gerrit, the placeholder of Gravatar. `user_avatar()` and the macros of `templates/_macros/user.html.twig`
+render a person of Forge or Gerrit alike; changes imported before the owner's account show the avatar of the email. "My Work" finds the
+issues and changes by the numbers of the account on Forge and Gerrit: by its username, else by its email.
+`/api/<type>/<id>` serves only issues and changes, the index `user` holds email addresses.
 
 ### How the full imports work
 
-`forgeFull` and `reviewFull` list every issue or change, but load and write only those the index does not have
-in their current state (missing, or another `updated_on`), the same comparison as the deltas: Forge lists the
-issues newest first, Gerrit is asked in two steps like the delta, and the changes are written batch by batch.
-So a full import costs little more than the listing, and it is the safety net for whatever the deltas missed.
+The full imports list every issue or change, but load and write only those the index does not have
+in their current state (missing, another `updated_on`, or written by an older version of the import), the same
+comparison as the deltas: Forge lists the issues newest first, Gerrit is asked in two steps like the delta, and the changes are written batch by batch.
+So a full import costs little more than the listing.
 A full import that ended early is simply started again: what it already wrote is skipped.
 
-`--force` imports every issue or change, also the up-to-date ones. It is needed after a change of what the
-import stores (a new field, another mapping), as an unchanged issue would keep its old document otherwise.
+### Versions of the import
+
+A document has to be loaded again when its issue or change changed, and when the import takes more or other data
+from Forge or Gerrit than when it wrote the document. Every document stores the version of the import that wrote it,
+in `import_schema`, one version for the issues and one for the reviews (`App\Import\ImportSchema`); documents
+written before the versions count as version 1.
+
+* **Raise the version** of an index when its importer reads more or other data from the source or derives fields
+  differently (`ForgeIssueImporter::document()`, `GerritChangeImporter::documents()`), and note at the constant
+  what it brings.
+  A change of the mapping alone needs no new version: `app:elasticsearch:setup` copies the documents over.
+* **The deltas load them again over time:** after its changes, each delta loads up to 300
+  documents of an older version again, those changed last first, and asks the source only for them (Forge by
+  `issue_id`, Gerrit by `change:`). Three or twelve requests every five minutes: all of them in about a day, with
+  no load peak. Those the source does not show any more are removed, so they are not chosen again in every run.
+  The runs page notes how many are left.
+* **Any import that meets one** loads it again, too: a document of an older version counts as changed.
 
 ### Catching up, e.g. over night
 
@@ -138,8 +210,8 @@ that was down, the former limit of 100 per run), run the full imports once, best
 ```sh
 cd /srv/vhosts/forger.typo3.com/site/mage/current
 nohup sh -c '
-    /usr/bin/php8.5 bin/console app:import --mode=forgeFull
-    /usr/bin/php8.5 bin/console app:import --mode=reviewFull
+    /usr/bin/php8.5 bin/console app:import:forge --full
+    /usr/bin/php8.5 bin/console app:import:review --full
 ' > ../shared/var/log/catch-up.log 2>&1 &
 ```
 
@@ -149,8 +221,8 @@ could be removed.
 
 ### Locks
 
-Every import holds a lock, so two runs of the same kind do not write at the same time: `forge` (both Forge
-modes) and `gerrit` (both Gerrit modes, `reviewFull` blocks `reviewDelta` for its run). A run that finds the lock
+Every import holds a lock, so two runs of the same kind do not write at the same time: `forge` (`app:import:forge`
+and `app:import:users`) and `gerrit` (`app:import:review`, a full import blocks the delta for its run). A run that finds the lock
 taken ends right away as "Skipped, locked". The lock goes with the process holding it.
 
 The locks lie in `var/lock` of the installation (`config/packages/lock.yaml`), the lock of the schedule too:
@@ -189,8 +261,7 @@ next: the jobs queued with **Run now** (the worker of the schedule starts them w
 does not run a command itself), then the next planned run of every job. Every job of the schedule shows when it
 runs and its next run. A job of the schedule is **overdue** when the run
 planned after its last start did not start within 10 minutes (the worker of the schedule does not run), or three planned
-runs in a row did not succeed (every run fails). Runs skipped for a lock count as fine for up to 12 hours. This
-holds for the weekly jobs too: a missing Monday run of `reviewFull` shows. A job the schedule does not start (a
+runs in a row did not succeed (every run fails). Runs skipped for a lock count as fine for up to 12 hours. A job the schedule does not start (a
 deployment, a run by hand) is never overdue.
 
 Rate limits are retried: Forge and Gerrit answer 429 now and then. Forge is retried up to six times with a
@@ -208,16 +279,14 @@ When the jobs run is part of the app, in `App\Scheduler\JobSchedule` (Symfony Sc
 
 | Job | When (server time) |
 |---|---|
-| `app:import --mode=forgeDelta` | every 5 minutes |
-| `app:import --mode=reviewDelta` | every 5 minutes |
+| `app:import:forge` | every 5 minutes |
+| `app:import:review` | every 5 minutes |
+| `app:import:users` | every 5 minutes |
 | `app:backports` | every 5 minutes |
-| `app:import --mode=reviewFull` | Monday 03:17 |
-| `app:import --mode=forgeFull` | Thursday 03:17 |
 
 `bin/console debug:scheduler` lists them with their next run. The server only runs the worker of the schedule,
 `messenger:consume scheduler_jobs`, as a systemd service. The worker starts a due job as a process of its own and does
-not wait for it: a `reviewFull` running for hours keeps no delta waiting, the locks of the imports keep two runs of
-one kind apart. The schedule remembers what it started (`var/scheduler`, kept by the deployments): a job that fell
+not wait for it: a long run keeps no other job waiting, the locks of the imports keep two runs of one kind apart. The schedule remembers what it started (`var/scheduler`, kept by the deployments): a job that fell
 due while no worker ran, e.g. during a restart or a deployment, runs once when the worker starts again. The output
 of a job goes to `var/log/jobs/<job>.lastrun`, that of the worker to the journal.
 
@@ -263,7 +332,7 @@ journalctl -u forger-scheduler@forger.typo3.com -f
 The limits: `--time-limit=3600` and `--memory-limit=256M` end the worker after an hour or once it grew past 256 MB,
 after the message at hand; `Restart=always` starts it again after 5 seconds, with the release `current` points to
 then. A minute missed meanwhile runs when it starts. `KillMode=process` matters: systemd counts the jobs the worker
-started as part of the service, and would kill a running `reviewFull` with every restart otherwise.
+started as part of the service, and would kill a running import with every restart otherwise.
 
 A worker keeps the code it started with. A deployment ends it once the new release is live and the jobs are resumed
 (`forger:worker_restart` in `deploy.php`, `bin/console messenger:stop-workers` on the server): systemd starts it again
@@ -273,8 +342,8 @@ someone started by hand stops.
 The first deployment of the schedule replaces the cron jobs of the imports: comment them out in `/etc/cron.d`
 before, wait until no import runs (the release before knows neither the pause nor the stop of a run), deploy, then
 enable the service; the restart of the deployment finds no worker then, that does no harm. Not before: the release before does not know `scheduler_jobs`, the service would fail and restart
-over and over. Then start a full import of the reviews with **Run now** and *Import everything again* on the command
-runs page (or `app:import --mode=reviewFull --force`), the index gets the fields added with this release.
+over and over. The changes imported before get the fields added with this release by themselves, see
+[Versions of the import](#versions-of-the-import).
 
 #### Pause, resume, cancel
 
@@ -302,7 +371,7 @@ tables and columns, do not rename or drop them in the same deployment.
 #### Locally
 
 ddev runs no worker: locally the schedule starts nothing until you start it. The jobs then read
-the real Forge and Gerrit into the local indices, `app:mock-data` brings back the mock documents afterwards.
+the real Forge and Gerrit into the local indices.
 
 ```sh
 # The jobs with their next run

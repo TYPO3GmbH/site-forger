@@ -1,8 +1,9 @@
+{# Optional: title; style (info); action: a link after the message, {'url': ..., 'label': ...} #}
 {% if message %}
     <div class="alert alert-{{ (style is defined) ? style : 'info' }}" role="alert">
         <div class="alert-inner">
             {% if title is defined %}<h4 class="alert-heading">{{ title }}</h4>{% endif %}
-            <p class="mb-0">{{ message }}</p>
+            <p class="mb-0">{{ message }}{% if (action ?? null) is not empty %} <a href="{{ action.url }}">{{ action.label }}</a>{% endif %}</p>
         </div>
     </div>
 {% endif %}

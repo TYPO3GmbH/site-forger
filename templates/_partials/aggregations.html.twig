@@ -12,23 +12,25 @@
  # The filters of a list. The template bundle remembers which of them are open, by the id of their panel in
  # the localStorage "aggregations". The ids name the filter and the kind of list ("issues", "changes"), so a
  # filter opened in one list does not open another one at the same place in the next list.
- # Expects: aggregations, facetScope; personSearch (optional);
+ # Expects: aggregations (the filters by title, each a collection of Bucket objects, see SearchResult::facets()),
+ #          facetScope; personSearch (optional);
  #          textFilters (optional): filters of a value typed in, after the others: filter key => title, value (the
  #          parameters of the filter), placeholder. The value is sent as filters[<key>][path], like the path of "File";
  #          dateFilters (optional): the filters of dates, last in the list: filter key => title, and value (the
  #          parameters of the filter). Each is one field with the datepicker of the template bundle, the first and the
  #          last day clicked in one calendar, see MonthOverview::days()
  #}
+{% import '_macros/user.html.twig' as user %}
 <div class="aggregations" id="aggregations" role="tablist">
     {% for title, buckets in aggregations %}
         {% set panelId = 'facet-' ~ facetScope ~ '-' ~ (title|filterKey|lower) %}
         {# A filter with selected values is always open #}
-        {% set active = activeFilterCount(title, buckets.buckets) > 0 %}
+        {% set active = activeFilterCount(title, buckets) > 0 %}
         <div class="aggregation">
             <div class="aggregation-title" id="{{ panelId }}-title">
                 <a class="aggregation-title-link{{ active ? '' : ' collapsed' }}" data-bs-toggle="collapse" href="#{{ panelId }}" aria-expanded="{{ active ? 'true' : 'false' }}" aria-controls="{{ panelId }}">
                     <span class="aggregation-title-text">{{title}}</span>
-                    <span class="aggregation-title-badge">{{ bucketCounter(title, buckets.buckets) }}</span>
+                    <span class="aggregation-title-badge">{{ bucketCounter(title, buckets) }}</span>
                 </a>
             </div>
             <div id="{{ panelId }}" class="collapse{{ active ? ' show' }}" role="tabpanel" aria-labelledby="{{ panelId }}-title" data-bs-parent="#aggregations"{% if active %} data-facet-active{% endif %}>
@@ -36,9 +38,11 @@
                     {% if personSearch[title] is defined %}
                         {% include '_partials/person_search.html.twig' with personSearch[title]|merge({'id': 'person-search-' ~ loop.index}) only %}
                     {% endif %}
-                    {% for index, bucket in buckets.buckets %}
-                        {% if bucket.doc_count > 0 %}
-                            {{ aggregationBucket(title, index, bucket) }}
+                    {% for index, bucket in buckets %}
+                        {% if bucket.count > 0 %}
+                            {# A person as everywhere, with the avatar, see PeopleFacet #}
+                            {% set person = facet_person(title, bucket) %}
+                            {{ aggregationBucket(title, index, bucket, person is null ? null : user.inline(person, 32)) }}
                         {% endif %}
                     {% endfor %}
                 </div>

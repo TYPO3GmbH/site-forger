@@ -29,18 +29,15 @@ class QueuedJobRepository extends ServiceEntityRepository
     /**
      * Queues a job, once: a job in the queue already stays as it is.
      *
-     * @param bool $forced to import everything again, see QueuedJob::isForced()
-     *
      * @return bool whether it was queued now
      */
-    public function queue(string $job, string $queuedBy, \DateTimeImmutable $now, bool $forced = false): bool
+    public function queue(string $job, string $queuedBy, \DateTimeImmutable $now): bool
     {
         try {
             $this->getEntityManager()->getConnection()->insert('job_queue', [
                 'job' => $job,
                 'queued_by' => mb_substr($queuedBy, 0, 255),
                 'queued_at' => $now->format('Y-m-d H:i:s'),
-                'forced' => $forced ? 1 : 0,
             ]);
         } catch (UniqueConstraintViolationException) {
             return false;

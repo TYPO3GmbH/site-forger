@@ -22,6 +22,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * Creates and edits a sprint board by picking filters instead of writing its query.
+ *
+ * @extends AbstractType<\App\Entity\SprintBoard>
  */
 class SprintBoardWizard extends AbstractType
 {
@@ -64,7 +66,6 @@ class SprintBoardWizard extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => \App\Entity\SprintBoard::class,
-            'csrf_protection' => 'test' !== getenv('APP_ENV'),
         ]);
     }
 }

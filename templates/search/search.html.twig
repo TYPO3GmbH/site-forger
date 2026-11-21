@@ -11,7 +11,8 @@
             {# The parameters of the list, for the pages, the filters and the sort field #}
             {% set closedParameter = (searchClosed is defined) ? {'searchClosed': searchClosed} : {} %}
             {% set listArguments = {'query': query, 'filters': filters}|merge(closedParameter)|merge(sortParameter) %}
-            {% if totalResults > 0 %}
+            {# Filters that find nothing stay, to untick them #}
+            {% if totalResults > 0 or has_active_filters(filters) %}
                 <div class="section">
                     <div class="section-filter">
                         <form action="{{ path('search_search') }}" method="get">
@@ -32,22 +33,34 @@
                     </div>
                     <div class="section-main">
                         <div class="results-toolbar">
-                            {% include '_partials/pagination.html.twig' with {
-                                'resultsTotal': totalResults,
-                                'resultsFrom': startingAtItem,
-                                'resultsTo': endingAtItem,
-                            } only %}
+                            {% if totalResults > 0 %}
+                                {% include '_partials/pagination.html.twig' with {
+                                    'resultsTotal': totalResults,
+                                    'resultsFrom': startingAtItem,
+                                    'resultsTo': endingAtItem,
+                                } only %}
+                            {% endif %}
                             {{ sorting.select(path(routeName), sort, sortOptions, {'query': query, 'filters': filters}|merge(closedParameter)) }}
                         </div>
-                        <ul class="row-list row-list-panel">
-                            {% for result in results %}
-                                <li>{% include '_partials/row/issue.html.twig' with {'issue': result.data, 'detailed': true} only %}</li>
-                            {% endfor %}
-                        </ul>
+                        {% if totalResults == 0 %}
+                            {% include '_partials/alert.html.twig' with {
+                                'title': query is not empty ? 'No issue matches "' ~ query ~ '" with the filters.' : 'No issue matches the filters.',
+                                'message': 'Untick a filter, or',
+                                'action': {'url': path('search_search', {'query': query}|merge(closedParameter)|merge(sortParameter)), 'label': 'remove the filters.'},
+                                'style': 'info',
+                            } only %}
+                        {% else %}
+                            <ul class="row-list row-list-panel">
+                                {% for issue in issues %}
+                                    <li>{% include '_partials/row/issue.html.twig' with {'issue': issue, 'detailed': true} only %}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
                         {# The pages only below the list, the count stands above it #}
                         {% include '_partials/pagination.html.twig' with {
                             'pages': pagesToLinkTo,
                             'current': currentPage,
+                            'last': lastPage ?? null,
                             'routeName': routeName,
                             'arguments': listArguments
                         } only %}
@@ -56,7 +69,7 @@
             {% else %}
                 {% include '_partials/alert.html.twig' with {
                     'message': tabs.changes > 0 ? 'The tab "Reviews" has ' ~ tabs.changes ~ ' changes for it.' : 'Try other words, or tick "Include closed" for the resolved, closed and rejected ones.',
-                    'title': 'No issue was found for "' ~ query ~ '".',
+                    'title': query is not empty ? 'No issue was found for "' ~ query ~ '".' : 'No issue was found.',
                     'style': tabs.changes > 0 ? 'info' : 'danger'
                 } %}
             {% endif %}

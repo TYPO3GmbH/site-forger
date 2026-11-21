@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Elastic;
 
 use App\Enum\SystemCheckEnum;
+use App\Search\PersonSuggestion;
 
 /**
  * What Forger needs of the version of Elasticsearch.

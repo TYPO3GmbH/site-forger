@@ -16,7 +16,7 @@ use Symfony\Component\Scheduler\Trigger\TriggerInterface;
 
 /**
  * The jobs of the schedule as the scheduler sees them, for the command runs page: read from the schedule itself,
- * like debug:scheduler does, by the job as its runs are recorded ("app:import --mode=forgeDelta").
+ * like debug:scheduler does, by the job as its runs are recorded ("app:import:forge").
  */
 final readonly class ScheduledJobs
 {
@@ -68,23 +68,6 @@ final readonly class ScheduledJobs
         }
 
         return $steps;
-    }
-
-    /**
-     * What --force does, for the jobs "Run now" may start with it, see JobSchedule::JOBS.
-     *
-     * @return array<string, string>
-     */
-    public function forceable(): array
-    {
-        $force = [];
-        foreach (JobSchedule::JOBS as $job) {
-            if (isset($job['force'])) {
-                $force[implode(' ', $job['command'])] = $job['force'];
-            }
-        }
-
-        return $force;
     }
 
     /**

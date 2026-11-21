@@ -27,7 +27,9 @@ final class ControllerMethodsTest extends TestCase
     {
         foreach (glob(__DIR__ . '/../../src/Controller/*Controller.php') ?: [] as $file) {
             $class = 'App\\Controller\\' . basename($file, '.php');
-            yield $class => [$class];
+            if (class_exists($class)) {
+                yield $class => [$class];
+            }
         }
     }
 

@@ -11,7 +11,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Scheduler;
 
-use App\Command\ImportCommand;
+use App\Command\ImportJobCommand;
+use App\Command\ImportReviewCommand;
+use App\Import\GerritImport;
 use App\Scheduler\JobLocks;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Lock\LockFactory;
@@ -24,8 +26,7 @@ final class LocksTest extends KernelTestCase
 {
     public function testTheLocksAreInVarLockOfTheInstallation(): void
     {
-        self::bootKernel();
-        $lockDirectory = self::$kernel->getProjectDir() . '/var/lock';
+        $lockDirectory = self::bootKernel()->getProjectDir() . '/var/lock';
         $lock = self::getContainer()->get(LockFactory::class)->createLock('forger-locks-test');
 
         self::assertTrue($lock->acquire());
@@ -40,16 +41,16 @@ final class LocksTest extends KernelTestCase
         self::bootKernel();
         $container = self::getContainer();
         // The lock factory of the imports, set for their LockableTrait
-        $importLocks = new \ReflectionProperty(ImportCommand::class, 'lockFactory')->getValue($container->get(ImportCommand::class));
+        $importLocks = new \ReflectionProperty(ImportJobCommand::class, 'lockFactory')->getValue($container->get(ImportReviewCommand::class));
         self::assertSame($container->get(LockFactory::class), $importLocks);
 
-        $held = $importLocks->createLock(ImportCommand::LOCK_GERRIT);
+        $held = $importLocks->createLock(GerritImport::LOCK);
         self::assertTrue($held->acquire());
         try {
-            self::assertFalse($container->get(JobLocks::class)->isFree(ImportCommand::LOCK_GERRIT));
+            self::assertFalse($container->get(JobLocks::class)->isFree(GerritImport::LOCK));
         } finally {
             $held->release();
         }
-        self::assertTrue($container->get(JobLocks::class)->isFree(ImportCommand::LOCK_GERRIT));
+        self::assertTrue($container->get(JobLocks::class)->isFree(GerritImport::LOCK));
     }
 }

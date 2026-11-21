@@ -14,6 +14,7 @@ import './js/chart-table.js';
 import './js/header-search.js';
 import './js/command-runs.js';
 import './js/person-search.js';
+import './js/search-tabs.js';
 import './js/date-range.js';
 import './js/flash-messages.js';
 

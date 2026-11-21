@@ -1,6 +1,6 @@
 {#
  # The issue and the change with the number searched for, above the results of both tabs of the search.
- # Expects: exactMatches, see App\Elastic\GlobalSearch::exactMatches()
+ # Expects: exactMatches, see App\Search\GlobalSearch::exactMatches()
  #}
 {% import '_macros/status.html.twig' as status %}
 {% if exactMatches.issue is not null or exactMatches.change is not null %}

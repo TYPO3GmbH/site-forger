@@ -39,9 +39,10 @@ final readonly class CommandJobOverview
     public int $failures;
 
     /**
-     * @param list<CommandRun> $runs      newest first, at least one
-     * @param TriggerInterface $trigger   when the schedule runs the job, see App\Scheduler\ScheduledJobs
-     * @param string|null      $blockedBy the job running with the same lock, the job waits for it and is not overdue
+     * @param non-empty-list<CommandRun> $runs      newest first
+     * @param TriggerInterface           $trigger   when the schedule runs the job, see App\Scheduler\ScheduledJobs
+     * @param string|null                $blockedBy the job running with the same lock: the job waits for it and is
+     *                                              not overdue
      */
     public function __construct(
         public string $job,
@@ -58,7 +59,7 @@ final readonly class CommandJobOverview
         $late = static fn (?\DateTimeImmutable $due): bool => null === $due || $now->getTimestamp() > $due->getTimestamp() + self::GRACE;
         // Without a fine or successful run among the runs kept, counted from the first of them: a job that ran
         // for the first time is not overdue for that
-        $first = $runs[array_key_last($runs)]->getStartedAt();
+        $first = array_last($runs)->getStartedAt();
         $lastFine = array_find($runs, static fn (CommandRun $run): bool => $run->getStatus($now)->isSuccessful() || $run->getStatus($now)->isStoppedOnPurpose());
         $sinceSuccess = $this->lastSuccess?->getStartedAt() ?? $first;
         // A running job does its work, a blocked one waits for the job doing it

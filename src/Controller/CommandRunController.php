@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\CommandRun\CommandRunRecorder;
 use App\DTO\CommandJobOverview;
 use App\Entity\CommandRun;
 use App\Entity\JobPause;
@@ -21,16 +22,16 @@ use App\Repository\JobPauseRepository;
 use App\Repository\QueuedJobRepository;
 use App\Scheduler\JobControl;
 use App\Scheduler\ScheduledJobs;
-use App\Service\CommandRunRecorder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * What the jobs of the schedule did and do, see App\Scheduler\JobSchedule and App\Service\CommandRunRecorder,
+ * What the jobs of the schedule did and do, see App\Scheduler\JobSchedule and App\CommandRun\CommandRunRecorder,
  * and what admins do with them: run now, pause, resume, cancel, see App\Scheduler\JobControl. Other runs, like
  * app:elasticsearch:setup of a deployment, are recorded but not shown.
  */
@@ -82,7 +83,7 @@ class CommandRunController extends AbstractController
         $jobs = [];
         // In the order of the schedule, the jobs that need a look first
         foreach ($scheduled as $job => $scheduledJob) {
-            if (isset($recent[$job])) {
+            if ([] !== ($recent[$job] ?? [])) {
                 $jobs[] = new CommandJobOverview($job, $recent[$job], $now, $scheduledJob['trigger'], $blockedBy[$job] ?? null);
             }
         }
@@ -127,7 +128,6 @@ class CommandRunController extends AbstractController
             'running' => $running,
             'usualDurations' => $usualDurations,
             'steps' => $this->scheduledJobs->steps(),
-            'forceable' => $this->scheduledJobs->forceable(),
             'failedRuns' => $failedRuns,
             'job' => $job,
             'problemsOnly' => $problemsOnly,
@@ -153,10 +153,8 @@ class CommandRunController extends AbstractController
             return $this->back($request);
         }
         $label = $this->scheduledJobs->labels()[$job];
-        // Only the jobs that say what --force does, see JobSchedule::JOBS
-        $forced = $request->getPayload()->getBoolean('force') && isset($this->scheduledJobs->forceable()[$job]);
-        if ($this->queue->queue($job, sprintf('Run now by %s', $this->user()), new \DateTimeImmutable(), $forced)) {
-            $this->addFlash('success', sprintf('"%s" is queued and starts within a minute%s.', $label, $forced ? ', it imports everything again' : ''));
+        if ($this->queue->queue($job, sprintf('Run now by %s', $this->user()), new \DateTimeImmutable())) {
+            $this->addFlash('success', sprintf('"%s" is queued and starts within a minute.', $label));
         } else {
             $this->addFlash('info', sprintf('"%s" is queued already.', $label));
         }
@@ -256,7 +254,9 @@ class CommandRunController extends AbstractController
     {
         if ($request->isXmlHttpRequest()) {
             $messages = [];
-            foreach ($request->getSession()->getFlashBag()->all() as $type => $texts) {
+            $session = $request->getSession();
+            $flashes = $session instanceof FlashBagAwareSessionInterface ? $session->getFlashBag()->all() : [];
+            foreach ($flashes as $type => $texts) {
                 foreach ($texts as $text) {
                     $messages[] = ['type' => $type, 'text' => (string) $text];
                 }

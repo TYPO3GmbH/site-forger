@@ -12,12 +12,21 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Elastic\ElasticsearchVersion;
-use App\Elastic\ElasticUtility;
 use App\Elastic\IndexSetup;
-use App\Elastic\PendingImport;
+use App\Elastic\Indices;
 use App\Enum\SystemCheckEnum;
+use App\Import\PendingImport;
+use App\People\User;
+use App\People\UserHealth;
+use App\People\UserStatistics;
+use App\Repository\UserRepository;
+use App\Setup\ForgeLogin;
+use App\Setup\SetupCheck;
+use App\Setup\SetupSetting;
 use Elastica\Cluster\Health;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\HttpKernel\KernelInterface;
@@ -32,8 +41,13 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class SystemController extends AbstractController
 {
     public function __construct(
+        private readonly Indices $indices,
         private readonly IndexSetup $indexSetup,
         private readonly KernelInterface $kernel,
+        private readonly UserRepository $users,
+        private readonly ForgeLogin $forgeLogin,
+        #[Autowire('%kernel.project_dir%/.env')]
+        private readonly string $dotEnv,
     ) {
     }
 
@@ -41,25 +55,48 @@ class SystemController extends AbstractController
     public function index(): Response
     {
         $elasticsearch = $this->elasticsearch();
+        $setup = SetupCheck::settings(
+            [...$_ENV, ...$_SERVER],
+            $this->dotEnvDefaults(),
+            $this->forgeLogin->check(),
+        );
         $indices = $elasticsearch['reachable'] ? $this->indices() : [];
         $pending = $elasticsearch['reachable'] ? $this->pendingImport() : [];
+        $statistics = $elasticsearch['reachable'] ? $this->userStatistics() : null;
+        $users = null === $statistics ? null : UserHealth::of($statistics, new \DateTimeImmutable());
+        $unmapped = null === $statistics ? 0 : $statistics->unknownToForge + $statistics->withoutEmail;
+
+        // The result of each section of the page, by its name
+        $checks = [
+            'Setup' => SystemCheckEnum::worst(
+                ...array_map(static fn (SetupSetting $setting): SystemCheckEnum => $setting->result, $setup),
+            ),
+            'Elasticsearch version' => $elasticsearch['versionResult'],
+            'Cluster health' => $elasticsearch['healthResult'],
+            'Indices' => SystemCheckEnum::worst(...array_column($indices, 'result')),
+            'Outdated documents' => SystemCheckEnum::worst(...array_column($pending, 'result')),
+            'Users' => $users['result'] ?? SystemCheckEnum::OK,
+        ];
 
         return $this->render('management/system/index.html.twig', [
             'elasticsearch' => $elasticsearch,
             'indices' => $indices,
             'pending' => $pending,
+            'users' => $users,
+            'unmapped' => $unmapped,
+            'unmappedUsers' => 0 === $unmapped ? [] : $this->unmappedUsers(),
             'application' => [
                 'php' => PHP_VERSION,
                 'symfony' => Kernel::VERSION,
                 'environment' => $this->kernel->getEnvironment(),
                 'debug' => $this->kernel->isDebug(),
             ],
-            'overall' => SystemCheckEnum::worst(
-                $elasticsearch['versionResult'],
-                $elasticsearch['healthResult'],
-                ...array_column($indices, 'result'),
-                ...array_column($pending, 'result'),
-            ),
+            'setup' => $setup,
+            'overall' => SystemCheckEnum::worst(...array_values($checks)),
+            'notOk' => array_keys(array_filter(
+                $checks,
+                static fn (SystemCheckEnum $result): bool => SystemCheckEnum::OK !== $result,
+            )),
             'minimumVersion' => ElasticsearchVersion::MINIMUM,
         ]);
     }
@@ -70,7 +107,7 @@ class SystemController extends AbstractController
     private function elasticsearch(): array
     {
         try {
-            $client = ElasticUtility::getClient();
+            $client = $this->indices->client();
             $version = $client->getVersion();
             $health = new Health($client);
         } catch (\Throwable $e) {
@@ -108,7 +145,7 @@ class SystemController extends AbstractController
     {
         $indices = [];
         foreach ($this->indexSetup->describeAll() as $alias => $description) {
-            $index = null === $description['index'] ? null : ElasticUtility::getClient()->getIndex($description['index']);
+            $index = null === $description['index'] ? null : $this->indices->client()->getIndex($description['index']);
             $indices[] = [
                 'alias' => $alias,
                 'index' => $description['index'],
@@ -128,22 +165,59 @@ class SystemController extends AbstractController
     }
 
     /**
+     * The statistics of the users for UserHealth: null if the index "user" cannot be read, the indices show why.
+     */
+    private function userStatistics(): ?UserStatistics
+    {
+        try {
+            return $this->users->statistics();
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /**
+     * The people Forge was asked for that cannot be mapped to an email, in the card of the users.
+     *
+     * @return list<User>
+     */
+    private function unmappedUsers(): array
+    {
+        try {
+            return $this->users->unmapped();
+        } catch (\Exception) {
+            return [];
+        }
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     private function pendingImport(): array
     {
         $pending = [];
         foreach (PendingImport::checks() as $check) {
-            $index = ElasticUtility::getIndexByName($check['index']);
+            $index = $this->indices->get($check['index']);
             $matches = $index->count(['query' => $check['query']]);
-            $documents = $index->count();
             $pending[] = $check + [
                 'matches' => $matches,
-                'documents' => $documents,
-                'result' => PendingImport::result($check['kind'], $matches, $documents),
+                'documents' => $index->count(),
+                'result' => PendingImport::result($matches),
             ];
         }
 
         return $pending;
+    }
+
+    /**
+     * The values of the committed .env, to tell its placeholders, see SetupCheck.
+     *
+     * @return array<string, string>
+     */
+    private function dotEnvDefaults(): array
+    {
+        $content = is_readable($this->dotEnv) ? file_get_contents($this->dotEnv) : false;
+
+        return false === $content ? [] : (new Dotenv())->parse($content, $this->dotEnv);
     }
 }

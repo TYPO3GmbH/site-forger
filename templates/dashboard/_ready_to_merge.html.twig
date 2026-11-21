@@ -1,6 +1,6 @@
 {#
  # The Gerrit changes ready to merge that were updated last: the subject, below it owner, votes, releases, topic and size.
- # Expects: changes (documents, total)
+ # Expects: changes (a SearchResult)
  #}
 {% import '_macros/status.html.twig' as status %}
 <section class="overview-list" aria-labelledby="overview-ready-to-merge">
@@ -8,11 +8,11 @@
         <h2 class="overview-list-title" id="overview-ready-to-merge">Ready to merge <span class="overview-list-count">{{ changes.total }}</span></h2>
         <a class="overview-list-all" href="{{ path('gerrit_coreteam_merge') }}">Show all</a>
     </header>
-    {% if changes.documents is empty %}
+    {% if changes is empty %}
         <p class="overview-list-empty">No changes are ready to merge.</p>
     {% else %}
         <ul class="overview-list-items">
-            {% for change in changes.documents %}
+            {% for change in changes %}
                 <li>
                     {% include '_partials/row/change.html.twig' with {'change': change} only %}
                 </li>

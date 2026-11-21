@@ -11,12 +11,16 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Elastic\ElasticUtility;
-use App\Elastic\UserWorkQuery;
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
+use App\People\User;
+use App\Repository\ChangeRepository;
+use App\Repository\IssueRepository;
+use App\Repository\UserRepository;
+use App\Search\IssueStatusCount;
+use App\Search\UserWorkQuery;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -31,6 +35,13 @@ use T3G\Bundle\Keycloak\Security\KeyCloakUser;
 #[IsGranted('ROLE_USER')]
 class MyWorkController extends AbstractController
 {
+    public function __construct(
+        private readonly ChangeRepository $changes,
+        private readonly IssueRepository $issues,
+        private readonly UserRepository $users,
+    ) {
+    }
+
     /**
      * Links to /my keep working: one with an issue state opens the issues, everything else the changes.
      */
@@ -55,14 +66,12 @@ class MyWorkController extends AbstractController
         // Only search words rank the changes, so only then they can be sorted by relevance
         $sort = ReviewSortEnum::fromRequest($request->query->getString('sort'), '' !== $searchTerms);
         $query = $this->query($includeClosed, $searchTerms, reviewState: $reviewState, reviewSort: $sort);
-        $reviews = ElasticUtility::getIndexByName('review')->createSearch($query->reviews())->search();
+        $changes = $this->changes->search($query->reviews());
 
-        $counts = [];
-        foreach ($reviews->getAggregation('status')['buckets'] ?? [] as $state => $bucket) {
-            if ((int) $bucket['doc_count'] > 0) {
-                $counts[(string) $state] = (int) $bucket['doc_count'];
-            }
-        }
+        $counts = array_filter(
+            $changes->counts('status'),
+            static fn (int $count): bool => $count > 0,
+        );
         $counts = $this->sortByOrder($counts, self::reviewStateOrder());
         $closedStates = array_values(array_map(
             static fn (ReviewStateEnum $state): string => $state->value,
@@ -72,9 +81,9 @@ class MyWorkController extends AbstractController
         return $this->render('my/changes.html.twig', [
             ...$this->viewData($query, 'changes', $includeClosed, $searchTerms),
             'openChanges' => array_sum(array_diff_key($counts, array_flip($closedStates))),
-            'changes' => array_map(static fn ($result): array => $result->getData(), $reviews->getResults()),
-            'shown' => count($reviews->getResults()),
-            'total' => $reviews->getTotalHits(),
+            'changes' => $changes,
+            'shown' => count($changes),
+            'total' => $changes->total,
             'selected' => $reviewState?->value,
             'labels' => array_combine(self::reviewStateOrder(), array_map(static fn (ReviewStateEnum $state): string => $state->label(), ReviewStateEnum::cases())),
             'counts' => $counts,
@@ -97,27 +106,26 @@ class MyWorkController extends AbstractController
         // Only search words rank the issues, so only then they can be sorted by relevance
         $sort = IssueSortEnum::fromRequest($request->query->getString('sort'), '' !== $searchTerms);
         $query = $this->query($includeClosed, $searchTerms, issueStatus: $issueStatus, issueSort: $sort);
-        $issues = ElasticUtility::getIndexByName('issue')->createSearch($query->issues())->search();
+        $issues = $this->issues->search($query->issues());
 
-        $counts = [];
-        foreach ($issues->getAggregation('status')['buckets'] ?? [] as $bucket) {
-            $counts[(string) $bucket['key']] = (int) $bucket['doc_count'];
-        }
-        // In the order of the workflow, not by count
-        $counts = $this->sortByOrder($counts, self::issueStatusOrder());
+        $counts = $issues->counts('status');
+        $statusCounts = IssueStatusCount::listOf($counts);
+        $closed = array_sum(array_map(
+            static fn (IssueStatusCount $item): int => $item->status->isClosed() ? $item->count : 0,
+            $statusCounts,
+        ));
+        $hidden = $includeClosed ? 0 : $closed;
 
         return $this->render('my/issues.html.twig', [
             ...$this->viewData($query, 'issues', $includeClosed, $searchTerms),
-            'openIssues' => array_sum(array_diff_key($counts, array_flip(IssueStatusEnum::closedLabels()))),
-            'issues' => array_map(static fn ($result): array => $result->getData(), $issues->getResults()),
-            'shown' => count($issues->getResults()),
-            'total' => $issues->getTotalHits(),
-            'selected' => $issueStatus?->label(),
-            'selectedId' => $issueStatus?->value,
-            // Name => Forge id, for the links of the filter
-            'statusIds' => array_combine(self::issueStatusOrder(), array_map(static fn (IssueStatusEnum $state): int => $state->value, IssueStatusEnum::cases())),
-            'counts' => $counts,
-            'closedStates' => IssueStatusEnum::closedLabels(),
+            'openIssues' => array_sum($counts) - $closed,
+            'issues' => $issues,
+            'shown' => count($issues),
+            'total' => $issues->total,
+            'selected' => $issueStatus,
+            'statusCounts' => $statusCounts,
+            'allCount' => array_sum($counts) - $hidden,
+            'hidden' => $hidden,
             'sort' => $sort,
             'sortOptions' => IssueSortEnum::options('' !== $searchTerms),
             'isDefaultSort' => IssueSortEnum::default('' !== $searchTerms) === $sort,
@@ -127,6 +135,8 @@ class MyWorkController extends AbstractController
     private function query(bool $includeClosed, string $searchTerms, ?IssueStatusEnum $issueStatus = null, ?ReviewStateEnum $reviewState = null, IssueSortEnum $issueSort = IssueSortEnum::UPDATED, ReviewSortEnum $reviewSort = ReviewSortEnum::UPDATED): UserWorkQuery
     {
         $user = $this->getUser();
+        // The people of the account on Forge and Gerrit, see UserRepository
+        $accounts = $user instanceof KeyCloakUser ? $this->users->accountsOf($user->getUserIdentifier(), (string) $user->getEmail()) : [];
 
         return new UserWorkQuery(
             $user instanceof KeyCloakUser ? (string) $user->getEmail() : '',
@@ -137,6 +147,8 @@ class MyWorkController extends AbstractController
             issueSort: $issueSort,
             reviewSort: $reviewSort,
             searchTerms: $searchTerms,
+            forgeIds: array_values(array_filter(array_map(static fn (User $account): ?int => $account->forgeId, $accounts))),
+            gerritIds: array_values(array_filter(array_map(static fn (User $account): ?int => $account->gerritId, $accounts))),
         );
     }
 
@@ -157,9 +169,9 @@ class MyWorkController extends AbstractController
             'query' => $searchTerms,
         ];
         if ('changes' === $view) {
-            $data['openIssues'] = ElasticUtility::getIndexByName('issue')->count($query->openIssuesCount());
+            $data['openIssues'] = $this->issues->count($query->openIssuesCount());
         } else {
-            $data['openChanges'] = ElasticUtility::getIndexByName('review')->count($query->openReviewsCount());
+            $data['openChanges'] = $this->changes->count($query->openReviewsCount());
         }
 
         return $data;
@@ -171,14 +183,6 @@ class MyWorkController extends AbstractController
     private static function reviewStateOrder(): array
     {
         return array_map(static fn (ReviewStateEnum $state): string => $state->value, ReviewStateEnum::cases());
-    }
-
-    /**
-     * @return list<string>
-     */
-    private static function issueStatusOrder(): array
-    {
-        return array_map(static fn (IssueStatusEnum $state): string => $state->label(), IssueStatusEnum::cases());
     }
 
     /**

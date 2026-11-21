@@ -5,8 +5,8 @@
 {% else %}
     <h3><strong>{{ total }}</strong> {{ total == 1 ? 'issue' : 'issues' }} on the board</h3>
     <ul class="sprint-wizard-columns">
-        {% for column, count in columns %}
-            <li class="sprint-wizard-column status-{{ column }}"><strong>{{ count }}</strong> {{ column }}</li>
+        {% for boardColumn in columns %}
+            <li class="sprint-wizard-column status-{{ boardColumn.column.label }}"><strong>{{ boardColumn.count }}</strong> {{ boardColumn.column.label }}</li>
         {% endfor %}
     </ul>
     <table class="table table-sm">
@@ -19,13 +19,14 @@
         </tr>
         </thead>
         <tbody>
-        {% for issue in issues %}
+        {% for row in issues %}
+            {% set issue = row.issue %}
             <tr>
                 <td>{# A new tab, the wizard keeps its settings #}
                 <a href="{{ issue_path(issue.id) }}" target="issue{{ issue.id }}">#{{ issue.id }} {{ issue.subject|default('') }}</a></td>
                 <td>{{ issue.tracker.name|default('') }}</td>
                 <td>{{ issue.status.name|default('') }}</td>
-                <td>{{ issue.column }}</td>
+                <td>{{ row.column.label }}</td>
             </tr>
         {% endfor %}
         </tbody>

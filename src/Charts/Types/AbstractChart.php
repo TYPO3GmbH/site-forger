@@ -12,14 +12,19 @@ declare(strict_types=1);
 namespace App\Charts\Types;
 
 use App\Charts\TimeSeries;
-use App\Elastic\ElasticUtility;
-use App\Enum\IssueStatusEnum;
+use App\Elastic\Indices;
+use App\Elastic\SearchResult;
 use App\Enum\ReviewStatusEnum;
+use App\Search\IssueSearch;
 use Elastica\Index;
-use Elastica\ResultSet;
 
 abstract class AbstractChart
 {
+    public function __construct(
+        private readonly Indices $indices,
+    ) {
+    }
+
     abstract protected function getDocumentType(): string;
 
     /**
@@ -27,14 +32,20 @@ abstract class AbstractChart
      */
     protected function getIndex(): Index
     {
-        return ElasticUtility::getIndexByName($this->getDocumentType());
+        return $this->indices->get($this->getDocumentType());
     }
 
-    protected function fetchData(array $query): ResultSet
+    /**
+     * @param array<string, mixed> $query
+     *
+     * @return SearchResult<array<string, mixed>>
+     */
+    protected function fetchData(array $query): SearchResult
     {
-        $search = $this->getIndex()->createSearch($query);
-
-        return $search->search();
+        return SearchResult::of(
+            $this->getIndex()->createSearch($query)->search(),
+            static fn (array $source): array => $source,
+        );
     }
 
     /**
@@ -54,9 +65,9 @@ abstract class AbstractChart
      */
     protected function closed(): array
     {
-        return 'review' === $this->getDocumentType()
+        return Indices::REVIEW === $this->getDocumentType()
             ? ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]]
-            : ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]];
+            : IssueSearch::closed();
     }
 
     /**
@@ -74,7 +85,7 @@ abstract class AbstractChart
             'aggregations' => ['over_time' => TimeSeries::histogram($field, $interval, $from)],
         ]);
 
-        return TimeSeries::counts($result->getAggregation('over_time'));
+        return TimeSeries::counts($result->aggregation('over_time'));
     }
 
     /**

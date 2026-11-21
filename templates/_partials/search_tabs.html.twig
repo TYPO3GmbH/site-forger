@@ -1,7 +1,9 @@
 {#
- # The tabs of the search: Gerrit changes and issues, with how many each finds, see App\Elastic\GlobalSearch.
+ # The tabs of the search: Gerrit changes and issues, with how many each finds, see App\Search\GlobalSearch.
  # The tabs of My Work (.view-tabs): changes blue, issues orange, each with its icon.
- # Switching keeps the search words and "searchClosed". The filters and the order belong to one tab only.
+ # Switching keeps the search words and "searchClosed", and the people of the filters, see
+ # GlobalSearch::tabFilters(). The other filters and the order belong to one tab: it gets them back when switched
+ # to again with the same search words, see assets/js/search-tabs.js.
  # Expects: active ('changes' or 'issues'), tabs, query, searchClosed (optional)
  #}
 {% set parameters = {'query': query}|merge((searchClosed ?? null) ? {'searchClosed': '1'} : {}) %}
@@ -10,9 +12,10 @@
     'changes': {'label': 'Reviews', 'route': 'search_changes', 'icon': 'actions-code-pull-request', 'title': 'Gerrit changes found'},
     'issues': {'label': 'Issues', 'route': 'search_search', 'icon': 'actions-list', 'title': 'Issues found'},
 } %}
-<nav class="view-tabs search-tabs" aria-label="What to search">
+<nav class="view-tabs search-tabs js-search-tabs" aria-label="What to search" data-active="{{ active }}">
     {% for key, tab in items %}
-        <a class="view-tab is-{{ key }}{{ key == active ? ' is-active' }}" href="{{ path(tab.route, parameters) }}"{% if key == active %} aria-current="page"{% endif %}>
+        {% set people = key == active ? {} : search_tab_filters(key) %}
+        <a class="view-tab is-{{ key }}{{ key == active ? ' is-active' }}" data-tab="{{ key }}" data-people="{{ constant('App\\Search\\GlobalSearch::PEOPLE')[key]|join(' ') }}" href="{{ path(tab.route, parameters|merge(people is empty ? {} : {'filters': people})) }}"{% if key == active %} aria-current="page"{% endif %}>
             {{ icon(tab.icon) }}
             <span>{{ tab.label }}</span>
             <span class="view-tab-count" title="{{ tab.title }}">{{ tabs[key] }}</span>

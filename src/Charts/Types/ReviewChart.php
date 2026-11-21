@@ -11,11 +11,13 @@ declare(strict_types=1);
 
 namespace App\Charts\Types;
 
+use App\Elastic\Indices;
+
 abstract class ReviewChart extends AbstractChart implements ChartInterface
 {
     protected function getDocumentType(): string
     {
-        return 'review';
+        return Indices::REVIEW;
     }
 
     /**

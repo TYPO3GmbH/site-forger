@@ -8,9 +8,10 @@
     {% import '_macros/status.html.twig' as status %}
     {% import '_macros/refresh.html.twig' as refresh %}
     {% import '_macros/detail.html.twig' as detail %}
-    {% set tags = change.reviewtags ?? [] %}
+    {% import '_macros/user.html.twig' as user %}
+    {% set tags = change.reviewTags ?? [] %}
     {# A closed change finds itself: the links to the search of the changes find the closed ones, too #}
-    {% set closed = review_state(change).isClosed %}
+    {% set closed = change.state.isClosed %}
     {# As a file tree: on every level the folders first, see PathTwigExtension #}
     {% set files = (change.files ?? [])|sort_paths %}
     {# How an issue belongs to the change: the footer of its commit message #}
@@ -19,7 +20,7 @@
     <div class="content-section content-section-small">
         <div class="container">
             <article class="overview detail">
-                {% if (change.mergeable ?? 'yes') == 'no' and (change.reviewstatus ?? 'NEW') == 'NEW' %}
+                {% if change.conflict %}
                     <p class="detail-notice detail-notice-danger" role="status">
                         <strong>Merge conflict</strong>
                         <span>Gerrit cannot merge this change. It needs a rebase onto {{ change.branch ?? 'its branch' }}.</span>
@@ -29,7 +30,7 @@
                     <div class="detail-header-main">
                         <div class="detail-tags">
                             <span class="detail-kind kind-change">{{ icon('actions-code-pull-request') }}Review</span>
-                            {% if change.branch is defined %}
+                            {% if change.branch is not null %}
                                 <span class="tag-label{{ change.branch != 'main' ? ' is-backport' }}" title="Branch">{{ change.branch }}</span>
                             {% endif %}
                             {{ status.review(change) }}
@@ -40,13 +41,18 @@
                         </div>
                         <h1 class="detail-title"><span class="detail-number">{{ change.id }}</span>{{ change.subject }}</h1>
                         <p class="detail-meta">
-                            {% if change.owner is defined %}<span>by <strong>{{ change.owner }}</strong></span>{% endif %}
+                            {{ user.inline(
+                                change.ownerPerson,
+                                url: detail.changeSearch('owner', user_key(change.ownerPerson), closed),
+                                title: 'Changes by them',
+                                role: 'Owner',
+                            ) }}
                             {{ status.votes(change) }}
                             {{ status.size(change) }}
-                            {% if change.insertions is defined and change.deletions is defined %}
+                            {% if change.insertions is not null and change.deletions is not null %}
                                 <span class="overview-list-size" title="Lines added and removed"><span class="is-added">+{{ change.insertions }}</span> <span class="is-removed">&minus;{{ change.deletions }}</span></span>
                             {% endif %}
-                            <span title="{{ change.updated_on }}">updated {{ relativetime(to_datetime(change.updated_on)) }}</span>
+                            <span title="{{ change.updatedOn }}">updated {{ relativetime(to_datetime(change.updatedOn)) }}</span>
                         </p>
                     </div>
                     <div class="detail-actions">
@@ -100,7 +106,7 @@
                         {% endif %}
 
                         <section class="detail-section" aria-labelledby="files-title">
-                            <h2 id="files-title" class="detail-section-title">Files <span class="detail-count">{{ change.affected_files ?? files|length }}</span></h2>
+                            <h2 id="files-title" class="detail-section-title">Files <span class="detail-count">{{ change.affectedFiles ?? files|length }}</span></h2>
                             {% if files is not empty %}
                                 {# The first ones, the rest on a click: a big change has hundreds #}
                                 {% set shown = 20 %}
@@ -130,8 +136,13 @@
 
                     <aside class="detail-aside" aria-label="Details">
                         <dl class="detail-facts">
-                            {{ detail.person('Owner', change.owner ?? null, change.ownerEmail ?? null, detail.changeSearch('owner', change.owner ?? '', closed), 'Changes by them') }}
-                            {% if (change.topic ?? 'no topic') != 'no topic' %}
+                            {{ detail.person(
+                                'Owner',
+                                change.ownerPerson,
+                                detail.changeSearch('owner', user_key(change.ownerPerson), closed),
+                                'Changes by them',
+                            ) }}
+                            {% if change.hasTopic %}
                                 <div class="detail-fact">
                                     <dt>Topic</dt>
                                     <dd><a href="{{ path('search_changes', {'query': change.topic}|merge(closed ? {'searchClosed': '1'} : {})) }}" title="Changes with this topic">{{ change.topic }}</a></dd>
@@ -144,12 +155,12 @@
                                     <dd class="detail-tags">{{ status.reviewTags(change, true, closed) }}</dd>
                                 </div>
                             {% endif %}
-                            {{ detail.fact('Patch sets', change.patchsets ?? null, detail.changeSearch('patchsets', change.patchsets ?? '', closed), 'Changes with as many patch sets') }}
-                            {{ detail.date('Created', change.created_on ?? null) }}
-                            {% if (change.change_id ?? '') is not empty %}
+                            {{ detail.fact('Patch sets', change.patchsets, detail.changeSearch('patchsets', change.patchsets ?? '', closed), 'Changes with as many patch sets') }}
+                            {{ detail.date('Created', change.createdOn) }}
+                            {% if change.changeId is not empty %}
                                 <div class="detail-fact">
                                     <dt>Change-Id</dt>
-                                    <dd><code class="detail-code">{{ change.change_id }}</code></dd>
+                                    <dd><code class="detail-code">{{ change.changeId }}</code></dd>
                                 </div>
                             {% endif %}
                         </dl>

@@ -12,9 +12,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Charts\ChartRegistry;
-use App\Elastic\ElasticUtility;
-use App\Enum\IssueStatusEnum;
-use App\Enum\ReviewStatusEnum;
+use App\Elastic\Indices;
+use App\Report\KeyFigures;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,11 +23,21 @@ class ApiController extends AbstractController
 {
     private const array EMAIL_FIELDS = ['email', 'ownerEmail'];
 
-    #[Route(path: '/api/{type}/{documentId}', name: 'api')]
+    public function __construct(
+        private readonly Indices $indices,
+        private readonly ChartRegistry $chartRegistry,
+        private readonly KeyFigures $keyFigures,
+    ) {
+    }
+
+    /**
+     * Only the issues and the changes: the index "user" holds email addresses.
+     */
+    #[Route(path: '/api/{type}/{documentId}', name: 'api', requirements: ['type' => 'issue|review'])]
     public function index(string $type = 'issue', int $documentId = 0): JsonResponse
     {
         try {
-            $output = ElasticUtility::getIndexByName($type)->getDocument($documentId);
+            $output = $this->indices->get($type)->getDocument($documentId);
         } catch (\Exception) {
             return new JsonResponse('Document not found', Response::HTTP_NOT_FOUND);
         }
@@ -52,39 +61,12 @@ class ApiController extends AbstractController
     #[Route(path: '/quick_stats', name: 'quick_stats')]
     public function quickStats(): JsonResponse
     {
-        $index = ElasticUtility::getIndexByName('issue');
-        $openIssuesQuery = [
-            'query' => [
-                'bool' => [
-                    'must_not' => [
-                        ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]],
-                    ],
-                ],
-            ],
-            'size' => 0,
-        ];
-        $openIssues = $index->search($openIssuesQuery)->getTotalHits();
-
-        $openReviewsQuery = [
-            'query' => [
-                'bool' => [
-                    'must_not' => [
-                        ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]],
-                        ['term' => ['work_in_progress' => true]],
-                    ],
-                ],
-            ],
-            'size' => 0,
-        ];
-        $index = ElasticUtility::getIndexByName('review');
-        $openReviews = $index->search($openReviewsQuery)->getTotalHits();
-
         return new JsonResponse([
             'forge' => [
-                'value' => $openIssues,
+                'value' => $this->keyFigures->openIssues(),
             ],
             'gerrit' => [
-                'value' => $openReviews,
+                'value' => $this->keyFigures->openChanges(),
                 'link' => $this->generateUrl('gerrit_index'),
             ],
         ]);
@@ -94,7 +76,7 @@ class ApiController extends AbstractController
     public function chart(string $chartName): JsonResponse
     {
         try {
-            $chartInstance = ChartRegistry::getChartInstance($chartName);
+            $chartInstance = $this->chartRegistry->get($chartName);
         } catch (\InvalidArgumentException $e) {
             throw $this->createNotFoundException($e->getMessage(), $e);
         }

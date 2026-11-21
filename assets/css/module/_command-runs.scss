@@ -253,12 +253,22 @@
     font-size: .8125rem;
     list-style: none;
 
+    // The job left, its details in one column beside it
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: .5rem 1.5rem;
+
     li {
-        display: flex;
-        flex-wrap: wrap;
-        gap: .15rem .75rem;
-        align-items: baseline;
-        padding: .2rem 0;
+        display: contents;
+    }
+
+    @media (max-width: 575.98px) {
+        grid-template-columns: minmax(0, 1fr);
+        gap: .15rem;
+
+        .runs-muted {
+            margin-bottom: .5rem;
+        }
     }
 }
 
@@ -510,6 +520,7 @@ a.runs-job {
     .runs-detail td {
         padding-top: 0;
     }
+
 
     .status-pill + .runs-muted {
         margin-left: .4rem;
@@ -1045,7 +1056,7 @@ a.runs-job {
 }
 
 // The messages of the actions, at the bottom of the page: they cover nothing and move nothing
-.runs-notices {
+.runs-toasts {
     position: fixed;
     right: 1.5rem;
     bottom: 1.5rem;
@@ -1057,7 +1068,7 @@ a.runs-job {
     max-width: min(28rem, calc(100% - 3rem));
 }
 
-.runs-notice {
+.runs-toast {
     display: flex;
     gap: .75rem;
     align-items: flex-start;
@@ -1068,22 +1079,22 @@ a.runs-job {
     box-shadow: 0 .75rem 2rem rgba(0, 0, 0, .18);
     color: #0b0b0b;
     font-size: .875rem;
-    animation: runs-notice-in .2s ease-out;
+    animation: runs-toast-in .2s ease-out;
 
     &.is-leaving {
-        animation: runs-notice-out .2s ease-in forwards;
+        animation: runs-toast-out .2s ease-in forwards;
     }
 }
 
-.runs-notice-success {
+.runs-toast-success {
     border-left-color: #3f8f5b;
 }
 
-.runs-notice-danger {
+.runs-toast-danger {
     border-left-color: #b42318;
 }
 
-.runs-notice-close {
+.runs-toast-close {
     flex-shrink: 0;
     padding: 0 .25rem;
     border: 0;
@@ -1098,35 +1109,19 @@ a.runs-job {
     }
 }
 
-@keyframes runs-notice-in {
+@keyframes runs-toast-in {
     from { opacity: 0; transform: translateY(.5rem); }
     to { opacity: 1; transform: none; }
 }
 
-@keyframes runs-notice-out {
+@keyframes runs-toast-out {
     to { opacity: 0; transform: translateY(.5rem); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .runs-notice {
+    .runs-toast {
         animation: none;
     }
-}
-
-// A run, or a queued one, started with --force, see the macro "forced"
-.runs-forced {
-    display: inline-flex;
-    align-items: center;
-    padding: .1em .55em;
-    border: 1px solid #f3c98b;
-    border-radius: 999px;
-    background: #fff7ea;
-    color: #8a4b06;
-    font-size: .6875rem;
-    font-weight: 600;
-    line-height: 1.4;
-    white-space: nowrap;
-    vertical-align: middle;
 }
 
 .runs-card-badges {
@@ -1134,56 +1129,6 @@ a.runs-job {
     flex-shrink: 0;
     gap: .4rem;
     align-items: center;
-}
-
-// The option to import everything again, in the dialog of "Run now"
-.runs-confirm-force {
-    display: flex;
-    gap: .6rem;
-    align-items: flex-start;
-    margin: 1rem 0 0;
-    padding: .65rem .75rem;
-    border: 1px solid var(--runs-border, #e6e8eb);
-    border-radius: .5rem;
-    cursor: pointer;
-    font-size: .875rem;
-
-    &[hidden] {
-        display: none;
-    }
-
-    &:has(input:checked) {
-        border-color: #f3c98b;
-        background: #fff7ea;
-    }
-
-    // The checkbox of the app (Bootstrap), in line with the first line of the label
-    .form-check-input {
-        flex-shrink: 0;
-        float: none;
-        width: 1.125rem;
-        height: 1.125rem;
-        margin: .05rem 0 0;
-        cursor: pointer;
-    }
-
-    code {
-        margin-left: .25rem;
-        color: #6b7280;
-        font-size: .75rem;
-    }
-}
-
-.runs-confirm-force-label {
-    display: block;
-    font-weight: 600;
-}
-
-.runs-confirm-force-detail {
-    display: block;
-    margin-top: .15rem;
-    color: #6b7280;
-    font-size: .8125rem;
 }
 
 // The log of a run, like a log file, see the macro "log"
@@ -1194,6 +1139,54 @@ a.runs-job {
     border-radius: .5rem;
     background: #fafbfc;
     font-size: .8125rem;
+}
+
+// A log of notes only waits behind the button at the end of its row, see the list of runs
+.runs-log-cell {
+    width: 1%;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.runs-log-toggle > summary {
+    display: inline-flex;
+    gap: .25rem;
+    align-items: center;
+    padding: .2rem .5rem;
+    border: 1px solid var(--runs-border);
+    border-radius: 999px;
+    background: #fff;
+    color: #374151;
+    font-size: .75rem;
+    font-weight: 600;
+    list-style: none;
+    cursor: pointer;
+
+    &::-webkit-details-marker {
+        display: none;
+    }
+
+    &:hover,
+    &:focus-visible {
+        border-color: #cbd0d6;
+        background: #f7f8fa;
+    }
+
+    .icon {
+        transition: transform .15s ease;
+
+        @media (prefers-reduced-motion: reduce) {
+            transition: none;
+        }
+    }
+}
+
+.runs-log-toggle[open] > summary .icon {
+    transform: rotate(180deg);
+}
+
+.runs-row:not(:has(.runs-log-toggle[open])) .runs-detail-folded {
+    display: none;
 }
 
 .runs-log-entries {

@@ -38,7 +38,7 @@ final readonly class WeeklyTrigger implements TriggerInterface
         }
     }
 
-    public function getNextRunDate(\DateTimeImmutable $run): ?\DateTimeImmutable
+    public function getNextRunDate(\DateTimeImmutable $run): \DateTimeImmutable
     {
         $run = $run->setTimezone(new \DateTimeZone($this->timezone));
         // The run of this week if it is still to come, the one of next week otherwise

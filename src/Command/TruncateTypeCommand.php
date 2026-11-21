@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Elastic\ElasticUtility;
+use App\Elastic\Indices;
 use Elastica\Query\MatchAll;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -23,8 +23,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(name: 'app:truncate-type', description: 'Clears a type in the current index')]
 class TruncateTypeCommand extends Command
 {
-    public function __construct()
-    {
+    public function __construct(
+        private readonly Indices $indices,
+    ) {
         parent::__construct();
     }
 
@@ -40,8 +41,8 @@ class TruncateTypeCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $type = $input->getArgument('type');
 
-        if ('review' === $type || 'issue' === $type) {
-            $typeToWorkOn = ElasticUtility::getIndexByName($type);
+        if (Indices::REVIEW === $type || Indices::ISSUE === $type) {
+            $typeToWorkOn = $this->indices->get($type);
             $query = new MatchAll();
             $typeToWorkOn->deleteByQuery($query);
             $io->success('Cleared type "' . $type . '"');

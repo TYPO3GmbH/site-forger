@@ -11,11 +11,12 @@
  #}
 {# "-" in a field of the index: the import found no value #}
 {% import '_macros/status.html.twig' as status %}
+{% import '_macros/user.html.twig' as user %}
 {% set detailed = detailed ?? false %}
 {% set tracker = issue_tracker(issue.tracker.name ?? null) %}
-{% set dateField = detailed ? 'updated_on' : 'created_on' %}
+{% set dateValue = detailed ? issue.updatedOn : issue.createdOn %}
 {% set trackerTag %}<span class="tag-label tag-label-{{ tracker.severity ?? 'default' }}">{{ tracker.label ?? issue.tracker.name ?? 'Issue' }}</span>{% endset %}
-{% set date %}<time class="overview-list-item-date" datetime="{{ to_datetime(issue[dateField])|date('c') }}" title="{{ detailed ? 'Updated' : 'Created' }} {{ issue[dateField] }}">{{ relativetime(to_datetime(issue[dateField])) }}</time>{% endset %}
+{% set date %}<time class="overview-list-item-date" datetime="{{ to_datetime(dateValue)|date('c') }}" title="{{ detailed ? 'Updated' : 'Created' }} {{ dateValue }}">{{ relativetime(to_datetime(dateValue)) }}</time>{% endset %}
 <a class="overview-list-item kind-issue{{ detailed ? ' overview-list-item-detailed' }}" href="{{ issue_path(issue.id) }}" title="{{ issue.subject }}">
     {% if not detailed %}
         {{ trackerTag }}
@@ -29,10 +30,10 @@
                 {{ trackerTag }}
                 {{ status.issue(issue.status.name ?? null) }}
                 {{ status.issueActivity(issue) }}
-                {% if issue.author.name is defined %}<span class="overview-list-person" title="Author"><span class="overview-list-person-avatar" aria-hidden="true">{{ avatar('@' in (issue.author.email ?? '') ? issue.author.email : '', 40) }}</span>by {{ issue.author.name }}</span>{% endif %}
+                {{ user.inline(issue.author ?? null, role: 'Author') }}
                 {% if issue.category.name is defined %}<span title="Category">{{ issue.category.name }}</span>{% endif %}
-                {% if (issue.typo3_version ?? '-') != '-' %}<span title="TYPO3 version">v{{ issue.typo3_version }}</span>{% endif %}
-                {% if issue.fixed_version.name is defined %}<span title="Target version">→ {{ issue.fixed_version.name }}</span>{% endif %}
+                {% if (issue.typo3Version ?? '-') != '-' %}<span title="TYPO3 version">v{{ issue.typo3Version }}</span>{% endif %}
+                {% if issue.fixedVersion.name is defined %}<span title="Target version">→ {{ issue.fixedVersion.name }}</span>{% endif %}
             </span>
             {% if note is defined and note is not empty %}<span class="overview-list-item-note">{{ note }}</span>{% endif %}
         {% else %}
@@ -40,19 +41,19 @@
                 {% if relation is defined %}<span class="overview-list-relation">{{ relation }}</span>{% endif %}
                 {{ status.issue(issue.status.name ?? null) }}
                 {% if issue.category.name is defined %}<span title="Category">{{ issue.category.name }}</span>{% endif %}
-                {% if (issue.typo3_version ?? '-') != '-' %}<span title="TYPO3 version">v{{ issue.typo3_version }}</span>{% endif %}
-                {% if issue.author.name is defined %}<span>by {{ issue.author.name }}</span>{% endif %}
+                {% if (issue.typo3Version ?? '-') != '-' %}<span title="TYPO3 version">v{{ issue.typo3Version }}</span>{% endif %}
+                {{ user.inline(issue.author ?? null, role: 'Author') }}
             </span>
         {% endif %}
     </span>
     {% if detailed %}
         <span class="overview-list-column">
             {{ date }}
-            {% set assignee = issue.assigned_to.name ?? null %}
-            {% if viewer is defined and viewer is not empty %}
-                <span class="overview-list-column-line" title="Assigned to">{{ assignee is null ? 'Unassigned' : (assignee == viewer ? 'Assigned to you' : 'for ' ~ assignee) }}</span>
+            {% set assignee = issue.assignedTo.name ?? null %}
+            {% if viewer is defined and viewer is not empty and (assignee is null or assignee == viewer) %}
+                <span class="overview-list-column-line" title="Assigned to">{{ assignee is null ? 'Unassigned' : 'Assigned to you' }}</span>
             {% elseif assignee is not null %}
-                <span class="overview-list-column-line" title="Assigned to">for {{ assignee }}</span>
+                <span class="overview-list-column-line">{{ user.inline(issue.assignedTo, role: 'Assigned to') }}</span>
             {% endif %}
         </span>
     {% else %}

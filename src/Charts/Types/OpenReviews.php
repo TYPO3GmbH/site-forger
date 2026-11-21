@@ -44,10 +44,7 @@ class OpenReviews extends ReviewChart
             'size' => 0,
             'aggregations' => ['age' => ['date_range' => ['field' => 'updated_on', 'ranges' => $ranges]]],
         ]);
-        $counts = [];
-        foreach ($result->getAggregation('age')['buckets'] ?? [] as $bucket) {
-            $counts[(string) $bucket['key']] = (int) $bucket['doc_count'];
-        }
+        $counts = $result->counts('age');
 
         $values = array_map(static fn (string $label): int => $counts[$label] ?? 0, array_keys(self::AGES));
 

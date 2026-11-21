@@ -11,9 +11,10 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Service\ChangeRefreshResult;
-use App\Service\ForgeIssueImporter;
-use App\Service\GerritChangeImporter;
+use App\Http\ApiFailure;
+use App\Import\ChangeRefreshResult;
+use App\Import\ForgeIssueImporter;
+use App\Import\GerritChangeImporter;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -84,8 +85,8 @@ class RefreshController extends AbstractController
 
     private function failed(string $subject, string $source, \RuntimeException $e): void
     {
-        $this->logger->warning(sprintf('Refreshing %s from %s failed: %s', $subject, $source, $e->getMessage()));
-        $this->addFlash('danger', 429 === $e->getCode()
+        $this->logger->warning(sprintf('Refreshing %s from %s failed: %s', $subject, $source, $e->getMessage()), ['exception' => $e]);
+        $this->addFlash('danger', $e instanceof ApiFailure && $e->isRateLimit()
             ? sprintf('%s is busy, %s was not refreshed. Try again in a minute.', $source, $subject)
             : sprintf('%s could not be loaded from %s (%s). Forger shows it as before.', $subject, $source, $e->getMessage()));
     }
@@ -93,7 +94,7 @@ class RefreshController extends AbstractController
     /**
      * Back to the page the button was on. Only a path of this site is followed, else the given route.
      *
-     * @param array<string, string> $parameters
+     * @param array<string, int|string> $parameters
      */
     private function back(Request $request, string $route, array $parameters = []): RedirectResponse
     {

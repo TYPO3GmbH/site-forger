@@ -43,6 +43,7 @@ class SprintBoardCategory
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $sorting = null;
 
+    /** @var Collection<int, SprintBoard> */
     #[ORM\OneToMany(mappedBy: 'category', targetEntity: SprintBoard::class, orphanRemoval: true)]
     #[ORM\OrderBy(['name' => \SortDirection::Ascending])]
     private Collection $sprintBoards;

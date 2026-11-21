@@ -11,7 +11,11 @@ declare(strict_types=1);
 
 namespace App\Scheduler;
 
-use App\Command\ImportCommand;
+use App\Command\ImportUsersCommand;
+use App\Import\ForgeImport;
+use App\Import\ForgeUserSync;
+use App\Import\GerritAccountLookup;
+use App\Import\GerritImport;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
@@ -32,7 +36,7 @@ use Symfony\Contracts\Cache\CacheInterface;
  * Once a minute the worker also starts the jobs queued on the command runs page, see StartQueuedJobsHandler.
  *
  * A due job is started as a process of its own, see StartJobHandler: the worker is done with it at once, and a
- * reviewFull that runs for hours keeps no delta waiting. The locks of the imports keep two runs of one kind apart,
+ * long run keeps no other job waiting. The locks of the imports keep two runs of one kind apart,
  * the command runs page shows every run.
  *
  * The schedule keeps its state between the workers (stateful): a job due between two of them, or while the cron
@@ -54,18 +58,21 @@ final readonly class JobSchedule implements ScheduleProviderInterface
      * The jobs: what they do in a few words, for the command runs page, when they run, every so many minutes
      * from midnight or once a week on a weekday at a time (server time), the console command with its
      * arguments, the lock it takes, if any: a queued job waits while it is held, see StartQueuedJobsHandler, and
-     * the steps it reports, if any, in their order: the command runs page shows those still to come as well, and
-     * what --force does, if "Run now" may start it with --force.
+     * the steps it reports, if any, in their order: the command runs page shows those still to come as well.
      *
-     * @var array<string, array{label: string, every?: string, weekly?: array{string, string}, command: list<string>, lock?: string, steps?: list<string>, force?: string}>
+     * @var array<string, array{label: string, every?: string, weekly?: array{string, string}, command: list<string>, lock?: string, steps?: list<string>}>
      */
     public const array JOBS = [
-        'forgeDelta' => ['label' => 'Update Forge issues', 'every' => '5 minutes', 'command' => ['app:import', '--mode=forgeDelta'], 'lock' => ImportCommand::LOCK_FORGE, 'steps' => [ImportCommand::STEP_FORGE_DELTA]],
-        'reviewDelta' => ['label' => 'Update Gerrit changes', 'every' => '5 minutes', 'command' => ['app:import', '--mode=reviewDelta'], 'lock' => ImportCommand::LOCK_GERRIT, 'steps' => [ImportCommand::STEP_GERRIT_DELTA_LIST, ImportCommand::STEP_GERRIT_DELTA_LOAD]],
+        'forgeDelta' => ['label' => 'Update Forge issues', 'every' => '5 minutes', 'command' => ['app:import:forge'], 'lock' => ForgeImport::LOCK, 'steps' => [ForgeImport::STEP_DELTA, ForgeImport::STEP_OUTDATED, ForgeImport::STEP_RECONCILE]],
+        'reviewDelta' => ['label' => 'Update Gerrit changes', 'every' => '5 minutes', 'command' => ['app:import:review'], 'lock' => GerritImport::LOCK, 'steps' => [GerritImport::STEP_DELTA_LIST, GerritImport::STEP_DELTA_LOAD, GerritImport::STEP_OUTDATED]],
+        'users' => [
+            'label' => 'Update users',
+            'every' => '5 minutes',
+            'command' => ['app:import:users'],
+            'lock' => ImportUsersCommand::LOCK,
+            'steps' => [ImportUsersCommand::STEP_TAKE_OVER, ForgeUserSync::STEP, GerritAccountLookup::STEP],
+        ],
         'backports' => ['label' => 'Find missing backports', 'every' => '5 minutes', 'command' => ['app:backports']],
-        // The safety nets, on different nights so the rate limits of Forge and Gerrit do not add up
-        'reviewFull' => ['label' => 'Check all Gerrit changes', 'weekly' => ['monday', '03:17'], 'command' => ['app:import', '--mode=reviewFull'], 'lock' => ImportCommand::LOCK_GERRIT, 'steps' => [ImportCommand::STEP_GERRIT_FULL_LIST, ImportCommand::STEP_GERRIT_FULL_LOAD, ImportCommand::STEP_GERRIT_VANISHED], 'force' => 'Loads every change from Gerrit again, also those that did not change, e.g. after a change of the index. Takes hours.'],
-        'forgeFull' => ['label' => 'Check all Forge issues', 'weekly' => ['thursday', '03:17'], 'command' => ['app:import', '--mode=forgeFull'], 'lock' => ImportCommand::LOCK_FORGE, 'steps' => [ImportCommand::STEP_FORGE_FULL, ImportCommand::STEP_FORGE_VANISHED], 'force' => 'Imports every issue from Forge again, also those that did not change, e.g. after a change of the index. Takes hours.'],
     ];
 
     public function __construct(
@@ -91,13 +98,16 @@ final readonly class JobSchedule implements ScheduleProviderInterface
     }
 
     /**
-     * @param array{label: string, every?: string, weekly?: array{string, string}, command: list<string>, lock?: string, steps?: list<string>, force?: string} $job
+     * @param array{label: string, every?: string, weekly?: array{string, string}, command: list<string>, lock?: string, steps?: list<string>} $job
      */
     private static function trigger(array $job): TriggerInterface
     {
         return isset($job['weekly'])
             ? new WeeklyTrigger(...$job['weekly'])
             // From midnight: at :00, :05, :10, ..., whenever the worker starts
-            : new PeriodicalTrigger($job['every'], new \DateTimeImmutable('today'));
+            : new PeriodicalTrigger(
+                $job['every'] ?? throw new \LogicException('A job of the schedule needs "every" or "weekly"'),
+                new \DateTimeImmutable('today'),
+            );
     }
 }

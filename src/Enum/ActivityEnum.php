@@ -17,24 +17,15 @@ namespace App\Enum;
  * Neither Gerrit nor Forge has such a state: the stage is derived from "updated_on", which the review and the
  * issue index both have. Bots only vote on uploaded patch sets, so an update means that someone worked on it,
  * and no update that nobody did. It is computed when shown, not stored, since it changes with time and not
- * with the document. Closed documents (merged, abandoned, resolved, ...) have no stage. The value is used in URLs.
+ * with the document. Closed documents (merged, abandoned, resolved, ...) have no stage. See ActivityQuery for
+ * the stages in the indices.
  */
-enum ActivityEnum: string
+enum ActivityEnum
 {
-    case FRESH = 'fresh';
-    case QUIET = 'quiet';
-    case STALE = 'stale';
-    case ORPHANED = 'orphaned';
-
-    /**
-     * The field of the review and the issue index the stage is derived from.
-     */
-    public const string FIELD = 'updated_on';
-
-    /**
-     * The format of the dates in the review and the issue index.
-     */
-    private const string DATE_FORMAT = 'Y/m/d H:i:s';
+    case FRESH;
+    case QUIET;
+    case STALE;
+    case ORPHANED;
 
     public function label(): string
     {
@@ -60,7 +51,7 @@ enum ActivityEnum: string
      */
     public function severity(): string
     {
-        return 'activity-' . $this->value;
+        return 'activity-' . strtolower($this->name);
     }
 
     public function icon(): string
@@ -109,108 +100,6 @@ enum ActivityEnum: string
         };
     }
 
-    /**
-     * The range of the stage in Elasticsearch date math: "gte" is included, "lt" is not.
-     *
-     * @return array{gte?: string, lt?: string}
-     */
-    public function range(): array
-    {
-        $range = [];
-        if (null !== $this->maximumDays()) {
-            $range['gte'] = 'now-' . $this->maximumDays() . 'd';
-        }
-        if ($this->minimumDays() > 0) {
-            $range['lt'] = 'now-' . $this->minimumDays() . 'd';
-        }
-
-        return $range;
-    }
-
-    /**
-     * The open Gerrit changes of the review index in this stage: merged and abandoned ones have none.
-     *
-     * @return array<string, mixed>
-     */
-    public function changeQuery(): array
-    {
-        return $this->openQuery(['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]]);
-    }
-
-    /**
-     * The open Forge issues of the issue index in this stage: resolved, closed and rejected ones have none.
-     *
-     * @return array<string, mixed>
-     */
-    public function issueQuery(): array
-    {
-        return $this->openQuery(['terms' => ['status.name' => IssueStatusEnum::closedLabels()]]);
-    }
-
-    /**
-     * A "filters" aggregation counting the open Gerrit changes per stage, see buckets().
-     *
-     * @return array<string, mixed>
-     */
-    public static function changeAggregation(): array
-    {
-        return self::aggregation(static fn (self $stage): array => $stage->changeQuery());
-    }
-
-    /**
-     * A "filters" aggregation counting the open Forge issues per stage, see buckets().
-     *
-     * @return array<string, mixed>
-     */
-    public static function issueAggregation(): array
-    {
-        return self::aggregation(static fn (self $stage): array => $stage->issueQuery());
-    }
-
-    /**
-     * The result of changeAggregation() or issueAggregation() as the filter list shows aggregations: a bucket per
-     * stage in the order of the stages, with the label as key.
-     *
-     * @param array<string, mixed> $result
-     *
-     * @return array{buckets: list<array{key: string, doc_count: int}>}
-     */
-    public static function buckets(array $result): array
-    {
-        return ['buckets' => array_map(
-            static fn (self $stage): array => ['key' => $stage->label(), 'doc_count' => (int) ($result['buckets'][$stage->label()]['doc_count'] ?? 0)],
-            self::cases(),
-        )];
-    }
-
-    /**
-     * @param array<string, mixed> $closed
-     *
-     * @return array<string, mixed>
-     */
-    private function openQuery(array $closed): array
-    {
-        return ['bool' => [
-            'filter' => [['range' => [self::FIELD => $this->range()]]],
-            'must_not' => [$closed],
-        ]];
-    }
-
-    /**
-     * @param callable(self): array<string, mixed> $query
-     *
-     * @return array<string, mixed>
-     */
-    private static function aggregation(callable $query): array
-    {
-        $filters = [];
-        foreach (self::cases() as $stage) {
-            $filters[$stage->label()] = $query($stage);
-        }
-
-        return ['filters' => ['filters' => $filters]];
-    }
-
     public static function tryFromLabel(string $label): ?self
     {
         foreach (self::cases() as $stage) {
@@ -232,56 +121,5 @@ enum ActivityEnum: string
         }
 
         return self::FRESH;
-    }
-
-    /**
-     * The stage of a change document of the review index, null if the change is closed or has no date.
-     *
-     * @param array<string, mixed> $change
-     */
-    public static function fromChange(array $change, \DateTimeInterface $now): ?self
-    {
-        if (ReviewStateEnum::fromChange($change)->isClosed()) {
-            return null;
-        }
-        $lastActivity = self::lastActivity($change);
-
-        return null === $lastActivity ? null : self::fromDate($lastActivity, $now);
-    }
-
-    /**
-     * The stage of an issue document of the issue index, null if the issue is closed or has no date.
-     * Statuses Forge does not know count as open.
-     *
-     * @param array<string, mixed> $issue
-     */
-    public static function fromIssue(array $issue, \DateTimeInterface $now): ?self
-    {
-        $status = isset($issue['status']['id'])
-            ? IssueStatusEnum::tryFrom((int) $issue['status']['id'])
-            : IssueStatusEnum::tryFromLabel((string) ($issue['status']['name'] ?? ''));
-        if (null !== $status && $status->isClosed()) {
-            return null;
-        }
-        $lastActivity = self::lastActivity($issue);
-
-        return null === $lastActivity ? null : self::fromDate($lastActivity, $now);
-    }
-
-    /**
-     * When a change or issue document was last updated, else created.
-     *
-     * @param array<string, mixed> $document
-     */
-    public static function lastActivity(array $document): ?\DateTimeImmutable
-    {
-        foreach ([self::FIELD, 'created_on'] as $field) {
-            $date = \DateTimeImmutable::createFromFormat(self::DATE_FORMAT, (string) ($document[$field] ?? ''));
-            if (false !== $date) {
-                return $date;
-            }
-        }
-
-        return null;
     }
 }

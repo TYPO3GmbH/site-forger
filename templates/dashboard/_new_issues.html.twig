@@ -1,6 +1,6 @@
 {#
  # The open issues created last, newest first: the title, below it status, category, version and author.
- # Expects: issues (documents, total)
+ # Expects: issues (a SearchResult)
  #}
 {% import '_macros/status.html.twig' as status %}
 <section class="overview-list" aria-labelledby="overview-new-issues">
@@ -8,11 +8,11 @@
         <h2 class="overview-list-title" id="overview-new-issues">New issues</h2>
         <a class="overview-list-all" href="{{ path('search_search', {'sort': 'newest'}) }}">Show all</a>
     </header>
-    {% if issues.documents is empty %}
+    {% if issues is empty %}
         <p class="overview-list-empty">There are no open issues.</p>
     {% else %}
         <ul class="overview-list-items">
-            {% for issue in issues.documents %}
+            {% for issue in issues %}
                 <li>
                     {% include '_partials/row/issue.html.twig' with {'issue': issue} only %}
                 </li>

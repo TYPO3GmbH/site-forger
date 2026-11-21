@@ -1,3 +1,5 @@
+import { fetchJson } from './request.js';
+
 /**
  * Search in a filter of people: the people of the review lists, the authors and assignees of the issue search.
  *
@@ -12,9 +14,9 @@
     const MIN_LENGTH = 2;
     const DELAY = 200;
 
-    // The search writes "filters[owner][Benni_Mack]", see ForgerTwigExtension::filterKey()
-    function filterKey(name) {
-        return name.replace(/ /g, '_');
+    // The checkbox of a person: "filters[owner][<key>]", the key the server tells, see Users::keyOf()
+    function filterName(container, person) {
+        return 'filters[' + container.dataset.filter + '][' + person.key + ']';
     }
 
     // The name with the typed part marked, built from text nodes only
@@ -83,7 +85,7 @@
         }
 
         function isSelected(person) {
-            const checkbox = form.elements.namedItem('filters[' + container.dataset.filter + '][' + filterKey(person.name) + ']');
+            const checkbox = form.elements.namedItem(filterName(container, person));
             return checkbox instanceof HTMLInputElement && checkbox.checked;
         }
 
@@ -154,10 +156,7 @@
                 }
             });
             container.classList.add('is-loading');
-            const request = fetch(url, {headers: {'Accept': 'application/json'}})
-                .then(function (response) {
-                    return response.ok ? response.json() : [];
-                })
+            const request = fetchJson(url)
                 .catch(function () {
                     return [];
                 })
@@ -180,7 +179,7 @@
                 return;
             }
             picked = true;
-            const name = 'filters[' + container.dataset.filter + '][' + filterKey(person.name) + ']';
+            const name = filterName(container, person);
             const checkbox = form.elements.namedItem(name);
             if (checkbox instanceof HTMLInputElement) {
                 checkbox.checked = true;

@@ -29,21 +29,6 @@
     margin-top: .75rem;
 }
 
-.system-check-command {
-    margin: .75rem 0 0;
-
-    code {
-        display: block;
-        padding: .5rem .75rem;
-        border-radius: .5rem;
-        background: #f3f4f6;
-        color: #1f2937;
-        font-size: .8125rem;
-        white-space: normal;
-        word-break: break-word;
-    }
-}
-
 .system-detail {
     display: block;
     margin-top: .25rem;
@@ -63,4 +48,211 @@
         background: #fff3dc;
         color: #a15c07;
     }
+}
+
+// The people Forge was asked for without an email, collapsed at the foot of the card of the users
+.system-unmapped {
+    margin: 0 -1.25rem -1.1rem;
+    overflow: hidden;
+    border-top: 1px solid var(--runs-border);
+    border-radius: 0 0 var(--runs-radius) var(--runs-radius);
+
+    > summary {
+        display: flex;
+        gap: .75rem;
+        align-items: center;
+        padding: .8rem 1.25rem;
+        list-style: none;
+        cursor: pointer;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+
+        &:hover,
+        &:focus-visible {
+            background: #f7f8fa;
+        }
+    }
+
+    &[open] > summary {
+        border-bottom: 1px solid var(--runs-border);
+    }
+
+    &[open] .system-unmapped-icon {
+        transform: rotate(180deg);
+    }
+}
+
+.system-unmapped-title {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+}
+
+
+.system-unmapped-icon {
+    display: inline-flex;
+    color: var(--runs-muted);
+    transition: transform .15s ease;
+
+    @media (prefers-reduced-motion: reduce) {
+        transition: none;
+    }
+}
+
+.system-unmapped-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .875rem;
+
+    th {
+        padding: .55rem 1.25rem;
+        border-bottom: 1px solid var(--runs-border);
+        background: #fafbfc;
+        color: var(--runs-muted);
+        font-size: .75rem;
+        font-weight: 600;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    td {
+        padding: .6rem 1.25rem;
+        border-bottom: 1px solid #f0f1f3;
+        vertical-align: top;
+    }
+
+    tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .system-unmapped-forge,
+    .system-unmapped-date {
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    .system-unmapped-detail,
+    .system-unmapped-date {
+        color: var(--runs-muted);
+    }
+
+    // On a phone each person is a block: the name and the number in a line, the detail and the date below
+    @media (max-width: 575.98px) {
+        thead {
+            display: none;
+        }
+
+        tr {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: .15rem .75rem;
+            padding: .65rem 1.25rem;
+            border-bottom: 1px solid #f0f1f3;
+
+            &:last-child {
+                border-bottom: 0;
+            }
+        }
+
+        td {
+            padding: 0;
+            border: 0;
+        }
+
+        .system-unmapped-name {
+            font-weight: 600;
+        }
+
+        .system-unmapped-group {
+            display: block;
+            padding: 0;
+
+            th {
+                display: block;
+            }
+        }
+
+        .system-unmapped-detail,
+        .system-unmapped-date {
+            grid-column: 1 / -1;
+            font-size: .8125rem;
+        }
+    }
+}
+
+// All of them: the list scrolls in the card, the head of the table stays
+.system-unmapped-list {
+    max-height: 28rem;
+    overflow-y: auto;
+
+    thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+}
+
+.system-unmapped-table .system-unmapped-group th {
+    padding: .7rem 1.25rem .4rem;
+    border-bottom: 1px solid var(--runs-border);
+    background: #fff;
+    color: #0b0b0b;
+    font-size: .8125rem;
+    font-weight: 700;
+
+    span {
+        margin-left: .35rem;
+        color: var(--runs-muted);
+        font-weight: 600;
+    }
+}
+
+.system-users-reasons {
+    margin: 0;
+    font-size: .9375rem;
+}
+
+// The tokens and secrets: the name and what it is for, the result on the right, a line below only when it tells more
+.system-setup {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.system-setup-item {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: .8rem 1.25rem;
+
+    & + & {
+        border-top: 1px solid var(--runs-border);
+    }
+}
+
+.system-setup-text {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    min-width: 0;
+}
+
+.system-setup-name {
+    color: #0b0b0b;
+    font-size: .875rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.system-setup-purpose {
+    color: var(--runs-muted);
+    font-size: .8125rem;
+}
+
+.system-setup-detail {
+    color: #374151;
+    font-size: .8125rem;
 }

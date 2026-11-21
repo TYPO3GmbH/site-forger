@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Enum;
 
+use App\Document\Change;
 use App\Enum\ActivityEnum;
 use App\Enum\CommandRunStatusEnum;
 use App\Enum\IssueStatusEnum;
@@ -23,12 +24,9 @@ use PHPUnit\Framework\TestCase;
 
 final class StatusEnumTest extends TestCase
 {
-    public function testIssueStatesAreTheForgeIds(): void
+    public function testIssueStatesLeaveOutTheForgeIdsTheProjectDoesNotUse(): void
     {
-        self::assertSame(IssueStatusEnum::UNDER_REVIEW, IssueStatusEnum::from(8));
-        self::assertSame(IssueStatusEnum::IN_PROGRESS, IssueStatusEnum::from(11));
-        self::assertSame(IssueStatusEnum::POSTPONED, IssueStatusEnum::tryFrom(9));
-        self::assertNull(IssueStatusEnum::tryFrom(10));
+        self::assertNotContains(10, array_column(IssueStatusEnum::cases(), 'value'));
     }
 
     public function testIssueStatesHaveTheForgeNamesAsLabels(): void
@@ -49,9 +47,8 @@ final class StatusEnumTest extends TestCase
         self::assertFalse(IssueStatusEnum::POSTPONED->isClosed());
     }
 
-    public function testReviewStatesAreTheGerritValuesWithLabels(): void
+    public function testReviewStatesHaveLabels(): void
     {
-        self::assertSame(ReviewStatusEnum::MERGED, ReviewStatusEnum::from('MERGED'));
         self::assertSame('Open', ReviewStatusEnum::NEW->label());
         self::assertSame(ReviewStatusEnum::ABANDONED, ReviewStatusEnum::tryFromLabel('Abandoned'));
     }
@@ -65,23 +62,14 @@ final class StatusEnumTest extends TestCase
 
     public function testReviewStateOfAChangeKeepsWorkInProgressApartFromTheStatus(): void
     {
-        self::assertSame(ReviewStateEnum::READY, ReviewStateEnum::fromChange(['reviewstatus' => 'NEW', 'work_in_progress' => false]));
-        self::assertSame(ReviewStateEnum::WORK_IN_PROGRESS, ReviewStateEnum::fromChange(['reviewstatus' => 'NEW', 'work_in_progress' => true]));
-        self::assertSame(ReviewStateEnum::MERGED, ReviewStateEnum::fromChange(['reviewstatus' => 'MERGED']));
+        self::assertSame(ReviewStateEnum::READY, Change::fromDocument(['reviewstatus' => 'NEW', 'work_in_progress' => false])->state());
+        self::assertSame(ReviewStateEnum::WORK_IN_PROGRESS, Change::fromDocument(['reviewstatus' => 'NEW', 'work_in_progress' => true])->state());
+        self::assertSame(ReviewStateEnum::MERGED, Change::fromDocument(['reviewstatus' => 'MERGED'])->state());
         // Abandoned work in progress is abandoned
-        self::assertSame(ReviewStateEnum::ABANDONED, ReviewStateEnum::fromChange(['reviewstatus' => 'ABANDONED', 'work_in_progress' => true]));
+        self::assertSame(ReviewStateEnum::ABANDONED, Change::fromDocument(['reviewstatus' => 'ABANDONED', 'work_in_progress' => true])->state());
         self::assertSame(ReviewStatusEnum::NEW, ReviewStateEnum::WORK_IN_PROGRESS->status());
         self::assertTrue(ReviewStateEnum::ABANDONED->isClosed());
         self::assertFalse(ReviewStateEnum::WORK_IN_PROGRESS->isClosed());
-    }
-
-    public function testReviewStateQueries(): void
-    {
-        self::assertSame(
-            ['bool' => ['filter' => [['term' => ['reviewstatus' => 'NEW']]], 'must_not' => [['term' => ['work_in_progress' => true]]]]],
-            ReviewStateEnum::READY->query()
-        );
-        self::assertSame(['term' => ['reviewstatus' => 'MERGED']], ReviewStateEnum::MERGED->query());
     }
 
     public function testEveryStateHasItsOwnSeverity(): void

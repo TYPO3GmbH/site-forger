@@ -11,17 +11,17 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\CommandRun\CommandRunRecorder;
 use App\DTO\CommandRunStep;
 use App\Enum\CommandRunStatusEnum;
 use App\Repository\CommandRunRepository;
-use App\Service\CommandRunRecorder;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * A run of a console command of the application, mostly the imports started by cron.
  *
- * Written by App\Service\CommandRunRecorder with plain DBAL statements, so a long import
+ * Written by App\CommandRun\CommandRunRecorder with plain DBAL statements, so a long import
  * can update its run after the database connection timed out. Read through the ORM.
  */
 #[ORM\Entity(repositoryClass: CommandRunRepository::class, readOnly: true)]
@@ -45,17 +45,10 @@ class CommandRun
     private ?int $id = null;
 
     /**
-     * The command name and its options, e.g. "app:import --mode=reviewDelta", runs of the same job share it.
+     * The command name and its options, e.g. "app:import:review --full", runs of the same job share it.
      */
     #[ORM\Column(type: Types::STRING, length: 255)]
     private string $job = '';
-
-    /**
-     * Started with --force: imported everything again, also what did not change. The job stays the same, see
-     * App\Subscriber\CommandRunSubscriber::job().
-     */
-    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
-    private bool $forced = false;
 
     #[ORM\Column(type: Types::STRING, length: 20, enumType: CommandRunStatusEnum::class)]
     private CommandRunStatusEnum $status = CommandRunStatusEnum::RUNNING;
@@ -80,7 +73,7 @@ class CommandRun
 
     /**
      * Asked to stop, by a pause or an admin: the run stops at its next heartbeat with this status, see
-     * App\Service\CommandRunRecorder, and the reason as its message.
+     * App\CommandRun\CommandRunRecorder, and the reason as its message.
      */
     #[ORM\Column(type: Types::STRING, length: 20, nullable: true, enumType: CommandRunStatusEnum::class)]
     private ?CommandRunStatusEnum $stopStatus = null;
@@ -98,7 +91,7 @@ class CommandRun
     private ?int $progressCurrent = null;
 
     /**
-     * The steps so far as the recorder writes them, see App\Service\CommandRunRecorder::stepsJson(); null for the
+     * The steps so far as the recorder writes them, see App\CommandRun\CommandRunRecorder::stepsJson(); null for the
      * runs from before the steps were recorded.
      *
      * @var ?list<array{name: string, startedAt: string, endedAt: ?string, current: ?int, total: ?int, waiting: ?string}>
@@ -108,7 +101,7 @@ class CommandRun
 
     /**
      * What the run noted, waited for, skipped and failed with, in the order it happened, each with its time, level,
-     * step, item and exception, see App\Service\CommandRunRecorder::log(); null for the runs from before, their
+     * step, item and exception, see App\CommandRun\CommandRunRecorder::log(); null for the runs from before, their
      * message has the first warnings.
      *
      * @var ?list<array<string, mixed>>
@@ -151,11 +144,6 @@ class CommandRun
     public function getJob(): string
     {
         return $this->job;
-    }
-
-    public function isForced(): bool
-    {
-        return $this->forced;
     }
 
     /**
@@ -345,7 +333,7 @@ class CommandRun
     }
 
     /**
-     * The message split as the recorder wrote it, see App\Service\CommandRunRecorder::message(): the error of a
+     * The message split as the recorder wrote it, see App\CommandRun\CommandRunRecorder::message(): the error of a
      * failed run (its exception in short, "ResponseException", and its text) or the reason a run was stopped,
      * then the warnings, and how many more there were.
      *
@@ -402,6 +390,18 @@ class CommandRun
     public function getLog(): array
     {
         return $this->log ?? [];
+    }
+
+    /**
+     * Whether the log has notes only: the run has no warning or error to tell. The list of runs folds such a log
+     * behind a button.
+     */
+    public function hasNotesOnly(): bool
+    {
+        $log = $this->getLog();
+        $notNotes = array_filter($log, static fn (array $entry): bool => 'info' !== ($entry['level'] ?? null));
+
+        return [] !== $log && [] === $notNotes && 0 === $this->getWarningsNotLogged();
     }
 
     /**

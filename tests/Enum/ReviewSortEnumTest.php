@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Enum;
 
-use App\Enum\ReviewSizeEnum;
 use App\Enum\ReviewSortEnum;
 use PHPUnit\Framework\TestCase;
 
@@ -44,22 +43,5 @@ final class ReviewSortEnumTest extends TestCase
     {
         $labels = array_map(static fn (ReviewSortEnum $sort): string => $sort->label(), ReviewSortEnum::cases());
         self::assertSame($labels, array_values(array_unique($labels)));
-    }
-
-    public function testTheRecentlyUpdatedComeFirstAsTheListsDidBefore(): void
-    {
-        self::assertSame(
-            [['updated_on' => 'desc'], ['insertions' => 'asc'], ['deletions' => 'asc'], ['patchsets' => 'desc']],
-            ReviewSortEnum::UPDATED->sort()
-        );
-        self::assertSame(['updated_on' => 'asc'], ReviewSortEnum::LEAST_UPDATED->sort()[0]);
-    }
-
-    public function testSmallestAddsTheInsertionsAndDeletions(): void
-    {
-        $script = ReviewSortEnum::SMALLEST->sort()[0]['_script'];
-
-        self::assertSame('asc', $script['order']);
-        self::assertSame(ReviewSizeEnum::LINES_SCRIPT, $script['script']['source']);
     }
 }

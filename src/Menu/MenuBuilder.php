@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace App\Menu;
 
-use App\Entity\SprintBoardCategory;
 use App\Repository\SprintBoardCategoryRepository;
 use Knp\Menu\FactoryInterface;
 use Knp\Menu\ItemInterface;
@@ -46,6 +45,8 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
     /**
      * The main menu, by task: what needs a review, the issues, the sprint boards, the tools.
      * Items for a role are only added for users who have it, the admin pages are in the menu on the right.
+     *
+     * @param array<string, mixed> $options
      */
     #[\Override]
     public function mainDefault(array $options): ItemInterface
@@ -84,9 +85,19 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
 
         $sprints = $menu->addChild('sprint', ['label' => 'Sprints', 'route' => 'sprint_overview']);
         $this->addLink($sprints, 'sprint_overview', 'Overview', 'sprint_overview', 'actions-viewmode-layout');
-        /** @var SprintBoardCategory $category */
         foreach ($this->categoryRepository->findAll() as $category) {
-            $this->addLink($sprints, 'sprint_' . $category->getIdentifier(), $category->getName(), 'sprint', $category->getIcon(), ['category' => $category->getIdentifier()]);
+            $identifier = $category->getIdentifier();
+            if (null === $identifier) {
+                continue;
+            }
+            $this->addLink(
+                $sprints,
+                'sprint_' . $identifier,
+                $category->getName() ?? $identifier,
+                'sprint',
+                $category->getIcon(),
+                ['category' => $identifier],
+            );
         }
         $this->addLink($sprints, 'sprint_reviews', 'Review board', 'sprint_reviews', 'actions-line-columns');
         if ($this->authorizationChecker->isGranted('ROLE_CORE_COMPONENT')) {
@@ -110,8 +121,15 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
      * @param array<string, string> $routeParameters
      * @param string|null           $description     a line about the page, for the tiles of an overview like the tools
      */
-    private function addLink(ItemInterface $parent, string $name, string $label, string $route, string $icon, array $routeParameters = [], ?string $description = null): void
-    {
+    private function addLink(
+        ItemInterface $parent,
+        string $name,
+        string $label,
+        string $route,
+        ?string $icon,
+        array $routeParameters = [],
+        ?string $description = null,
+    ): void {
         $parent->addChild($name, [
             'label' => $label,
             'route' => $route,
@@ -129,6 +147,9 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             ->setLabelAttribute('class', 'dropdown-header');
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     #[\Override]
     public function mainProfile(array $options): ItemInterface
     {
@@ -169,24 +190,23 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             $this->addLink($admin, 'management-command-runs', 'Command runs', 'management_command_runs', 'actions-history');
             $this->addLink($admin, 'management-system', 'System', 'management_system', 'actions-database');
         }
-        if ($this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
-            /** @var KeyCloakUser $user */
-            $user = $this->tokenStorage->getToken()->getUser();
-            $menu->addChild(
+        $user = $this->tokenStorage->getToken()?->getUser();
+        if ($user instanceof KeyCloakUser && $this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
+            $account = $menu->addChild(
                 'username',
                 [
                     'label' => $user->getDisplayName(),
                     'uri' => '#',
                     'extras' => [
-                        'image' => AvatarUtility::getAvatarUrl($user->getEmail(), 32),
+                        'image' => AvatarUtility::getAvatarUrl($user->getEmail() ?? '', 32),
                     ],
                 ]
             );
             if ($this->isKeycloakSession()) {
-                $this->addAccountItems($menu['username'], 't3g_keycloak_logout');
+                $this->addAccountItems($account, 't3g_keycloak_logout');
             } else {
                 // Fixed dev users have no Keycloak account, sign them out locally
-                $menu['username']->addChild('logout', [
+                $account->addChild('logout', [
                     'label' => 'Sign out',
                     'route' => 'logout',
                     'extras' => [

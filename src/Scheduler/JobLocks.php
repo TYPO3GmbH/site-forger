@@ -15,7 +15,7 @@ use Symfony\Component\Lock\LockFactory;
 
 /**
  * Whether the lock of a job is free, as the job takes it: the imports lock with the LockableTrait of the console and
- * the locks of the app (config/packages/lock.yaml), see App\Command\ImportCommand. A queued job waits while its lock
+ * the locks of the app (config/packages/lock.yaml), see App\Command\ImportJobCommand. A queued job waits while its lock
  * is held, see StartQueuedJobsHandler: started, it would end as "Skipped, locked".
  */
 final readonly class JobLocks

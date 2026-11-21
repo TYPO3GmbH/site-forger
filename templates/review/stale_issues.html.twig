@@ -2,12 +2,12 @@
 {% block title %}Stale issues{% endblock %}
 {#
  # The open issues nobody works on, the stages "Stale" and "Orphaned" of App\Enum\ActivityEnum, see
- # App\Elastic\StaleIssues: by default the ones lying still the longest first, in an order of IssueSortEnum, a page at
+ # App\Report\StaleIssues: by default the ones lying still the longest first, in an order of IssueSortEnum, a page at
  # a time. Each row names its changes in Gerrit and their states; an issue "Under Review" without any change says so.
  # No orange band: the title stands on the gray of the page, below the breadcrumb.
- # Expects: issues (see StaleIssues::withChanges()), stages (the ActivityEnum cases of the list), totalResults,
- #          startingAtItem, endingAtItem, pagesToLinkTo, currentPage, sort, sortOptions, sortParameter (the order in
- #          links, empty for the default)
+ # Expects: issues (StaleIssue objects, see StaleIssues::page()), stages (the ActivityEnum cases of the list),
+ #          totalResults, startingAtItem, endingAtItem, pagesToLinkTo, currentPage, sort, sortOptions, sortParameter
+ #          (the order in links, empty for the default)
  #}
 {% block body %}
     {% import '_macros/sort.html.twig' as sorting %}
@@ -49,6 +49,7 @@
                 {% include '_partials/pagination.html.twig' with {
                     'pages': pagesToLinkTo,
                     'current': currentPage,
+                    'last': lastPage ?? null,
                     'routeName': 'gerrit_stale_issues',
                     'arguments': sortParameter,
                 } only %}

@@ -1,0 +1,35 @@
+{#
+ # People, of Forge and of Gerrit alike: avatar and name, everywhere the same.
+ # A user is a Person: an issue's author or assignedTo, a change's ownerPerson. Nothing without a person or a name.
+ #}
+
+{#
+ # In the text: "user", the avatar in "user-avatar", the name in "user-name", see _user.scss.
+ # size: of the image, twice as large as shown, for sharp screens; large: the larger avatar of the detail pages;
+ # url and title: where the name leads, as the caller passes it, no link without; not inside another link, like the
+ # rows of the lists, which lead to the document as a whole; role: what the person is to the document, like "Author".
+ # The avatar always, the placeholder of Gravatar without an email: every person looks alike.
+ # On hover the name, with the role before it: the whole name also where the row cuts it.
+ #}
+{% macro inline(user, size = 40, large = false, url = null, title = null, role = null) -%}
+    {%- if (user.name ?? '') is not empty -%}
+    <span class="user{{ large ? ' user-large' }}" title="{{ role ? role ~ ': ' }}{{ user.name }}">
+        {#- -#}<span class="user-avatar" aria-hidden="true">{{ user_avatar(user, size) }}</span>
+        {#- -#}<span class="user-name">{% if url %}<a href="{{ url }}"{% if title %} title="{{ title }}"{% endif %}>{{ user.name }}</a>{% else %}{{ user.name }}{% endif %}</span>
+    {#- -#}
+    </span>
+    {%- endif -%}
+{%- endmacro %}
+
+{# In the facts of a card, the label above the name; url and title as for inline() #}
+{% macro meta(user, label, class, url = null, title = null) %}
+    {% if (user.name ?? '') is not empty %}
+        <div class="issue-meta-item {{ class }}">
+            <span class="issue-meta-item-avatar">{{ user_avatar(user) }}</span>
+            <span class="issue-meta-item-body">
+                <span class="issue-meta-item-label">{{ label }}</span>
+                <span class="issue-meta-item-value">{% if url %}<a href="{{ url }}"{% if title %} title="{{ title }}"{% endif %}>{{ user.name }}</a>{% else %}{{ user.name }}{% endif %}</span>
+            </span>
+        </div>
+    {% endif %}
+{% endmacro %}

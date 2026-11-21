@@ -14,13 +14,13 @@
         <span class="overview-stat-value">{{ count.percentage ?? 0 }}%</span>
         <span class="overview-stat-note">{{ count.closed }} of {{ count.total }} issues done</span>
         <span class="overview-segments" aria-hidden="true">
-            {% for state in states|keys|filter(state => count[state] > 0) %}
-                <span class="overview-segment sprint-overview-segment-{{ state }}" style="flex-grow: {{ count[state] }}"></span>
+            {% for state in states|keys|filter(state => attribute(count, state) > 0) %}
+                <span class="overview-segment sprint-overview-segment-{{ state }}" style="flex-grow: {{ attribute(count, state) }}"></span>
             {% endfor %}
         </span>
         <span class="overview-legend">
             {% for state, label in states %}
-                <span class="overview-legend-item"><span class="overview-legend-swatch sprint-overview-segment-{{ state }}"></span>{{ label }} <strong>{{ count[state] }}</strong></span>
+                <span class="overview-legend-item"><span class="overview-legend-swatch sprint-overview-segment-{{ state }}"></span>{{ label }} <strong>{{ attribute(count, state) }}</strong></span>
             {% endfor %}
         </span>
     {% endif %}

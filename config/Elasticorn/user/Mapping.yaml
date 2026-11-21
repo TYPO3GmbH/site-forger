@@ -1,0 +1,28 @@
+# The people of Forge and Gerrit, see App\Repository\UserRepository: the issues keep only their number and name.
+# A document per TYPO3 account, its id the username, "forge:<forge_id>" until Forge told the username.
+username:
+  type: keyword
+forge_id:
+  type: integer
+gerrit_id:
+  type: integer
+name:
+  type: keyword
+email:
+  type: keyword
+fetched_on:
+  type: date
+  format: yyyy/MM/dd HH:mm:ss
+gone:
+  type: boolean
+# The HTTP status Forge answered for a gone user, see App\Import\ForgeUserSync
+gone_status:
+  type: integer
+# When Gerrit was asked for the account of the username, see App\Import\GerritAccountLookup
+gerrit_looked_up_on:
+  type: date
+  format: yyyy/MM/dd HH:mm:ss
+# When the person logged in here with the TYPO3 account last, see App\Repository\UserRepository::recordLogin()
+typo3_login_on:
+  type: date
+  format: yyyy/MM/dd HH:mm:ss

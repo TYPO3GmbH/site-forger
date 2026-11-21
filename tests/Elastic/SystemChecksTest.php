@@ -12,8 +12,9 @@ declare(strict_types=1);
 namespace App\Tests\Elastic;
 
 use App\Elastic\ElasticsearchVersion;
-use App\Elastic\PendingImport;
 use App\Enum\SystemCheckEnum;
+use App\Import\ImportSchema;
+use App\Import\PendingImport;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -37,26 +38,20 @@ final class SystemChecksTest extends TestCase
         self::assertSame($expected, ElasticsearchVersion::result($version));
     }
 
-    public function testDocumentsWaitWhileSomeMatch(): void
+    public function testDocumentsOfAnOlderImportWait(): void
     {
-        self::assertSame(SystemCheckEnum::ATTENTION, PendingImport::result(PendingImport::MATCHES_WAIT, 576, 903));
-        self::assertSame(SystemCheckEnum::OK, PendingImport::result(PendingImport::MATCHES_WAIT, 0, 903));
+        self::assertSame(SystemCheckEnum::ATTENTION, PendingImport::result(576));
+        self::assertSame(SystemCheckEnum::OK, PendingImport::result(0));
     }
 
-    public function testDocumentsWaitWhileNoneMatches(): void
+    public function testEachIndexCountsTheDocumentsOfAnOlderImport(): void
     {
-        self::assertSame(SystemCheckEnum::ATTENTION, PendingImport::result(PendingImport::NONE_WAIT, 0, 143));
-        self::assertSame(SystemCheckEnum::OK, PendingImport::result(PendingImport::NONE_WAIT, 5, 143));
-        // An empty index waits for nothing
-        self::assertSame(SystemCheckEnum::OK, PendingImport::result(PendingImport::NONE_WAIT, 0, 0));
-    }
+        $checks = PendingImport::checks();
 
-    public function testEveryCheckIsComplete(): void
-    {
-        foreach (PendingImport::checks() as $check) {
-            self::assertContains($check['index'], ['issue', 'review'], $check['label']);
-            self::assertContains($check['kind'], [PendingImport::MATCHES_WAIT, PendingImport::NONE_WAIT], $check['label']);
-            self::assertStringContainsString('--force', $check['command'], 'Without --force the import skips unchanged documents: ' . $check['label']);
+        self::assertSame(['issue', 'review'], array_column($checks, 'index'));
+        foreach ($checks as $check) {
+            self::assertSame(ImportSchema::current($check['index']), $check['version'], $check['label']);
+            self::assertSame(ImportSchema::outdated($check['index']), $check['query'], $check['label']);
             self::assertNotSame('', $check['description']);
         }
     }

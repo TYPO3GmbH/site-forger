@@ -16,6 +16,9 @@ use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
+/**
+ * @extends AbstractType<\App\Entity\BackportBlacklistEntry>
+ */
 class BackPortBlacklistEntry extends AbstractType
 {
     /**
@@ -44,7 +47,6 @@ class BackPortBlacklistEntry extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => \App\Entity\BackportBlacklistEntry::class,
-            'csrf_protection' => 'test' !== getenv('APP_ENV'),
             'entity_manager' => null,
         ]);
     }

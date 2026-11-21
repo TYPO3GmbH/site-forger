@@ -17,7 +17,7 @@
                 <div class="btn-group">
                     {% for boardNav in menu %}
                         <a href="{{ path("sprint", {"category":category, "sprintId":boardNav.id}) }}" class="btn btn-default {{ (boardNav.active) ? 'active' : '' }}" title="{{boardNav.count.open}} open, {{boardNav.count.closed}} closed, {{boardNav.count.total}} total">
-                            {{ boardNav.title }} ({{ (boardNav.count.percentage is defined) ? boardNav.count.percentage ~ '%' : '/'}})
+                            {{ boardNav.title }} ({{ (boardNav.count.percentage is not null) ? boardNav.count.percentage ~ '%' : '/'}})
                         </a>
                     {% endfor %}
                 </div>
@@ -69,17 +69,17 @@
     {% if cards|length > 0 %}
         <div class="board">
             <div class="board-container">
-                {% for columnName, cardList in cards %}
+                {% for boardColumn in cards %}
                     <div class="board-column">
                         <div class="board-column-header">
-                            <h3 class="board-colum-header-headline status-{{ columnName }}"><strong>{{ cardList|length }}</strong> {{ columnName }}</h3>
+                            <h3 class="board-colum-header-headline status-{{ boardColumn.column.label }}"><strong>{{ boardColumn.count }}</strong> {{ boardColumn.column.label }}</h3>
                         </div>
                         <div class="board-column-content">
-                            {% for card in cardList %}
-                                {% if card._redmine_issue_id is defined %}
-                                    {% include '_partials/review_card.html.twig' with {'card': card} only %}
+                            {% for card in boardColumn.cards %}
+                                {% if card.change %}
+                                    {% include '_partials/review_card.html.twig' with {'card': card.change} only %}
                                 {% else %}
-                                    {% include '_partials/issue_card.html.twig' with {'card': card} only %}
+                                    {% include '_partials/issue_card.html.twig' with {'card': card.issue} only %}
                                 {% endif %}
                             {% endfor %}
                         </div>

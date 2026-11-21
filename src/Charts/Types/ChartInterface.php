@@ -13,5 +13,8 @@ namespace App\Charts\Types;
 
 interface ChartInterface
 {
+    /**
+     * @return array<string, mixed> the data of a Chart.js chart
+     */
     public function getData(): array;
 }

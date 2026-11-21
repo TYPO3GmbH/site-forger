@@ -70,13 +70,13 @@ class Mergeable extends ReviewChart
                 ]]],
             ],
         ]);
-        $buckets = $result->getAggregation('state')['buckets'] ?? [];
+        $counts = $result->counts('state');
 
         // Keyed by state: Elasticsearch orders terms buckets by count, which mixed up the states before
         return [
-            'ready' => (int) ($buckets['ready']['doc_count'] ?? 0),
-            'conflict' => (int) ($buckets['conflict']['doc_count'] ?? 0),
-            'wip' => (int) ($buckets['wip']['doc_count'] ?? 0),
+            'ready' => $counts['ready'] ?? 0,
+            'conflict' => $counts['conflict'] ?? 0,
+            'wip' => $counts['wip'] ?? 0,
         ];
     }
 }

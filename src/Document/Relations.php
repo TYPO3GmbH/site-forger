@@ -1,0 +1,137 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the package t3g/forger.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file that was distributed with this source code.
+ */
+
+namespace App\Document;
+
+use App\Elastic\SearchResult;
+use App\Repository\ChangeRepository;
+use App\Repository\IssueRepository;
+use App\Search\IssueSearch;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\ReadableCollection;
+
+/**
+ * How issues and changes belong together, for the pages of an issue and of a change.
+ */
+final readonly class Relations
+{
+    /**
+     * The page of an issue shows this many changes at most, the ones updated last first.
+     */
+    private const int CHANGES = 50;
+
+    /**
+     * The duplicates page shows this many issues, the most similar first.
+     */
+    private const int DUPLICATES = 25;
+
+    public const string LINKED = 'Linked';
+
+    public function __construct(
+        private ChangeRepository $changes,
+        private IssueRepository $issues,
+    ) {
+    }
+
+    /**
+     * The changes whose footer resolves or names the issue, and those its comments link.
+     *
+     * @return ReadableCollection<int, RelatedChange> the ones updated last first
+     */
+    public function changesOf(Issue $issue): ReadableCollection
+    {
+        $id = $issue->id;
+        $numbers = $issue->changeNumbers();
+        $found = $this->changes->search([
+            'query' => ['bool' => ['should' => [
+                ['term' => ['resolves' => $id]],
+                ['term' => ['related' => $id]],
+                ['terms' => ['id' => [] === $numbers ? [0] : $numbers]],
+            ]]],
+            'sort' => [['updated_on' => 'desc']],
+            'size' => self::CHANGES,
+        ]);
+
+        return $found->map(static fn (Change $change): RelatedChange => new RelatedChange($change, match (true) {
+            in_array($id, $change->resolves, true) => CommitMessage::RESOLVES,
+            in_array($id, $change->related, true) => CommitMessage::RELATED,
+            default => self::LINKED,
+        }));
+    }
+
+    /**
+     * The numbers of the changes the comments of the issue link that Forger has not imported.
+     *
+     * @param ReadableCollection<int, RelatedChange> $changes the changes of changesOf()
+     *
+     * @return list<int>
+     */
+    public static function unknownChanges(Issue $issue, ReadableCollection $changes): array
+    {
+        $found = $changes->map(static fn (RelatedChange $related): int => $related->change->id)->toArray();
+
+        return array_values(array_diff($issue->changeNumbers(), $found));
+    }
+
+    /**
+     * The issues of the footer of a change, in its order: those it resolves first.
+     *
+     * @return ReadableCollection<int, RelatedIssue>
+     */
+    public function issuesOf(Change $change): ReadableCollection
+    {
+        $relations = [];
+        $footer = [
+            CommitMessage::RESOLVES => $change->resolves,
+            CommitMessage::RELATED => $change->related,
+        ];
+        foreach ($footer as $relation => $ids) {
+            foreach ($ids as $id) {
+                $relations[(int) $id] ??= $relation;
+            }
+        }
+        $found = $this->issues->byIds(array_keys($relations));
+        $issues = [];
+        foreach ($relations as $id => $relation) {
+            $issues[] = new RelatedIssue($id, $relation, $found->get($id));
+        }
+
+        return new ArrayCollection($issues);
+    }
+
+    /**
+     * The open issues most like the issue, all issues with $includeClosed.
+     *
+     * @return SearchResult<Issue>
+     */
+    public function duplicatesOf(int $id, bool $includeClosed): SearchResult
+    {
+        $bool = [
+            'must' => [[
+                'more_like_this' => [
+                    'fields' => ['subject', 'description'],
+                    'like' => [['_id' => (string) $id]],
+                    'min_term_freq' => 2,
+                    'max_query_terms' => 25,
+                    'minimum_should_match' => '50%',
+                ],
+            ]],
+        ];
+        if (!$includeClosed) {
+            $bool['must_not'] = [IssueSearch::closed()];
+        }
+
+        return $this->issues->search([
+            'query' => ['bool' => $bool],
+            'size' => self::DUPLICATES,
+        ]);
+    }
+}

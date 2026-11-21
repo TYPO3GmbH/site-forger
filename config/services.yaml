@@ -7,26 +7,17 @@ parameters:
   router.request_context.host: '%env(APP_URL)%'
   router.request_context.scheme: 'https'
   redmine_project_id: 27
-  'StatusMapping':
-    'Rejected': 'Done'
-    'Closed': 'Done'
-    'Resolved': 'Done'
-    'Under Review': 'Review'
-    'In Progress': 'WIP'
-    'On Hold': 'BLOCKED'
-    'Needs Feedback': 'BLOCKED'
-    'DefaultState': 'Open'
-  'ColumnOrder':
-    'BLOCKED':
-    'Open':
-    'WIP':
-    'Review':
-    'Done':
+  # The releases whose backports the backport view watches
+  backport_releases: ['13.4', '14.3']
+
 services:
   # default configuration for services in *this* file
   _defaults:
     autowire: true # Automatically injects dependencies in your services.
     autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+    bind:
+      App\Http\ApiClient $forge: '@api.forge'
+      App\Http\ApiClient $gerrit: '@api.gerrit'
 
   # makes classes in src/ available to be used as services
   # this creates a service per class whose id is the fully-qualified class name
@@ -41,33 +32,51 @@ services:
   # without Composer and its plugins on the server
   Symfony\Component\Dotenv\Command\DotenvDumpCommand: ~
 
-  redmine.client.forge:
-    class: Redmine\Client\NativeCurlClient
+  Elastica\Client:
     arguments:
-      $url: '%env(FORGE_ENDPOINT)%'
-      $apikeyOrUsername: '%env(FORGE_ACCESS_TOKEN)%'
-    calls:
-      # forge.typo3.org rejects requests without a User-Agent (bot protection)
-      - setCurlOption: [!php/const CURLOPT_USERAGENT, 'TYPO3 Forger']
+      - host: '%env(ES_HOST)%'
+        port: '%env(ES_PORT)%'
+        path: '%env(ES_PATH)%'
+        transport: '%env(ES_TRANSPORT)%'
+        username: '%env(ES_USER)%'
+        password: '%env(ES_PASSWORD)%'
 
-  guzzle.client.general:
-    class: GuzzleHttp\Client
-
-  guzzle.client.gerrit:
-    class: GuzzleHttp\Client
+  # To add an API, add a service here and a bind in _defaults.
+  api.forge:
+    class: App\Http\ApiClient
     arguments:
-      $config:
-        base_uri: 'https://review.typo3.org/'
+      $name: 'Forge'
+      $client: !service
+        class: GuzzleHttp\Client
+        arguments:
+          - base_uri: '%env(FORGE_ENDPOINT)%'
+            connect_timeout: 10
+            timeout: 120
+            headers:
+              X-Redmine-API-Key: '%env(FORGE_ACCESS_TOKEN)%'
+              # forge.typo3.org rejects requests without a User-Agent (bot protection)
+              User-Agent: 'TYPO3 Forger'
+      $rateLimiter: '@limiter.api'
+      # Stephan Großberndt asked for 50 to 100 ms between two requests (Slack #t3a-t3g-infra, 2024-04-15)
+      $minPauseMs: 50
 
+  api.gerrit:
+    class: App\Http\ApiClient
+    arguments:
+      $name: 'Gerrit'
+      $client: !service
+        class: GuzzleHttp\Client
+        arguments:
+          - base_uri: 'https://review.typo3.org/'
+            connect_timeout: 10
+            timeout: 120
+            headers:
+              User-Agent: 'TYPO3 Forger'
+      $rateLimiter: '@limiter.api'
 
   renderer.redmineTextile:
     class: App\Renderer\RedmineTextileRenderer
     factory: '@App\Renderer\Factory\RedmineTextileRendererFactory'
-
-  App\Charts\Types\TrackerTypes:
-    class: App\Charts\Types\TrackerTypes
-    tags:
-      - { name: 'chart_type', key: 'tracker_types' }
 
   # controllers are imported separately to make sure services can be injected
   # as action arguments even if you don't extend any base controller class
@@ -75,25 +84,12 @@ services:
     resource: '../src/Controller'
     tags: ['controller.service_arguments']
 
-  App\Command\ImportCommand:
-    class: App\Command\ImportCommand
-    public: true
-    arguments:
-      $forgeClient: '@redmine.client.forge'
-
-  App\Service\ForgeIssueImporter:
-    arguments:
-      $forgeClient: '@redmine.client.forge'
 
   # The state of the schedule (App\Scheduler\JobSchedule): in var/scheduler, which the deployments keep,
   # unlike var/cache
   app.scheduler.state:
     class: Symfony\Component\Cache\Adapter\FilesystemAdapter
     arguments: ['jobs', 0, '%kernel.project_dir%/var/scheduler']
-
-  App\Service\GerritChangeImporter:
-    arguments:
-      $client: '@guzzle.client.gerrit'
 
   App\Menu\Breadcrumb:
     arguments:

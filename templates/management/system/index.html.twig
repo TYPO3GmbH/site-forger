@@ -11,6 +11,17 @@
     <span class="status-pill status-pill-{{ result.severity }}">{{ result.label }}</span>
 {% endmacro %}
 
+{# The answer of Forge for a person it does not know, see UserHealth::answers(); the login for the others #}
+{% macro unmappedDetail(user) %}
+    {%- if not user.gone -%}
+        {{ user.username ? 'Login: ' ~ user.username : 'No login known' }}
+    {%- elseif user.goneStatus is null -%}
+        No answer stored
+    {%- else -%}
+        {{ user.goneStatus == 403 ? 'Refused' : 'Not found' }} ({{ user.goneStatus }})
+    {%- endif -%}
+{% endmacro %}
+
 {% macro bytes(bytes) %}
     {%- if bytes is null -%}
         –
@@ -26,21 +37,22 @@
 {% block body %}
     {% import _self as system %}
     {% set configurationLabels = {
-        'current': 'Built from the configuration as it is',
-        'outdated': 'The configuration changed since, app:elasticsearch:setup builds it again',
-        'unknown': 'Built before the configuration was stored with it, app:elasticsearch:setup compares the mapping',
-        'missing': 'No index has this alias, app:elasticsearch:setup creates it',
+        'current': 'Matches the configuration',
+        'outdated': 'The configuration has changed. Run app:elasticsearch:setup to rebuild the index.',
+        'unknown': 'Built before the configuration was stored. Run app:elasticsearch:setup to compare the mapping.',
+        'missing': 'No index has this alias. Run app:elasticsearch:setup to create it.',
     } %}
-    {% set waiting = pending|filter(check => check.result.value != 'ok') %}
+    {% set waiting = pending|filter(check => check.result != constant('App\\Enum\\SystemCheckEnum::OK')) %}
+    {% set outdated = 0 %}
+    {% for check in waiting %}{% set outdated = outdated + check.matches %}{% endfor %}
 
     <div class="content-section content-section-small runs system">
         <div class="container">
 
             <div class="runs-intro">
                 <p>
-                    What Forger runs on and whether its data is complete. The page only reads, it changes nothing.
-                    Documents imported before a change of the import get the new data with a full import with <code>--force</code>:
-                    without it, the import skips what did not change in Forge or Gerrit.
+                    This page shows what Forger runs on and whether its data is complete.
+                    It only reads data and changes nothing.
                 </p>
             </div>
 
@@ -48,7 +60,10 @@
                 <section class="runs-notice" role="alert">
                     <span class="runs-notice-icon" aria-hidden="true">!</span>
                     <div class="runs-notice-body">
-                        <p class="runs-notice-title">Elasticsearch cannot be reached <span class="runs-muted">Lists, search and imports do not work.</span></p>
+                        <p class="runs-notice-title">
+                            Elasticsearch is not reachable.
+                            <span class="runs-muted">Lists, search and imports do not work.</span>
+                        </p>
                         <pre class="system-error">{{ elasticsearch.error }}</pre>
                     </div>
                 </section>
@@ -57,14 +72,12 @@
                     <span class="runs-notice-icon" aria-hidden="true">!</span>
                     <div class="runs-notice-body">
                         <p class="runs-notice-title">
-                            {{ waiting|length }} {{ waiting|length == 1 ? 'change of the import waits' : 'changes of the import wait' }} for a full import
-                            <span class="runs-muted">Everything works, some documents show without the new data.</span>
+                            {{ outdated|number_format(0, '.', ',') }} outdated
+                            {{ outdated == 1 ? 'document' : 'documents' }}.
+                            <span class="runs-muted">
+                                They work, but lack newer data. The imports update them over time.
+                            </span>
                         </p>
-                        <ul class="runs-notice-list">
-                            {% for command in waiting|map(check => check.command)|reduce((unique, command) => command in unique ? unique : unique|merge([command]), []) %}
-                                <li><code>bin/console {{ command }}</code></li>
-                            {% endfor %}
-                        </ul>
                     </div>
                 </section>
             {% endif %}
@@ -73,12 +86,16 @@
                 <div class="runs-stat">
                     <span class="runs-stat-label">Overall</span>
                     <span class="runs-stat-value">{{ system.result(overall) }}</span>
-                    <span class="runs-stat-note">The worst of the checks below</span>
+                    <span class="runs-stat-note">
+                        {{- notOk is empty ? 'All checks are OK.' : 'Look at: ' ~ notOk|join(', ') -}}
+                    </span>
                 </div>
                 <div class="runs-stat">
                     <span class="runs-stat-label">Elasticsearch</span>
                     <span class="runs-stat-value runs-numeric">{{ elasticsearch.version ?? '–' }}</span>
-                    <span class="runs-stat-note">{{ system.result(elasticsearch.versionResult) }} needs {{ minimumVersion }} or newer 7.x</span>
+                    <span class="runs-stat-note">
+                        {{ system.result(elasticsearch.versionResult) }} Needs {{ minimumVersion }} or a newer 7.x
+                    </span>
                 </div>
                 <div class="runs-stat">
                     <span class="runs-stat-label">Cluster</span>
@@ -86,11 +103,29 @@
                     <span class="runs-stat-note">{{ system.result(elasticsearch.healthResult) }}{% if elasticsearch.reachable %} {{ elasticsearch.nodes }} {{ elasticsearch.nodes == 1 ? 'node' : 'nodes' }}{% endif %}</span>
                 </div>
                 <div class="runs-stat">
-                    <span class="runs-stat-label">Waiting for an import</span>
-                    <span class="runs-stat-value runs-numeric{{ waiting is not empty ? ' runs-tone-warning' }}">{{ waiting|length }}</span>
-                    <span class="runs-stat-note">Changes of the import that not all documents have</span>
+                    <span class="runs-stat-label">Outdated documents</span>
+                    <span class="runs-stat-value runs-numeric{{ outdated > 0 ? ' runs-tone-warning' }}">{{ outdated|number_format(0, '.', ',') }}</span>
+                    <span class="runs-stat-note">The imports update them over time</span>
                 </div>
             </div>
+
+            <section class="runs-section">
+                <h2 class="runs-heading">Setup</h2>
+                <ul class="runs-table-card system-setup">
+                    {% for setting in setup %}
+                        <li class="system-setup-item">
+                            <div class="system-setup-text">
+                                <code class="system-setup-name">{{ setting.name }}</code>
+                                <span class="system-setup-purpose">{{ setting.usedFor }}</span>
+                                {% if setting.detail %}
+                                    <span class="system-setup-detail">{{ setting.detail }}</span>
+                                {% endif %}
+                            </div>
+                            {{ system.result(setting.result) }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
 
             {% if elasticsearch.reachable %}
                 <section class="runs-section">
@@ -104,9 +139,11 @@
                             <div><dt>Unassigned shards</dt><dd class="runs-numeric">{{ elasticsearch.unassignedShards }}</dd></div>
                         </dl>
                         <p class="system-note runs-muted">
-                            The search in the filters of people needs {{ minimumVersion }}: before, the wildcard query cannot ignore the case.
+                            The people filters need version {{ minimumVersion }} or newer
+                            to search without regard to case.
                             {% if elasticsearch.health == 'yellow' and elasticsearch.nodes == 1 %}
-                                "Yellow" on a single node is fine: it has no second node for the replicas, the data is complete.
+                                A single node is always "yellow", because it has no second node for the replicas.
+                                The data is complete.
                             {% endif %}
                         </p>
                     </article>
@@ -144,7 +181,7 @@
                 </section>
 
                 <section class="runs-section">
-                    <h2 class="runs-heading">Waiting for a full import</h2>
+                    <h2 class="runs-heading">Outdated documents</h2>
                     <div class="system-checks">
                         {% for check in pending %}
                             <article class="runs-card">
@@ -153,22 +190,84 @@
                                     {{ system.result(check.result) }}
                                 </header>
                                 <p class="system-check-count">
-                                    {% if check.kind == constant('App\\Elastic\\PendingImport::MATCHES_WAIT') %}
-                                        <strong class="runs-numeric">{{ check.matches|number_format(0, '.', ',') }}</strong>
-                                        of {{ check.documents|number_format(0, '.', ',') }} {{ check.index == 'issue' ? 'issues' : 'changes' }} wait
-                                    {% else %}
-                                        <strong class="runs-numeric">{{ check.matches|number_format(0, '.', ',') }}</strong>
-                                        of {{ check.documents|number_format(0, '.', ',') }} {{ check.index == 'issue' ? 'issues' : 'changes' }} have it
-                                    {% endif %}
+                                    <strong class="runs-numeric">{{ check.matches|number_format(0, '.', ',') }}</strong>
+                                    of {{ check.documents|number_format(0, '.', ',') }}
+                                    {{ check.index == 'issue' ? 'issues' : 'changes' }}
+                                    come from an import before version {{ check.version }}
                                 </p>
                                 <p class="runs-muted system-check-description">{{ check.description }}</p>
-                                {% if check.result.value != 'ok' %}
-                                    <p class="system-check-command"><code>bin/console {{ check.command }}</code></p>
-                                {% endif %}
                             </article>
                         {% endfor %}
                     </div>
                 </section>
+
+                {% if users is not null %}
+                    <section class="runs-section">
+                        <h2 class="runs-heading">Users</h2>
+                        <article class="runs-card">
+                            <header class="runs-card-header">
+                                <span class="system-check-label">{{ users.summary }}</span>
+                                {{ system.result(users.result) }}
+                            </header>
+                            {% if users.reasons %}<p class="system-users-reasons">{{ users.reasons }}</p>{% endif %}
+                            {% if users.hint %}<p class="runs-muted system-check-description">{{ users.hint }}</p>{% endif %}
+                            {% if unmappedUsers is not empty %}
+                                <details class="system-unmapped">
+                                    <summary>
+                                        <span class="system-unmapped-title">
+                                            {{- unmapped|number_format(0, '.', ',') }} {{ unmapped == 1 ? 'person' : 'people' -}}
+                                            {{ ' ' }}without an email address
+                                        </span>
+                                        <span class="system-unmapped-icon">{{ icon('actions-chevron-down') }}</span>
+                                    </summary>
+                                    <div class="system-unmapped-list">
+                                        <table class="system-unmapped-table">
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col">Name</th>
+                                                    <th scope="col">On Forge</th>
+                                                    <th scope="col">Detail</th>
+                                                    <th scope="col">Asked on</th>
+                                                </tr>
+                                            </thead>
+                                            {% for group in [
+                                                {'label': 'Unknown to Forge', 'users': unmappedUsers|filter(user => user.gone)},
+                                                {'label': 'No email on Forge', 'users': unmappedUsers|filter(user => not user.gone)},
+                                            ] %}
+                                                {% set count = group.users|length %}
+                                                {% if count > 0 %}
+                                                    <tbody>
+                                                        <tr class="system-unmapped-group">
+                                                            <th scope="rowgroup" colspan="4">
+                                                                {{ group.label }} <span>{{ count|number_format(0, '.', ',') }}</span>
+                                                            </th>
+                                                        </tr>
+                                                        {% for user in group.users %}
+                                                            <tr>
+                                                                <td class="system-unmapped-name">{{ user.name ?: '–' }}</td>
+                                                                <td class="system-unmapped-forge">
+                                                                    {%- if user.forgeId is not null -%}
+                                                                        <a href="{{ forge_user_url(user.forgeId) }}" target="_blank" rel="noopener">
+                                                                            {{- '#' ~ user.forgeId -}}
+                                                                        </a>
+                                                                    {%- endif -%}
+                                                                </td>
+                                                                <td class="system-unmapped-detail">{{ _self.unmappedDetail(user) }}</td>
+                                                                <td class="system-unmapped-date">
+                                                                    {{- user.fetchedOn ? user.fetchedOn|date('j M Y, H:i', 'UTC') ~ ' UTC' -}}
+                                                                </td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </table>
+                                    </div>
+                                </details>
+                            {% endif %}
+                        </article>
+                    </section>
+                {% endif %}
             {% endif %}
 
             <section class="runs-section">

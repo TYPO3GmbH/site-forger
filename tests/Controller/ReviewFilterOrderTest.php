@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller;
 
-use App\Controller\ReviewController;
+use App\Search\FacetSelection;
 use PHPUnit\Framework\TestCase;
 
 final class ReviewFilterOrderTest extends TestCase
@@ -22,12 +22,12 @@ final class ReviewFilterOrderTest extends TestCase
 
         self::assertSame(
             ['Size' => ['s'], 'Owner' => ['o'], 'Updated on' => ['u'], 'Owner selected' => ['x']],
-            ReviewController::inOrderOf($answer, ['Size', 'Releases', 'Owner', 'Updated on'])
+            FacetSelection::inOrderOf($answer, ['Size', 'Releases', 'Owner', 'Updated on'])
         );
     }
 
     public function testWithoutAnswerThereIsNothingToOrder(): void
     {
-        self::assertSame([], ReviewController::inOrderOf([], ['Size']));
+        self::assertSame([], FacetSelection::inOrderOf([], ['Size']));
     }
 }

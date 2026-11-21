@@ -1,3 +1,5 @@
+import { fetchJson } from './request.js';
+
 /**
  * Switches a chart card between the chart and a table of its data, in the same place.
  * The table is loaded when it is shown the first time. See templates/dashboard/index.html.twig.
@@ -60,13 +62,7 @@
 
     function load(pane) {
         pane.replaceChildren(element('p', 'overview-data-message', 'Loading…'));
-        fetch(pane.dataset.chartTable, {headers: {Accept: 'application/json'}})
-            .then(function (response) {
-                if (!response.ok) {
-                    throw new Error(response.statusText);
-                }
-                return response.json();
-            })
+        fetchJson(pane.dataset.chartTable)
             .then(function (data) {
                 render(pane, data);
             })

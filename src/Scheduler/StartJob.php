@@ -21,22 +21,12 @@ final readonly class StartJob
      * @param string       $label   what the job does in a few words, like "Update Forge issues"
      * @param list<string> $command the console command with its arguments
      * @param string|null  $lock    the lock the job takes, see JobLocks
-     * @param bool         $forced  started with --force: imports everything again, see JobSchedule::JOBS
      */
     public function __construct(
         public string $name,
         public string $label,
         public array $command,
         public ?string $lock = null,
-        public bool $forced = false,
     ) {
-    }
-
-    /**
-     * The same job, started with --force.
-     */
-    public function forced(): self
-    {
-        return new self($this->name, $this->label, $this->command, $this->lock, true);
     }
 }

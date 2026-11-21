@@ -19,6 +19,7 @@ final class Colors
     public const string ORANGE = 'orange';
     public const string RED = 'red';
     public const string YELLOW = 'yellow';
+    /** @var array<string, array{int, int, int}> */
     private static array $colors = [
         self::BLUE => [39, 162, 252],
         self::GREEN => [55, 189, 116],

@@ -54,7 +54,7 @@ final readonly class JobControl
         foreach ($this->runs->findRunning($jobs, $now) as $run) {
             $this->runs->requestStop((int) $run->getId(), CommandRunStatusEnum::INTERRUPTED, sprintf('Interrupted: %s', $reason));
             // To start again once resumed
-            $this->queue->queue($run->getJob(), sprintf('interrupted, %s', $reason), $now, $run->isForced());
+            $this->queue->queue($run->getJob(), sprintf('interrupted, %s', $reason), $now);
             $stopping[] = $run;
         }
 

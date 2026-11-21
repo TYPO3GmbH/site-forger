@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 {% block title %}Issues by month{% endblock %}
 {#
- # The open issues by the month they were created, see App\Elastic\MonthOverview: a row per year, the newest first,
+ # The open issues by the month they were created, see App\Report\MonthOverview: a row per year, the newest first,
  # a cell per month, the darker the more issues. So it shows how old the open issues are. A cell names its states on
  # hover and leads to its issues in the search, with the month as the range of "Created"; the year and its total do so for the whole year. Above the table the trackers, a click
  # leaves one out or takes it in again.
@@ -62,7 +62,7 @@
                 </div>
                 <p class="month-legend" aria-hidden="true">
                     Fewer
-                    {% for step in 1..constant('App\\Elastic\\MonthOverview::SHADES') %}<span class="month-legend-step month-shade-{{ step }}"></span>{% endfor %}
+                    {% for step in 1..constant('App\\Report\\MonthOverview::SHADES') %}<span class="month-legend-step month-shade-{{ step }}"></span>{% endfor %}
                     More
                 </p>
             {% endif %}

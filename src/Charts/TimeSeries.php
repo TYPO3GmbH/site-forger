@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace App\Charts;
 
+use App\Elastic\Bucket;
+
 /**
  * Turns Elasticsearch date histograms into series that share one time axis.
  *
@@ -72,8 +74,8 @@ final class TimeSeries
     public static function counts(?array $aggregation): array
     {
         $counts = [];
-        foreach ($aggregation['buckets'] ?? [] as $bucket) {
-            $counts[(string) $bucket['key_as_string']] = (int) $bucket['doc_count'];
+        foreach (Bucket::listOf($aggregation) as $bucket) {
+            $counts[(string) $bucket->keyAsString] = $bucket->count;
         }
 
         return $counts;

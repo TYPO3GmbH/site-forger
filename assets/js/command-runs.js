@@ -1,3 +1,5 @@
+import { fetchHtml, fetchJson } from './request.js';
+
 /**
  * The command runs page, see templates/management/commands/index.html.twig.
  *
@@ -175,13 +177,7 @@
             current.setAttribute('aria-busy', 'true');
         }
 
-        loading = window.fetch(url, {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
-            .then(function (response) {
-                if (!response.ok || response.redirected) {
-                    throw new Error('Unexpected response ' + response.status);
-                }
-                return response.text();
-            })
+        loading = fetchHtml(url)
             .then(function (html) {
                 const next = new DOMParser().parseFromString(html, 'text/html').querySelector('[data-runs-page]');
                 if (!next) {
@@ -232,21 +228,21 @@
      * Success hides by itself, the others stay until closed.
      */
     function notice(type, text) {
-        let container = document.querySelector('.runs-notices');
+        let container = document.querySelector('.runs-toasts');
         if (!container) {
             container = document.createElement('div');
-            container.className = 'runs-notices';
+            container.className = 'runs-toasts';
             container.setAttribute('aria-live', 'polite');
             document.body.append(container);
         }
         const item = document.createElement('div');
-        item.className = 'runs-notice runs-notice-' + type;
+        item.className = 'runs-toast runs-toast-' + type;
         item.setAttribute('role', type === 'danger' ? 'alert' : 'status');
         const message = document.createElement('span');
         message.textContent = text;
         const close = document.createElement('button');
         close.type = 'button';
-        close.className = 'runs-notice-close';
+        close.className = 'runs-toast-close';
         close.setAttribute('aria-label', 'Close');
         close.textContent = '×';
         close.addEventListener('click', function () {
@@ -295,13 +291,6 @@
                 return input.cloneNode();
             })
         );
-        // Import everything again: offered for the jobs that say what --force does, never checked beforehand
-        const force = dialog.querySelector('.runs-confirm-force');
-        const forceText = form.dataset.runsConfirmForce || '';
-        force.hidden = forceText === '';
-        force.querySelector('input').checked = false;
-        force.querySelector('input').disabled = force.hidden;
-        force.querySelector('.runs-confirm-force-detail').textContent = forceText;
         dialog.runsButton = form.querySelector('button');
         dialog.showModal();
         // The safe choice has the focus, Enter does not start or stop a job by accident
@@ -319,18 +308,7 @@
             button.setAttribute('aria-busy', 'true');
             button.disabled = true;
         }
-        window.fetch(target.action, {
-            method: 'POST',
-            body: new FormData(target),
-            credentials: 'same-origin',
-            headers: {'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'},
-        })
-            .then(function (response) {
-                if (!response.ok || response.redirected || !(response.headers.get('Content-Type') || '').includes('json')) {
-                    throw new Error('Unexpected response ' + response.status);
-                }
-                return response.json();
-            })
+        fetchJson(target.action, {method: 'POST', body: new FormData(target)})
             .then(function (result) {
                 (result.messages || []).forEach(function (message) {
                     notice(message.type, message.text);

@@ -99,7 +99,7 @@ class CommandRunRepository extends ServiceEntityRepository
     }
 
     /**
-     * Asks a running run to stop, at its next heartbeat, see App\Service\CommandRunRecorder.
+     * Asks a running run to stop, at its next heartbeat, see App\CommandRun\CommandRunRecorder.
      *
      * @return bool whether it was asked now: not if it ended or was asked already
      */

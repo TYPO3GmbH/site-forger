@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Enum;
 
+use App\Document\Change;
+use App\Document\Issue;
 use App\Enum\ActivityEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -38,24 +40,24 @@ final class ActivityEnumTest extends TestCase
     {
         $change = ['reviewstatus' => 'NEW', 'updated_on' => $lastActivity, 'created_on' => '2020/01/01 00:00:00'];
 
-        self::assertSame($expected, ActivityEnum::fromChange($change, new \DateTimeImmutable(self::NOW)));
+        self::assertSame($expected, Change::fromDocument($change)->activity(new \DateTimeImmutable(self::NOW)));
     }
 
     public function testClosedChangesHaveNoStage(): void
     {
         $now = new \DateTimeImmutable(self::NOW);
 
-        self::assertNull(ActivityEnum::fromChange(['reviewstatus' => 'MERGED', 'updated_on' => '2020/01/01 00:00:00'], $now));
-        self::assertNull(ActivityEnum::fromChange(['reviewstatus' => 'ABANDONED', 'updated_on' => '2020/01/01 00:00:00'], $now));
-        self::assertSame(ActivityEnum::ORPHANED, ActivityEnum::fromChange(['reviewstatus' => 'NEW', 'work_in_progress' => true, 'updated_on' => '2020/01/01 00:00:00'], $now));
+        self::assertNull(Change::fromDocument(['reviewstatus' => 'MERGED', 'updated_on' => '2020/01/01 00:00:00'])->activity($now));
+        self::assertNull(Change::fromDocument(['reviewstatus' => 'ABANDONED', 'updated_on' => '2020/01/01 00:00:00'])->activity($now));
+        self::assertSame(ActivityEnum::ORPHANED, Change::fromDocument(['reviewstatus' => 'NEW', 'work_in_progress' => true, 'updated_on' => '2020/01/01 00:00:00'])->activity($now));
     }
 
     public function testDocumentsWithoutAnUpdateFallBackToTheCreation(): void
     {
         $now = new \DateTimeImmutable(self::NOW);
 
-        self::assertSame(ActivityEnum::STALE, ActivityEnum::fromChange(['reviewstatus' => 'NEW', 'created_on' => '2026/07/01 00:00:00'], $now));
-        self::assertNull(ActivityEnum::fromChange(['reviewstatus' => 'NEW'], $now));
+        self::assertSame(ActivityEnum::STALE, Change::fromDocument(['reviewstatus' => 'NEW', 'created_on' => '2026/07/01 00:00:00'])->activity($now));
+        self::assertNull(Change::fromDocument(['reviewstatus' => 'NEW'])->activity($now));
     }
 
     public function testIssuesHaveAStageUnlessClosed(): void
@@ -63,68 +65,11 @@ final class ActivityEnumTest extends TestCase
         $now = new \DateTimeImmutable(self::NOW);
         $old = ['updated_on' => '2026/07/01 00:00:00', 'created_on' => '2020/01/01 00:00:00'];
 
-        self::assertSame(ActivityEnum::STALE, ActivityEnum::fromIssue($old + ['status' => ['id' => 8, 'name' => 'Under Review']], $now));
-        self::assertNull(ActivityEnum::fromIssue($old + ['status' => ['id' => 3, 'name' => 'Resolved']], $now));
-        // Without an id the name decides, statuses Forge does not know count as open
-        self::assertNull(ActivityEnum::fromIssue($old + ['status' => ['name' => 'Closed']], $now));
-        self::assertSame(ActivityEnum::STALE, ActivityEnum::fromIssue($old + ['status' => ['name' => 'Something new']], $now));
-        self::assertSame(ActivityEnum::STALE, ActivityEnum::fromIssue($old, $now));
-    }
-
-    public function testRangesCoverAllDatesWithoutGaps(): void
-    {
-        self::assertSame(['gte' => 'now-14d'], ActivityEnum::FRESH->range());
-        self::assertSame(['gte' => 'now-60d', 'lt' => 'now-14d'], ActivityEnum::QUIET->range());
-        self::assertSame(['lt' => 'now-180d'], ActivityEnum::ORPHANED->range());
-
-        $cases = ActivityEnum::cases();
-        for ($i = 1, $count = count($cases); $i < $count; ++$i) {
-            self::assertSame($cases[$i - 1]->range()['gte'], $cases[$i]->range()['lt']);
-        }
-    }
-
-    public function testFiltersLeaveOutClosedChangesAndIssues(): void
-    {
-        self::assertSame(
-            ['bool' => [
-                'filter' => [['range' => ['updated_on' => ['gte' => 'now-180d', 'lt' => 'now-60d']]]],
-                'must_not' => [['terms' => ['reviewstatus' => ['MERGED', 'ABANDONED']]]],
-            ]],
-            ActivityEnum::STALE->changeQuery()
-        );
-        self::assertSame(
-            ['bool' => [
-                'filter' => [['range' => ['updated_on' => ['lt' => 'now-180d']]]],
-                'must_not' => [['terms' => ['status.name' => ['Closed', 'Rejected', 'Resolved']]]],
-            ]],
-            ActivityEnum::ORPHANED->issueQuery()
-        );
-    }
-
-    public function testAggregationsCountWithTheFilters(): void
-    {
-        $changes = ActivityEnum::changeAggregation()['filters']['filters'];
-        $issues = ActivityEnum::issueAggregation()['filters']['filters'];
-
-        self::assertSame(['Fresh', 'Quiet', 'Stale', 'Orphaned'], array_keys($changes));
-        self::assertSame(ActivityEnum::QUIET->changeQuery(), $changes['Quiet']);
-        self::assertSame(ActivityEnum::QUIET->issueQuery(), $issues['Quiet']);
-    }
-
-    public function testBucketsFollowTheStagesWithTheLabelsAsKeys(): void
-    {
-        // Elasticsearch answers a keyed "filters" aggregation, in any order
-        $result = ['buckets' => ['Stale' => ['doc_count' => 3], 'Fresh' => ['doc_count' => 7], 'Orphaned' => ['doc_count' => 1]]];
-
-        self::assertSame(
-            ['buckets' => [
-                ['key' => 'Fresh', 'doc_count' => 7],
-                ['key' => 'Quiet', 'doc_count' => 0],
-                ['key' => 'Stale', 'doc_count' => 3],
-                ['key' => 'Orphaned', 'doc_count' => 1],
-            ]],
-            ActivityEnum::buckets($result)
-        );
+        self::assertSame(ActivityEnum::STALE, Issue::fromDocument($old + ['status' => ['id' => 8, 'name' => 'Under Review']])->activity($now));
+        self::assertNull(Issue::fromDocument($old + ['status' => ['id' => 3, 'name' => 'Resolved']])->activity($now));
+        // Statuses Forge does not know count as open
+        self::assertSame(ActivityEnum::STALE, Issue::fromDocument($old + ['status' => ['id' => 99]])->activity($now));
+        self::assertSame(ActivityEnum::STALE, Issue::fromDocument($old)->activity($now));
     }
 
     public function testLabelsAreTheFilterKeys(): void

@@ -1,15 +1,16 @@
 {#
  # A Gerrit change as a card, on the sprint boards and the review board.
- # Expects: card, a document of the review index
+ # Expects: card, an App\Document\Change
  #}
+{% import '_macros/user.html.twig' as user %}
 {% import '_macros/status.html.twig' as status %}
 {% if card is defined and card is not null %}
 
-    {% set reviewTags = card.reviewtags ?? [] %}
+    {% set reviewTags = card.reviewTags ?? [] %}
     {# The color of the type comes from ReviewTypeEnum #}
-    {% set reviewTypeClass = review_type(card).severity ?? 'default' %}
+    {% set reviewTypeClass = card.type.severity ?? 'default' %}
     <div class="review review-card review-type-{{ reviewTypeClass }}">
-        {% if card.mergeable is defined and card.mergeable == 'no' and (card.reviewstatus ?? 'NEW') == 'NEW' %}
+        {% if card.conflict %}
             <div class="review-note review-note-danger">Merge conflict</div>
         {% endif %}
         <div class="review-header">
@@ -38,20 +39,15 @@
         <div class="review-data">
             <div class="review-data-item">
                 <span class="review-data-item-label">Author</span>
-                <span class="review-data-item-value review-owner">
-                    {% if '@' in (card.ownerEmail ?? '') %}
-                        <span class="review-owner-avatar">{{ avatar(card.ownerEmail, 20) }}</span>
-                    {% endif %}
-                    {{ card.owner }}
-                </span>
+                <span class="review-data-item-value">{{ user.inline(card.ownerPerson, 20) }}</span>
             </div>
             <div class="review-data-item">
                 <span class="review-data-item-label">Updated</span>
-                <span class="review-data-item-value">{{ relativetime(to_datetime(card.updated_on)) }}</span>
+                <span class="review-data-item-value">{{ relativetime(to_datetime(card.updatedOn)) }}</span>
             </div>
             <div class="review-data-item">
                 <span class="review-data-item-label">Affected Files</span>
-                <span class="review-data-item-value">{{ card.affected_files }}</span>
+                <span class="review-data-item-value">{{ card.affectedFiles }}</span>
             </div>
             <div class="review-data-item">
                 <span class="review-data-item-label">Patchsets</span>

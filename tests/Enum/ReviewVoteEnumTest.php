@@ -11,16 +11,16 @@ declare(strict_types=1);
 
 namespace App\Tests\Enum;
 
+use App\Document\Change;
+use App\Enum\ReviewLabelEnum;
 use App\Enum\ReviewVoteEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class ReviewVoteEnumTest extends TestCase
 {
-    public function testVotesAreTheGerritValues(): void
+    public function testVotesHaveLabels(): void
     {
-        self::assertSame(ReviewVoteEnum::APPROVED, ReviewVoteEnum::from(2));
-        self::assertSame(ReviewVoteEnum::REJECTED, ReviewVoteEnum::from(-2));
         self::assertSame('+2', ReviewVoteEnum::APPROVED->label());
         self::assertSame('-1', ReviewVoteEnum::DISLIKED->label());
         self::assertSame('0', ReviewVoteEnum::NONE->label());
@@ -56,14 +56,19 @@ final class ReviewVoteEnumTest extends TestCase
     #[DataProvider('changes')]
     public function testTheVoteThatCounts(array $change, ReviewVoteEnum $expected): void
     {
-        self::assertSame($expected, ReviewVoteEnum::fromChange($change, 'review'));
+        self::assertSame($expected, Change::fromDocument($change)->vote(ReviewLabelEnum::CODE_REVIEW));
     }
 
     public function testTheLabelsAreReadApart(): void
     {
-        $change = ['lowest_review_vote' => 0, 'highest_review_vote' => 2, 'lowest_verification_vote' => -1, 'highest_verification_vote' => 0];
+        $change = [
+            'lowest_review_vote' => 0,
+            'highest_review_vote' => 2,
+            'lowest_verification_vote' => -1,
+            'highest_verification_vote' => 0,
+        ];
 
-        self::assertSame(ReviewVoteEnum::APPROVED, ReviewVoteEnum::fromChange($change, 'review'));
-        self::assertSame(ReviewVoteEnum::DISLIKED, ReviewVoteEnum::fromChange($change, 'verification'));
+        self::assertSame(ReviewVoteEnum::APPROVED, Change::fromDocument($change)->vote(ReviewLabelEnum::CODE_REVIEW));
+        self::assertSame(ReviewVoteEnum::DISLIKED, Change::fromDocument($change)->vote(ReviewLabelEnum::VERIFIED));
     }
 }

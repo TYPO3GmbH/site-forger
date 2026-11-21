@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Elastic\CommitMessage;
-use App\Elastic\ElasticUtility;
-use App\Elastic\GlobalSearch;
+use App\Document\CommitMessage;
+use App\Document\Relations;
+use App\Repository\ChangeRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -23,39 +23,25 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 class ChangeController extends AbstractController
 {
+    public function __construct(
+        private readonly Relations $relations,
+        private readonly ChangeRepository $changes,
+    ) {
+    }
+
     #[Route(path: '/change/{number}', name: 'change_show', requirements: ['number' => '\d+'], methods: ['GET'])]
     public function show(int $number): Response
     {
-        $change = GlobalSearch::document('review', $number)
-            ?? throw $this->createNotFoundException(sprintf('Change %d is not in Forger. It may be newer than the last import.', $number));
-
-        // The issues of the footer, in its order: those it resolves first
-        $relations = [];
-        foreach ([CommitMessage::RESOLVES => $change['resolves'] ?? [], CommitMessage::RELATED => $change['related'] ?? []] as $relation => $ids) {
-            foreach ($ids as $id) {
-                $relations[(int) $id] ??= $relation;
-            }
-        }
-        $found = [];
-        if ([] !== $relations) {
-            $results = ElasticUtility::getIndexByName('issue')->search([
-                'query' => ['terms' => ['id' => array_keys($relations)]],
-                'size' => count($relations),
-            ])->getResults();
-            foreach ($results as $result) {
-                $found[(int) $result->getData()['id']] = $result->getData();
-            }
-        }
-        $issues = [];
-        foreach ($relations as $id => $relation) {
-            // Not imported: in another project, or private
-            $issues[] = ['id' => $id, 'relation' => $relation, 'issue' => $found[$id] ?? null];
+        $message = sprintf('Change %d is not in Forger. It may be newer than the last import.', $number);
+        $change = $this->changes->byNumber($number);
+        if (null === $change) {
+            throw $this->createNotFoundException($message);
         }
 
         return $this->render('change/show.html.twig', [
             'change' => $change,
-            'message' => CommitMessage::body((string) ($change['commit_message'] ?? '')),
-            'issues' => $issues,
+            'message' => CommitMessage::body($change->commitMessage),
+            'issues' => $this->relations->issuesOf($change),
         ]);
     }
 }

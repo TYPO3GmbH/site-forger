@@ -14,30 +14,31 @@
 {% endmacro %}
 
 {#
- # The vote that counts for a label of a Gerrit change, "review" or "verification": mergers' +2 and -2 filled,
+ # The vote that counts for a label of a Gerrit change, see App\Enum\ReviewLabelEnum: mergers' +2 and -2 filled,
  # +1 and -1 tinted. The title tells how many voted for and against.
  #}
 {% macro vote(change, label) %}
-    {% set vote = review_vote(change, label) %}
-    {% set name = label == 'review' ? 'Code review' : 'Verified' %}
-    {% set positive = change['positive_' ~ label ~ 's'] ?? 0 %}
-    {% set negative = change['negative_' ~ label ~ 's'] ?? 0 %}
+    {% set vote = change.vote(label) %}
+    {% set positive = change.positiveVotes(label) %}
+    {% set negative = change.negativeVotes(label) %}
     {% set summary = vote.value == 0 ? 'no votes' : vote.label ~ (vote.strong ? ' by a merger' : '') %}
-    <span class="status-pill status-pill-vote status-pill-{{ vote.severity }}" title="{{ name }}: {{ summary }} · {{ positive }} for, {{ negative }} against">{{ label == 'review' ? 'CR' : 'V' }} {{ vote.label }}</span>
+    <span class="status-pill status-pill-vote status-pill-{{ vote.severity }}" title="{{ label.label }}: {{ summary }} · {{ positive }} for, {{ negative }} against">{{ label.abbreviation }} {{ vote.label }}</span>
 {% endmacro %}
 
 {#
  # Both votes of a Gerrit change, the way every list, card and page shows them.
  #}
 {% macro votes(change) %}
-    <span class="status-votes">{{ _self.vote(change, 'review') }}{{ _self.vote(change, 'verification') }}</span>
+    <span class="status-votes">
+        {%- for label in enum_cases('App\\Enum\\ReviewLabelEnum') %}{{ _self.vote(change, label) }}{% endfor -%}
+    </span>
 {% endmacro %}
 
 {#
  # How big a Gerrit change is, see ReviewSizeEnum. The title has the lines added and removed.
  #}
 {% macro size(change) %}
-    {% set size = review_size(change) %}
+    {% set size = change.size %}
     {% if size %}
         {{ _self.sizePill(size, size.label ~ ': +' ~ change.insertions ~ ' −' ~ change.deletions ~ ' lines, ' ~ size.description) }}
     {% endif %}
@@ -53,16 +54,16 @@
 {# With linked, each tag leads to the search of the changes with it, as the filter "Type" sets it; with closed of the
  # closed ones, too #}
 {% macro reviewTags(change, linked = false, closed = false) %}
-    {% set type = review_type(change) %}
-    {% for tag in change.reviewtags ?? [] %}
+    {% set type = change.type %}
+    {% for tag in change.reviewTags ?? [] %}
         {% set element = linked ? 'a' : 'span' %}
         <{{ element }} class="tag-label{{ type and tag == type.value ? ' tag-label-' ~ type.severity }}"{% if linked %} href="{{ path('search_changes', {'filters': {'type': {(tag|filterKey): 'true'}}}|merge(closed ? {'searchClosed': '1'} : {})) }}"{% endif %}{% if type and tag == type.value %} title="{{ type.label }}{{ linked ? ': the changes with this tag' }}"{% elseif linked %} title="The changes with this tag"{% endif %}>{{ tag }}</{{ element }}>
     {% endfor %}
 {% endmacro %}
 
 {% macro review(change) %}
-    {% if change.reviewstatus is defined and change.reviewstatus %}
-        {% set state = review_state(change) %}
+    {% if change.status %}
+        {% set state = change.state %}
         <span class="status-pill status-pill-{{ state.severity }}" title="Gerrit status">{{ state.label }}</span>
     {% endif %}
 {% endmacro %}
@@ -73,7 +74,7 @@
 {% macro activity(change) %}
     {# Only when it lies still, see ActivityEnum::isNoteworthy() #}
     {% set stage = review_activity(change) %}
-    {% if stage and stage.isNoteworthy %}{{ _self.activityPill(stage, change) }}{% endif %}
+    {% if stage and stage.isNoteworthy %}{{ _self.activityPill(stage, change.updatedOn, change.createdOn) }}{% endif %}
 {% endmacro %}
 
 {#
@@ -82,17 +83,17 @@
 {% macro issueActivity(issue) %}
     {# Only when it lies still, see ActivityEnum::isNoteworthy() #}
     {% set stage = issue_activity(issue) %}
-    {% if stage and stage.isNoteworthy %}{{ _self.activityPill(stage, issue) }}{% endif %}
+    {% if stage and stage.isNoteworthy %}{{ _self.activityPill(stage, issue.updatedOn, issue.createdOn) }}{% endif %}
 {% endmacro %}
 
-{% macro activityPill(stage, document) %}
+{% macro activityPill(stage, updatedOn, createdOn) %}
     {% if stage %}
         {% set tooltip = [stage.description] %}
-        {% if document.updated_on is defined %}
-            {% set tooltip = tooltip|merge(['updated ' ~ relativetime(to_datetime(document.updated_on))]) %}
+        {% if updatedOn is not null %}
+            {% set tooltip = tooltip|merge(['updated ' ~ relativetime(to_datetime(updatedOn))]) %}
         {% endif %}
-        {% if document.created_on is defined %}
-            {% set tooltip = tooltip|merge(['created ' ~ relativetime(to_datetime(document.created_on))]) %}
+        {% if createdOn is not null %}
+            {% set tooltip = tooltip|merge(['created ' ~ relativetime(to_datetime(createdOn))]) %}
         {% endif %}
         <span class="status-pill status-pill-icon status-pill-{{ stage.severity }}" title="{{ tooltip|join(' · ') }}">{{ icon(stage.icon) }}{{ stage.label }}</span>
     {% endif %}

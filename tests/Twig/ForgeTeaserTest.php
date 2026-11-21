@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Twig;
 
+use App\Document\Issue;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Twig\Environment;
 
@@ -57,15 +58,15 @@ final class ForgeTeaserTest extends KernelTestCase
             'updated_on' => '2026/11/02 10:00:00',
         ];
 
-        $row = $this->twig->render('_partials/row/issue.html.twig', ['issue' => $issue, 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument($issue), 'detailed' => true]);
         self::assertStringContainsString('<span class="overview-list-item-teaser">The page module fails.</span>', $row);
 
         // Not in the short rows of the dashboard and the detail pages
-        $row = $this->twig->render('_partials/row/issue.html.twig', ['issue' => $issue]);
+        $row = $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument($issue)]);
         self::assertStringNotContainsString('overview-list-item-teaser', $row);
 
         unset($issue['description']);
-        $row = $this->twig->render('_partials/row/issue.html.twig', ['issue' => $issue, 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument($issue), 'detailed' => true]);
         self::assertStringNotContainsString('overview-list-item-teaser', $row);
     }
 

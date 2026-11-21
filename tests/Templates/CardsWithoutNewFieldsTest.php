@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Templates;
 
+use App\Document\Change;
+use App\Document\Issue;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Twig\Environment;
 
@@ -60,6 +62,11 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         'updated_on' => '2026/11/01 10:00:00',
     ];
 
+    /**
+     * The cache of the avatars, see App\People\UserDirectory.
+     */
+    private const string AVATARS_CACHE_KEY = 'user_avatars';
+
     private Environment $twig;
 
     protected function setUp(): void
@@ -67,42 +74,49 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         self::bootKernel();
         $this->twig = self::getContainer()->get('twig');
         self::assertTrue($this->twig->isStrictVariables());
+        // The avatars of the issues come from the index "user", here from its cache
+        $this->avatars([]);
+    }
+
+    protected function tearDown(): void
+    {
+        self::getContainer()->get('cache.app')->delete(self::AVATARS_CACHE_KEY);
+        parent::tearDown();
     }
 
     public function testChangeWithoutNewFields(): void
     {
         $change = self::OLD_CHANGE;
-        unset($change['reviewtags']);
 
-        $card = $this->twig->render('_partials/review_card.html.twig', ['card' => $change]);
-        $full = $this->twig->render('_partials/row/change.html.twig', ['change' => $change, 'detailed' => true]);
+        $card = $this->twig->render('_partials/review_card.html.twig', ['card' => Change::fromDocument($change)]);
+        $full = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'detailed' => true]);
 
         foreach ([$card, $full] as $html) {
             self::assertStringContainsString('Benni Mack', $html);
             self::assertStringNotContainsString('review-breaking', $html);
         }
-        self::assertStringNotContainsString('class="avatar"', $card);
-        // Beside the name the placeholder of Gravatar without an address, so every name starts at the same place
-        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('') . '?s=40&d=mp', $full);
+        // The placeholder of Gravatar without an address, every person alike
+        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('') . '?s=20&amp;d=mp', $card);
+        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('') . '?s=40&amp;d=mp', $full);
     }
 
     public function testOnlyChangesLyingStillShowTheirActivity(): void
     {
-        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => self::OLD_CHANGE, 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::OLD_CHANGE), 'detailed' => true]);
         self::assertStringContainsString('status-pill-activity-', $row);
 
         $change = ['updated_on' => date('Y/m/d H:i:s'), 'created_on' => date('Y/m/d H:i:s')] + self::OLD_CHANGE;
-        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => $change, 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'detailed' => true]);
         self::assertStringNotContainsString('status-pill-activity-', $row);
     }
 
     public function testRowsNameTheStateOnlyWhenNotReady(): void
     {
-        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => self::OLD_CHANGE, 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::OLD_CHANGE), 'detailed' => true]);
         self::assertStringNotContainsString('status-pill-ready', $row);
 
         foreach (['wip' => ['work_in_progress' => true], 'merged' => ['reviewstatus' => 'MERGED']] as $state => $fields) {
-            $row = $this->twig->render('_partials/row/change.html.twig', ['change' => $fields + self::OLD_CHANGE, 'detailed' => true]);
+            $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($fields + self::OLD_CHANGE), 'detailed' => true]);
             self::assertStringContainsString('status-pill-' . $state . '"', $row);
         }
     }
@@ -110,13 +124,13 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     public function testRowShowsBranchAndReleasesTogether(): void
     {
         $change = self::OLD_CHANGE;
-        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => $change, 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'detailed' => true]);
         // The branch is in the releases of old documents, it shows once
         self::assertStringContainsString('<span title="Branch">→ main</span>', $row);
         self::assertStringNotContainsString('class="tag-label" title="Branch"', $row);
 
         $change['releases'] = ['main', '14.3'];
-        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => $change, 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'detailed' => true]);
         self::assertStringContainsString('<span title="Branch and target releases">→ main, 14.3</span>', $row);
     }
 
@@ -124,7 +138,7 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     {
         $change = self::OLD_CHANGE + ['reviewtags' => ['!!!', 'FEATURE'], 'ownerEmail' => 'benni@example.org'];
 
-        $html = $this->twig->render('_partials/review_card.html.twig', ['card' => $change]);
+        $html = $this->twig->render('_partials/review_card.html.twig', ['card' => Change::fromDocument($change)]);
 
         self::assertStringContainsString('review-type-feature', $html);
         self::assertStringContainsString('review-breaking', $html);
@@ -140,9 +154,6 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         $issue = self::OLD_ISSUE;
         unset($issue['assigned_to']);
         yield 'no assignee' => [$issue];
-        $issue = self::OLD_ISSUE;
-        unset($issue['author']['email']);
-        yield 'author without email' => [$issue];
     }
 
     /**
@@ -151,8 +162,8 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('oldIssues')]
     public function testIssueWithoutNewFields(array $issue): void
     {
-        $card = $this->twig->render('_partials/issue_card.html.twig', ['card' => $issue]);
-        $listed = $this->twig->render('_partials/row/issue.html.twig', ['issue' => $issue, 'detailed' => true]);
+        $card = $this->twig->render('_partials/issue_card.html.twig', ['card' => Issue::fromDocument($issue)]);
+        $listed = $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument($issue), 'detailed' => true]);
 
         foreach ([$card, $listed] as $html) {
             self::assertStringContainsString('Benni Mack', $html);
@@ -160,13 +171,38 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         }
     }
 
-    public function testIssueWithAssigneeEmailShowsTheAvatar(): void
+    public function testIssueShowsTheAvatarsOfTheUserIndex(): void
+    {
+        $this->avatars(['forge:2' => md5('benjamin@example.org')]);
+
+        $card = $this->twig->render('_partials/issue_card.html.twig', ['card' => Issue::fromDocument(self::OLD_ISSUE)]);
+        $listed = $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument(self::OLD_ISSUE), 'detailed' => true]);
+
+        // The assignee has one, the author none: the placeholder
+        self::assertSame(2, substr_count($card, 'class="avatar"'));
+        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('') . '?s=36&amp;d=mp', $card);
+        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('benjamin@example.org') . '?s=36&amp;d=mp&amp;r=g', $card);
+        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('') . '?s=40&amp;d=mp', $listed);
+    }
+
+    public function testAnEmailAnOldIssueKeptShowsNoAvatarOfItsOwn(): void
     {
         $issue = self::OLD_ISSUE;
         $issue['assigned_to']['email'] = 'benjamin@example.org';
 
-        $html = $this->twig->render('_partials/issue_card.html.twig', ['card' => $issue]);
+        $html = $this->twig->render('_partials/issue_card.html.twig', ['card' => Issue::fromDocument($issue)]);
 
-        self::assertStringContainsString(md5('benjamin@example.org'), $html);
+        // Only the index "user" gives the avatars, the email stays in the document
+        self::assertStringNotContainsString(md5('benjamin@example.org'), $html);
+    }
+
+    /**
+     * @param array<string, string> $avatars hashes by "forge:<number>" and "gerrit:<number>"
+     */
+    private function avatars(array $avatars): void
+    {
+        $cache = self::getContainer()->get('cache.app');
+        $cache->delete(self::AVATARS_CACHE_KEY);
+        $cache->get(self::AVATARS_CACHE_KEY, static fn (): array => $avatars);
     }
 }

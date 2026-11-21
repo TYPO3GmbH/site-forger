@@ -14,12 +14,12 @@ namespace App\Enum;
 /**
  * The result of a check on the system page, see App\Controller\SystemController.
  */
-enum SystemCheckEnum: string
+enum SystemCheckEnum
 {
-    case OK = 'ok';
-    case ATTENTION = 'attention';
-    case PROBLEM = 'problem';
-    case UNKNOWN = 'unknown';
+    case OK;
+    case ATTENTION;
+    case PROBLEM;
+    case UNKNOWN;
 
     public function label(): string
     {

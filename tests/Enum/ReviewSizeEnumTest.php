@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Enum;
 
+use App\Document\Change;
 use App\Enum\ReviewSizeEnum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -43,13 +44,13 @@ final class ReviewSizeEnumTest extends TestCase
 
     public function testTheAddedAndRemovedLinesCountTogether(): void
     {
-        self::assertSame(ReviewSizeEnum::NORMAL, ReviewSizeEnum::fromChange(['insertions' => 30, 'deletions' => 30]));
+        self::assertSame(ReviewSizeEnum::NORMAL, Change::fromDocument(['insertions' => 30, 'deletions' => 30])->size());
     }
 
     public function testChangesImportedWithoutLinesHaveNoSize(): void
     {
-        self::assertNull(ReviewSizeEnum::fromChange(['insertions' => 30]));
-        self::assertNull(ReviewSizeEnum::fromChange([]));
+        self::assertNull(Change::fromDocument(['insertions' => 30])->size());
+        self::assertNull(Change::fromDocument([])->size());
     }
 
     public function testTheSizesFollowEachOtherWithoutAGap(): void
@@ -65,32 +66,6 @@ final class ReviewSizeEnumTest extends TestCase
         self::assertSame('up to 50 lines changed', ReviewSizeEnum::EASY->description());
         self::assertSame('up to 10000 lines changed', ReviewSizeEnum::NIGHTMARE->description());
         self::assertSame('more than 10000 lines changed', ReviewSizeEnum::IMPOSSIBLE->description());
-    }
-
-    public function testTheFilterOfASizeAsksForItsLines(): void
-    {
-        $filter = ReviewSizeEnum::NORMAL->changeQuery()['bool']['filter'];
-
-        // Changes imported without lines have no size
-        self::assertSame(['exists' => ['field' => 'insertions']], $filter[0]);
-        self::assertSame(['minimum' => 51, 'maximum' => 250], $filter[1]['script']['script']['params']);
-        self::assertSame(['minimum' => 10001, 'maximum' => -1], ReviewSizeEnum::IMPOSSIBLE->changeQuery()['bool']['filter'][1]['script']['script']['params']);
-    }
-
-    public function testTheFilterListsTheSizesSmallestFirst(): void
-    {
-        self::assertSame(['Easy', 'Normal', 'Hard', 'Expert', 'Nightmare', 'Impossible'], array_keys(ReviewSizeEnum::changeAggregation()['filters']['filters']));
-        self::assertSame(
-            ['buckets' => [
-                ['key' => 'Easy', 'doc_count' => 4],
-                ['key' => 'Normal', 'doc_count' => 0],
-                ['key' => 'Hard', 'doc_count' => 1],
-                ['key' => 'Expert', 'doc_count' => 0],
-                ['key' => 'Nightmare', 'doc_count' => 0],
-                ['key' => 'Impossible', 'doc_count' => 0],
-            ]],
-            ReviewSizeEnum::buckets(['buckets' => ['Hard' => ['doc_count' => 1], 'Easy' => ['doc_count' => 4]]])
-        );
     }
 
     public function testLabelsSelectTheSize(): void

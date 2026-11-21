@@ -11,13 +11,11 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
+use App\Document\Change;
+use App\Document\Issue;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\PriorityEnum;
-use App\Enum\ReviewSizeEnum;
-use App\Enum\ReviewStateEnum;
-use App\Enum\ReviewTypeEnum;
-use App\Enum\ReviewVoteEnum;
 use App\Enum\TrackerEnum;
 use Twig\Attribute\AsTwigFunction;
 
@@ -40,69 +38,21 @@ final class StatusTwigExtension
     }
 
     /**
-     * The state a Gerrit change document of the review index is shown in.
-     *
-     * @param array<string, mixed> $change
-     */
-    #[AsTwigFunction(name: 'review_state')]
-    public function reviewState(array $change): ReviewStateEnum
-    {
-        return ReviewStateEnum::fromChange($change);
-    }
-
-    /**
-     * How big a Gerrit change document of the review index is, null if it has no lines.
-     *
-     * @param array<string, mixed> $change
-     */
-    #[AsTwigFunction(name: 'review_size')]
-    public function reviewSize(array $change): ?ReviewSizeEnum
-    {
-        return ReviewSizeEnum::fromChange($change);
-    }
-
-    /**
-     * The type of a Gerrit change document of the review index, null if its subject names none.
-     *
-     * @param array<string, mixed> $change
-     */
-    #[AsTwigFunction(name: 'review_type')]
-    public function reviewType(array $change): ?ReviewTypeEnum
-    {
-        return ReviewTypeEnum::fromTags($change['reviewtags'] ?? []);
-    }
-
-    /**
-     * The vote that counts for a label ("review" or "verification") of a Gerrit change document of the review index.
-     *
-     * @param array<string, mixed> $change
-     */
-    #[AsTwigFunction(name: 'review_vote')]
-    public function reviewVote(array $change, string $label): ReviewVoteEnum
-    {
-        return ReviewVoteEnum::fromChange($change, $label);
-    }
-
-    /**
-     * How long ago a Gerrit change document of the review index was last updated, null if it is closed.
-     *
-     * @param array<string, mixed> $change
+     * How long ago a Gerrit change was last updated, null if it is closed.
      */
     #[AsTwigFunction(name: 'review_activity')]
-    public function reviewActivity(array $change): ?ActivityEnum
+    public function reviewActivity(Change $change): ?ActivityEnum
     {
-        return ActivityEnum::fromChange($change, new \DateTimeImmutable());
+        return $change->activity(new \DateTimeImmutable());
     }
 
     /**
      * How long ago a Forge issue document of the issue index was last updated, null if it is closed.
-     *
-     * @param array<string, mixed> $issue
      */
     #[AsTwigFunction(name: 'issue_activity')]
-    public function issueActivity(array $issue): ?ActivityEnum
+    public function issueActivity(Issue $issue): ?ActivityEnum
     {
-        return ActivityEnum::fromIssue($issue, new \DateTimeImmutable());
+        return $issue->activity(new \DateTimeImmutable());
     }
 
     /**
