@@ -94,7 +94,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
     private function listData(string $query, array $sortParameter = []): array
     {
         return [
-            'routeName' => 'gerrit_index',
+            'routeName' => 'reviews_ready',
             'changes' => [],
             'aggregations' => ['Owner' => Bucket::facetOf(['buckets' => [['key' => 'Benni Mack', 'doc_count' => 1]]])],
             'query' => $query,
@@ -116,16 +116,16 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
     {
         $html = $this->twig->render('_partials/review_view.html.twig', $this->listData('cache', ['sort' => 'smallest']));
 
-        self::assertStringContainsString('<input type="search" id="list-search-gerrit_index" name="query" value="cache"', $html);
+        self::assertStringContainsString('<input type="search" id="list-search-reviews_ready" name="query" value="cache"', $html);
         self::assertStringContainsString('<input type="hidden" name="filters[owner][Benni Mack]" value="true">', $html);
         self::assertStringContainsString('<input type="hidden" name="sort" value="smallest">', $html);
         self::assertStringContainsString('<option value="smallest" selected>Smallest first</option>', $html);
         self::assertStringContainsString('<option value="relevance">Relevance</option>', $html);
         // The filters find nothing: they stay, with the way back to the list without them, its words and order kept
         self::assertStringContainsString('No change in this list matches &quot;cache&quot; with the filters.', $html);
-        self::assertStringContainsString('Untick a filter, or <a href="/gerrit/status?query=cache&amp;sort=smallest">remove the filters.</a>', $html);
+        self::assertStringContainsString('Untick a filter, or <a href="/reviews/ready?query=cache&amp;sort=smallest">remove the filters.</a>', $html);
         // The search in the "Owner" filter asks with the search words of the list
-        self::assertStringContainsString('/gerrit/owners?list=gerrit_index&amp;query=cache', $html);
+        self::assertStringContainsString('/reviews/owners?list=reviews_ready&amp;query=cache', $html);
     }
 
     public function testWithoutSearchWordsThereIsNoRelevance(): void
@@ -135,7 +135,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringNotContainsString('value="relevance"', $html);
         self::assertStringContainsString('<option value="updated" selected>Recently updated</option>', $html);
         self::assertStringContainsString('No change in this list matches the filters.', $html);
-        self::assertStringContainsString('<a href="/gerrit/status">remove the filters.</a>', $html);
+        self::assertStringContainsString('<a href="/reviews/ready">remove the filters.</a>', $html);
         $data = ['filters' => ['file' => ['path' => '']]] + $this->listData('');
         self::assertStringContainsString('This list is empty.', $this->twig->render('_partials/review_view.html.twig', $data));
     }
@@ -360,7 +360,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         // The stages of ActivityEnum, in its words
         self::assertStringContainsString('<strong>30</strong> open issues without activity for 60 days or more: stale (60 to 180 days) or orphaned (more than 180 days).', $html);
         // The sort field of the issue lists, without relevance
-        self::assertStringContainsString('<form class="list-sort" action="/gerrit/stale-issues" method="get">', $html);
+        self::assertStringContainsString('<form class="list-sort" action="/issues/stale" method="get">', $html);
         self::assertStringContainsString('<option value="priority" selected>Priority</option>', $html);
         self::assertStringNotContainsString('value="relevance"', $html);
         self::assertStringContainsString('href="/issue/91089"', $html);
@@ -370,9 +370,9 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertSame(2, substr_count($html, 'overview-list-item-note'));
         // The count above, the pages below
         self::assertStringContainsString('Showing <strong>26</strong>–<strong>28</strong> of <strong>30</strong>', $html);
-        self::assertStringContainsString('<li class="page-item active"><a class="page-link" href="/gerrit/stale-issues?sort=priority&amp;page=2" aria-current="page">2</a></li>', $html);
+        self::assertStringContainsString('<li class="page-item active"><a class="page-link" href="/issues/stale?sort=priority&amp;page=2" aria-current="page">2</a></li>', $html);
         // The last page: back to the first and the previous one, nothing further
-        self::assertStringContainsString('href="/gerrit/stale-issues?sort=priority&amp;page=1" aria-label="Previous page"', $html);
+        self::assertStringContainsString('href="/issues/stale?sort=priority&amp;page=1" aria-label="Previous page"', $html);
         self::assertStringContainsString('<li class="page-item disabled"><span class="page-link" aria-label="Next page">', $html);
         self::assertLessThan(strpos($html, 'class="pagination"'), strpos($html, 'row-list'));
 
@@ -403,8 +403,8 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertFalse($template->hasBlock('headline'));
         self::assertStringContainsString('<h1 class="page-intro-title">Issues by month</h1>', $html);
         // A click leaves a tracker out or takes it in again
-        self::assertStringContainsString('<a href="/management?trackerFilters%5Bbug%5D=true" class="chip is-active" aria-pressed="true" title="Leave out the bugs">Bugs</a>', $html);
-        self::assertStringContainsString('<a href="/management" class="chip" aria-pressed="false" title="Take in the stories">Stories</a>', $html);
+        self::assertStringContainsString('<a href="/issues/by-month?trackerFilters%5Bbug%5D=true" class="chip is-active" aria-pressed="true" title="Leave out the bugs">Bugs</a>', $html);
+        self::assertStringContainsString('<a href="/issues/by-month" class="chip" aria-pressed="false" title="Take in the stories">Stories</a>', $html);
         // The darkest cell, its states on hover
         self::assertStringContainsString('<td class="is-count month-shade-5"><a href="/search?filters%5Bcreated%5D%5Brange%5D=2025-03-01%20to%202025-03-31" title="Mar 2025: New 2, Under Review 1">3</a></td>', $html);
         // The year and its total lead to the issues of the whole year
@@ -496,8 +496,8 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('name="searchClosed" value="1" checked', $html);
 
         // Small in the toolbar of a list, with the filters and the order of the list
-        $html = $this->twig->createTemplate("{% import '_macros/search.html.twig' as search %}{{ search.field('/gerrit/status', 'cache', {'small': true, 'hidden': {'sort': 'smallest'}}) }}")->render();
-        self::assertStringContainsString('<form class="search-field search-field-small" action="/gerrit/status"', $html);
+        $html = $this->twig->createTemplate("{% import '_macros/search.html.twig' as search %}{{ search.field('/reviews/ready', 'cache', {'small': true, 'hidden': {'sort': 'smallest'}}) }}")->render();
+        self::assertStringContainsString('<form class="search-field search-field-small" action="/reviews/ready"', $html);
         self::assertStringContainsString('<input type="hidden" name="sort" value="smallest">', $html);
         self::assertStringContainsString('class="btn btn-default btn-sm"', $html);
         // Without "closed" no checkbox

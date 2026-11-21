@@ -21,7 +21,7 @@
                     'dateFilters': {'updated': {'title': 'Updated', 'value': filters.updated ?? {}}},
                     'query': query,
                     'personSearch': {
-                        'Owner': {'filter': 'owner', 'url': path('gerrit_owners', {'list': routeName}|merge(listParameters)), 'label': 'Find an owner'},
+                        'Owner': {'filter': 'owner', 'url': path('reviews_owners', {'list': routeName}|merge(listParameters)), 'label': 'Find an owner'},
                     },
                 } only %}
             </form>

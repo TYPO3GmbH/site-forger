@@ -29,14 +29,14 @@ use Elastica\Query\Term;
  */
 final class ReviewLists
 {
-    public const string READY = 'gerrit_index';
-    public const string REVIEWED_AND_VERIFIED = 'gerrit_hasverifications';
-    public const string NEEDS_VERIFICATION = 'gerrit_missesverifications';
-    public const string NEEDS_REVIEW = 'gerrit_missesreview';
-    public const string NEEDS_REBASE = 'gerrit_rebase';
-    public const string NEGATIVE_VOTES = 'gerrit_negative_vote_cleanup';
-    public const string WORK_IN_PROGRESS = 'gerrit_wip';
-    public const string READY_TO_MERGE = 'gerrit_coreteam_merge';
+    public const string READY = 'reviews_ready';
+    public const string REVIEWED_AND_VERIFIED = 'reviews_verified';
+    public const string NEEDS_VERIFICATION = 'reviews_needs_verification';
+    public const string NEEDS_REVIEW = 'reviews_needs_review';
+    public const string NEEDS_REBASE = 'reviews_needs_rebase';
+    public const string NEGATIVE_VOTES = 'reviews_negative_votes';
+    public const string WORK_IN_PROGRESS = 'reviews_wip';
+    public const string READY_TO_MERGE = 'reviews_ready_to_merge';
     /**
      * The changes of the search, also work in progress, and also merged and abandoned ones if asked for.
      */

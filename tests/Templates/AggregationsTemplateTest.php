@@ -34,7 +34,7 @@ final class AggregationsTemplateTest extends KernelTestCase
         self::assertStringContainsString('href="#facet-issues-target_version"', $html);
         // Not by position: the second filter of another list is another filter
         self::assertStringNotContainsString('collapse-2', $html);
-        self::assertStringContainsString('id="facet-changes-tracker"', $this->render('/gerrit/status', 'changes'));
+        self::assertStringContainsString('id="facet-changes-tracker"', $this->render('/reviews/ready', 'changes'));
     }
 
     public function testWithoutSelectedValuesEveryFilterStartsClosed(): void

@@ -46,7 +46,7 @@
                     <span class="overview-stat-note">+{{ openedIssues }} opened, {{ closedIssues }} closed in 30 days</span>
                 </a>
 
-                <a class="overview-stat overview-stat-wide" href="{{ path('gerrit_index') }}">
+                <a class="overview-stat overview-stat-wide" href="{{ path('reviews_ready') }}">
                     <span class="overview-stat-label">Open Gerrit changes</span>
                     <span class="overview-stat-value overview-tone-changes">{{ changesTotal }}</span>
                     {% if changesTotal > 0 %}
@@ -63,7 +63,7 @@
                     </span>
                 </a>
 
-                <a class="overview-stat" href="{{ path('gerrit_index') }}">
+                <a class="overview-stat" href="{{ path('reviews_ready') }}">
                     <span class="overview-stat-label">Waiting over a month</span>
                     <span class="overview-stat-value{{ waitingChanges > 0 ? ' overview-tone-warning' }}">{{ waitingChanges }}</span>
                     <span class="overview-stat-note">Changes ready for review without activity for 30 days</span>

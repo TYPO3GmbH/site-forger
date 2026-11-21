@@ -65,24 +65,24 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
 
         // A click on "Reviews" or "Issues" opens their search, all open ones without search words: the entry page,
         // so their dropdowns have no "Search" of their own
-        $reviews = $menu->addChild('gerrit', ['label' => 'Reviews', 'route' => 'search_changes']);
+        $reviews = $menu->addChild('reviews', ['label' => 'Reviews', 'route' => 'search_changes']);
         $this->addHeader($reviews, 'Overview');
-        $this->addLink($reviews, 'gerrit_status', 'Ready for review', 'gerrit_index', 'actions-code-pull-request');
-        $this->addLink($reviews, 'gerrit_wip', 'Work in progress', 'gerrit_wip', 'actions-code-pull-request-draft');
+        $this->addLink($reviews, 'reviews_ready', 'Ready for review', 'reviews_ready', 'actions-code-pull-request');
+        $this->addLink($reviews, 'reviews_wip', 'Work in progress', 'reviews_wip', 'actions-code-pull-request-draft');
         $this->addHeader($reviews, 'Needs action');
-        $this->addLink($reviews, 'gerrit_missesreview', 'Needs review', 'gerrit_missesreview', 'actions-comment');
-        $this->addLink($reviews, 'gerrit_missesverifications', 'Needs verification', 'gerrit_missesverifications', 'actions-check-circle');
-        $this->addLink($reviews, 'gerrit_rebase', 'Needs rebase', 'gerrit_rebase', 'actions-refresh');
-        $this->addLink($reviews, 'gerrit_negative_vote_cleanup', 'Negative votes', 'gerrit_negative_vote_cleanup', 'actions-minus-circle');
-        $this->addLink($reviews, 'gerrit_hasverifications', 'Reviewed and verified', 'gerrit_hasverifications', 'actions-check-badge');
-        $this->addLink($reviews, 'gerrit_coreteam_merge', 'Ready to merge', 'gerrit_coreteam_merge', 'actions-code-merge');
+        $this->addLink($reviews, 'reviews_needs_review', 'Needs review', 'reviews_needs_review', 'actions-comment');
+        $this->addLink($reviews, 'reviews_needs_verification', 'Needs verification', 'reviews_needs_verification', 'actions-check-circle');
+        $this->addLink($reviews, 'reviews_needs_rebase', 'Needs rebase', 'reviews_needs_rebase', 'actions-refresh');
+        $this->addLink($reviews, 'reviews_negative_votes', 'Negative votes', 'reviews_negative_votes', 'actions-minus-circle');
+        $this->addLink($reviews, 'reviews_verified', 'Reviewed and verified', 'reviews_verified', 'actions-check-badge');
+        $this->addLink($reviews, 'reviews_ready_to_merge', 'Ready to merge', 'reviews_ready_to_merge', 'actions-code-merge');
 
         // The most important first: where work waits, then the overviews
         $issues = $menu->addChild('issues', ['label' => 'Issues', 'route' => 'search_search']);
-        $this->addLink($issues, 'gerrit_stale_issues', 'Stale issues', 'gerrit_stale_issues', 'actions-clock');
+        $this->addLink($issues, 'issues_stale', 'Stale issues', 'issues_stale', 'actions-clock');
         $this->addLink($issues, 'issues_duplicates', 'Possible duplicates', 'issues_duplicates', 'actions-duplicates');
-        $this->addLink($issues, 'management-by-category', 'By category', 'management_bycategory', 'actions-tag');
-        $this->addLink($issues, 'management-by-year', 'By month', 'management_index', 'actions-calendar');
+        $this->addLink($issues, 'issues_by_category', 'By category', 'issues_by_category', 'actions-tag');
+        $this->addLink($issues, 'issues_by_month', 'By month', 'issues_by_month', 'actions-calendar');
 
         $sprints = $menu->addChild('sprint', ['label' => 'Sprints', 'route' => 'sprint_overview']);
         $this->addLink($sprints, 'sprint_overview', 'Overview', 'sprint_overview', 'actions-viewmode-layout');

@@ -6,7 +6,7 @@
 <section class="overview-list" aria-labelledby="overview-ready-to-merge">
     <header class="overview-list-header">
         <h2 class="overview-list-title" id="overview-ready-to-merge">Ready to merge <span class="overview-list-count">{{ changes.total }}</span></h2>
-        <a class="overview-list-all" href="{{ path('gerrit_coreteam_merge') }}">Show all</a>
+        <a class="overview-list-all" href="{{ path('reviews_ready_to_merge') }}">Show all</a>
     </header>
     {% if changes is empty %}
         <p class="overview-list-empty">No changes are ready to merge.</p>

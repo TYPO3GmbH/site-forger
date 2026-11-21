@@ -99,7 +99,7 @@ final class ReviewListsTest extends TestCase
 
     public function testUnknownListHasNoQuery(): void
     {
-        self::assertNull(ReviewLists::query('gerrit_stale_issues'));
+        self::assertNull(ReviewLists::query('issues_stale'));
         self::assertNull(ReviewLists::query(''));
     }
 

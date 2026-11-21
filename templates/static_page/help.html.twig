@@ -116,14 +116,14 @@
                         Votes count when a person gave them, not the CI bot.
                     </p>
                     <div class="link-tiles">
-                        {{ help.tile('gerrit_index', 'actions-code-pull-request', 'Ready for review', 'Every open change that is not work in progress.') }}
-                        {{ help.tile('gerrit_wip', 'actions-code-pull-request-draft', 'Work in progress', 'Marked as work in progress in Gerrit or with [WIP] or [POC] in the subject, the oldest first.') }}
-                        {{ help.tile('gerrit_missesreview', 'actions-comment', 'Needs review', 'Verified, but no positive code review yet.') }}
-                        {{ help.tile('gerrit_missesverifications', 'actions-check-circle', 'Needs verification', 'A positive code review, but not verified yet.') }}
-                        {{ help.tile('gerrit_rebase', 'actions-refresh', 'Needs rebase', 'Gerrit cannot merge them because of a conflict.') }}
-                        {{ help.tile('gerrit_negative_vote_cleanup', 'actions-minus-circle', 'Negative votes', 'At least one negative review or verification.') }}
-                        {{ help.tile('gerrit_hasverifications', 'actions-check-badge', 'Reviewed and verified', 'A positive review and verification, whatever else they have.') }}
-                        {{ help.tile('gerrit_coreteam_merge', 'actions-code-merge', 'Ready to merge', 'Reviewed and verified, no negative vote, no conflict.') }}
+                        {{ help.tile('reviews_ready', 'actions-code-pull-request', 'Ready for review', 'Every open change that is not work in progress.') }}
+                        {{ help.tile('reviews_wip', 'actions-code-pull-request-draft', 'Work in progress', 'Marked as work in progress in Gerrit or with [WIP] or [POC] in the subject, the oldest first.') }}
+                        {{ help.tile('reviews_needs_review', 'actions-comment', 'Needs review', 'Verified, but no positive code review yet.') }}
+                        {{ help.tile('reviews_needs_verification', 'actions-check-circle', 'Needs verification', 'A positive code review, but not verified yet.') }}
+                        {{ help.tile('reviews_needs_rebase', 'actions-refresh', 'Needs rebase', 'Gerrit cannot merge them because of a conflict.') }}
+                        {{ help.tile('reviews_negative_votes', 'actions-minus-circle', 'Negative votes', 'At least one negative review or verification.') }}
+                        {{ help.tile('reviews_verified', 'actions-check-badge', 'Reviewed and verified', 'A positive review and verification, whatever else they have.') }}
+                        {{ help.tile('reviews_ready_to_merge', 'actions-code-merge', 'Ready to merge', 'Reviewed and verified, no negative vote, no conflict.') }}
                         {{ help.tile('search_changes', 'actions-search', 'Search', 'Words find open changes, also work in progress. The subject leads to a page with the commit message, the issues and the files of a change.') }}
                     </div>
                     <p id="change-sizes">
@@ -157,11 +157,11 @@
                     <div class="link-tiles">
                         {{ help.tile('search_search', 'actions-search', 'Search', 'Words find open issues and reviews, each in a tab. A number shows the issue and the change with it, and finds the changes that resolve the issue. The page of an issue shows its changes and finds its possible duplicates.') }}
                         <div id="stale-issues" class="link-tile-anchor">
-                            {{ help.tile('gerrit_stale_issues', 'actions-clock', 'Stale issues', 'Open issues without activity for 60 days or more, the stages "Stale" and "Orphaned". Each says which changes it has, linked in the comments or resolving or naming the issue in their commit message.') }}
+                            {{ help.tile('issues_stale', 'actions-clock', 'Stale issues', 'Open issues without activity for 60 days or more, the stages "Stale" and "Orphaned". Each says which changes it has, linked in the comments or resolving or naming the issue in their commit message.') }}
                         </div>
                         {{ help.tile('issues_duplicates', 'actions-duplicates', 'Possible duplicates', 'Pairs of open issues with much of their wording in common, checked from both sides, the most similar first. Pairs Forge already relates are left out.') }}
-                        {{ help.tile('management_bycategory', 'actions-tag', 'By category', 'Open issues per category and tracker, the categories with the most first.') }}
-                        {{ help.tile('management_index', 'actions-calendar', 'By month', 'Open issues by the month they were created: how old the open issues are.') }}
+                        {{ help.tile('issues_by_category', 'actions-tag', 'By category', 'Open issues per category and tracker, the categories with the most first.') }}
+                        {{ help.tile('issues_by_month', 'actions-calendar', 'By month', 'Open issues by the month they were created: how old the open issues are.') }}
                     </div>
                     <p class="help-muted">Tick "Include closed" in the search to include resolved, closed and rejected issues, or merged and abandoned changes. Admins refresh an issue or a change from its page.</p>
                 </section>

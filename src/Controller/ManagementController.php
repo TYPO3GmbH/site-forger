@@ -29,11 +29,11 @@ class ManagementController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/management', name: 'management_index')]
+    #[Route(path: '/issues/by-month', name: 'issues_by_month')]
     public function index(Request $request): Response
     {
         $viewData = [];
-        $viewData['routeName'] = 'management_index';
+        $viewData['routeName'] = 'issues_by_month';
         $trackerFilters = new TrackerFilters($request);
         $viewData['trackerFilters'] = $trackerFilters;
         $request = MonthOverview::request($trackerFilters->excludedLabels());
@@ -61,7 +61,7 @@ class ManagementController extends AbstractController
         return $this->render('management/index.html.twig', $viewData);
     }
 
-    #[Route(path: '/management/bycategory', name: 'management_bycategory')]
+    #[Route(path: '/issues/by-category', name: 'issues_by_category')]
     public function byCategory(): Response
     {
         $issues = $this->issues->search(CategoryOverview::request());
