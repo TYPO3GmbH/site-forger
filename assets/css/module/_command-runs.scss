@@ -521,6 +521,7 @@ a.runs-job {
         padding-top: 0;
     }
 
+
     .status-pill + .runs-muted {
         margin-left: .4rem;
         font-size: .75rem;
@@ -1138,6 +1139,54 @@ a.runs-job {
     border-radius: .5rem;
     background: #fafbfc;
     font-size: .8125rem;
+}
+
+// A log of notes only waits behind the button at the end of its row, see the list of runs
+.runs-log-cell {
+    width: 1%;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.runs-log-toggle > summary {
+    display: inline-flex;
+    gap: .25rem;
+    align-items: center;
+    padding: .2rem .5rem;
+    border: 1px solid var(--runs-border);
+    border-radius: 999px;
+    background: #fff;
+    color: #374151;
+    font-size: .75rem;
+    font-weight: 600;
+    list-style: none;
+    cursor: pointer;
+
+    &::-webkit-details-marker {
+        display: none;
+    }
+
+    &:hover,
+    &:focus-visible {
+        border-color: #cbd0d6;
+        background: #f7f8fa;
+    }
+
+    .icon {
+        transition: transform .15s ease;
+
+        @media (prefers-reduced-motion: reduce) {
+            transition: none;
+        }
+    }
+}
+
+.runs-log-toggle[open] > summary .icon {
+    transform: rotate(180deg);
+}
+
+.runs-row:not(:has(.runs-log-toggle[open])) .runs-detail-folded {
+    display: none;
 }
 
 .runs-log-entries {

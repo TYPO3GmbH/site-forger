@@ -276,6 +276,29 @@ final class CommandRunTest extends TestCase
         self::assertSame(0, $before->getWarningsNotLogged());
     }
 
+    public function testALogOfNotesOnlyCanBeFolded(): void
+    {
+        $note = ['at' => '2026-11-19T15:55:00+01:00', 'level' => 'info', 'message' => 'Catching up'];
+        $warning = ['at' => '2026-11-19T15:56:00+01:00', 'level' => 'warning', 'message' => 'Skipped Forge issue #2'];
+        $notes = $this->commandRun('-5 minutes', CommandRunStatusEnum::SUCCESS, more: ['log' => [$note]]);
+        $withWarning = $this->commandRun(
+            '-5 minutes',
+            CommandRunStatusEnum::WARNING,
+            more: ['warnings' => 1, 'log' => [$note, $warning]],
+        );
+        // The warnings beyond the log are not in it, but they are there
+        $moreWarnings = $this->commandRun(
+            '-5 minutes',
+            CommandRunStatusEnum::WARNING,
+            more: ['warnings' => 3, 'log' => [$note]],
+        );
+
+        self::assertTrue($notes->hasNotesOnly());
+        self::assertFalse($withWarning->hasNotesOnly());
+        self::assertFalse($moreWarnings->hasNotesOnly());
+        self::assertFalse($this->commandRun('-5 minutes', CommandRunStatusEnum::SUCCESS)->hasNotesOnly());
+    }
+
     public function testTheMessageOfAFailedRunIsItsErrorThenItsWarnings(): void
     {
         $run = $this->commandRun('-5 minutes', CommandRunStatusEnum::FAILED, more: [

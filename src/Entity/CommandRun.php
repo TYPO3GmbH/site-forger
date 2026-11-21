@@ -393,6 +393,18 @@ class CommandRun
     }
 
     /**
+     * Whether the log has notes only: the run has no warning or error to tell. The list of runs folds such a log
+     * behind a button.
+     */
+    public function hasNotesOnly(): bool
+    {
+        $log = $this->getLog();
+        $notNotes = array_filter($log, static fn (array $entry): bool => 'info' !== ($entry['level'] ?? null));
+
+        return [] !== $log && [] === $notNotes && 0 === $this->getWarningsNotLogged();
+    }
+
+    /**
      * The warnings beyond those in the log, see CommandRunRecorder::MAX_LOG_ENTRIES.
      */
     public function getWarningsNotLogged(): int

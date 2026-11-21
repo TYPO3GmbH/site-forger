@@ -87,10 +87,17 @@
     {%- endif -%}
 {% endmacro %}
 
-{# The log of a run, like a log file: what it noted, waited for, skipped and failed with, each with its details. The first entries, the others behind a click. #}
+{#
+ # The log of a run, like a log file: what it noted, waited for, skipped and failed with, each with its details.
+ # The first entries, the others behind a click.
+ #}
 {% macro log(run) %}
-    {% set entries = run.log %}
-    {% if entries is not empty %}
+    {% if run.log is not empty %}
+        {{ _self.logEntries(run, run.log) }}
+    {% endif %}
+{% endmacro %}
+
+{% macro logEntries(run, entries) %}
         <div class="runs-log">
             <ol class="runs-log-entries">
                 {% for entry in entries|slice(0, 12) %}{{ _self.logEntry(entry) }}{% endfor %}
@@ -107,7 +114,6 @@
                 <p class="runs-log-truncated">and {{ run.warningsNotLogged|number_format(0, '.', ',') }} more warnings, not logged</p>
             {% endif %}
         </div>
-    {% endif %}
 {% endmacro %}
 
 {% macro logEntry(entry) %}
@@ -535,6 +541,7 @@ Caused by {{ _self.exception(exception.previous) }}{% endif %}
                                     <th scope="col" class="runs-numeric">Duration</th>
                                     <th scope="col" class="runs-numeric">Documents</th>
                                     <th scope="col" class="runs-numeric">Warnings</th>
+                                    <th scope="col" class="runs-log-cell" aria-label="Log"></th>
                                 </tr>
                                 </thead>
                                 {% for run in runs %}
@@ -555,11 +562,30 @@ Caused by {{ _self.exception(exception.previous) }}{% endif %}
                                         <td class="runs-numeric runs-nowrap">{{ runs.duration(run.duration) }}</td>
                                         <td class="runs-numeric">{{ run.documents|number_format(0, '.', ',') }}</td>
                                         <td class="runs-numeric">{{ run.warnings }}</td>
+                                        {% set parts = run.messageParts(now) %}
+                                        {# A log of notes only waits behind the button, a warning or an error shows #}
+                                        {% set folded = run.hasNotesOnly
+                                            and not parts.error
+                                            and state.value not in ['running', 'aborted'] %}
+                                        <td class="runs-log-cell">
+                                            {% if folded %}
+                                                <details class="runs-log-toggle">
+                                                    <summary title="Show the log of the run">
+                                                        {% set notes = run.log|length %}
+                                                        {{- notes }} {{ notes == 1 ? 'note' : 'notes' -}}
+                                                        {{ icon('actions-chevron-down') }}
+                                                    </summary>
+                                                </details>
+                                            {% endif %}
+                                        </td>
                                     </tr>
-                                    {% set parts = run.messageParts(now) %}
-                                    {% if parts.error or parts.warnings is not empty or run.log is not empty or run.status(now).value in ['running', 'aborted'] %}
-                                        <tr class="runs-detail">
-                                            <td colspan="{{ job ? 5 : 6 }}">
+                                    {% set hasDetail = parts.error
+                                        or parts.warnings is not empty
+                                        or run.log is not empty
+                                        or state.value in ['running', 'aborted'] %}
+                                    {% if hasDetail %}
+                                        <tr class="runs-detail{{ folded ? ' runs-detail-folded' }}">
+                                            <td colspan="{{ job ? 6 : 7 }}">
                                                 {% if run.status(now).value == 'running' %}
                                                     {{ runs.progress(run, steps[run.job] ?? [], now) }}
                                                 {% endif %}
