@@ -18,11 +18,14 @@ use App\Enum\SystemCheckEnum;
  */
 final readonly class SetupSetting
 {
+    /**
+     * @param string|null $detail what to know beyond the result, like who Forge logs in as; null for nothing
+     */
     public function __construct(
         public string $name,
         public string $usedFor,
         public SystemCheckEnum $result,
-        public string $state,
+        public ?string $detail = null,
     ) {
     }
 }

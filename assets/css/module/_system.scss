@@ -213,3 +213,46 @@
     margin: 0;
     font-size: .9375rem;
 }
+
+// The tokens and secrets: the name and what it is for, the result on the right, a line below only when it tells more
+.system-setup {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.system-setup-item {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: .8rem 1.25rem;
+
+    & + & {
+        border-top: 1px solid var(--runs-border);
+    }
+}
+
+.system-setup-text {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    min-width: 0;
+}
+
+.system-setup-name {
+    color: #0b0b0b;
+    font-size: .875rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.system-setup-purpose {
+    color: var(--runs-muted);
+    font-size: .8125rem;
+}
+
+.system-setup-detail {
+    color: #374151;
+    font-size: .8125rem;
+}

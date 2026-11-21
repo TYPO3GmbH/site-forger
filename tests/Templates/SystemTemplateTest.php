@@ -32,7 +32,7 @@ final class SystemTemplateTest extends KernelTestCase
 
         self::assertStringContainsString('come from an import before version 3', $html);
         self::assertStringContainsString('Look at: Setup, Outdated documents', $html);
-        self::assertStringContainsString('<code>FORGE_ACCESS_TOKEN</code>', $html);
+        self::assertStringContainsString('<code class="system-setup-name">FORGE_ACCESS_TOKEN</code>', $html);
     }
 
     public function testThePeopleWithoutAnEmailAreListedInTheCardOfTheUsers(): void
@@ -88,7 +88,7 @@ final class SystemTemplateTest extends KernelTestCase
                 'unassignedShards' => 0,
             ],
             'setup' => [
-                new SetupSetting('FORGE_ACCESS_TOKEN', 'The users of Forge', SystemCheckEnum::PROBLEM, 'not set'),
+                new SetupSetting('FORGE_ACCESS_TOKEN', 'Users from Forge', SystemCheckEnum::PROBLEM, 'Not set.'),
             ],
             'indices' => [],
             'pending' => $pending,

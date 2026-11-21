@@ -24,7 +24,7 @@ final class SetupCheckTest extends TestCase
 
         self::assertSame(SystemCheckEnum::OK, $settings['APP_SECRET']->result);
         self::assertSame(SystemCheckEnum::PROBLEM, $settings['FORGE_ACCESS_TOKEN']->result);
-        self::assertSame('not set', $settings['FORGE_ACCESS_TOKEN']->state);
+        self::assertSame('Not set.', $settings['FORGE_ACCESS_TOKEN']->detail);
     }
 
     public function testThePlaceholderOfDotEnvIsNotSet(): void
@@ -35,9 +35,29 @@ final class SetupCheckTest extends TestCase
         ));
 
         self::assertSame(SystemCheckEnum::PROBLEM, $settings['KEYCLOAK_CLIENT_SECRET']->result);
-        self::assertSame('still the placeholder from .env', $settings['KEYCLOAK_CLIENT_SECRET']->state);
+        self::assertSame('Still the placeholder from .env.', $settings['KEYCLOAK_CLIENT_SECRET']->detail);
         // The client ID is no secret: the committed .env holds the real one
         self::assertSame(SystemCheckEnum::OK, $settings['KEYCLOAK_CLIENT_ID']->result);
+    }
+
+    public function testTheForgeTokenNamesTheUserForgeLogsInAs(): void
+    {
+        $environment = ['FORGE_ACCESS_TOKEN' => 'abc'];
+        $accepted = self::byName(SetupCheck::settings(
+            $environment,
+            [],
+            ['account' => 'benjaminkott (Benjamin Kott)', 'error' => null],
+        ))['FORGE_ACCESS_TOKEN'];
+        $rejected = self::byName(SetupCheck::settings(
+            $environment,
+            [],
+            ['account' => null, 'error' => 'Forge does not accept the token (401).'],
+        ))['FORGE_ACCESS_TOKEN'];
+
+        self::assertSame(SystemCheckEnum::OK, $accepted->result);
+        self::assertSame('Logged in as benjaminkott (Benjamin Kott).', $accepted->detail);
+        self::assertSame(SystemCheckEnum::PROBLEM, $rejected->result);
+        self::assertSame('Forge does not accept the token (401).', $rejected->detail);
     }
 
     public function testNoValueLeavesTheCheck(): void

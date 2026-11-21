@@ -20,6 +20,7 @@ use App\People\User;
 use App\People\UserHealth;
 use App\People\UserStatistics;
 use App\Repository\UserRepository;
+use App\Setup\ForgeLogin;
 use App\Setup\SetupCheck;
 use App\Setup\SetupSetting;
 use Elastica\Cluster\Health;
@@ -44,6 +45,7 @@ class SystemController extends AbstractController
         private readonly IndexSetup $indexSetup,
         private readonly KernelInterface $kernel,
         private readonly UserRepository $users,
+        private readonly ForgeLogin $forgeLogin,
         #[Autowire('%kernel.project_dir%/.env')]
         private readonly string $dotEnv,
     ) {
@@ -53,7 +55,11 @@ class SystemController extends AbstractController
     public function index(): Response
     {
         $elasticsearch = $this->elasticsearch();
-        $setup = SetupCheck::settings([...$_ENV, ...$_SERVER], $this->dotEnvDefaults());
+        $setup = SetupCheck::settings(
+            [...$_ENV, ...$_SERVER],
+            $this->dotEnvDefaults(),
+            $this->forgeLogin->check(),
+        );
         $indices = $elasticsearch['reachable'] ? $this->indices() : [];
         $pending = $elasticsearch['reachable'] ? $this->pendingImport() : [];
         $statistics = $elasticsearch['reachable'] ? $this->userStatistics() : null;

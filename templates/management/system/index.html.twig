@@ -111,29 +111,20 @@
 
             <section class="runs-section">
                 <h2 class="runs-heading">Setup</h2>
-                <div class="runs-table-card">
-                    <table class="runs-table">
-                        <thead>
-                            <tr>
-                                <th scope="col">Setting</th>
-                                <th scope="col">Used for</th>
-                                <th scope="col">State</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for setting in setup %}
-                                <tr>
-                                    <td><code>{{ setting.name }}</code></td>
-                                    <td>{{ setting.usedFor }}</td>
-                                    <td class="runs-nowrap">
-                                        {{ system.result(setting.result) }}
-                                        <span class="runs-muted system-detail">{{ setting.state }}</span>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                <ul class="runs-table-card system-setup">
+                    {% for setting in setup %}
+                        <li class="system-setup-item">
+                            <div class="system-setup-text">
+                                <code class="system-setup-name">{{ setting.name }}</code>
+                                <span class="system-setup-purpose">{{ setting.usedFor }}</span>
+                                {% if setting.detail %}
+                                    <span class="system-setup-detail">{{ setting.detail }}</span>
+                                {% endif %}
+                            </div>
+                            {{ system.result(setting.result) }}
+                        </li>
+                    {% endfor %}
+                </ul>
             </section>
 
             {% if elasticsearch.reachable %}

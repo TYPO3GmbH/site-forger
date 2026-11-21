@@ -21,20 +21,14 @@ use App\Enum\SystemCheckEnum;
  */
 final class SetupCheck
 {
-    private const string SET = 'set';
-    private const string NOT_SET = 'not set';
-    private const string PLACEHOLDER = 'still the placeholder from .env';
-
     /**
      * The settings Forger needs, by name, with what they are used for.
      */
     private const array SETTINGS = [
-        'APP_SECRET' => 'Signs sessions and form tokens.',
-        'FORGE_ACCESS_TOKEN' => 'Loads the users from Forge. Without it, Forge reports every user as not found.',
-        'KEYCLOAK_CLIENT_ID' => 'The ID of the Forger client in Keycloak (login.typo3.com).'
-            . ' The login with the TYPO3 account needs it.',
-        'KEYCLOAK_CLIENT_SECRET' => 'The secret of the Forger client in Keycloak (login.typo3.com).'
-            . ' The login with the TYPO3 account needs it.',
+        'APP_SECRET' => 'Sessions and form tokens',
+        'FORGE_ACCESS_TOKEN' => 'Users from Forge',
+        'KEYCLOAK_CLIENT_ID' => 'Keycloak client for the login with the TYPO3 account',
+        'KEYCLOAK_CLIENT_SECRET' => 'Secret of the Keycloak client for the login',
     ];
 
     /**
@@ -43,25 +37,36 @@ final class SetupCheck
     private const array SECRETS = ['APP_SECRET', 'FORGE_ACCESS_TOKEN', 'KEYCLOAK_CLIENT_SECRET'];
 
     /**
-     * @param array<string, mixed>  $environment the variables of the environment, like $_SERVER
-     * @param array<string, string> $defaults    the values of the committed .env
+     * @param array<string, mixed>                                 $environment the variables of the environment, like
+     *                                                                          $_SERVER
+     * @param array<string, string>                                $defaults    the values of the committed .env
+     * @param array{account: string|null, error: string|null}|null $forge       who Forge logs in as with the token, see
+     *                                                                          ForgeLogin; null if not asked
      *
      * @return list<SetupSetting>
      */
-    public static function settings(array $environment, array $defaults): array
+    public static function settings(array $environment, array $defaults, ?array $forge = null): array
     {
         $settings = [];
         foreach (self::SETTINGS as $name => $usedFor) {
             $default = in_array($name, self::SECRETS, true) ? trim($defaults[$name] ?? '') : '';
             $value = $environment[$name] ?? '';
             $value = is_scalar($value) ? trim((string) $value) : '';
-            $state = match (true) {
-                '' === $value => self::NOT_SET,
-                '' !== $default && $value === $default => self::PLACEHOLDER,
-                default => self::SET,
+            $missing = match (true) {
+                '' === $value => 'Not set.',
+                '' !== $default && $value === $default => 'Still the placeholder from .env.',
+                default => null,
             };
-            $result = self::SET === $state ? SystemCheckEnum::OK : SystemCheckEnum::PROBLEM;
-            $settings[] = new SetupSetting($name, $usedFor, $result, $state);
+            if (null !== $missing) {
+                $settings[] = new SetupSetting($name, $usedFor, SystemCheckEnum::PROBLEM, $missing);
+            } elseif ('FORGE_ACCESS_TOKEN' === $name && null !== $forge) {
+                // Of the Forge token, the login tells whether Forge accepts it. Of the others, only being set counts.
+                $settings[] = null === $forge['account']
+                    ? new SetupSetting($name, $usedFor, SystemCheckEnum::PROBLEM, $forge['error'])
+                    : new SetupSetting($name, $usedFor, SystemCheckEnum::OK, 'Logged in as ' . $forge['account'] . '.');
+            } else {
+                $settings[] = new SetupSetting($name, $usedFor, SystemCheckEnum::OK);
+            }
         }
 
         return $settings;
