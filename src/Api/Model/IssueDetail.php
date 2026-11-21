@@ -27,6 +27,7 @@ final readonly class IssueDetail extends IssueSummary
      * @param list<int>           $duplicates
      * @param list<int>           $duplicatedBy
      * @param list<IssueChange>   $changes
+     * @param list<Comment>       $comments
      */
     public function __construct(
         IssueSummary $summary,
@@ -82,6 +83,13 @@ final readonly class IssueDetail extends IssueSummary
             items: new OA\Items(ref: new Model(type: IssueChange::class)),
         )]
         public array $changes,
+        #[OA\Property(
+            description: 'The comments, the oldest first. Documents of older imports may have those of issues under '
+                . 'review only, until the import loads them again.',
+            type: 'array',
+            items: new OA\Items(ref: new Model(type: Comment::class)),
+        )]
+        public array $comments,
     ) {
         parent::__construct(...get_object_vars($summary));
     }

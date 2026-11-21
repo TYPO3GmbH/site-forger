@@ -49,6 +49,12 @@ final class ApiFixtures
             'duplicates' => [101234],
             'duplicated_by' => [],
             'issue_relations' => [['type' => 'relates', 'issue' => 104990], ['type' => 'blocks', 'issue' => 101234]],
+            'journals' => [
+                self::journal(36415, 'Jane Doe', '2026-11-20T10:00:00Z', 'Confirmed.'),
+                self::journal(36415, 'Jane Doe', '2026-11-20T11:00:00Z', ''),
+                self::journal(1, 'Gerrit Code Review', '2026-11-21T08:00:00Z', 'Patch set 1 was pushed.'),
+                self::journal(2, 'John Doe', '2026-11-21T09:00:00Z', 'Hidden.') + ['private_notes' => true],
+            ],
         ]);
     }
 
@@ -143,5 +149,15 @@ final class ApiFixtures
                 return new RequestContext();
             }
         };
+    }
+
+    /**
+     * A journal of an issue as Forge sends it.
+     *
+     * @return array<string, mixed>
+     */
+    private static function journal(int $user, string $name, string $createdOn, string $notes): array
+    {
+        return ['user' => ['id' => $user, 'name' => $name], 'created_on' => $createdOn, 'notes' => $notes];
     }
 }

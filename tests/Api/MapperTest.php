@@ -40,6 +40,27 @@ final class MapperTest extends TestCase
         self::assertSame('ready', $issue['changes'][0]['state']);
     }
 
+    public function testAnIssueHasItsCommentsWithoutTheChangesAndThePrivateNotes(): void
+    {
+        $comments = self::issueDetail()['comments'];
+
+        self::assertSame(
+            [
+                [['id' => 36415, 'name' => 'Jane Doe'], '2026-11-20T10:00:00Z', false, 'Confirmed.'],
+                [['id' => 1, 'name' => 'Gerrit Code Review'], '2026-11-21T08:00:00Z', true, 'Patch set 1 was pushed.'],
+            ],
+            array_map(
+                static fn (array $comment): array => [
+                    $comment['author'],
+                    $comment['createdOn'],
+                    $comment['bot'],
+                    $comment['text'],
+                ],
+                $comments,
+            ),
+        );
+    }
+
     public function testLeavesOutTheRelatedIssuesForgerDoesNotHave(): void
     {
         // The token of the import sees private issues in the relations, the index has none of them

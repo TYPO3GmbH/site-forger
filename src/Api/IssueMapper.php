@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Api;
 
 use App\Api\Model\Bucket;
+use App\Api\Model\Comment;
 use App\Api\Model\Duplicate;
 use App\Api\Model\DuplicateList;
 use App\Api\Model\IssueBreakdown;
@@ -105,7 +106,33 @@ final readonly class IssueMapper
                 relation: strtolower($related->relation),
                 url: sprintf(LinkTwigExtension::GERRIT_CHANGE, $related->change->id),
             ))->toArray()),
+            comments: self::comments($issue),
         );
+    }
+
+    /**
+     * The journals with a note, as the page of the issue shows them. The import left out the private notes.
+     *
+     * @return list<Comment>
+     */
+    private static function comments(Issue $issue): array
+    {
+        $comments = [];
+        foreach ($issue->journals as $journal) {
+            $text = trim((string) ($journal['notes'] ?? ''));
+            if ('' === $text || true === ($journal['private_notes'] ?? false)) {
+                continue;
+            }
+            $author = IndexedPerson::fromIssue($journal['user'] ?? null);
+            $comments[] = new Comment(
+                self::person($author),
+                ApiDate::fromForge(isset($journal['created_on']) ? (string) $journal['created_on'] : null),
+                in_array($author?->name, Comment::BOTS, true),
+                $text,
+            );
+        }
+
+        return $comments;
     }
 
     /**

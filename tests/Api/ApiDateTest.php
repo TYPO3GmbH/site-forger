@@ -27,4 +27,12 @@ final class ApiDateTest extends TestCase
         self::assertNull(ApiDate::fromIndex(''));
         self::assertNull(ApiDate::fromIndex('yesterday'));
     }
+
+    public function testWritesADateOfForgeInUtc(): void
+    {
+        self::assertSame('2026-11-20T22:40:03Z', ApiDate::fromForge('2026-11-20T23:40:03+01:00'));
+        self::assertSame('2026-11-20T23:40:03Z', ApiDate::fromForge('2026-11-20T23:40:03Z'));
+        self::assertNull(ApiDate::fromForge(null));
+        self::assertNull(ApiDate::fromForge('soon'));
+    }
 }

@@ -32,4 +32,21 @@ final class ApiDate
 
         return false === $date ? null : $date->format('Y-m-d\TH:i:s\Z');
     }
+
+    /**
+     * @param string|null $forgeDate a date as Forge sends it, like "2026-11-20T23:40:03Z", the journals keep it so
+     */
+    public static function fromForge(?string $forgeDate): ?string
+    {
+        if (null === $forgeDate || '' === $forgeDate) {
+            return null;
+        }
+        try {
+            $date = new \DateTimeImmutable($forgeDate);
+        } catch (\Exception) {
+            return null;
+        }
+
+        return $date->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
+    }
 }
