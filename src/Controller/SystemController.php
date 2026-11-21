@@ -20,8 +20,12 @@ use App\People\User;
 use App\People\UserHealth;
 use App\People\UserStatistics;
 use App\Repository\UserRepository;
+use App\Setup\SetupCheck;
+use App\Setup\SetupSetting;
 use Elastica\Cluster\Health;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\HttpKernel\KernelInterface;
@@ -40,6 +44,8 @@ class SystemController extends AbstractController
         private readonly IndexSetup $indexSetup,
         private readonly KernelInterface $kernel,
         private readonly UserRepository $users,
+        #[Autowire('%kernel.project_dir%/.env')]
+        private readonly string $dotEnv,
     ) {
     }
 
@@ -47,6 +53,7 @@ class SystemController extends AbstractController
     public function index(): Response
     {
         $elasticsearch = $this->elasticsearch();
+        $setup = SetupCheck::settings([...$_ENV, ...$_SERVER], $this->dotEnvDefaults());
         $indices = $elasticsearch['reachable'] ? $this->indices() : [];
         $pending = $elasticsearch['reachable'] ? $this->pendingImport() : [];
         $statistics = $elasticsearch['reachable'] ? $this->userStatistics() : null;
@@ -66,12 +73,14 @@ class SystemController extends AbstractController
                 'environment' => $this->kernel->getEnvironment(),
                 'debug' => $this->kernel->isDebug(),
             ],
+            'setup' => $setup,
             'overall' => SystemCheckEnum::worst(
                 $elasticsearch['versionResult'],
                 $elasticsearch['healthResult'],
                 ...array_column($indices, 'result'),
                 ...array_column($pending, 'result'),
                 ...(null === $users ? [] : [$users['result']]),
+                ...array_map(static fn (SetupSetting $setting): SystemCheckEnum => $setting->result, $setup),
             ),
             'minimumVersion' => ElasticsearchVersion::MINIMUM,
         ]);
@@ -183,5 +192,17 @@ class SystemController extends AbstractController
         }
 
         return $pending;
+    }
+
+    /**
+     * The values of the committed .env, to tell its placeholders, see SetupCheck.
+     *
+     * @return array<string, string>
+     */
+    private function dotEnvDefaults(): array
+    {
+        $content = is_readable($this->dotEnv) ? file_get_contents($this->dotEnv) : false;
+
+        return false === $content ? [] : (new Dotenv())->parse($content, $this->dotEnv);
     }
 }

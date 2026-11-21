@@ -13,6 +13,7 @@ namespace App\Tests\Templates;
 
 use App\Enum\SystemCheckEnum;
 use App\People\User;
+use App\Setup\SetupSetting;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Twig\Environment;
@@ -30,6 +31,7 @@ final class SystemTemplateTest extends KernelTestCase
         ]);
 
         self::assertStringContainsString('of 100 changes older than version 3', $html);
+        self::assertStringContainsString('<code>FORGE_ACCESS_TOKEN</code>', $html);
     }
 
     public function testThePeopleWithoutAnEmailAreListedInTheCardOfTheUsers(): void
@@ -83,6 +85,9 @@ final class SystemTemplateTest extends KernelTestCase
                 'healthResult' => SystemCheckEnum::OK,
                 'nodes' => 1,
                 'unassignedShards' => 0,
+            ],
+            'setup' => [
+                new SetupSetting('FORGE_ACCESS_TOKEN', 'The users of Forge', SystemCheckEnum::PROBLEM, 'not set'),
             ],
             'indices' => [],
             'pending' => $pending,
