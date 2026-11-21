@@ -17,10 +17,13 @@ use App\Api\IssueMapper;
 use App\Api\ListParameters;
 use App\Api\Model\ChangeDetail;
 use App\Api\Model\ChangePage;
+use App\Api\Model\DuplicateList;
 use App\Api\Model\Error;
 use App\Api\Model\IssueDetail;
 use App\Api\Model\IssuePage;
 use App\Document\Relations;
+use App\Duplicates\DuplicateGroups;
+use App\Duplicates\DuplicateSearch;
 use App\Enum\ChangeStateFilterEnum;
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStateFilterEnum;
@@ -56,6 +59,7 @@ class ApiV1Controller extends AbstractController
         private readonly IssueRepository $issues,
         private readonly ChangeRepository $changes,
         private readonly Relations $relations,
+        private readonly DuplicateSearch $duplicateSearch,
         private readonly IssueMapper $issueMapper,
         private readonly ChangeMapper $changeMapper,
     ) {
@@ -157,7 +161,7 @@ class ApiV1Controller extends AbstractController
     {
         $issue = $this->issues->byId($id);
         if (null === $issue) {
-            return self::error(sprintf('Issue #%d is not in Forger.', $id), Response::HTTP_NOT_FOUND);
+            return self::issueNotFound($id);
         }
 
         return self::respond($this->issueMapper->detail(
@@ -166,6 +170,49 @@ class ApiV1Controller extends AbstractController
             $this->relations->subtasksOf($issue),
             $this->relations->indexedRelatedIssues($issue),
         ));
+    }
+
+    #[Route(path: '/issues/{id}/duplicates', name: 'issue_duplicates', requirements: ['id' => '\d+'])]
+    #[OA\Get(
+        operationId: 'listDuplicates',
+        description: 'The open issues that may describe the same as the issue: first those Forge relates as '
+            . 'duplicates, then those whose wording is at least half the same, as on the duplicates page of Forger. '
+            . 'Ask it before you report or fix something, to find a report nobody linked.',
+        summary: 'Find the duplicates of an issue',
+        tags: ['Issues'],
+    )]
+    #[OA\Parameter(
+        name: 'id',
+        description: 'The number of the issue on Forge.',
+        in: 'path',
+        required: true,
+        schema: new OA\Schema(type: 'integer', minimum: 1),
+        example: 105403,
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'The possible duplicates.',
+        content: new Model(type: DuplicateList::class),
+    )]
+    #[OA\Response(
+        response: 404,
+        description: 'Forger does not have the issue.',
+        content: new Model(type: Error::class),
+    )]
+    #[OA\Response(response: 429, description: self::TOO_MANY_REQUESTS, content: new Model(type: Error::class))]
+    public function issueDuplicates(int $id): JsonResponse
+    {
+        $issue = $this->issues->byId($id);
+        if (null === $issue) {
+            return self::issueNotFound($id);
+        }
+        $groups = DuplicateGroups::of(
+            $issue,
+            $this->duplicateSearch->find($issue->id),
+            $this->issues->byIds($issue->duplicateNumbers()),
+        );
+
+        return self::respond($this->issueMapper->duplicates($issue, $groups));
     }
 
     #[Route(path: '/changes', name: 'changes')]
@@ -273,6 +320,11 @@ class ApiV1Controller extends AbstractController
     private static function changeSort(ListParameters $list): ReviewSortEnum
     {
         return ReviewSortEnum::default('' !== $list->query);
+    }
+
+    private static function issueNotFound(int $id): JsonResponse
+    {
+        return self::error(sprintf('Issue #%d is not in Forger.', $id), Response::HTTP_NOT_FOUND);
     }
 
     private static function error(string $message, int $status): JsonResponse

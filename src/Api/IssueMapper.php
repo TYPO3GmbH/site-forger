@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace App\Api;
 
+use App\Api\Model\Duplicate;
+use App\Api\Model\DuplicateList;
 use App\Api\Model\IssueChange;
 use App\Api\Model\IssueDetail;
 use App\Api\Model\IssueRelation;
@@ -19,6 +21,8 @@ use App\Api\Model\Person;
 use App\Document\Issue;
 use App\Document\IssueRelation as ForgeRelation;
 use App\Document\RelatedChange;
+use App\Duplicates\DuplicateGroups;
+use App\Duplicates\DuplicateHit;
 use App\People\Person as IndexedPerson;
 use App\Twig\LinkTwigExtension;
 use Doctrine\Common\Collections\ReadableCollection;
@@ -98,6 +102,28 @@ final readonly class IssueMapper
                 relation: strtolower($related->relation),
                 url: sprintf(LinkTwigExtension::GERRIT_CHANGE, $related->change->id),
             ))->toArray()),
+        );
+    }
+
+    /**
+     * @param DuplicateGroups $groups see DuplicateGroups::of(), only open issues
+     */
+    public function duplicates(Issue $issue, DuplicateGroups $groups): DuplicateList
+    {
+        $duplicate = fn (DuplicateHit $hit): Duplicate => new Duplicate(
+            $this->summary($hit->issue),
+            $hit->similarity,
+            match ($hit->relation) {
+                DuplicateGroups::DUPLICATES => 'duplicates',
+                DuplicateGroups::DUPLICATED_BY => 'duplicatedBy',
+                default => null,
+            },
+        );
+
+        return new DuplicateList(
+            $issue->id,
+            DuplicateGroups::MIN_SIMILARITY,
+            array_map($duplicate, [...$groups->marked, ...$groups->similar]),
         );
     }
 

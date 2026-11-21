@@ -13,6 +13,9 @@ namespace App\Tests\Api;
 
 use App\Api\ChangeMapper;
 use App\Api\IssueMapper;
+use App\Document\Issue;
+use App\Duplicates\DuplicateGroups;
+use App\Duplicates\DuplicateHit;
 use PHPUnit\Framework\TestCase;
 
 final class MapperTest extends TestCase
@@ -49,6 +52,25 @@ final class MapperTest extends TestCase
         self::assertNull($issue->parent);
         self::assertSame([], $issue->relations);
         self::assertSame([], $issue->duplicates);
+    }
+
+    public function testListsTheMarkedDuplicatesBeforeTheSimilarIssues(): void
+    {
+        $marked = new DuplicateHit(Issue::fromDocument(['id' => 101234, 'subject' => 'Marked']), null);
+        $similar = DuplicateHit::checked(Issue::fromDocument(['id' => 104000, 'subject' => 'Similar']), 70, 60);
+        $groups = new DuplicateGroups([$marked->withRelation(DuplicateGroups::DUPLICATES)], [$similar]);
+
+        $list = self::decoded(new IssueMapper(ApiFixtures::urls())->duplicates(ApiFixtures::issue(), $groups));
+
+        self::assertSame(105403, $list['issue']);
+        self::assertSame(DuplicateGroups::MIN_SIMILARITY, $list['minimumSimilarity']);
+        self::assertSame(
+            [[101234, null, 'duplicates'], [104000, 65, null]],
+            array_map(
+                static fn (array $item): array => [$item['issue']['id'], $item['similarity'], $item['relation']],
+                $list['items'],
+            ),
+        );
     }
 
     public function testAChangeHasItsFieldsAndItsIssues(): void

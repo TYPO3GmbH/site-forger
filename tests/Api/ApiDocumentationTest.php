@@ -13,6 +13,8 @@ namespace App\Tests\Api;
 
 use App\Api\ChangeMapper;
 use App\Api\IssueMapper;
+use App\Duplicates\DuplicateGroups;
+use App\Duplicates\DuplicateHit;
 use Nelmio\ApiDocBundle\ApiDocGenerator;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Routing\RouterInterface;
@@ -55,6 +57,15 @@ final class ApiDocumentationTest extends KernelTestCase
         );
 
         self::assertFieldsDescribed('ChangeDetail', $change);
+    }
+
+    public function testDescribesEveryFieldOfTheDuplicates(): void
+    {
+        $hit = DuplicateHit::checked(ApiFixtures::issue(), 70, 60);
+        $list = new IssueMapper(ApiFixtures::urls())->duplicates(ApiFixtures::issue(), new DuplicateGroups([], [$hit]));
+
+        self::assertFieldsDescribed('DuplicateList', $list);
+        self::assertFieldsDescribed('Duplicate', $list->items[0]);
     }
 
     public function testEveryFieldHasADescription(): void
