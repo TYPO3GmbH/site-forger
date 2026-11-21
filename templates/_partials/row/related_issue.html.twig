@@ -1,0 +1,15 @@
+{#
+ # An issue related to the page, see App\Document\RelatedIssue: its row, or a link to Forge when Forger does not
+ # have it (another project, or a private issue).
+ # Expects: item (a RelatedIssue), relation (how it belongs to the page, as shown)
+ #}
+{% if item.issue is not null %}
+    {% include '_partials/row/issue.html.twig' with {'issue': item.issue, 'relation': relation} only %}
+{% else %}
+    <a class="overview-list-item" href="{{ forge_issue_url(item.id) }}" target="issue{{ item.id }}">
+        <span class="overview-list-item-main">
+            <span class="overview-list-item-title"><span class="overview-list-item-id">{{ item.id }}</span>Not in Forger, open it in Forge</span>
+            <span class="overview-list-item-meta"><span class="overview-list-relation">{{ relation }}</span></span>
+        </span>
+    </a>
+{% endif %}

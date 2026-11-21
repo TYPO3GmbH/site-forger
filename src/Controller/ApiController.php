@@ -66,8 +66,8 @@ class ApiController extends AbstractController
                 'value' => $this->keyFigures->openIssues(),
             ],
             'gerrit' => [
-                'value' => $this->keyFigures->openChanges(),
-                'link' => $this->generateUrl('gerrit_index'),
+                'value' => $this->keyFigures->readyForReview(),
+                'link' => $this->generateUrl('reviews_ready'),
             ],
         ]);
     }

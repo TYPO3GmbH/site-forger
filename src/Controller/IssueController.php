@@ -13,9 +13,10 @@ namespace App\Controller;
 
 use App\Document\Issue;
 use App\Document\Relations;
+use App\Duplicates\DuplicateGroups;
+use App\Duplicates\DuplicateSearch;
 use App\Repository\IssueRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -28,6 +29,7 @@ class IssueController extends AbstractController
     public function __construct(
         private readonly Relations $relations,
         private readonly IssueRepository $issues,
+        private readonly DuplicateSearch $duplicateSearch,
     ) {
     }
 
@@ -39,27 +41,35 @@ class IssueController extends AbstractController
 
         return $this->render('issue/show.html.twig', [
             'issue' => $issue,
+            'duplicates' => $this->duplicateGroups($issue),
             'changes' => $changes,
+            'parent' => $this->relations->parentOf($issue),
+            'subtasks' => $this->relations->subtasksOf($issue),
+            'relatedIssues' => $this->relations->relatedIssuesOf($issue),
             // Linked in a comment, but not imported: closed long ago, or in another project
             'unknownChanges' => Relations::unknownChanges($issue, $changes),
         ]);
     }
 
     /**
-     * The open issues most like this one, all issues with "searchClosed".
+     * The open issues most like this one. The issues Forge relates as duplicates come first.
      */
     #[Route(path: '/duplicates', name: 'issue_duplicates', methods: ['GET'])]
-    public function duplicates(Request $request, int $id): Response
+    public function duplicates(int $id): Response
     {
         $issue = $this->issue($id);
-        $searchClosed = 1 === $request->query->getInt('searchClosed');
-        $results = $this->relations->duplicatesOf($id, $searchClosed);
 
         return $this->render('issue/duplicates.html.twig', [
             'issue' => $issue,
-            'results' => $results,
-            'searchClosed' => $searchClosed,
+            'groups' => $this->duplicateGroups($issue),
         ]);
+    }
+
+    private function duplicateGroups(Issue $issue): DuplicateGroups
+    {
+        $related = $this->issues->byIds($issue->duplicateNumbers());
+
+        return DuplicateGroups::of($issue, $this->duplicateSearch->find($issue->id), $related);
     }
 
     private function issue(int $id): Issue

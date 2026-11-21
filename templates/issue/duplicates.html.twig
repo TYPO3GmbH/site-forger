@@ -4,37 +4,87 @@
     {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
     {{ breadcrumb.trail([{'label': 'Issues', 'url': path('search_search')}, {'label': '#' ~ issue.id, 'url': issue_path(issue.id)}, {'label': 'Possible duplicates'}]) }}
 {% endblock %}
-{% block body %}
 
+{#
+ # One issue of the page: its similarity in a column of its own on the left, the same in every row, beside the
+ # row of the search with the beginning of the description, so the issues can be compared without opening them.
+ # Below the similarity both directions it is the mean of, see DuplicateSearch.
+ #}
+{% macro row(hit, issue, note = null) %}
+    <li class="duplicates-row" id="duplicate-{{ hit.issue.id }}">
+        <span class="duplicates-side">
+            {% if hit.similarity is not null %}
+                <span class="duplicates-score">
+                    <span class="duplicates-score-value">{{ hit.similarity }} %</span>
+                    <span class="duplicates-score-meter" aria-hidden="true"><span style="width: {{ hit.similarity }}%"></span></span>
+                    {% if hit.forward is not null and hit.backward is not null %}
+                        <span class="duplicates-score-directions" title="Seen from #{{ issue.id }}: {{ hit.forward }} %. Seen from #{{ hit.issue.id }}: {{ hit.backward }} %.">
+                            {{- hit.forward }} % · {{ hit.backward }} %
+                        </span>
+                    {% endif %}
+                </span>
+            {% else %}
+                <span class="duplicates-score duplicates-score-none" title="The search did not find it among the most similar issues">–</span>
+            {% endif %}
+        </span>
+        {% include '_partials/row/issue.html.twig' with {'issue': hit.issue, 'detailed': true, 'note': note} only %}
+    </li>
+{% endmacro %}
+
+{% block body %}
     <div class="content-section content-section-small">
         <div class="container">
-            <article class="overview detail">
+            <article class="overview detail duplicates">
                 <header class="detail-header">
                     <div class="detail-header-main">
-                        <h1 class="detail-title">Possible duplicates <span class="detail-count">{{ results|length }}</span></h1>
+                        <h1 class="detail-title">Possible duplicates <span class="detail-count">{{ groups.offered }}</span></h1>
                         <p class="detail-meta">
-                            <span>The {{ searchClosed ? '' : 'open ' }}issues most like <a href="{{ issue_path(issue.id) }}">#{{ issue.id }} {{ issue.subject }}</a> in subject and description, the most similar first.</span>
+                            <span>The open issues most like #{{ issue.id }} by the wording of subject and description.</span>
                         </p>
                     </div>
-                    <div class="detail-actions">
-                        {% if searchClosed %}
-                            <a class="btn btn-sm btn-default" href="{{ path('issue_duplicates', {'id': issue.id}) }}">Open issues only</a>
-                        {% else %}
-                            <a class="btn btn-sm btn-default" href="{{ path('issue_duplicates', {'id': issue.id, 'searchClosed': 1}) }}">Include closed issues</a>
-                        {% endif %}
-                    </div>
                 </header>
-                {% if results is not empty %}
-                    <ul class="overview-list-items">
-                        {% for duplicate in results %}
-                            <li>{% include '_partials/row/issue.html.twig' with {'issue': duplicate} only %}</li>
-                        {% endfor %}
+
+                {# The issue the others are compared with, in the same columns as they are, with more of its description #}
+                <section class="detail-section duplicates-group duplicates-compared" aria-labelledby="duplicates-compared">
+                    <h2 id="duplicates-compared" class="detail-section-title">Compared with</h2>
+                    <ul class="row-list duplicates-list">
+                        <li class="duplicates-row">
+                            <span class="duplicates-side"></span>
+                            {% include '_partials/row/issue.html.twig' with {'issue': issue, 'detailed': true, 'teaserLength': 600} only %}
+                        </li>
                     </ul>
-                {% else %}
-                    <p class="detail-empty">No {{ searchClosed ? '' : 'open ' }}issue is much like this one.</p>
+                </section>
+
+                {% if groups.marked is not empty %}
+                    <section class="detail-section duplicates-group" aria-labelledby="duplicates-marked">
+                        <h2 id="duplicates-marked" class="detail-section-title">Marked on Forge <span class="detail-count">{{ groups.marked|length }}</span></h2>
+                        <ul class="row-list duplicates-list">
+                            {% for hit in groups.marked %}{{ _self.row(hit, issue, hit.relation) }}{% endfor %}
+                        </ul>
+                    </section>
                 {% endif %}
+
+                {% if groups.similar is not empty %}
+                    <section class="detail-section duplicates-group" aria-labelledby="duplicates-similar">
+                        <h2 id="duplicates-similar" class="detail-section-title">Similar issues <span class="detail-count">{{ groups.similar|length }}</span></h2>
+                        <ul class="row-list duplicates-list">
+                            {% for hit in groups.similar %}{{ _self.row(hit, issue) }}{% endfor %}
+                        </ul>
+                    </section>
+                {% endif %}
+
+                {% if groups.offered == 0 %}
+                    <div class="detail-section"><p class="detail-empty">No open issue is much like this one.</p></div>
+                {% endif %}
+
+                <p class="detail-section duplicates-explanation">
+                    The percentage is how much of the distinctive wording the two issues share, after leaving out common words.
+                    A short issue shares most of its few words with a long one, but not the other way round. So it is checked from both sides, and the large number is the mean: both issues show the same value.
+                    Below it are the two sides, seen from #{{ issue.id }} and seen from the other issue.
+                    It is a pointer for reading, not a probability. Only issues with {{ constant('App\\Duplicates\\DuplicateGroups::MIN_SIMILARITY') }} % or more are listed.
+                    That two issues are duplicates is set on Forge, as a relation "is duplicate of". The next import shows it here.
+                </p>
             </article>
         </div>
     </div>
-
 {% endblock %}

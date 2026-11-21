@@ -19,13 +19,17 @@ use App\Enum\SystemCheckEnum;
 final readonly class SetupSetting
 {
     /**
-     * @param string|null $detail what to know beyond the result, like who Forge logs in as; null for nothing
+     * @param string|null                            $detail  what to know beyond the result, like who Forge logs in as
+     * @param string|null                            $problem what is wrong, if the detail does not say it
+     * @param array{label: string, url: string}|null $action  where to fix the problem
      */
     public function __construct(
         public string $name,
         public string $usedFor,
         public SystemCheckEnum $result,
         public ?string $detail = null,
+        public ?string $problem = null,
+        public ?array $action = null,
     ) {
     }
 }

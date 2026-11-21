@@ -11,10 +11,9 @@ declare(strict_types=1);
 
 namespace App\Document;
 
-use App\Elastic\SearchResult;
+use App\Enum\IssueRelationEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
-use App\Search\IssueSearch;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\ReadableCollection;
 
@@ -28,12 +27,9 @@ final readonly class Relations
      */
     private const int CHANGES = 50;
 
-    /**
-     * The duplicates page shows this many issues, the most similar first.
-     */
-    private const int DUPLICATES = 25;
-
     public const string LINKED = 'Linked';
+
+    public const string PARENT = 'Parent task';
 
     public function __construct(
         private ChangeRepository $changes,
@@ -82,6 +78,67 @@ final readonly class Relations
     }
 
     /**
+     * The issue the issue is a subtask of, null when it has none.
+     */
+    public function parentOf(Issue $issue): ?RelatedIssue
+    {
+        if (null === $issue->parent) {
+            return null;
+        }
+
+        return new RelatedIssue($issue->parent, self::PARENT, $this->issues->byId($issue->parent));
+    }
+
+    /**
+     * The subtasks of the issue, the lowest numbers first. The index finds them by their parent, so each of them
+     * is in Forger.
+     *
+     * @return ReadableCollection<int, Issue>
+     */
+    public function subtasksOf(Issue $issue): ReadableCollection
+    {
+        return $this->issues->subtasksOf($issue->id);
+    }
+
+    /**
+     * The issues Forge relates to the issue by their type, as IssueRelationEnum orders them. Duplicates are left
+     * out, the duplicates page has them.
+     *
+     * @return ReadableCollection<int, RelatedIssue>
+     */
+    public function relatedIssuesOf(Issue $issue): ReadableCollection
+    {
+        $relations = self::sorted($issue->relations);
+        $found = $this->issues->byIds(array_map(static fn (IssueRelation $relation): int => $relation->issue, $relations));
+
+        return new ArrayCollection(array_map(
+            static fn (IssueRelation $relation): RelatedIssue => new RelatedIssue(
+                $relation->issue,
+                $relation->type->label(),
+                $found->get($relation->issue),
+            ),
+            $relations,
+        ));
+    }
+
+    /**
+     * @param list<IssueRelation> $relations
+     *
+     * @return list<IssueRelation> by their type, as IssueRelationEnum orders them, then by number
+     */
+    private static function sorted(array $relations): array
+    {
+        $order = array_flip(array_map(
+            static fn (IssueRelationEnum $type): string => $type->value,
+            IssueRelationEnum::cases(),
+        ));
+        usort($relations, static fn (IssueRelation $a, IssueRelation $b): int => [$order[$a->type->value], $a->issue]
+            <=> [$order[$b->type->value], $b->issue]);
+
+        return $relations;
+    }
+
+    /**
      * The issues of the footer of a change, in its order: those it resolves first.
      *
      * @return ReadableCollection<int, RelatedIssue>
@@ -105,33 +162,5 @@ final readonly class Relations
         }
 
         return new ArrayCollection($issues);
-    }
-
-    /**
-     * The open issues most like the issue, all issues with $includeClosed.
-     *
-     * @return SearchResult<Issue>
-     */
-    public function duplicatesOf(int $id, bool $includeClosed): SearchResult
-    {
-        $bool = [
-            'must' => [[
-                'more_like_this' => [
-                    'fields' => ['subject', 'description'],
-                    'like' => [['_id' => (string) $id]],
-                    'min_term_freq' => 2,
-                    'max_query_terms' => 25,
-                    'minimum_should_match' => '50%',
-                ],
-            ]],
-        ];
-        if (!$includeClosed) {
-            $bool['must_not'] = [IssueSearch::closed()];
-        }
-
-        return $this->issues->search([
-            'query' => ['bool' => $bool],
-            'size' => self::DUPLICATES,
-        ]);
     }
 }

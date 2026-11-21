@@ -34,6 +34,10 @@ final readonly class Issue
      * @param list<string>                        $tags
      * @param list<array<string, mixed>>          $customFields
      * @param list<array<string, mixed>>          $journals     the comments and changes, as Forge lists them
+     * @param list<int>                           $duplicates   the issues this one duplicates, a relation of Forge
+     * @param list<int>                           $duplicatedBy the issues that duplicate this one
+     * @param int|null                            $parent       the issue this one is a subtask of
+     * @param list<IssueRelation>                 $relations    the other relations of Forge
      */
     public function __construct(
         public int $id,
@@ -55,6 +59,10 @@ final readonly class Issue
         public ?string $complexity = null,
         public array $customFields = [],
         public array $journals = [],
+        public array $duplicates = [],
+        public array $duplicatedBy = [],
+        public ?int $parent = null,
+        public array $relations = [],
     ) {
     }
 
@@ -83,6 +91,10 @@ final readonly class Issue
             complexity: self::stringOrNull($document['complexity'] ?? null),
             customFields: array_values((array) ($document['custom_fields'] ?? [])),
             journals: array_values((array) ($document['journals'] ?? [])),
+            duplicates: self::numbers($document['duplicates'] ?? []),
+            duplicatedBy: self::numbers($document['duplicated_by'] ?? []),
+            parent: isset($document['parent']['id']) ? (int) $document['parent']['id'] : null,
+            relations: IssueRelation::listFrom($document['issue_relations'] ?? []),
         );
     }
 
@@ -116,6 +128,24 @@ final readonly class Issue
     public function changeNumbers(): array
     {
         return GerritLinks::inJournals($this->journals);
+    }
+
+    /**
+     * The issues Forge relates to this one as duplicates, in either direction.
+     *
+     * @return list<int>
+     */
+    public function duplicateNumbers(): array
+    {
+        return array_values(array_unique([...$this->duplicates, ...$this->duplicatedBy]));
+    }
+
+    /**
+     * @return list<int>
+     */
+    private static function numbers(mixed $value): array
+    {
+        return array_values(array_map(intval(...), (array) $value));
     }
 
     /**

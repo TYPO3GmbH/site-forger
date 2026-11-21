@@ -15,7 +15,6 @@ use App\Document\Change;
 use App\Document\Issue;
 use App\Elastic\SearchResult;
 use App\Enum\IssueSortEnum;
-use App\Enum\ReviewStatusEnum;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
 use App\Search\IssueSearch;
@@ -33,6 +32,8 @@ final readonly class KeyFigures
     public const int LIST_SIZE = 5;
 
     private const string LAST_30_DAYS = 'now-30d/d';
+
+    private const string FIRST_DAY = '2000-01-01';
 
     public function __construct(
         private IssueRepository $issues,
@@ -61,25 +62,38 @@ final readonly class KeyFigures
     }
 
     /**
-     * The open changes, without the ones in progress.
+     * The changes of the list "Ready for review", with its query, so the number is what the list shows.
      */
-    public function openChanges(): int
+    public function readyForReview(): int
     {
-        return $this->changes->count(self::filtered([], [
-            ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]],
-            self::workInProgress(),
+        return $this->changes->count(self::filtered([(array) ReviewLists::query(ReviewLists::READY)]));
+    }
+
+    /**
+     * The changes ready for review that nobody touched for a month: the list "Ready for review" with the filter of
+     * waitingFilter(), so the number is what its link shows.
+     */
+    public function waitingChanges(\DateTimeImmutable $today): int
+    {
+        $days = MonthOverview::days(self::waitingFilter($today)['updated']);
+
+        return $this->changes->count(self::filtered([
+            (array) ReviewLists::query(ReviewLists::READY),
+            (array) MonthOverview::rangeQuery($days['from'], $days['to'], 'updated_on'),
         ]));
     }
 
     /**
-     * The changes ready for review that nobody touched for a month.
+     * The filter "Updated" of the review lists for the changes not updated in the last 30 days, the days in UTC
+     * as the filter takes them. The date picker needs a first day, too: one before the first change of Gerrit.
+     *
+     * @return array{updated: array{range: string}}
      */
-    public function waitingChanges(): int
+    public static function waitingFilter(\DateTimeImmutable $today): array
     {
-        return $this->changes->count(self::filtered([
-            ['term' => ['reviewstatus' => ReviewStatusEnum::NEW->value]],
-            ['range' => ['updated_on' => ['lt' => self::LAST_30_DAYS]]],
-        ], [self::workInProgress()]));
+        $lastDay = $today->setTimezone(new \DateTimeZone('UTC'))->modify('-31 days');
+
+        return ['updated' => ['range' => self::FIRST_DAY . ' to ' . $lastDay->format('Y-m-d')]];
     }
 
     /**
@@ -139,13 +153,5 @@ final readonly class KeyFigures
     private static function closedStatus(): array
     {
         return IssueSearch::closed();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private static function workInProgress(): array
-    {
-        return ['term' => ['work_in_progress' => true]];
     }
 }

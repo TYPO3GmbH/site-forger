@@ -12,9 +12,14 @@ declare(strict_types=1);
 namespace App\Tests\Templates;
 
 use App\Document\Change;
+use App\Document\DuplicatePair;
 use App\Document\Issue;
 use App\Document\RelatedChange;
 use App\Document\RelatedIssue;
+use App\Document\Relations;
+use App\DTO\Pagination;
+use App\Duplicates\DuplicateGroups;
+use App\Duplicates\DuplicateHit;
 use App\Elastic\Bucket;
 use App\Elastic\SearchResult;
 use App\Enum\IssueSortEnum;
@@ -24,6 +29,7 @@ use App\Enum\TrackerEnum;
 use App\Report\Backport\BackportRow;
 use App\Report\Backport\BackportVersion;
 use App\Report\CategoryOverview;
+use App\Report\DuplicatePairs;
 use App\Report\LinkedChange;
 use App\Report\MonthOverview;
 use App\Report\StaleIssue;
@@ -89,7 +95,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
     private function listData(string $query, array $sortParameter = []): array
     {
         return [
-            'routeName' => 'gerrit_index',
+            'routeName' => 'reviews_ready',
             'changes' => [],
             'aggregations' => ['Owner' => Bucket::facetOf(['buckets' => [['key' => 'Benni Mack', 'doc_count' => 1]]])],
             'query' => $query,
@@ -111,16 +117,16 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
     {
         $html = $this->twig->render('_partials/review_view.html.twig', $this->listData('cache', ['sort' => 'smallest']));
 
-        self::assertStringContainsString('<input type="search" id="list-search-gerrit_index" name="query" value="cache"', $html);
+        self::assertStringContainsString('<input type="search" id="list-search-reviews_ready" name="query" value="cache"', $html);
         self::assertStringContainsString('<input type="hidden" name="filters[owner][Benni Mack]" value="true">', $html);
         self::assertStringContainsString('<input type="hidden" name="sort" value="smallest">', $html);
         self::assertStringContainsString('<option value="smallest" selected>Smallest first</option>', $html);
         self::assertStringContainsString('<option value="relevance">Relevance</option>', $html);
         // The filters find nothing: they stay, with the way back to the list without them, its words and order kept
         self::assertStringContainsString('No change in this list matches &quot;cache&quot; with the filters.', $html);
-        self::assertStringContainsString('Untick a filter, or <a href="/gerrit/status?query=cache&amp;sort=smallest">remove the filters.</a>', $html);
+        self::assertStringContainsString('Untick a filter, or <a href="/reviews/ready?query=cache&amp;sort=smallest">remove the filters.</a>', $html);
         // The search in the "Owner" filter asks with the search words of the list
-        self::assertStringContainsString('/gerrit/owners?list=gerrit_index&amp;query=cache', $html);
+        self::assertStringContainsString('/reviews/owners?list=reviews_ready&amp;query=cache', $html);
     }
 
     public function testWithoutSearchWordsThereIsNoRelevance(): void
@@ -130,7 +136,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringNotContainsString('value="relevance"', $html);
         self::assertStringContainsString('<option value="updated" selected>Recently updated</option>', $html);
         self::assertStringContainsString('No change in this list matches the filters.', $html);
-        self::assertStringContainsString('<a href="/gerrit/status">remove the filters.</a>', $html);
+        self::assertStringContainsString('<a href="/reviews/ready">remove the filters.</a>', $html);
         $data = ['filters' => ['file' => ['path' => '']]] + $this->listData('');
         self::assertStringContainsString('This list is empty.', $this->twig->render('_partials/review_view.html.twig', $data));
     }
@@ -355,7 +361,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         // The stages of ActivityEnum, in its words
         self::assertStringContainsString('<strong>30</strong> open issues without activity for 60 days or more: stale (60 to 180 days) or orphaned (more than 180 days).', $html);
         // The sort field of the issue lists, without relevance
-        self::assertStringContainsString('<form class="list-sort" action="/gerrit/stale-issues" method="get">', $html);
+        self::assertStringContainsString('<form class="list-sort" action="/issues/stale" method="get">', $html);
         self::assertStringContainsString('<option value="priority" selected>Priority</option>', $html);
         self::assertStringNotContainsString('value="relevance"', $html);
         self::assertStringContainsString('href="/issue/91089"', $html);
@@ -365,9 +371,9 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertSame(2, substr_count($html, 'overview-list-item-note'));
         // The count above, the pages below
         self::assertStringContainsString('Showing <strong>26</strong>–<strong>28</strong> of <strong>30</strong>', $html);
-        self::assertStringContainsString('<li class="page-item active"><a class="page-link" href="/gerrit/stale-issues?sort=priority&amp;page=2" aria-current="page">2</a></li>', $html);
+        self::assertStringContainsString('<li class="page-item active"><a class="page-link" href="/issues/stale?sort=priority&amp;page=2" aria-current="page">2</a></li>', $html);
         // The last page: back to the first and the previous one, nothing further
-        self::assertStringContainsString('href="/gerrit/stale-issues?sort=priority&amp;page=1" aria-label="Previous page"', $html);
+        self::assertStringContainsString('href="/issues/stale?sort=priority&amp;page=1" aria-label="Previous page"', $html);
         self::assertStringContainsString('<li class="page-item disabled"><span class="page-link" aria-label="Next page">', $html);
         self::assertLessThan(strpos($html, 'class="pagination"'), strpos($html, 'row-list'));
 
@@ -398,8 +404,8 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertFalse($template->hasBlock('headline'));
         self::assertStringContainsString('<h1 class="page-intro-title">Issues by month</h1>', $html);
         // A click leaves a tracker out or takes it in again
-        self::assertStringContainsString('<a href="/management?trackerFilters%5Bbug%5D=true" class="chip is-active" aria-pressed="true" title="Leave out the bugs">Bugs</a>', $html);
-        self::assertStringContainsString('<a href="/management" class="chip" aria-pressed="false" title="Take in the stories">Stories</a>', $html);
+        self::assertStringContainsString('<a href="/issues/by-month?trackerFilters%5Bbug%5D=true" class="chip is-active" aria-pressed="true" title="Leave out the bugs">Bugs</a>', $html);
+        self::assertStringContainsString('<a href="/issues/by-month" class="chip" aria-pressed="false" title="Take in the stories">Stories</a>', $html);
         // The darkest cell, its states on hover
         self::assertStringContainsString('<td class="is-count month-shade-5"><a href="/search?filters%5Bcreated%5D%5Brange%5D=2025-03-01%20to%202025-03-31" title="Mar 2025: New 2, Under Review 1">3</a></td>', $html);
         // The year and its total lead to the issues of the whole year
@@ -491,8 +497,8 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('name="searchClosed" value="1" checked', $html);
 
         // Small in the toolbar of a list, with the filters and the order of the list
-        $html = $this->twig->createTemplate("{% import '_macros/search.html.twig' as search %}{{ search.field('/gerrit/status', 'cache', {'small': true, 'hidden': {'sort': 'smallest'}}) }}")->render();
-        self::assertStringContainsString('<form class="search-field search-field-small" action="/gerrit/status"', $html);
+        $html = $this->twig->createTemplate("{% import '_macros/search.html.twig' as search %}{{ search.field('/reviews/ready', 'cache', {'small': true, 'hidden': {'sort': 'smallest'}}) }}")->render();
+        self::assertStringContainsString('<form class="search-field search-field-small" action="/reviews/ready"', $html);
         self::assertStringContainsString('<input type="hidden" name="sort" value="smallest">', $html);
         self::assertStringContainsString('class="btn btn-default btn-sm"', $html);
         // Without "closed" no checkbox
@@ -699,7 +705,8 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
             'unknownChanges' => [81234],
         ]);
 
-        self::assertStringContainsString('href="/issue/91089/duplicates"', $html);
+        // Without possible duplicates there is no button to them
+        self::assertStringNotContainsString('href="/issue/91089/duplicates"', $html);
         self::assertStringContainsString('href="https://forge.typo3.org/issues/91089"', $html);
         self::assertStringContainsString('Change 81234</a>', $html);
         self::assertStringContainsString('Gerrit Code Review', $html);
@@ -739,6 +746,157 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('<nav class="breadcrumb-nav" aria-label="Breadcrumb">', $html);
         self::assertStringContainsString('<li class="breadcrumb-item"><a href="/issue/91089">#91089</a></li>', $html);
         self::assertStringContainsString('<li class="breadcrumb-item active" aria-current="page">Possible duplicates</li>', $html);
+    }
+
+    public function testTheDuplicatesStandInGroupsWithTheirSimilarityBeside(): void
+    {
+        $groups = new DuplicateGroups(
+            marked: [new DuplicateHit(self::issue(80001), null, relation: DuplicateGroups::DUPLICATES)],
+            similar: [DuplicateHit::checked(self::issue(91100), 50, 34)],
+        );
+        $html = $this->twig->load('issue/duplicates.html.twig')->renderBlock('body', [
+            'issue' => Issue::fromDocument(self::ISSUE),
+            'groups' => $groups,
+        ]);
+
+        self::assertStringContainsString(
+            '<h1 class="detail-title">Possible duplicates <span class="detail-count">2</span></h1>',
+            $html,
+        );
+        self::assertMatchesRegularExpression(
+            '~<h2 id="duplicates-compared" class="detail-section-title">Compared with</h2>.*href="/issue/91089".*'
+            . 'Steps to reproduce.*Marked on Forge~s',
+            $html,
+        );
+        self::assertMatchesRegularExpression(
+            '~Marked on Forge.*href="/issue/80001".*This issue duplicates it~s',
+            $html,
+        );
+        self::assertMatchesRegularExpression(
+            '~Similar issues <span class="detail-count">1</span>.*href="/issue/91100"~s',
+            $html,
+        );
+        self::assertMatchesRegularExpression(
+            '~<span class="duplicates-score-value">42 %</span>\s*'
+            . '<span class="duplicates-score-meter" aria-hidden="true"><span style="width: 42%"></span></span>~',
+            $html,
+        );
+        self::assertMatchesRegularExpression(
+            '~<span class="duplicates-score-directions" title="Seen from #91089: 50 %. Seen from #91100: 34 %.">'
+            . '50 % · 34 %\s*</span>~',
+            $html,
+        );
+        self::assertStringContainsString('Only issues with 40 % or more are listed.', $html);
+        self::assertStringNotContainsString('<form', $html);
+    }
+
+    public function testTheListOfPossibleDuplicatesShowsEachPairWithBothIssues(): void
+    {
+        $rows = DuplicatePairs::rows(
+            [new DuplicatePair(80001, 91100, 45, 30, 60, '2026/11/21 10:00:00')],
+            new ArrayCollection([80001 => self::issue(80001), 91100 => self::issue(91100)]),
+        );
+        $html = $this->twig->load('issue/duplicate_pairs.html.twig')->renderBlock(
+            'body',
+            (new Pagination(1, 1))->viewData() + ['rows' => $rows],
+        );
+
+        self::assertStringContainsString('<strong>1</strong> pairs of open issues with 40 % or more', $html);
+        self::assertMatchesRegularExpression(
+            '~<span class="duplicates-score-value">45 %</span>.*Seen from #91100: 60 %. Seen from #80001: 30 %.~s',
+            $html,
+        );
+        self::assertMatchesRegularExpression('~href="/issue/91100/duplicates">.*Compare</a>~s', $html);
+        // The newer one first, it is the likely duplicate
+        self::assertMatchesRegularExpression('~href="/issue/91100".*href="/issue/80001"~s', $html);
+    }
+
+    public function testAPairWhoseIssueLeftTheIndexIsLeftOut(): void
+    {
+        $rows = DuplicatePairs::rows(
+            [new DuplicatePair(80001, 91100, 45, 30, 60, '2026/11/21 10:00:00')],
+            new ArrayCollection([91100 => self::issue(91100)]),
+        );
+
+        self::assertSame([], $rows);
+    }
+
+    public function testTheIssuePageShowsItsParentSubtasksAndRelatedIssuesApart(): void
+    {
+        $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', [
+            'issue' => Issue::fromDocument(self::ISSUE),
+            'changes' => [],
+            'unknownChanges' => [],
+            'parent' => new RelatedIssue(90000, Relations::PARENT, self::issue(90000)),
+            'subtasks' => new ArrayCollection([self::issue(91100), self::issue(91200)]),
+            'relatedIssues' => new ArrayCollection([new RelatedIssue(80004, 'Blocked by', null)]),
+        ]);
+
+        self::assertMatchesRegularExpression(
+            '~<dt>Parent task</dt>\s*<dd><a href="/issue/90000">#90000 Something is broken</a></dd>~',
+            $html,
+        );
+        self::assertMatchesRegularExpression(
+            '~Subtasks <span class="detail-count">2</span>.*href="/issue/91100".*href="/issue/91200"'
+            . '.*Related issues <span class="detail-count">1</span>~s',
+            $html,
+        );
+        // Not in Forger: a link to Forge
+        self::assertMatchesRegularExpression('~href="https://forge.typo3.org/issues/80004".*Blocked by~s', $html);
+    }
+
+    public function testAnIssueWithoutRelationsHasNoSectionsForThem(): void
+    {
+        $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', [
+            'issue' => Issue::fromDocument(self::ISSUE),
+            'changes' => [],
+            'unknownChanges' => [],
+        ]);
+
+        self::assertStringNotContainsString('Subtasks', $html);
+        self::assertStringNotContainsString('Related issues', $html);
+        self::assertStringNotContainsString('Parent task', $html);
+    }
+
+    public function testTheIssuePageShowsTheDuplicatesButtonOnlyWithDuplicates(): void
+    {
+        $render = fn (DuplicateGroups $duplicates): string => $this->twig->load('issue/show.html.twig')->renderBlock(
+            'body',
+            [
+                'issue' => Issue::fromDocument(self::ISSUE),
+                'changes' => [],
+                'unknownChanges' => [],
+                'duplicates' => $duplicates,
+            ],
+        );
+        $hits = static fn (int ...$ids): array => array_values(array_map(
+            static fn (int $id): DuplicateHit => new DuplicateHit(self::issue($id), 40),
+            $ids,
+        ));
+
+        $html = $render(new DuplicateGroups($hits(80001), $hits(91100, 91200)));
+        self::assertMatchesRegularExpression(
+            '~<a class="btn btn-sm btn-primary duplicates-button" href="/issue/91089/duplicates">.*'
+            . 'Possible duplicates <span class="detail-count">3</span>\s*</a>~s',
+            $html,
+        );
+        self::assertStringNotContainsString('similar issue', $html);
+        self::assertStringNotContainsString('/issue/91089/duplicates', $render(new DuplicateGroups()));
+    }
+
+    public function testWithoutDuplicatesThePageSaysSo(): void
+    {
+        $html = $this->twig->load('issue/duplicates.html.twig')->renderBlock('body', [
+            'issue' => Issue::fromDocument(self::ISSUE),
+            'groups' => new DuplicateGroups(),
+        ]);
+
+        self::assertStringContainsString('No open issue is much like this one.', $html);
+    }
+
+    private static function issue(int $id): Issue
+    {
+        return Issue::fromDocument(['id' => $id] + self::ISSUE);
     }
 
     public function testDetailPagesHaveABreadcrumb(): void

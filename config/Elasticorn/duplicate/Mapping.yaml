@@ -1,0 +1,23 @@
+# Two kinds of documents, see App\Document\DuplicatePair and App\Document\DuplicateCheck: "pair" for two issues that
+# may be duplicates, with the id "pair-<lower>-<higher>", and "check" for each issue the import checked, with the id
+# "check-<number>". Without the checks, an issue without duplicates would look as if it was never checked.
+kind:
+  type: keyword
+# Pair: both numbers, the lower first. Check: the number of the issue.
+issues:
+  type: integer
+# Pair: the mean of both directions, and each direction, see App\Duplicates\DuplicateSearch
+similarity:
+  type: integer
+from_lower:
+  type: integer
+from_higher:
+  type: integer
+# Check: "updated_on" of the issue when it was checked. A newer one means the issue changed since.
+issue_updated_on:
+  type: date
+  format: yyyy/MM/dd HH:mm:ss
+# Both kinds: when the import wrote the document
+checked_on:
+  type: date
+  format: yyyy/MM/dd HH:mm:ss

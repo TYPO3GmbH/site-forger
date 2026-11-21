@@ -87,19 +87,7 @@
                                 <h2 id="issues-title" class="detail-section-title">Issues <span class="detail-count">{{ issues|length }}</span></h2>
                                 <ul class="row-list">
                                     {% for item in issues %}
-                                        <li>
-                                            {% if item.issue is not null %}
-                                                {% include '_partials/row/issue.html.twig' with {'issue': item.issue, 'relation': relations[item.relation] ?? item.relation} only %}
-                                            {% else %}
-                                                {# Not in Forger: another project, or a private issue #}
-                                                <a class="overview-list-item" href="{{ forge_issue_url(item.id) }}" target="issue{{ item.id }}">
-                                                    <span class="overview-list-item-main">
-                                                        <span class="overview-list-item-title"><span class="overview-list-item-id">{{ item.id }}</span>Not in Forger, open it in Forge</span>
-                                                        <span class="overview-list-item-meta"><span class="overview-list-relation">{{ relations[item.relation] ?? item.relation }}</span></span>
-                                                    </span>
-                                                </a>
-                                            {% endif %}
-                                        </li>
+                                        <li>{% include '_partials/row/related_issue.html.twig' with {'item': item, 'relation': relations[item.relation] ?? item.relation} only %}</li>
                                     {% endfor %}
                                 </ul>
                             </section>

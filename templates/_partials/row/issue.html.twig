@@ -7,7 +7,8 @@
  #           small avatar, category and versions; the update and the assignee in a column on the right, the same in every row. The update
  #           instead of the creation, as the search sorts by it;
  #           viewer, the name of the logged-in user, for My Work: the assignee as "Assigned to you" or "Unassigned";
- #           note, for detailed rows: why the issue is in the list, in a line of its own below the others.
+ #           note, for detailed rows: why the issue is in the list, in a line of its own below the others;
+ #           teaserLength, for detailed rows: how many characters of the description the row shows.
  #}
 {# "-" in a field of the index: the import found no value #}
 {% import '_macros/status.html.twig' as status %}
@@ -24,7 +25,7 @@
     <span class="overview-list-item-main">
         <span class="overview-list-item-title"><span class="overview-list-item-id" title="Issue">{{ icon('actions-list') }}#{{ issue.id }}</span>{{ issue.subject }}</span>
         {% if detailed %}
-            {% set teaser = (issue.description ?? null)|forgeTeaser %}
+            {% set teaser = (issue.description ?? null)|forgeTeaser(teaserLength ?? 240) %}
             {% if teaser is not empty %}<span class="overview-list-item-teaser">{{ teaser }}</span>{% endif %}
             <span class="overview-list-item-meta">
                 {{ trackerTag }}

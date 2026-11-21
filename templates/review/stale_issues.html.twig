@@ -32,7 +32,7 @@
                         'resultsFrom': startingAtItem,
                         'resultsTo': endingAtItem,
                     } only %}
-                    {{ sorting.select(path('gerrit_stale_issues'), sort, sortOptions, {}) }}
+                    {{ sorting.select(path('issues_stale'), sort, sortOptions, {}) }}
                 </div>
                 <ul class="row-list row-list-panel">
                     {% for item in issues %}
@@ -50,7 +50,7 @@
                     'pages': pagesToLinkTo,
                     'current': currentPage,
                     'last': lastPage ?? null,
-                    'routeName': 'gerrit_stale_issues',
+                    'routeName': 'issues_stale',
                     'arguments': sortParameter,
                 } only %}
             {% endif %}

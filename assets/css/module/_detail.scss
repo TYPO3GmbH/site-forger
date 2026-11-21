@@ -232,6 +232,77 @@
         white-space: pre-wrap;
     }
 
+    // The bundle loads the dark Prism theme "Okaidia": its light text and shadow vanish on the light background
+    // above. Colors of a light theme instead, each readable on it.
+    code[class*="language-"],
+    pre[class*="language-"] {
+        background: none;
+        color: #1f2328;
+        text-shadow: none;
+    }
+
+    pre[class*="language-"] {
+        background: #f7f8fa;
+    }
+
+    .token {
+        &.comment,
+        &.prolog,
+        &.doctype,
+        &.cdata {
+            color: #59636e;
+        }
+
+        &.punctuation,
+        &.operator,
+        &.entity,
+        &.url {
+            color: #1f2328;
+        }
+
+        &.keyword,
+        &.important,
+        &.atrule {
+            color: #cf222e;
+        }
+
+        &.string,
+        &.char,
+        &.regex,
+        &.attr-value {
+            color: #0a3069;
+        }
+
+        &.function,
+        &.class-name {
+            color: #6639ba;
+        }
+
+        &.variable {
+            color: #953800;
+        }
+
+        &.number,
+        &.boolean,
+        &.constant,
+        &.symbol,
+        &.attr-name,
+        &.builtin {
+            color: #0550ae;
+        }
+
+        &.tag,
+        &.property,
+        &.selector,
+        &.inserted {
+            color: #116329;
+        }
+
+        &.deleted {
+            color: #82071e;
+        }
+    }
+
     img {
         max-width: 100%;
     }

@@ -46,7 +46,8 @@
                     <span class="overview-stat-note">+{{ openedIssues }} opened, {{ closedIssues }} closed in 30 days</span>
                 </a>
 
-                <a class="overview-stat overview-stat-wide" href="{{ path('gerrit_index') }}">
+                {# All open changes, work in progress too, as the search without search words shows them #}
+                <a class="overview-stat overview-stat-wide" href="{{ path('search_changes') }}">
                     <span class="overview-stat-label">Open Gerrit changes</span>
                     <span class="overview-stat-value overview-tone-changes">{{ changesTotal }}</span>
                     {% if changesTotal > 0 %}
@@ -63,11 +64,18 @@
                     </span>
                 </a>
 
-                <a class="overview-stat" href="{{ path('gerrit_index') }}">
+                {# The list with the filter the number counts by, in its own order #}
+                <a class="overview-stat" href="{{ path('reviews_ready', {'filters': waitingFilter}) }}">
                     <span class="overview-stat-label">Waiting over a month</span>
                     <span class="overview-stat-value{{ waitingChanges > 0 ? ' overview-tone-warning' }}">{{ waitingChanges }}</span>
                     <span class="overview-stat-note">Changes ready for review without activity for 30 days</span>
                 </a>
+            </div>
+
+            {# Where work waits, right below the figures: the charts are for a look now and then #}
+            <div class="overview-lists">
+                {% include 'dashboard/_new_issues.html.twig' with {'issues': newIssues} only %}
+                {% include 'dashboard/_ready_to_merge.html.twig' with {'changes': readyToMerge} only %}
             </div>
 
             <div class="overview-charts">
@@ -77,11 +85,6 @@
                 {{ dashboard.chart('Open changes', 'At the end of each month, the last 3 years, without work in progress', 'line', path('chart', {'chartName': 'reviews_over_time'}), chartOptions, 'Month') }}
                 {{ dashboard.chart('Closed issues per year', 'Summed up month by month', 'line', path('chart', {'chartName': 'ticket_progress'}), chartOptionsWithLegend, 'Month') }}
                 {{ dashboard.chart('Closed changes per year', 'Merged or abandoned, summed up month by month', 'line', path('chart', {'chartName': 'review_progress'}), chartOptionsWithLegend, 'Month') }}
-            </div>
-
-            <div class="overview-lists">
-                {% include 'dashboard/_new_issues.html.twig' with {'issues': newIssues} only %}
-                {% include 'dashboard/_ready_to_merge.html.twig' with {'changes': readyToMerge} only %}
             </div>
 
         </div>

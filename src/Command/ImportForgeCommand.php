@@ -14,6 +14,7 @@ namespace App\Command;
 use App\CommandRun\CommandRunRecorder;
 use App\Elastic\IndexSetup;
 use App\Http\ApiRequests;
+use App\Import\DuplicateImport;
 use App\Import\ForgeImport;
 use App\Import\ForgeIssueImporter;
 use App\Import\ImportRun;
@@ -29,6 +30,7 @@ final class ImportForgeCommand extends ImportJobCommand
     public function __construct(
         private readonly ForgeImport $forgeImport,
         private readonly ForgeIssueImporter $issueImporter,
+        private readonly DuplicateImport $duplicateImport,
         IndexSetup $indexSetup,
         CommandRunRecorder $recorder,
         ApiRequests $apiRequests,
@@ -64,8 +66,10 @@ final class ImportForgeCommand extends ImportJobCommand
             $run->writeln(sprintf('Updated %d issues, removed %d that Forge does not list', $result['updated'], $result['removed']));
         } elseif ($input->getOption('full')) {
             $this->forgeImport->full($run, (int) $input->getOption('start-at'));
+            $this->duplicateImport->run($run, new \DateTimeImmutable());
         } else {
             $this->forgeImport->delta($run);
+            $this->duplicateImport->run($run, new \DateTimeImmutable());
         }
     }
 }

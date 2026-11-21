@@ -39,17 +39,17 @@ class ReviewController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/gerrit/status', name: 'gerrit_index')]
+    #[Route(path: '/reviews/ready', name: ReviewLists::READY)]
     public function status(): Response
     {
         return $this->listView(
             ReviewLists::READY,
             'Ready for review',
-            ReviewLists::aggregations(),
+            ReviewLists::aggregations(without: ['Mergeable']),
         );
     }
 
-    #[Route(path: '/gerrit/merge-ready', name: 'gerrit_hasverifications')]
+    #[Route(path: '/reviews/verified', name: ReviewLists::REVIEWED_AND_VERIFIED)]
     public function hasVerifications(): Response
     {
         return $this->listView(
@@ -59,7 +59,7 @@ class ReviewController extends AbstractController
         );
     }
 
-    #[Route(path: '/gerrit/misses-verification', name: 'gerrit_missesverifications')]
+    #[Route(path: '/reviews/needs-verification', name: ReviewLists::NEEDS_VERIFICATION)]
     public function missesVerifications(): Response
     {
         return $this->listView(
@@ -69,7 +69,7 @@ class ReviewController extends AbstractController
         );
     }
 
-    #[Route(path: '/gerrit/misses-review', name: 'gerrit_missesreview')]
+    #[Route(path: '/reviews/needs-review', name: ReviewLists::NEEDS_REVIEW)]
     public function missesReview(): Response
     {
         return $this->listView(
@@ -79,7 +79,7 @@ class ReviewController extends AbstractController
         );
     }
 
-    #[Route(path: '/gerrit/rebase', name: 'gerrit_rebase')]
+    #[Route(path: '/reviews/needs-rebase', name: ReviewLists::NEEDS_REBASE)]
     public function rebase(): Response
     {
         return $this->listView(
@@ -89,7 +89,7 @@ class ReviewController extends AbstractController
         );
     }
 
-    #[Route(path: '/gerrit/negative-vote-cleanup', name: 'gerrit_negative_vote_cleanup')]
+    #[Route(path: '/reviews/negative-votes', name: ReviewLists::NEGATIVE_VOTES)]
     public function negativeVoteCleanup(): Response
     {
         return $this->listView(
@@ -102,7 +102,7 @@ class ReviewController extends AbstractController
     /**
      * The oldest work in progress first: it is the one most likely to be forgotten.
      */
-    #[Route(path: '/gerrit/wip', name: 'gerrit_wip')]
+    #[Route(path: '/reviews/work-in-progress', name: ReviewLists::WORK_IN_PROGRESS)]
     public function wip(): Response
     {
         return $this->listView(
@@ -113,7 +113,7 @@ class ReviewController extends AbstractController
         );
     }
 
-    #[Route(path: '/gerrit/core-team-merge', name: 'gerrit_coreteam_merge')]
+    #[Route(path: '/reviews/ready-to-merge', name: ReviewLists::READY_TO_MERGE)]
     public function coreTeamActionRequired(): Response
     {
         return $this->listView(
@@ -158,7 +158,7 @@ class ReviewController extends AbstractController
      * Names, numbers and avatars only, no email addresses. The lists also pass their search words "query", the search
      * also "searchClosed".
      */
-    #[Route(path: '/gerrit/owners', name: 'gerrit_owners', methods: ['GET'])]
+    #[Route(path: '/reviews/owners', name: 'reviews_owners', methods: ['GET'])]
     public function owners(): JsonResponse
     {
         $list = $this->query()->getString('list');
@@ -192,7 +192,7 @@ class ReviewController extends AbstractController
         return $this->redirectToRoute('search_changes', $parameters, Response::HTTP_MOVED_PERMANENTLY);
     }
 
-    #[Route(path: '/gerrit/stale-issues', name: 'gerrit_stale_issues')]
+    #[Route(path: '/issues/stale', name: 'issues_stale')]
     public function staleIssues(): Response
     {
         $sort = IssueSortEnum::fromRequest(

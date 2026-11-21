@@ -54,7 +54,8 @@
     --row-line-gap: .375rem;
 
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 12rem;
+    // Wide enough for the longest update beside two votes, like "vor 11 Monaten CR +2 V +1"
+    grid-template-columns: minmax(0, 1fr) 15rem;
     gap: .5rem 0;
     align-items: start;
     // About a blank line between two rows, so each stands on its own; as much space to the sides
@@ -158,6 +159,15 @@
 .overview-list-column-votes .status-pill-vote {
     justify-content: center;
     min-width: 3.25em;
+}
+
+// Should an update still not fit beside the votes, it ends in "…": the line is aligned right and would cut off
+// its beginning otherwise
+.overview-list-column-votes .overview-list-item-date {
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 // The beginning of the description of an issue, below its subject: at most two lines, muted (4.5:1 on white)

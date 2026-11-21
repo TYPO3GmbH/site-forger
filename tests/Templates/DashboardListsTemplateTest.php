@@ -144,7 +144,7 @@ final class DashboardListsTemplateTest extends KernelTestCase
         self::assertStringNotContainsString('Lines added and removed', $html);
         self::assertStringContainsString('tag-label is-backport', $html);
         self::assertStringContainsString('<span class="overview-list-count">7</span>', $html);
-        self::assertStringContainsString('/gerrit/core-team-merge', $html);
+        self::assertStringContainsString('/reviews/ready-to-merge', $html);
     }
 
     public function testNothingReadyToMerge(): void

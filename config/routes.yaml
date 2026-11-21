@@ -14,3 +14,51 @@ login:
 when@dev:
     login:
         alias: dev_login
+
+
+# The addresses of the lists before they moved below /reviews and /issues, like their menus: links to them may
+# exist. Each leads to the new address for good, with its query.
+legacy_reviews_ready:
+    path: /gerrit/status
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController
+    defaults: { route: reviews_ready, permanent: true, keepQueryParams: true }
+legacy_reviews_verified:
+    path: /gerrit/merge-ready
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController
+    defaults: { route: reviews_verified, permanent: true, keepQueryParams: true }
+legacy_reviews_needs_verification:
+    path: /gerrit/misses-verification
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController
+    defaults: { route: reviews_needs_verification, permanent: true, keepQueryParams: true }
+legacy_reviews_needs_review:
+    path: /gerrit/misses-review
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController
+    defaults: { route: reviews_needs_review, permanent: true, keepQueryParams: true }
+legacy_reviews_needs_rebase:
+    path: /gerrit/rebase
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController
+    defaults: { route: reviews_needs_rebase, permanent: true, keepQueryParams: true }
+legacy_reviews_negative_votes:
+    path: /gerrit/negative-vote-cleanup
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController
+    defaults: { route: reviews_negative_votes, permanent: true, keepQueryParams: true }
+legacy_reviews_wip:
+    path: /gerrit/wip
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController
+    defaults: { route: reviews_wip, permanent: true, keepQueryParams: true }
+legacy_reviews_ready_to_merge:
+    path: /gerrit/core-team-merge
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController
+    defaults: { route: reviews_ready_to_merge, permanent: true, keepQueryParams: true }
+legacy_issues_stale:
+    path: /gerrit/stale-issues
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController
+    defaults: { route: issues_stale, permanent: true, keepQueryParams: true }
+legacy_issues_by_category:
+    path: /management/bycategory
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController
+    defaults: { route: issues_by_category, permanent: true, keepQueryParams: true }
+legacy_issues_by_month:
+    path: /management
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController
+    defaults: { route: issues_by_month, permanent: true, keepQueryParams: true }

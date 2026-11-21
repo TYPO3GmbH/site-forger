@@ -31,6 +31,7 @@ class DashboardController extends AbstractController
     public function index(): Response
     {
         $changes = $this->mergeable->counts();
+        $today = new \DateTimeImmutable();
 
         return $this->render('dashboard/index.html.twig', [
             'openIssues' => $this->keyFigures->openIssues(),
@@ -41,7 +42,8 @@ class DashboardController extends AbstractController
             'changes' => $changes,
             'changeLabels' => Mergeable::LABELS,
             'changesTotal' => array_sum($changes),
-            'waitingChanges' => $this->keyFigures->waitingChanges(),
+            'waitingChanges' => $this->keyFigures->waitingChanges($today),
+            'waitingFilter' => KeyFigures::waitingFilter($today),
             'chartOptions' => ChartStyle::options(),
             'chartOptionsWithLegend' => ChartStyle::options(legend: true),
             'chartOptionsHorizontal' => ChartStyle::options(horizontal: true),

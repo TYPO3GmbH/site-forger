@@ -29,14 +29,14 @@ use Elastica\Query\Term;
  */
 final class ReviewLists
 {
-    public const string READY = 'gerrit_index';
-    public const string REVIEWED_AND_VERIFIED = 'gerrit_hasverifications';
-    public const string NEEDS_VERIFICATION = 'gerrit_missesverifications';
-    public const string NEEDS_REVIEW = 'gerrit_missesreview';
-    public const string NEEDS_REBASE = 'gerrit_rebase';
-    public const string NEGATIVE_VOTES = 'gerrit_negative_vote_cleanup';
-    public const string WORK_IN_PROGRESS = 'gerrit_wip';
-    public const string READY_TO_MERGE = 'gerrit_coreteam_merge';
+    public const string READY = 'reviews_ready';
+    public const string REVIEWED_AND_VERIFIED = 'reviews_verified';
+    public const string NEEDS_VERIFICATION = 'reviews_needs_verification';
+    public const string NEEDS_REVIEW = 'reviews_needs_review';
+    public const string NEEDS_REBASE = 'reviews_needs_rebase';
+    public const string NEGATIVE_VOTES = 'reviews_negative_votes';
+    public const string WORK_IN_PROGRESS = 'reviews_wip';
+    public const string READY_TO_MERGE = 'reviews_ready_to_merge';
     /**
      * The changes of the search, also work in progress, and also merged and abandoned ones if asked for.
      */
@@ -70,11 +70,14 @@ final class ReviewLists
         $closed = ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]];
         $workInProgress = ['term' => ['work_in_progress' => true]];
         $open = [$closed, $workInProgress];
+        // A change with a -1 or -2 or with a merge conflict waits for its owner, not for a review
+        $negativeVotes = [self::range('negative_reviews', 'gte'), self::range('negative_verifications', 'gte')];
+        $mergeable = ['term' => ['mergeable' => 'yes']];
 
         return match ($list) {
             self::READY => self::bool(
-                must: [['terms' => ['reviewstatus' => [ReviewStatusEnum::NEW->value]]]],
-                mustNot: $open
+                must: [['terms' => ['reviewstatus' => [ReviewStatusEnum::NEW->value]]], $mergeable],
+                mustNot: [...$open, ...$negativeVotes]
             ),
             self::REVIEWED_AND_VERIFIED => self::bool(
                 must: [self::range('positive_reviews', 'gte'), self::range('positive_verifications', 'gte')],
@@ -104,9 +107,9 @@ final class ReviewLists
                 must: [
                     self::range('positive_reviews', 'gte'),
                     self::range('positive_verifications', 'gte'),
-                    ['term' => ['mergeable' => 'yes']],
+                    $mergeable,
                 ],
-                mustNot: [...$open, self::range('negative_reviews', 'gte'), self::range('negative_verifications', 'gte')]
+                mustNot: [...$open, ...$negativeVotes]
             ),
             self::SEARCH => $includeClosed ? ['match_all' => new \stdClass()] : self::bool(mustNot: [$closed]),
             default => null,

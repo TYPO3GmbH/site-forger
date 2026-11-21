@@ -258,7 +258,7 @@ class UserRepository
     }
 
     /**
-     * How far the Forge users are mapped to an email, for the system page, see UserHealth.
+     * How far Forger knows the TYPO3 login and the email of the Forge users, for the system page, see UserHealth.
      * The people only Gerrit knows are complete with their change, so they do not count.
      */
     public function statistics(): UserStatistics
@@ -270,35 +270,37 @@ class UserRepository
             'track_total_hits' => true,
             'query' => ['exists' => ['field' => 'forge_id']],
             'aggs' => [
-                'mapped' => ['filter' => ['exists' => ['field' => 'email']]],
-                'unmapped' => ['filter' => ['bool' => ['must_not' => [['exists' => ['field' => 'email']]]]], 'aggs' => [
-                    'notAskedYet' => ['filter' => $notAsked],
-                    'unknownToForge' => ['filter' => $gone, 'aggs' => [
-                        'status' => ['terms' => ['field' => 'gone_status', 'missing' => 0, 'size' => 10]],
-                    ]],
-                    'withoutEmail' => ['filter' => ['bool' => [
-                        'filter' => [['exists' => ['field' => 'fetched_on']]],
-                        'must_not' => [$gone],
-                    ]]],
+                'withLogin' => ['filter' => ['exists' => ['field' => 'username']]],
+                'withEmail' => ['filter' => ['exists' => ['field' => 'email']]],
+                'notAskedYet' => ['filter' => $notAsked],
+                'unknownToForge' => ['filter' => ['bool' => [
+                    'filter' => [$gone],
+                    'must_not' => [['exists' => ['field' => 'username']]],
+                ]], 'aggs' => [
+                    'status' => ['terms' => ['field' => 'gone_status', 'missing' => 0, 'size' => 10]],
                 ]],
+                'withoutEmail' => ['filter' => ['bool' => [
+                    'filter' => [['exists' => ['field' => 'fetched_on']]],
+                    'must_not' => [$gone, ['exists' => ['field' => 'email']]],
+                ]]],
                 'gone' => ['filter' => $gone],
                 'lastFetched' => ['max' => ['field' => 'fetched_on']],
             ],
         ]);
         $aggregations = $result->getAggregations();
-        $unmapped = $aggregations['unmapped'] ?? [];
         $goneByStatus = [];
-        foreach (Bucket::listOf($unmapped['unknownToForge']['status'] ?? null) as $status) {
+        foreach (Bucket::listOf($aggregations['unknownToForge']['status'] ?? null) as $status) {
             $goneByStatus[(int) $status->key] = $status->count;
         }
         $last = $aggregations['lastFetched']['value'] ?? null;
 
         return new UserStatistics(
             total: $result->getTotalHits(),
-            mapped: (int) ($aggregations['mapped']['doc_count'] ?? 0),
-            notAskedYet: (int) ($unmapped['notAskedYet']['doc_count'] ?? 0),
-            unknownToForge: (int) ($unmapped['unknownToForge']['doc_count'] ?? 0),
-            withoutEmail: (int) ($unmapped['withoutEmail']['doc_count'] ?? 0),
+            withLogin: (int) ($aggregations['withLogin']['doc_count'] ?? 0),
+            withEmail: (int) ($aggregations['withEmail']['doc_count'] ?? 0),
+            notAskedYet: (int) ($aggregations['notAskedYet']['doc_count'] ?? 0),
+            unknownToForge: (int) ($aggregations['unknownToForge']['doc_count'] ?? 0),
+            withoutEmail: (int) ($aggregations['withoutEmail']['doc_count'] ?? 0),
             gone: (int) ($aggregations['gone']['doc_count'] ?? 0),
             goneByStatus: $goneByStatus,
             lastFetched: null === $last ? null : new \DateTimeImmutable('@' . intdiv((int) $last, 1000)),

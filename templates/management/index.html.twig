@@ -21,7 +21,7 @@
             <nav class="chips month-trackers" aria-label="Trackers">
                 {% for item in trackers %}
                     {% set plural = item.tracker.label == 'Story' ? 'Stories' : item.tracker.label ~ 's' %}
-                    <a href="{{ path('management_index', item.toggle) }}" class="chip{{ item.included ? ' is-active' }}" aria-pressed="{{ item.included ? 'true' : 'false' }}" title="{{ item.included ? 'Leave out' : 'Take in' }} the {{ plural|lower }}">{{ plural }}</a>
+                    <a href="{{ path('issues_by_month', item.toggle) }}" class="chip{{ item.included ? ' is-active' }}" aria-pressed="{{ item.included ? 'true' : 'false' }}" title="{{ item.included ? 'Leave out' : 'Take in' }} the {{ plural|lower }}">{{ plural }}</a>
                 {% endfor %}
             </nav>
 

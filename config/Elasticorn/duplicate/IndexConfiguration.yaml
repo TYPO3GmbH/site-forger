@@ -1,0 +1,5 @@
+# The possible duplicates among the open issues, see App\Import\DuplicateImport. An index of its own: a write to the
+# issue index leaves a deleted copy behind until segments merge, and those count in the statistics the search picks
+# its words by.
+number_of_shards: 1
+number_of_replicas: 1

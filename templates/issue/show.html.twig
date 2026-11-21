@@ -34,7 +34,13 @@
                     </div>
                     <div class="detail-actions">
                         <a class="btn btn-sm btn-default" href="{{ forge_issue_url(issue.id) }}" target="issue{{ issue.id }}">{{ icon('actions-window-open') }} Open in Forge</a>
-                        <a class="btn btn-sm btn-default" href="{{ path('issue_duplicates', {'id': issue.id}) }}">{{ icon('actions-duplicates') }} Possible duplicates</a>
+                        {# The marked and the similar open issues, see DuplicateGroups #}
+                        {% set duplicateCount = duplicates.offered ?? 0 %}
+                        {% if duplicateCount > 0 %}
+                            <a class="btn btn-sm btn-primary duplicates-button" href="{{ path('issue_duplicates', {'id': issue.id}) }}">
+                                {{- icon('actions-duplicates') }} Possible duplicates <span class="detail-count">{{ duplicateCount }}</span>
+                            </a>
+                        {% endif %}
                         {{ refresh.issue(issue.id) }}
                     </div>
                 </header>
@@ -74,6 +80,29 @@
                             {% endif %}
                         </section>
 
+                        {% if (subtasks ?? []) is not empty %}
+                            <section class="detail-section" aria-labelledby="subtasks-title">
+                                <h2 id="subtasks-title" class="detail-section-title">Subtasks <span class="detail-count">{{ subtasks|length }}</span></h2>
+                                <ul class="row-list">
+                                    {% for subtask in subtasks %}
+                                        <li>{% include '_partials/row/issue.html.twig' with {'issue': subtask} only %}</li>
+                                    {% endfor %}
+                                </ul>
+                            </section>
+                        {% endif %}
+
+                        {# The relations of Forge other than duplicates, see Relations::relatedIssuesOf() #}
+                        {% if (relatedIssues ?? []) is not empty %}
+                            <section class="detail-section" aria-labelledby="related-issues-title">
+                                <h2 id="related-issues-title" class="detail-section-title">Related issues <span class="detail-count">{{ relatedIssues|length }}</span></h2>
+                                <ul class="row-list">
+                                    {% for item in relatedIssues %}
+                                        <li>{% include '_partials/row/related_issue.html.twig' with {'item': item, 'relation': item.relation} only %}</li>
+                                    {% endfor %}
+                                </ul>
+                            </section>
+                        {% endif %}
+
                         {% if comments is not empty %}
                             <section class="detail-section" aria-labelledby="comments-title">
                                 <h2 id="comments-title" class="detail-section-title">Comments <span class="detail-count">{{ comments|length }}</span></h2>
@@ -97,6 +126,11 @@
 
                     <aside class="detail-aside" aria-label="Details">
                         <dl class="detail-facts">
+                            {# The issue this one is a subtask of: its page, or Forge when Forger does not have it #}
+                            {% if (parent ?? null) is not null %}
+                                {% set parentUrl = parent.issue is not null ? issue_path(parent.id) : forge_issue_url(parent.id) %}
+                                {{ detail.fact('Parent task', '#' ~ parent.id ~ (parent.issue is not null ? ' ' ~ parent.issue.subject), parentUrl) }}
+                            {% endif %}
                             {# Each value leads to the open issues with it, as the filter of the search shows them. Not the project: Forger has only TYPO3 Core #}
                             {{ detail.person('Assigned to', issue.assignedTo ?? null, detail.issueSearch('assigned_to', user_key(issue.assignedTo ?? null)), 'Issues assigned to them') }}
                             {{ detail.person('Author', issue.author ?? null, detail.issueSearch('author', user_key(issue.author ?? null)), 'Issues by them') }}
