@@ -71,7 +71,12 @@ final readonly class IssueListSearch
         array $filters,
         Pagination $page,
     ): ListPage {
-        $request = ['query' => IssueSearch::query($searchTerms, $includeClosed), 'sort' => IssueSortQuery::sort($sort)];
+        $request = [
+            'query' => IssueSearch::query($searchTerms, $includeClosed),
+            'sort' => IssueSortQuery::sort($sort),
+            // Count every issue found, not only the first 10 000
+            'track_total_hits' => true,
+        ];
         $filterQuery = $this->filterQuery($filters);
         if (count($filterQuery) > 0) {
             $request['post_filter'] = $filterQuery;
