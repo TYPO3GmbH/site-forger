@@ -25,6 +25,7 @@ use App\Repository\UserRepository;
 use App\Setup\ForgeLogin;
 use App\Setup\SetupCheck;
 use App\Setup\SetupSetting;
+use App\Stream\StreamSchema;
 use Elastica\Cluster\Health;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -224,16 +225,29 @@ class SystemController extends AbstractController
         foreach (PendingImport::checks() as $check) {
             $index = $this->indices->get($check['index']);
             $matches = $index->count(['query' => $check['query']]);
-            // Documents without the field are of version 1
-            $byVersion = $index->search([
+            // Documents without the field are of version 1 of the import, of none of the stream
+            $result = $index->search([
                 'size' => 0,
-                'aggs' => ['versions' => ['terms' => ['field' => ImportSchema::FIELD, 'missing' => 1, 'size' => 100]]],
-            ])->getAggregation('versions');
+                'aggs' => [
+                    'versions' => ['terms' => ['field' => ImportSchema::FIELD, 'missing' => 1, 'size' => 100]],
+                    'stream' => ['terms' => ['field' => StreamSchema::FIELD, 'missing' => 0, 'size' => 100]],
+                ],
+            ]);
+            $byVersion = Bucket::countsOf($result->getAggregation('versions'));
+            $streamVersions = PendingImport::streamVersions(Bucket::countsOf($result->getAggregation('stream')));
+            $streamOutdated = array_sum(array_column(
+                array_filter($streamVersions, static fn (array $row): bool => 'current' !== $row['state']),
+                'documents',
+            ));
             $pending[] = $check + [
                 'matches' => $matches,
-                'versions' => PendingImport::versions($check['index'], Bucket::countsOf($byVersion), $this->backfill),
+                'versions' => PendingImport::versions($check['index'], $byVersion, $this->backfill),
+                'streamVersions' => $streamVersions,
                 'documents' => $index->count(),
-                'result' => PendingImport::result($matches),
+                'result' => SystemCheckEnum::worst(
+                    PendingImport::result($matches),
+                    PendingImport::result($streamOutdated),
+                ),
             ];
         }
 

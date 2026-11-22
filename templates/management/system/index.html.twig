@@ -296,6 +296,34 @@
                                             {%- endif %}
                                         </span>
                                     {% endfor %}
+                                    {# Where their events stand: the version of StreamEvents that wrote them #}
+                                    {% set streamVersions = check.streamVersions|default([]) %}
+                                    {% if streamVersions and check.documents > 0 %}
+                                        <span class="system-versions" aria-hidden="true">
+                                            {% for row in streamVersions %}
+                                                {% set share = (row.documents / check.documents * 100)|round(2) %}
+                                                <span
+                                                    class="system-version is-{{ row.state }}"
+                                                    style="width: {{ share }}%"
+                                                    title="Events of version {{ row.version }}"
+                                                ></span>
+                                            {% endfor %}
+                                        </span>
+                                    {% endif %}
+                                    {% for row in streamVersions %}
+                                        <span class="system-list-meta system-version-row">
+                                            <span class="system-version-key is-{{ row.state }}"></span>
+                                            {% if row.version == 0 -%}
+                                                Events not written yet:
+                                            {%- else -%}
+                                                Events of version {{ row.version }}:
+                                            {%- endif %}
+                                            {{ row.documents|number_format(0, '.', ',') }}
+                                            {%- if row.state == 'current' %}, current
+                                            {%- else %}, the backfill writes their events again
+                                            {%- endif %}
+                                        </span>
+                                    {% endfor %}
                                 </div>
                                 {{ system.result(check.result) }}
                             </li>

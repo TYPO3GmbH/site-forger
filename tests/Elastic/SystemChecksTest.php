@@ -15,6 +15,7 @@ use App\Elastic\ElasticsearchVersion;
 use App\Enum\SystemCheckEnum;
 use App\Import\ImportSchema;
 use App\Import\PendingImport;
+use App\Stream\StreamSchema;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -42,6 +43,17 @@ final class SystemChecksTest extends TestCase
     {
         self::assertSame(SystemCheckEnum::ATTENTION, PendingImport::result(576));
         self::assertSame(SystemCheckEnum::OK, PendingImport::result(0));
+    }
+
+    public function testTheEventsOfAnOlderStreamVersionWaitForTheBackfill(): void
+    {
+        self::assertSame(
+            [
+                ['version' => StreamSchema::VERSION, 'documents' => 60, 'state' => 'current'],
+                ['version' => 0, 'documents' => 40, 'state' => 'backfill'],
+            ],
+            PendingImport::streamVersions([0 => 40, StreamSchema::VERSION => 60]),
+        );
     }
 
     public function testEachIndexCountsTheDocumentsOfAnOlderImport(): void
