@@ -184,6 +184,46 @@ final readonly class Change
     }
 
     /**
+     * How many unresolved comments an open change has, as Gerrit counts them. None for a closed change: nobody
+     * has to answer them any more.
+     */
+    public function unresolvedComments(): int
+    {
+        return $this->state()->isClosed() ? 0 : (int) $this->unresolvedCommentCount;
+    }
+
+    /**
+     * How many threads of a file are not resolved.
+     */
+    public function unresolvedCountOf(string $path): int
+    {
+        return count(array_filter($this->openComments(), static fn (CodeComment $comment): bool => $path === $comment->file));
+    }
+
+    /**
+     * The first comment that still needs an answer, null without one.
+     */
+    public function firstOpenComment(): ?CodeComment
+    {
+        return $this->openComments()[0] ?? null;
+    }
+
+    /**
+     * The last comment of each thread that is not resolved, the oldest first.
+     *
+     * @return list<CodeComment>
+     */
+    private function openComments(): array
+    {
+        $last = $this->lastOfThreads();
+
+        return array_values(array_filter(
+            $this->comments,
+            static fn (CodeComment $comment): bool => $comment->unresolved && in_array($comment->id, $last, true),
+        ));
+    }
+
+    /**
      * Whether a comment is the last one of a thread that is not resolved: what the owner still has to answer.
      */
     public function isOpen(CodeComment $comment): bool

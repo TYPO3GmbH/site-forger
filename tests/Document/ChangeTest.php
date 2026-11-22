@@ -149,6 +149,17 @@ final class ChangeTest extends TestCase
         // A thread is open by its last comment
         self::assertSame([false, true, true], array_map($change->isOpen(...), $change->comments));
         self::assertSame(2, $change->commentCountOf('composer.json'));
+        self::assertSame(1, $change->unresolvedCountOf('composer.json'));
+        self::assertSame('aa', $change->firstOpenComment()?->id);
         self::assertSame([], $change->commentsOf(ReviewMessage::fromDocument(['message' => 'No id'])));
+    }
+
+    public function testOnlyAnOpenChangeHasUnresolvedComments(): void
+    {
+        $document = ['id' => 1, 'subject' => 'Change', 'unresolved_comment_count' => 2];
+
+        self::assertSame(2, Change::fromDocument($document)->unresolvedComments());
+        self::assertSame(0, Change::fromDocument(['reviewstatus' => 'MERGED'] + $document)->unresolvedComments());
+        self::assertSame(0, Change::fromDocument(['id' => 1, 'subject' => 'Change'])->unresolvedComments());
     }
 }

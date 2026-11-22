@@ -49,6 +49,22 @@
     }
 }
 
+.detail-notice-warning {
+    border-bottom: 1px solid #f3dca8;
+    background: #fff3dc;
+    color: #8a4b00;
+
+    strong {
+        font-weight: 700;
+    }
+
+    a {
+        color: inherit;
+        font-weight: 600;
+        text-decoration: underline;
+    }
+}
+
 // Header
 
 .detail-header {
@@ -678,6 +694,14 @@ a.timeline-time {
     overflow-wrap: anywhere;
 }
 
+// A thread that is not resolved: the color of its pill on the edge. The notice of the page leads here.
+.timeline-comment.is-open {
+    border-color: #f3dca8;
+    border-left: 3px solid #d98e1f;
+    background: #fffaf0;
+    scroll-margin-top: 5rem;
+}
+
 // The text as Gerrit has it, its line breaks kept
 .timeline-comment-text {
     white-space: pre-wrap;
@@ -916,6 +940,11 @@ a.timeline-time {
 
 .detail-file-conflict {
     color: #b42318;
+}
+
+.detail-file-comments.is-open {
+    color: #8a4b00;
+    font-weight: 600;
 }
 
 .detail-file-facts .is-added { color: #15803d; }

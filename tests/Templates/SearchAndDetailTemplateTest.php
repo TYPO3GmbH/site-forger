@@ -795,8 +795,12 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         // The comment under the message it was published with, open, and counted on its file
         self::assertStringContainsString('<code title="composer.json">composer.json:3</code>', $html);
         self::assertStringContainsString('<div class="timeline-comment-text">Why this version?</div>', $html);
-        self::assertStringContainsString('<div class="timeline-comment is-open">', $html);
-        self::assertStringContainsString('title="Comments on this file">', $html);
+        self::assertStringContainsString('<div class="timeline-comment is-open" id="comment-c1">', $html);
+        self::assertStringContainsString('class="detail-file-comments is-open"', $html);
+        self::assertStringContainsString('title="Comments on this file, 1 unresolved"', $html);
+        // The notice on top names the unresolved comments and leads to the first one
+        self::assertStringContainsString('<strong>1 unresolved comment</strong>', $html);
+        self::assertStringContainsString('<a href="#comment-c1">Show the first one</a>', $html);
         self::assertStringContainsString('href="/change/80000">Change 80000</a>', $html);
     }
 
