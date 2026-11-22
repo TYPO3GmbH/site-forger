@@ -32,6 +32,18 @@ final readonly class ActivityFilters
     private const string PERSON_KEY = '/^(forge|gerrit):\d{1,9}$/';
 
     /**
+     * The people "people" takes at most: as many as a user may follow, see FollowRepository::LIMIT.
+     */
+    public const int MAX_PEOPLE = 100;
+
+    /**
+     * A key of "people": "forge:<number>", "gerrit:<number>", a number, or a username, which has no spaces.
+     */
+    private const string PEOPLE_KEY = '/^(?:(?:forge|gerrit):\d{1,9}|\d{1,9}|[\w.@+-]{1,255})$/u';
+
+    private const array PEOPLE_FORMS = ['forge:<number>', 'gerrit:<number>', 'a username'];
+
+    /**
      * The first year with activity: the oldest issue of the TYPO3 Core on Forge is of April 2004. The calendars of
      * the pages start with it, see StreamTwigExtension::definitions().
      */
@@ -52,12 +64,22 @@ final readonly class ActivityFilters
         $now = StreamWindow::now(self::timeZone($request));
         $window = self::window($request, $now)->withInterval(self::interval($request));
         $person = ListParameters::optional($request, 'person');
+        $people = ListParameters::optional($request, 'people');
+        if (null !== $person && null !== $people) {
+            throw InvalidParameter::notTogether('person', 'people');
+        }
         $personKey = null === $person ? null : self::personKey($person, $users);
         $byNumber = null !== $personKey;
         $branch = ListParameters::optional($request, 'branch');
         if (null !== $branch && 1 !== preg_match(self::BRANCH, $branch)) {
             throw InvalidParameter::notOneOf('branch', $branch, ['a branch like main or 13.4']);
         }
+        [$forgeIds, $gerritIds] = null === $people
+            ? [
+                $byNumber ? $users->numbersOf($personKey, 'forge') : [],
+                $byNumber ? $users->numbersOf($personKey, 'gerrit') : [],
+            ]
+            : self::numbersOfPeople($people, $users);
 
         return new self(
             new StreamFilter(
@@ -65,8 +87,8 @@ final readonly class ActivityFilters
                 source: self::source($request),
                 kinds: self::kinds($request),
                 branch: $branch,
-                forgeIds: $byNumber ? $users->numbersOf($personKey, 'forge') : [],
-                gerritIds: $byNumber ? $users->numbersOf($personKey, 'gerrit') : [],
+                forgeIds: $forgeIds,
+                gerritIds: $gerritIds,
                 nameWords: $byNumber || null === $person ? [] : (PersonFilter::fromValue($person)->words ?? []),
                 bots: ListParameters::flag($request, 'bots'),
             ),
@@ -177,6 +199,42 @@ final readonly class ActivityFilters
         }
 
         return array_values(array_unique($kinds, SORT_REGULAR));
+    }
+
+    /**
+     * The numbers on Forge and on Gerrit of the people of "people": keys separated by commas, as "person" takes
+     * them, but no words of a name. A key of nobody known finds nothing: a list of followed people keeps working
+     * when one of them is gone, see FollowRepository.
+     *
+     * @return array{list<int>, list<int>}
+     *
+     * @throws InvalidParameter
+     */
+    private static function numbersOfPeople(string $people, UserDirectory $users): array
+    {
+        $keys = array_values(array_unique(array_filter(array_map(trim(...), explode(',', $people)))));
+        if (count($keys) > self::MAX_PEOPLE) {
+            throw InvalidParameter::tooMany('people', self::MAX_PEOPLE);
+        }
+        $forgeIds = [];
+        $gerritIds = [];
+        foreach ($keys as $key) {
+            if (1 !== preg_match(self::PEOPLE_KEY, $key)) {
+                throw InvalidParameter::notOneOf('people', $key, self::PEOPLE_FORMS);
+            }
+            $personKey = self::personKey($key, $users);
+            if (null === $personKey) {
+                continue;
+            }
+            $forgeIds = [...$forgeIds, ...$users->numbersOf($personKey, 'forge')];
+            $gerritIds = [...$gerritIds, ...$users->numbersOf($personKey, 'gerrit')];
+        }
+        if ([] === $forgeIds && [] === $gerritIds) {
+            // Without any number the filter would find everybody. No account has the number 0.
+            $forgeIds = [0];
+        }
+
+        return [array_values(array_unique($forgeIds)), array_values(array_unique($gerritIds))];
     }
 
     /**

@@ -107,6 +107,15 @@ nelmio_api_doc:
                         Words are searched in the name.
                     schema: { type: string }
                     example: forge:36415
+                activityPeople:
+                    name: people
+                    in: query
+                    description: >-
+                        Only the events of these people, any of them, up to 100, separated by commas. Each is a key
+                        as "person" takes it, but no words of a name. A username nobody has finds nothing. It does
+                        not go together with "person".
+                    schema: { type: string }
+                    example: forge:36415,gerrit:14410
                 activityBots:
                     name: bots
                     in: query

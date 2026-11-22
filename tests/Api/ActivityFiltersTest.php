@@ -66,6 +66,24 @@ final class ActivityFiltersTest extends TestCase
         self::assertFalse($to->isOpen);
     }
 
+    public function testPeopleAreAnyOfTheirNumbers(): void
+    {
+        $filters = self::filters(['people' => 'forge:7, gerrit:9,12,forge:7']);
+
+        self::assertSame([7, 12], $filters->filter->forgeIds);
+        self::assertSame([9], $filters->filter->gerritIds);
+        self::assertNull($filters->personKey);
+    }
+
+    public function testPeopleNobodyKnowsFindNothing(): void
+    {
+        $filters = self::filters(['people' => 'nobody-here']);
+
+        self::assertSame([0], $filters->filter->forgeIds);
+        self::assertSame([], $filters->filter->gerritIds);
+        self::assertTrue($filters->filter->hasPerson());
+    }
+
     /**
      * @return iterable<string, array{array<string, string>}>
      */
@@ -77,6 +95,9 @@ final class ActivityFiltersTest extends TestCase
         yield 'a time in the future' => [['since' => '2999-01-01T00:00:00Z']];
         yield 'a branch' => [['branch' => 'main; drop']];
         yield 'a range' => [['range' => '2w']];
+        yield 'words of a name among the people' => [['people' => 'forge:1,Jane Doe']];
+        yield 'a person and people' => [['person' => 'forge:1', 'people' => 'forge:2']];
+        yield 'too many people' => [['people' => implode(',', range(1, ActivityFilters::MAX_PEOPLE + 1))]];
     }
 
     /**

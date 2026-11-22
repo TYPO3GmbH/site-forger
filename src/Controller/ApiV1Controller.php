@@ -492,6 +492,7 @@ class ApiV1Controller extends AbstractController
     #[OA\Parameter(ref: '#/components/parameters/activityKind')]
     #[OA\Parameter(ref: '#/components/parameters/activityBranch')]
     #[OA\Parameter(ref: '#/components/parameters/activityPerson')]
+    #[OA\Parameter(ref: '#/components/parameters/activityPeople')]
     #[OA\Parameter(ref: '#/components/parameters/activityBots')]
     #[OA\Parameter(ref: '#/components/parameters/limit')]
     #[OA\Parameter(ref: '#/components/parameters/offset')]
@@ -536,6 +537,7 @@ class ApiV1Controller extends AbstractController
     #[OA\Parameter(ref: '#/components/parameters/activityKind')]
     #[OA\Parameter(ref: '#/components/parameters/activityBranch')]
     #[OA\Parameter(ref: '#/components/parameters/activityPerson')]
+    #[OA\Parameter(ref: '#/components/parameters/activityPeople')]
     #[OA\Parameter(ref: '#/components/parameters/activityBots')]
     #[OA\Parameter(
         name: 'interval',
@@ -621,6 +623,7 @@ class ApiV1Controller extends AbstractController
     #[OA\Parameter(ref: '#/components/parameters/activityKind')]
     #[OA\Parameter(ref: '#/components/parameters/activityBranch')]
     #[OA\Parameter(ref: '#/components/parameters/activityPerson')]
+    #[OA\Parameter(ref: '#/components/parameters/activityPeople')]
     #[OA\Parameter(ref: '#/components/parameters/activityBots')]
     #[OA\Response(
         response: 200,
@@ -657,6 +660,7 @@ class ApiV1Controller extends AbstractController
     #[OA\Parameter(ref: '#/components/parameters/activityKind')]
     #[OA\Parameter(ref: '#/components/parameters/activityBranch')]
     #[OA\Parameter(ref: '#/components/parameters/activityPerson')]
+    #[OA\Parameter(ref: '#/components/parameters/activityPeople')]
     #[OA\Parameter(ref: '#/components/parameters/activityBots')]
     #[OA\Response(
         response: 200,
