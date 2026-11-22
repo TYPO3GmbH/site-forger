@@ -18,9 +18,11 @@
     &.tag-label-story { border-color: #e6c000; color: #8a7300; }
     &.tag-label-epic { border-color: #5d4db3; color: #5d4db3; }
 
+    // A branch other than main: filled, to tell it from main. Not red: a backport is no error, and red is the
+    // color of a bug.
     &.is-backport {
-        border-color: #f5c2bd;
-        background: #fdecea;
-        color: #b42318;
+        border-color: #d9dce1;
+        background: #eef0f2;
+        color: #374151;
     }
 }
