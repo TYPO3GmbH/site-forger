@@ -31,6 +31,7 @@ Rules for everyone who works on this repository, people and coding agents.
 - Static analysis: `bin/phpstan analyse -c build/phpstan.neon`
 - Templates: `bin/console lint:twig templates`
 - Assets: `ddev exec npm run dev`
+- TypeScript in `assets/ts/`: `ddev exec npx tsc --noEmit`
 
 ## Deployment
 - The CI deploys with `deploy.php` once its checks are green: a push to `develop` goes to stage.forger.typo3.com, a push to `master` to forger.typo3.com.
@@ -45,3 +46,8 @@ Rules for everyone who works on this repository, people and coding agents.
 - Every field of the API needs an OpenAPI description. `tests/Api/ApiDocumentationTest.php` checks that.
 - The Forge token of Forger sees more than the public: private issues and notes, the relations to private issues, the files of private notes. None of this may reach a page or the API. Keep email addresses in storage for matching, but never show them on a page or in the API.
 - Show detail data on detail pages only, like comments, files and the review log. Lists stay lean, in the UI and in the API.
+- When the index already has the data of a new `ImportSchema` version, add a `SchemaStep` in `App\Import\Backfill`.
+- A step that writes outside its document implements `BackfillStep`. Imports write a document before its events.
+- Raise `StreamSchema::VERSION` when `StreamEvents` derives other events.
+- Keep code that reads Elasticsearch answers apart from code that asks, like `StreamAggregations`, so tests need no Elasticsearch.
+- Statistics widgets take a size class (`stream-widget is-s|m|l|xl|full`). Don't size them by hand.
