@@ -27,6 +27,13 @@ set('php_version', '8.5');
 // schedule and the list of the backports. The cache is not shared: each release builds its own before it goes live,
 // see forger:cache_warmup. A shared cache was removed while the live release and the worker wrote to it, and a
 // release could start with the container of the release before.
+// The Composer scripts of the build write var/cache on the runner, with the paths of the runner. The release builds
+// its cache on the server instead, so the build leaves it out, see forger:cache_warmup.
+set(
+    'build_composer_command',
+    'composer install --no-interaction --no-progress --no-dev --optimize-autoloader && rm -rf var/cache',
+);
+
 set('shared_dirs', [
     'var/log',
     'var/lock',
@@ -53,6 +60,8 @@ task('forger:dump_env', function (): void {
 // a complete cache, and no live process writes to it before
 desc('Builds the cache of the new release before it goes live');
 task('forger:cache_warmup', function (): void {
+    // A cache that came with the build has the paths of the runner: the release is not live yet, nobody reads it
+    run('rm -rf {{release_path}}/var/cache');
     run('{{bin/php}} {{release_path}}/bin/console cache:warmup --no-interaction', timeout: 900);
 });
 
