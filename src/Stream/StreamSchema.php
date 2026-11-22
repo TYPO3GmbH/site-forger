@@ -22,7 +22,7 @@ namespace App\Stream;
 final class StreamSchema
 {
     public const string FIELD = 'stream_schema';
-    public const int VERSION = 6;
+    public const int VERSION = 7;
 
     /**
      * The documents of the issue or the review index whose events an older version wrote, or none at all.

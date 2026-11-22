@@ -20,6 +20,7 @@ use App\Document\StreamEvent;
 use App\Enum\IssueFieldEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewEventEnum;
+use App\Enum\ReviewStateEnum;
 use App\Enum\StreamKindEnum;
 use App\Enum\StreamSourceEnum;
 use App\Import\ForgeIssueImporter;
@@ -72,8 +73,36 @@ final class StreamEvents
                 $events[] = $event;
             }
         }
+        $opened = array_sum(array_map(static fn (StreamEvent $event): int => $event->openDelta, $events));
+        if (1 === $opened && true === $issue->statusEnum()?->isClosed()) {
+            $events[] = self::closingOf($issue);
+        }
 
         return $events;
+    }
+
+    /**
+     * The closing of an issue whose journals do not close it. The index lacks the journals of some older issues,
+     * and Forge closed some without a journal. Without it the issue would stay open in the stream.
+     */
+    private static function closingOf(Issue $issue): StreamEvent
+    {
+        $date = null === $issue->closedOn
+            ? (string) $issue->updatedOn
+            : ForgeIssueImporter::indexDate($issue->closedOn);
+        $resolved = IssueStatusEnum::RESOLVED === $issue->statusEnum();
+
+        return new StreamEvent(
+            id: self::issueEventId($issue->id, 'closed'),
+            source: StreamSourceEnum::FORGE,
+            kind: $resolved ? StreamKindEnum::RESOLVED : StreamKindEnum::CLOSED,
+            number: $issue->id,
+            title: $issue->subject,
+            date: $date,
+            summary: ['Status: ' . ($issue->status['name'] ?? '')],
+            openDelta: -1,
+            duration: self::seconds($issue->createdOn, $date),
+        );
     }
 
     /**
@@ -106,8 +135,35 @@ final class StreamEvents
         if ($withoutFirst) {
             array_unshift($events, self::creationOf($change, (string) $change->createdOn));
         }
+        $closedOn = $change->closedOn ?? $change->updatedOn;
+        if ($open && $change->state()->isClosed() && null !== $closedOn) {
+            $events[] = self::closingOfChange($change, $closedOn, $wip);
+        }
 
         return $events;
+    }
+
+    /**
+     * The closing of a change whose log does not close it, at the day the index knows. Without it the change would
+     * stay open in the stream.
+     */
+    private static function closingOfChange(Change $change, string $date, bool $wip): StreamEvent
+    {
+        $merged = ReviewStateEnum::MERGED === $change->state();
+
+        return new StreamEvent(
+            id: 'gerrit-' . $change->id . '-closed',
+            source: StreamSourceEnum::GERRIT,
+            kind: $merged ? StreamKindEnum::MERGED : StreamKindEnum::CLOSED,
+            number: $change->id,
+            title: $change->subject,
+            date: $date,
+            branch: $change->branch,
+            openDelta: -1,
+            duration: self::seconds($change->createdOn, $date),
+            owner: self::owner($change),
+            wipDelta: $wip ? -1 : 0,
+        );
     }
 
     private static function hasFirstPatchSet(Change $change): bool

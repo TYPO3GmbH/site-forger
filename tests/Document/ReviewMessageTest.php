@@ -32,6 +32,9 @@ final class ReviewMessageTest extends TestCase
         yield 'a merge' => ['Change has been successfully cherry-picked as eaf1c62', ReviewEventEnum::MERGED, ''];
         yield 'ready' => ['Set Ready For Review', ReviewEventEnum::READY, ''];
         yield 'abandoned' => ['Abandoned', ReviewEventEnum::ABANDONED, ''];
+        $oldAbandon = "Patch Set 1: Abandoned\n\nTYPO3 4.6 branch is closed";
+        yield 'abandoned before 2013' => [$oldAbandon, ReviewEventEnum::ABANDONED, 'TYPO3 4.6 branch is closed'];
+        yield 'restored before 2013' => ['Patch Set 2: Restored', ReviewEventEnum::RESTORED, ''];
         yield 'a comment' => ["Patch Set 3:\n\nPlease add a test.", ReviewEventEnum::COMMENTED, 'Please add a test.'];
         yield 'anything else' => ['Unset private', ReviewEventEnum::OTHER, 'Unset private'];
     }

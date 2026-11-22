@@ -196,6 +196,8 @@ final readonly class ReviewMessage
             ReviewEventEnum::MESSAGE_UPDATED,
             ReviewEventEnum::READY,
             ReviewEventEnum::WORK_IN_PROGRESS,
+            ReviewEventEnum::ABANDONED,
+            ReviewEventEnum::RESTORED,
         ], true);
 
         return [$event, $votes, $known ? '' : trim($rest)];
@@ -211,6 +213,9 @@ final readonly class ReviewMessage
             str_contains($note, 'Commit message was updated') => ReviewEventEnum::MESSAGE_UPDATED,
             'Ready For Review' === $note => ReviewEventEnum::READY,
             'Work In Progress' === $note => ReviewEventEnum::WORK_IN_PROGRESS,
+            // How Gerrit wrote an abandon and a restore until about 2013
+            'Abandoned' === $note => ReviewEventEnum::ABANDONED,
+            'Restored' === $note => ReviewEventEnum::RESTORED,
             default => $otherwise,
         };
     }
