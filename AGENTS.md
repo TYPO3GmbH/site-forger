@@ -24,6 +24,10 @@ Rules for everyone who works on this repository, people and coding agents.
 ## UI
 - Use icons from the template bundle (`{{ icon('actions-…') }}`), not text symbols.
 - The UI must fit phone viewports (575px and less).
+- The My Work tabs must fit 375px: on phones they hide icons and counts.
+- Every breadcrumb starts at "Dashboard". `_macros/breadcrumb.html.twig` adds it.
+- A person card reuses `_partials/person_card.html.twig`. A person picker reuses `.person-search*`.
+- `public/build/app.css` has no hash in its name: check a UI change after a hard reload.
 
 ## Checks
 - Tests: `bin/phpunit -c build/phpunit.xml`
@@ -51,3 +55,5 @@ Rules for everyone who works on this repository, people and coding agents.
 - Raise `StreamSchema::VERSION` when `StreamEvents` derives other events.
 - Keep code that reads Elasticsearch answers apart from code that asks, like `StreamAggregations`, so tests need no Elasticsearch.
 - Statistics widgets take a size class (`stream-widget is-s|m|l|xl|full`). Don't size them by hand.
+- A dashboard list shows a part. "Show all" opens the search with the same filters. Build the filters beside the query, like `OverviewQuery::*Filters()`.
+- Count figures about a person as `StreamFigureEnum` does, so they equal the statistics.
