@@ -1,22 +1,21 @@
 {% extends 'base.html.twig' %}
-{# Over the whole width, as its content: the breadcrumb and the title too, see base.html.twig #}
+{# Over the whole width, as its content: the title too, see base.html.twig #}
 {% set wide = true %}
 {% block title %}Review board{% endblock %}
 {% block body %}
 
-    <div class="content-section content-section-smallest bg-lighter">
-        <div class="container-fluid text-center">
-            {% if menu|length > 0 %}
-                <div class="btn-group">
-                    {% for boardNav in menu %}
-                        <a href="{{ path("sprint_reviews", {"reviewType":boardNav.id}) }}" class="btn btn-default {{ (boardNav.active) ? 'active' : '' }}">
-                            {{ boardNav.name }} ({{ boardNav.count }})
-                        </a>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        </div>
-    </div>
+    {# The boards to choose from, over the whole width as the board #}
+    {% frame with {'color': 'lighter', 'size': 'small', 'innerWidth': 'full', 'center': true} %}
+        {% if menu|length > 0 %}
+            <div class="btn-group">
+                {% for boardNav in menu %}
+                    <a href="{{ path("sprint_reviews", {"reviewType":boardNav.id}) }}" class="btn btn-default {{ (boardNav.active) ? 'active' : '' }}">
+                        {{ boardNav.name }} ({{ boardNav.count }})
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endframe %}
 
     <div class="board">
         <div class="board-container">

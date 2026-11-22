@@ -1,5 +1,5 @@
 {% extends 'base.html.twig' %}
-{# Over the whole width, as its content: the breadcrumb and the title too, see base.html.twig #}
+{# Over the whole width, as its content: the title too, see base.html.twig #}
 {% set wide = true %}
 {% import '_macros/buttons.html.twig' as buttons %}
 {% block title %}Sprints{% endblock %}
@@ -11,59 +11,56 @@
 {% endblock %}
 {% block body %}
 
-    <div class="content-section content-section-smallest bg-lighter">
-        <div class="container-fluid text-center">
-            {% if menu|length > 0 %}
-                <div class="btn-group">
-                    {% for boardNav in menu %}
-                        <a href="{{ path("sprint", {"category":category, "sprintId":boardNav.id}) }}" class="btn btn-default {{ (boardNav.active) ? 'active' : '' }}" title="{{boardNav.count.open}} open, {{boardNav.count.closed}} closed, {{boardNav.count.total}} total">
-                            {{ boardNav.title }} ({{ (boardNav.count.percentage is not null) ? boardNav.count.percentage ~ '%' : '/'}})
-                        </a>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="alert alert-info">No boards have been defined for this category, yet. If you think there should be something here, get in touch with us on Slack</div>
-            {% endif %}
-        </div>
-    </div>
+    {# The boards to choose from, over the whole width as the board #}
+    {% frame with {'color': 'lighter', 'size': 'small', 'innerWidth': 'full', 'center': true} %}
+        {% if menu|length > 0 %}
+            <div class="btn-group">
+                {% for boardNav in menu %}
+                    <a href="{{ path("sprint", {"category":category, "sprintId":boardNav.id}) }}" class="btn btn-default {{ (boardNav.active) ? 'active' : '' }}" title="{{boardNav.count.open}} open, {{boardNav.count.closed}} closed, {{boardNav.count.total}} total">
+                        {{ boardNav.title }} ({{ (boardNav.count.percentage is not null) ? boardNav.count.percentage ~ '%' : '/'}})
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">No boards have been defined for this category, yet. If you think there should be something here, get in touch with us on Slack</div>
+        {% endif %}
+    {% endframe %}
 
     {% if boardInfo is not empty %}
-        <div class="content-section content-section-smallest">
-            <div class="container-fluid">
-                <div class="header">
-                    <h2 class="header-headline">{{ boardInfo }} ({{ progress.total }})</h2>
-                    {% if sprintId is defined and sprintId > 0 and is_granted('ROLE_CORE_COMPONENT') %}
-                        <div class="header-actions">
-                            {{ buttons.link(
-                                path('sprint_edit', {'sprintId': sprintId}),
-                                'Edit Sprint',
-                                'secondary',
-                                'actions-open'
-                            ) }}
-                            {{ buttons.link(
-                                path('sprint_delete_confirm', {'sprintId': sprintId}),
-                                'Delete Sprint',
-                                'danger',
-                                'actions-delete'
-                            ) }}
-                        </div>
-                    {% endif %}
-                </div>
-                <div class="progress mt-2">
-                    {% for bar in progress.sections %}
-                        <div
-                                class="progress-bar progress-type-{{ bar.classes }}"
-                                role="progressbar"
-                                aria-valuenow="60"
-                                aria-valuemin="0"
-                                aria-valuemax="100"
-                                style="width: {{ bar.value }}%;">
-                            {{ bar.label }}
-                        </div>
-                    {% endfor %}
-                </div>
+        {% frame with {'size': 'small', 'innerWidth': 'full'} %}
+            <div class="header">
+                <h2 class="header-headline">{{ boardInfo }} ({{ progress.total }})</h2>
+                {% if sprintId is defined and sprintId > 0 and is_granted('ROLE_CORE_COMPONENT') %}
+                    <div class="header-actions">
+                        {{ buttons.link(
+                            path('sprint_edit', {'sprintId': sprintId}),
+                            'Edit Sprint',
+                            'secondary',
+                            'actions-open'
+                        ) }}
+                        {{ buttons.link(
+                            path('sprint_delete_confirm', {'sprintId': sprintId}),
+                            'Delete Sprint',
+                            'danger',
+                            'actions-delete'
+                        ) }}
+                    </div>
+                {% endif %}
             </div>
-        </div>
+            <div class="progress mt-2">
+                {% for bar in progress.sections %}
+                    <div
+                            class="progress-bar progress-type-{{ bar.classes }}"
+                            role="progressbar"
+                            aria-valuenow="60"
+                            aria-valuemin="0"
+                            aria-valuemax="100"
+                            style="width: {{ bar.value }}%;">
+                        {{ bar.label }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endframe %}
     {% endif %}
 
     {% if cards|length > 0 %}

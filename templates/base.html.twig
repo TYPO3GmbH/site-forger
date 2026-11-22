@@ -7,25 +7,26 @@
 
 {#
  # Above the content and the messages: the trail of the block "breadcrumb" of a page, else the one of its item in the
- # menu, see App\Menu\Breadcrumb and _macros/breadcrumb.html.twig. Below it the block "page_title" of a page as its
- # title on the gray of the page, see _page-intro.scss, on its right the buttons of the block "page_actions", below it the line about the page of the block "page_summary". Pages do not use the block "headline": the template bundle
- # shows it in an orange band.
+ # menu, see App\Menu\Breadcrumb and _macros/breadcrumb.html.twig. It is a gray band of its own with a line below,
+ # the same on every page: a frame of the template bundle, as wide as the menu above it, so it stays in its place
+ # from page to page. Below it the block "page_title" of a page as its title on the gray of the page, see
+ # _page-intro.scss, on its right the buttons of the block "page_actions", below it the line about the page of the
+ # block "page_summary". Pages do not use the block "headline": the template bundle shows it in an orange band.
  #}
 {% block header %}
-    {# A page over the whole width ("wide") has its breadcrumb and its title there, too, else they would stand in from its content #}
-    {% set container = (wide ?? false) ? 'container-fluid' : 'container' %}
-    {% if block('breadcrumb') is defined %}
-        <div class="breadcrumb-bar">
-            <div class="{{ container }}">{{ block('breadcrumb') }}</div>
-        </div>
-    {% else %}
-        {% set trail = menu_breadcrumb() %}
-        {% if trail is not empty %}
-            {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
-            <div class="breadcrumb-bar">
-                <div class="{{ container }}">{{ breadcrumb.trail(trail) }}</div>
-            </div>
-        {% endif %}
+    {# A page over the whole width ("wide") has its title there, too, else it would stand in from its content #}
+    {% set wide = wide ?? false %}
+    {% set container = wide ? 'container-fluid' : 'container' %}
+    {% set trail = block('breadcrumb') is defined ? [] : menu_breadcrumb() %}
+    {% if block('breadcrumb') is defined or trail is not empty %}
+        {% frame with {'color': 'lighter', 'size': 'small', 'rulerAfter': true} %}
+            {% if block('breadcrumb') is defined %}
+                {{ block('breadcrumb') }}
+            {% else %}
+                {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+                {{ breadcrumb.trail(trail) }}
+            {% endif %}
+        {% endframe %}
     {% endif %}
     {% if block('page_title') is defined %}
         <div class="page-intro-bar">

@@ -32,11 +32,7 @@
 // The title of the block "page_title", between the breadcrumb and the first section of the page: the same space as
 // a .page-intro at the top of a section
 .page-intro-bar {
-    padding-top: 1.25rem;
-
-    .breadcrumb-bar + & {
-        padding-top: 1rem;
-    }
+    padding-top: 2rem;
 
     // The buttons of the block "page_actions" on the right, on one line with the title
     .page-intro {
@@ -58,7 +54,7 @@
         margin-top: -.375rem;
     }
 
-    ~ .page-main-content > .content-section:first-child {
+    ~ .page-main-content > :is(.content-section, .frame):first-child {
         padding-top: 1.5rem;
     }
 }

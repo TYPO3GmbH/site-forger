@@ -1,6 +1,7 @@
 {#
- # Where a page is: the trail from the list it belongs to down to the page, see the block "breadcrumb" in
- # base.html.twig. Every item but the last links to its page, the last one is the page itself.
+ # Where a page is: the trail from the dashboard over the list it belongs to down to the page, see the block
+ # "breadcrumb" in base.html.twig. The dashboard comes first by itself. Every item but the last links to its page, the
+ # last one is the page itself.
  #
  # Usage: {% block breadcrumb %}{% import '_macros/breadcrumb.html.twig' as breadcrumb %}
  #        {{ breadcrumb.trail([{'label': 'Issues', 'url': path('search_search')}, {'label': '#91089'}]) }}{% endblock %}
@@ -9,6 +10,8 @@
 {% macro trail(items) %}
     <nav class="breadcrumb-nav" aria-label="Breadcrumb">
         <ol class="breadcrumb">
+            {# Every trail starts at the home page #}
+            <li class="breadcrumb-item"><a href="{{ path('dashboard_index') }}">Dashboard</a></li>
             {% for item in items %}
                 {% if loop.last or item.url is not defined %}
                     <li class="breadcrumb-item active"{% if loop.last %} aria-current="page"{% endif %}>{{ item.label }}</li>

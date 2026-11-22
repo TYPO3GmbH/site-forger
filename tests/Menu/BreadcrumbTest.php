@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Menu;
 
 use App\Menu\Breadcrumb;
+use App\Menu\MenuBuilder;
 use Knp\Menu\MenuFactory;
 use PHPUnit\Framework\TestCase;
 
@@ -33,14 +34,31 @@ final class BreadcrumbTest extends TestCase
         self::assertSame([['label' => 'Tools'], ['label' => 'ReST helper']], Breadcrumb::trail($rst));
     }
 
-    public function testNoTrailForTheFirstLevelOrWhereTheItemSaysSo(): void
+    public function testAPageOfTheFirstLevelIsNamedAlone(): void
     {
         $menu = (new MenuFactory())->createItem('root');
         $reviews = $menu->addChild('gerrit', ['label' => 'Reviews', 'uri' => '/search/changes']);
-        $myWork = $menu->addChild('my_work', ['label' => 'My Work', 'uri' => '/my/changes']);
-        $myReviews = $myWork->addChild('my_changes', ['label' => 'My reviews', 'uri' => '/my/changes', 'extras' => ['breadcrumb' => false]]);
 
-        self::assertSame([], Breadcrumb::trail($reviews));
-        self::assertSame([], Breadcrumb::trail($myReviews));
+        self::assertSame([['label' => 'Reviews']], Breadcrumb::trail($reviews));
+    }
+
+    public function testTheDashboardHasNoTrail(): void
+    {
+        $menu = (new MenuFactory())->createItem('root');
+        $home = $menu->addChild(MenuBuilder::HOME, ['label' => 'Dashboard', 'uri' => '/']);
+
+        self::assertSame([], Breadcrumb::trail($home));
+    }
+
+    public function testTheViewsOfMyWorkHaveATrail(): void
+    {
+        $menu = (new MenuFactory())->createItem('root');
+        $myWork = $menu->addChild('my_work', ['label' => 'My Work', 'uri' => '/my/overview']);
+        $following = $myWork->addChild('my_following', ['label' => 'Following', 'uri' => '/my/following']);
+
+        self::assertSame(
+            [['label' => 'My Work', 'url' => '/my/overview'], ['label' => 'Following']],
+            Breadcrumb::trail($following),
+        );
     }
 }

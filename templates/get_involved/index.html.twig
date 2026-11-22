@@ -11,9 +11,11 @@
     {% set firstIssues = {'filters': {'marked_as': {'Good_first_issue': 'true'}}, 'sort': 'updated'} %}
     {% set bugs = {'filters': {'tracker': {'Bug': 'true'}, 'status': {'New': 'true'}}, 'sort': 'newest'} %}
     {% import '_macros/section.html.twig' as section %}
-    {# A white hero, the steps on the gray of the page, the tasks white again #}
-    <section class="content-section content-section-small bg-default overview" aria-labelledby="get-involved-title">
-        <div class="container">
+    {# The hero on the gray of the page, as the breadcrumb above it, the steps in a white band, the tasks on gray
+       again: frames of the template bundle. The class "overview" in each sets the colors of the cards, see
+       assets/css/module/_dashboard.scss #}
+    {% frame %}
+        <section class="overview" aria-labelledby="get-involved-title">
             <div class="hero-layout">
                 <div class="hero">
                     <h1 class="hero-title" id="get-involved-title">Help build TYPO3</h1>
@@ -48,11 +50,11 @@
                     </figure>
                 {% endif %}
             </div>
-        </div>
-    </section>
+        </section>
+    {% endframe %}
 
-    <section class="content-section content-section-small overview" aria-labelledby="get-involved-steps">
-        <div class="container">
+    {% frame with {'color': 'white'} %}
+        <section class="overview" aria-labelledby="get-involved-steps">
             {{ section.heading('Your first contribution in four steps', 'get-involved-steps') }}
             <ol class="get-involved-steps">
                 {{ _self.step(
@@ -85,11 +87,11 @@
                     'Get help',
                 ) }}
             </ol>
-        </div>
-    </section>
+        </section>
+    {% endframe %}
 
-    <section class="content-section content-section-small bg-default overview" aria-labelledby="get-involved-tasks">
-        <div class="container">
+    {% frame %}
+        <section class="overview" aria-labelledby="get-involved-tasks">
             {{ section.heading(
                 'What do you want to do?',
                 'get-involved-tasks',
@@ -139,8 +141,8 @@
                     'empty': 'There is no new bug.',
                 } only %}
             </div>
-        </div>
-    </section>
+        </section>
+    {% endframe %}
 {% endblock %}
 
 {#
