@@ -29,6 +29,7 @@ final readonly class StreamEvent
      * @param int|null     $duration    seconds since the issue or the change began, for the events that end a wait:
      *                                  an issue closed, a change merged, the first review of a change
      * @param bool         $firstReview the first vote or comment on the change by somebody else than its owner
+     * @param Person|null  $owner       the owner of the change, without the email: whose work the event is about
      */
     public function __construct(
         public string $id,
@@ -45,6 +46,7 @@ final readonly class StreamEvent
         public int $openDelta = 0,
         public ?int $duration = null,
         public bool $firstReview = false,
+        public ?Person $owner = null,
     ) {
     }
 
@@ -53,9 +55,6 @@ final readonly class StreamEvent
      */
     public static function fromDocument(array $document): self
     {
-        $author = is_array($document['author'] ?? null) ? $document['author'] : [];
-        $name = trim((string) ($author['name'] ?? ''));
-
         return new self(
             id: (string) ($document['id'] ?? ''),
             source: StreamSourceEnum::tryFrom((string) ($document['source'] ?? '')) ?? StreamSourceEnum::FORGE,
@@ -63,12 +62,7 @@ final readonly class StreamEvent
             number: (int) ($document['number'] ?? 0),
             title: (string) ($document['title'] ?? ''),
             date: (string) ($document['date'] ?? ''),
-            author: '' === $name ? null : new Person(
-                $name,
-                forgeId: isset($author['forge_id']) ? (int) $author['forge_id'] : null,
-                gerritId: isset($author['gerrit_id']) ? (int) $author['gerrit_id'] : null,
-                username: isset($author['username']) ? (string) $author['username'] : null,
-            ),
+            author: self::personOf($document['author'] ?? null),
             bot: true === ($document['bot'] ?? false),
             summary: array_values(array_map(strval(...), (array) ($document['summary'] ?? []))),
             patchSet: isset($document['patch_set']) ? (int) $document['patch_set'] : null,
@@ -76,11 +70,40 @@ final readonly class StreamEvent
             openDelta: (int) ($document['open_delta'] ?? 0),
             duration: isset($document['duration']) ? (int) $document['duration'] : null,
             firstReview: true === ($document['first_review'] ?? false),
+            owner: self::personOf($document['owner'] ?? null),
+        );
+    }
+
+    private static function personOf(mixed $document): ?Person
+    {
+        $fields = is_array($document) ? $document : [];
+        $name = trim((string) ($fields['name'] ?? ''));
+
+        return '' === $name ? null : new Person(
+            $name,
+            forgeId: isset($fields['forge_id']) ? (int) $fields['forge_id'] : null,
+            gerritId: isset($fields['gerrit_id']) ? (int) $fields['gerrit_id'] : null,
+            username: isset($fields['username']) ? (string) $fields['username'] : null,
         );
     }
 
     /**
-     * The document of the stream index. The author without the email, see AGENTS.md.
+     * A person in the document: without the email, see AGENTS.md.
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function documentOf(?Person $person): ?array
+    {
+        return null === $person ? null : [
+            'name' => $person->name,
+            'username' => $person->username,
+            'forge_id' => $person->forgeId,
+            'gerrit_id' => $person->gerritId,
+        ];
+    }
+
+    /**
+     * The document of the stream index. The people without the email, see AGENTS.md.
      *
      * @return array<string, mixed>
      */
@@ -93,12 +116,7 @@ final readonly class StreamEvent
             'number' => $this->number,
             'title' => $this->title,
             'date' => $this->date,
-            'author' => null === $this->author ? null : [
-                'name' => $this->author->name,
-                'username' => $this->author->username,
-                'forge_id' => $this->author->forgeId,
-                'gerrit_id' => $this->author->gerritId,
-            ],
+            'author' => self::documentOf($this->author),
             'bot' => $this->bot,
             'summary' => $this->summary,
             'patch_set' => $this->patchSet,
@@ -106,6 +124,7 @@ final readonly class StreamEvent
             'open_delta' => $this->openDelta,
             'duration' => $this->duration,
             'first_review' => $this->firstReview,
+            'owner' => self::documentOf($this->owner),
         ];
     }
 

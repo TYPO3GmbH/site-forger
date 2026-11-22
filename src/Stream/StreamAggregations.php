@@ -162,7 +162,7 @@ final class StreamAggregations
      *
      * @param array<string, mixed> $bucket
      */
-    private static function median(array $bucket): ?int
+    public static function median(array $bucket): ?int
     {
         $value = $bucket[StreamInsightsQuery::MEDIAN]['values'][0]['value'] ?? null;
 

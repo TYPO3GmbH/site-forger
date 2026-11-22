@@ -23,6 +23,7 @@ use App\Repository\IssueRepository;
 use App\Repository\StreamRepository;
 use App\Search\ClosedPerYearQuery;
 use App\Search\IssueSearch;
+use App\Search\ReviewExchangeQuery;
 use App\Search\ReviewQueueQuery;
 use App\Search\StreamFilter;
 use App\Search\StreamInsightsQuery;
@@ -67,6 +68,19 @@ final readonly class StreamStatistics
     }
 
     /**
+     * The reviews between the person of the filter and the others, and how long the changes of the person waited.
+     * Only the window and the person count of the filter.
+     */
+    public function exchange(StreamFilter $filter, StreamWindow $window): ReviewExchange
+    {
+        return $this->cache->get(
+            'exchange',
+            [$filter, $window],
+            fn (): ReviewExchange => $this->computeExchange($filter, $window),
+        );
+    }
+
+    /**
      * The events per weekday and hour of the filter: when people are active.
      */
     public function weekHours(StreamFilter $filter): StreamHeatmap
@@ -98,6 +112,22 @@ final readonly class StreamStatistics
             'issues' => $this->computeClosedYears($this->issues, ClosedPerYearQuery::issues(...), $year, $now),
             'changes' => $this->computeClosedYears($this->changes, ClosedPerYearQuery::changes(...), $year, $now),
         ]);
+    }
+
+    private function computeExchange(StreamFilter $filter, StreamWindow $window): ReviewExchange
+    {
+        $now = $this->stream->search(ReviewExchangeQuery::request($filter, $window));
+        $before = $this->stream->search(ReviewExchangeQuery::countRequest($filter, $window->previous()));
+        $waits = $this->stream->search(ReviewExchangeQuery::waitRequest($filter, $window));
+
+        $sides = [ReviewExchangeQuery::GIVEN, ReviewExchangeQuery::RECEIVED];
+
+        return ReviewExchanges::of(
+            array_combine($sides, array_map($now->aggregation(...), $sides)),
+            array_combine($sides, array_map($before->aggregation(...), $sides)),
+            $waits->aggregation(ReviewExchangeQuery::WAITS),
+            TimeSeries::keys($window->from, $window->last(), $window->interval()),
+        );
     }
 
     private function computeInsights(StreamFilter $filter, StreamWindow $window, StreamSplitEnum $split): StreamInsights

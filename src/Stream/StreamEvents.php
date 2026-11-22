@@ -23,6 +23,7 @@ use App\Enum\ReviewEventEnum;
 use App\Enum\StreamKindEnum;
 use App\Enum\StreamSourceEnum;
 use App\Import\ForgeIssueImporter;
+use App\People\Person;
 
 /**
  * The events of the activity stream that an issue or a change holds: the creation and the notes of a Forge issue,
@@ -227,7 +228,20 @@ final class StreamEvents
                 ? self::seconds($change->createdOn, $message->date)
                 : null,
             firstReview: $firstReview,
+            owner: self::owner($change),
         );
+    }
+
+    /**
+     * The owner without the email: the stream index keeps none, see AGENTS.md.
+     */
+    private static function owner(Change $change): ?Person
+    {
+        $name = trim((string) $change->owner);
+
+        return '' === $name
+            ? null
+            : new Person($name, gerritId: $change->ownerId, username: $change->ownerUsername);
     }
 
     /**

@@ -18,10 +18,13 @@ use App\Api\Model\ActivityCount;
 use App\Api\Model\ActivityCrew;
 use App\Api\Model\ActivityDuration;
 use App\Api\Model\ActivityEvent;
+use App\Api\Model\ActivityExchange;
 use App\Api\Model\ActivityFigure;
 use App\Api\Model\ActivityNewcomer;
 use App\Api\Model\ActivityNewcomers;
+use App\Api\Model\ActivityOwnWait;
 use App\Api\Model\ActivityPage;
+use App\Api\Model\ActivityPartner;
 use App\Api\Model\ActivityPerson;
 use App\Api\Model\ActivitySeries;
 use App\Api\Model\ActivityStatistics;
@@ -42,6 +45,9 @@ use App\People\Person;
 use App\People\User;
 use App\People\UserDirectory;
 use App\Search\StreamWindow;
+use App\Stream\OwnWait;
+use App\Stream\ReviewExchange;
+use App\Stream\ReviewPartner;
 use App\Stream\StreamClosedYear;
 use App\Stream\StreamCrew;
 use App\Stream\StreamDuration;
@@ -248,6 +254,49 @@ final readonly class ActivityMapper
         );
 
         return new ActivityClosedYears(array_map($map, $years['issues']), array_map($map, $years['changes']));
+    }
+
+    public function exchange(ReviewExchange $exchange, ActivityFilters $filters): ActivityExchange
+    {
+        return new ActivityExchange(
+            window: self::window($filters->window),
+            buckets: $exchange->buckets,
+            given: self::trend($exchange->given),
+            received: self::trend($exchange->received),
+            givenReviews: $exchange->givenReviews,
+            receivedReviews: $exchange->receivedReviews,
+            reviewed: $this->partners($exchange->reviewed),
+            reviewers: $this->partners($exchange->reviewers),
+            waits: array_map(
+                static fn (OwnWait $wait): ActivityOwnWait => new ActivityOwnWait(
+                    $wait->duration->value,
+                    $wait->duration->label(),
+                    $wait->duration->description(),
+                    $wait->count,
+                    $wait->median,
+                    $wait->allMedian,
+                ),
+                $exchange->waits,
+            ),
+        );
+    }
+
+    /**
+     * @param list<ReviewPartner> $partners
+     *
+     * @return list<ActivityPartner>
+     */
+    private function partners(array $partners): array
+    {
+        $mapped = [];
+        foreach ($partners as $partner) {
+            $person = $this->person($partner->person);
+            if (null !== $person) {
+                $mapped[] = new ActivityPartner($person, $partner->changes, $partner->reviews);
+            }
+        }
+
+        return $mapped;
     }
 
     private static function trend(StreamTrend $trend): ActivityTrend
