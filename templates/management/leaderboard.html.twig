@@ -1,0 +1,210 @@
+{% extends 'base.html.twig' %}
+{% block title %}Leaderboard{% endblock %}
+{#
+ # The leaderboard of the activity, for the admins, see App\Controller\LeaderboardController: the people with the
+ # most activity in the time window, without the tools. It counts as the statistics do. A column heading sorts by
+ # its figure, a name opens the activity of the person. The arrow says how the person moved since the window before.
+ # "Lines" are those of the changes of the person merged in the window, of the review index: added, removed, and
+ # changed, the two together. They do not make up for each other: 100 added and 100 removed are 200 changed.
+ # The window is a range or days picked. A person is the TYPO3 account: its accounts on Forge and Gerrit count
+ # together, see App\Stream\Leaderboards.
+ # No orange band: the title stands on the gray of the page, below the breadcrumb.
+ # Expects: rows (list of App\Stream\LeaderboardRow), people (key, name, username and avatar per row), range (null
+ #          for days picked), ranges, window, windowParameters, sort (the parameter "sort": the value of a figure,
+ #          "added", "removed", "changed", null for all events, see App\Stream\LeaderboardSort), figures
+ #}
+
+{#
+ # A column heading that sorts by its value, see App\Stream\LeaderboardSort: null for all events.
+ #}
+{% macro sortHeading(label, title, value, sort, windowParameters, attributes = '') %}
+    {% set active = value == sort %}
+    {% set parameters = windowParameters|merge(value is null ? {} : {'sort': value}) %}
+    <th scope="col" class="is-count{{ active ? ' is-sorted' }}"{{ attributes|raw }}
+        {%- if active %} aria-sort="descending"{% endif %}>
+        <a href="{{ path('management_leaderboard', parameters) }}" class="leaderboard-sort"
+           title="{{ title }}: sort by it">
+            {{- label -}}
+        </a>
+    </th>
+{% endmacro %}
+
+{#
+ # How the person moved since the window before.
+ #}
+{% macro moved(row) %}
+    {% set moved = row.moved %}
+    {% set before = 'Place ' ~ row.previousRank ~ ' before' %}
+    {% if moved is null %}
+        <span class="leaderboard-move is-new" title="Nothing to count in the window before">New</span>
+    {% elseif moved > 0 %}
+        <span class="leaderboard-move is-up" title="{{ before }}">{{ icon('actions-arrow-up') }}{{ moved }}</span>
+    {% elseif moved < 0 %}
+        <span class="leaderboard-move is-down" title="{{ before }}">{{ icon('actions-arrow-down') }}{{ -moved }}</span>
+    {% else %}
+        <span class="leaderboard-move" title="The same place as before">{{ icon('actions-minus') }}</span>
+    {% endif %}
+{% endmacro %}
+
+{% macro count(value) %}
+    {%- if value > 0 -%}
+        {{ value|number_format(0, '.', ',') }}
+    {%- else -%}
+        <span class="count-table-none" aria-label="none">–</span>
+    {%- endif -%}
+{% endmacro %}
+
+{% block body %}
+    {% import _self as board %}
+    {% set sortParameters = sort is null ? {} : {'sort': sort} %}
+    {% set first = window.from|date('M j, Y') %}
+    {% set last = window.last|date('M j, Y') %}
+    {% set channels = {
+        'forge': {'label': 'Forge', 'figures': figures|filter(figure => figure.source.value == 'forge')},
+        'gerrit': {'label': 'Gerrit', 'figures': figures|filter(figure => figure.source.value == 'gerrit')},
+    } %}
+    <div class="content-section content-section-small">
+        <div class="container">
+            <header class="page-intro">
+                <h1 class="page-intro-title">Leaderboard</h1>
+                <p class="page-intro-summary">
+                    The most activity from {{ first }} to {{ last }}, without the tools, counted as the statistics
+                    do. The lines added and removed are those of the changes merged. The arrows compare with the
+                    {{ window.wholeDays }} days before.
+                </p>
+            </header>
+
+            {# The time window of the statistics: a change loads the page, see assets/ts/activity/time-window.ts #}
+            <div class="leaderboard-toolbar">
+                <forger-time-window
+                    page-url="{{ path('management_leaderboard') }}"
+                    range="{{ range.value ?? '' }}"
+                    from="{{ window.from|date('Y-m-d') }}"
+                    to="{{ window.last|date('Y-m-d') }}"
+                    keep="{{ sortParameters|url_encode }}"
+                >
+                    <noscript>
+                        {% for item in ranges %}
+                            <a href="{{ path('management_leaderboard', {'range': item.value}|merge(sortParameters)) }}"
+                            >{{ item.label }}</a>
+                        {% endfor %}
+                    </noscript>
+                </forger-time-window>
+            </div>
+            {% include 'stream/_definitions.html.twig' %}
+
+            {% if rows is empty %}
+                {% include '_partials/alert.html.twig' with {
+                    'message': 'No activity in this time window.',
+                    'style': 'info',
+                } only %}
+            {% else %}
+                <div class="count-table-frame">
+                    <table class="count-table leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th scope="col" rowspan="2" class="is-count">#</th>
+                                <th scope="col" rowspan="2">Person</th>
+                                {{ board.sortHeading(
+                                    'Events',
+                                    'All events',
+                                    null,
+                                    sort,
+                                    windowParameters,
+                                    ' rowspan="2"',
+                                ) }}
+                                {% for key, channel in channels %}
+                                    <th scope="colgroup" colspan="{{ channel.figures|length }}"
+                                        class="leaderboard-channel is-{{ key }}">{{ channel.label }}</th>
+                                {% endfor %}
+                                <th scope="colgroup" colspan="3" class="leaderboard-channel is-lines">Lines</th>
+                            </tr>
+                            <tr>
+                                {% for key, channel in channels %}
+                                    {% for figure in channel.figures %}
+                                        {{ board.sortHeading(
+                                            figure.shortLabel,
+                                            figure.description,
+                                            figure.value,
+                                            sort,
+                                            windowParameters,
+                                            loop.first ? ' data-first' : '',
+                                        ) }}
+                                    {% endfor %}
+                                {% endfor %}
+                                {{ board.sortHeading(
+                                    'Added',
+                                    'Lines added by the changes merged',
+                                    'added',
+                                    sort,
+                                    windowParameters,
+                                    ' data-first',
+                                ) }}
+                                {{ board.sortHeading(
+                                    'Removed',
+                                    'Lines removed by the changes merged',
+                                    'removed',
+                                    sort,
+                                    windowParameters,
+                                ) }}
+                                {{ board.sortHeading(
+                                    'Changed',
+                                    'Lines added and removed by the changes merged, together',
+                                    'changed',
+                                    sort,
+                                    windowParameters,
+                                ) }}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rows %}
+                                {% set person = people[loop.index0] %}
+                                <tr>
+                                    <td class="is-count leaderboard-rank">
+                                        <span class="leaderboard-place">{{ row.rank }}</span>
+                                        {{- board.moved(row) -}}
+                                    </td>
+                                    <th scope="row">
+                                        <a class="leaderboard-person"
+                                           href="{{ path('activity_index', {'person': person.key}) }}"
+                                           title="The activity of {{ person.name }}">
+                                            {% if person.avatar %}
+                                                <img class="avatar" src="{{ person.avatar }}" width="24" height="24"
+                                                     alt="" loading="lazy">
+                                            {% endif %}
+                                            <span>{{ person.name }}</span>
+                                            {% if person.username %}
+                                                <small class="leaderboard-username">{{ person.username }}</small>
+                                            {% endif %}
+                                        </a>
+                                    </th>
+                                    <td class="is-count{{ sort is null ? ' is-sorted' }}">
+                                        {{- board.count(row.events) -}}
+                                    </td>
+                                    {% for key, channel in channels %}
+                                        {% for figure in channel.figures %}
+                                            <td class="is-count{{ sort == figure.value ? ' is-sorted' }}"
+                                                {%- if loop.first %} data-first{% endif %}>
+                                                {{- board.count(row.figure(figure)) -}}
+                                            </td>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    <td class="is-count leaderboard-added{{ sort == 'added' ? ' is-sorted' }}"
+                                        data-first>
+                                        {{- board.count(row.insertions) -}}
+                                    </td>
+                                    <td class="is-count leaderboard-removed{{ sort == 'removed' ? ' is-sorted' }}">
+                                        {{- board.count(row.deletions) -}}
+                                    </td>
+                                    <td class="is-count{{ sort == 'changed' ? ' is-sorted' }}">
+                                        {{- board.count(row.linesChanged) -}}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

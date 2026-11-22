@@ -1,0 +1,111 @@
+// The leaderboard of the activity for the admins, see templates/management/leaderboard.html.twig. A compact table
+// of counts, see _count-table.scss: many rows fit on a screen, and on a phone it scrolls within itself.
+
+.leaderboard-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem 1.25rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.leaderboard-table {
+    font-size: .875rem;
+
+    th,
+    td {
+        padding: .35rem .6rem;
+    }
+
+    thead th {
+        padding-block: .4rem;
+        font-size: .6875rem;
+        vertical-align: bottom;
+    }
+
+    // A line between the channels and before them
+    [data-first],
+    .leaderboard-channel {
+        border-left: 1px solid #e6e8eb;
+    }
+
+    .leaderboard-channel {
+        border-bottom: 2px solid;
+        text-align: center;
+
+        &.is-forge { border-bottom-color: var(--stream-forge); }
+        &.is-gerrit { border-bottom-color: var(--stream-gerrit); }
+        &.is-lines { border-bottom-color: #9ca3af; }
+    }
+
+    // The sorted column stands out a little
+    .is-sorted {
+        background: #f7f8fa;
+        font-weight: 700;
+    }
+
+    tbody tr:hover .is-sorted {
+        background: #f1f3f5;
+    }
+
+    thead .is-sorted a {
+        color: #0b0b0b;
+    }
+
+    // The lines in the colors of a diff
+    .leaderboard-added { color: #1a7f37; }
+    .leaderboard-removed { color: #b42318; }
+}
+
+.leaderboard-sort {
+    white-space: nowrap;
+}
+
+.leaderboard-rank {
+    white-space: nowrap;
+}
+
+.leaderboard-place {
+    display: inline-block;
+    min-width: 1.5rem;
+    font-weight: 700;
+    text-align: right;
+}
+
+.leaderboard-move {
+    display: inline-flex;
+    gap: .1rem;
+    align-items: center;
+    min-width: 2.25rem;
+    margin-left: .3rem;
+    color: #6b7280;
+    font-size: .6875rem;
+    text-align: left;
+
+    .icon {
+        width: .7rem;
+        height: .7rem;
+    }
+
+    &.is-up { color: #1a7f37; }
+    &.is-down { color: #b42318; }
+    &.is-new { color: #1d5fb8; font-weight: 600; }
+}
+
+.leaderboard-person {
+    display: inline-flex;
+    gap: .5rem;
+    align-items: center;
+    white-space: nowrap;
+
+    .avatar {
+        flex: none;
+        border-radius: 50%;
+    }
+}
+
+.leaderboard-username {
+    color: #6b7280;
+    font-size: .75rem;
+    font-weight: 400;
+}

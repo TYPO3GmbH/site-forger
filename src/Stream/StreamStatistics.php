@@ -18,11 +18,13 @@ use App\Enum\StreamBetterEnum;
 use App\Enum\StreamFigureEnum;
 use App\Enum\StreamSourceEnum;
 use App\Enum\StreamSplitEnum;
+use App\People\UserDirectory;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
 use App\Repository\StreamRepository;
 use App\Search\ClosedPerYearQuery;
 use App\Search\IssueSearch;
+use App\Search\LeaderboardQuery;
 use App\Search\ReviewExchangeQuery;
 use App\Search\ReviewQueueQuery;
 use App\Search\StreamFilter;
@@ -45,6 +47,7 @@ final readonly class StreamStatistics
         private IssueRepository $issues,
         private ChangeRepository $changes,
         private StreamCache $cache,
+        private UserDirectory $users,
     ) {
     }
 
@@ -78,6 +81,37 @@ final readonly class StreamStatistics
             [$filter, $window],
             fn (): ReviewExchange => $this->computeExchange($filter, $window),
         );
+    }
+
+    /**
+     * The people with the most activity in the window, by the sort: the leaderboard. The events and the lines of the
+     * changes merged, in the window and in the one before.
+     *
+     * @return list<LeaderboardRow>
+     */
+    public function leaderboard(StreamWindow $window, LeaderboardSort $sort): array
+    {
+        return $this->cache->get('leaderboard', [$window, $sort->value()], fn (): array => Leaderboards::rows(
+            $this->leaderboardCounts($window),
+            $this->leaderboardCounts($window->previous()),
+            $sort,
+            $this->users->keyOfPerson(...),
+        ));
+    }
+
+    /**
+     * @return array{people: array<string, mixed>, lines: array<string, mixed>|null}
+     */
+    private function leaderboardCounts(StreamWindow $window): array
+    {
+        $people = $this->stream->search(LeaderboardQuery::request($window));
+        $parts = [LeaderboardQuery::FORGE, LeaderboardQuery::GERRIT, LeaderboardQuery::NAMES];
+
+        return [
+            'people' => array_combine($parts, array_map($people->aggregation(...), $parts)),
+            'lines' => $this->changes->search(LeaderboardQuery::linesRequest($window))
+                ->aggregation(LeaderboardQuery::OWNERS),
+        ];
     }
 
     /**

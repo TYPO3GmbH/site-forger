@@ -210,6 +210,8 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             $this->addHeader($admin, 'Operations');
             $this->addLink($admin, 'management-command-runs', 'Command runs', 'management_command_runs', 'actions-history');
             $this->addLink($admin, 'management-system', 'System', 'management_system', 'actions-database');
+            $this->addHeader($admin, 'Community');
+            $this->addLink($admin, 'management-leaderboard', 'Leaderboard', 'management_leaderboard', 'actions-users');
         }
         $user = $this->tokenStorage->getToken()?->getUser();
         if ($user instanceof KeyCloakUser && $this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {

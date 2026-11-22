@@ -5,3 +5,4 @@
 import './activity';
 import './stream';
 import './person-search';
+import './time-window';

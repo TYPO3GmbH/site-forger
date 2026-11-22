@@ -223,9 +223,11 @@ final readonly class StreamWindow
     }
 
     /**
+     * The documents of the window by a date: the date of an event, or another, like the day a change was closed.
+     *
      * @return array<string, mixed>
      */
-    public function query(): array
+    public function query(string $field = 'date'): array
     {
         $utc = new \DateTimeZone('UTC');
         $range = ['gte' => $this->from->setTimezone($utc)->format('Y/m/d H:i:s')];
@@ -234,6 +236,6 @@ final readonly class StreamWindow
             $range['lt'] = $this->until->setTimezone($utc)->format('Y/m/d H:i:s');
         }
 
-        return ['range' => ['date' => $range]];
+        return ['range' => [$field => $range]];
     }
 }
