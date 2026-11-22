@@ -19,6 +19,7 @@ use App\Enum\WaitingForEnum;
 use App\People\Following;
 use App\People\InterestSelection;
 use App\People\User;
+use App\People\UserDirectory;
 use App\Repository\ChangeRepository;
 use App\Repository\FollowRepository;
 use App\Repository\InterestRepository;
@@ -36,7 +37,7 @@ use T3G\Bundle\Keycloak\Security\KeyCloakUser;
 
 /**
  * Personal area: an overview of what waits for the logged-in user, the Gerrit changes and the issues of the user,
- * each in a view of its own, and the activity of the people the user follows.
+ * each in a view of its own, the activity of the people the user follows, and the statistics of the user.
  */
 #[Route(path: '/my', name: 'my_')]
 #[IsGranted('ROLE_USER')]
@@ -59,6 +60,7 @@ class MyWorkController extends AbstractController
         private readonly FollowRepository $follows,
         private readonly Following $following,
         private readonly InterestRepository $interests,
+        private readonly UserDirectory $people,
     ) {
     }
 
@@ -223,6 +225,44 @@ class MyWorkController extends AbstractController
             ...$this->helpLists($followed, new \DateTimeImmutable(), self::LONG),
             'followed' => $followed,
         ]);
+    }
+
+    /**
+     * The statistics of the user: the board of the statistics for the accounts of the user on Forge and Gerrit, see
+     * templates/stream/_frame.html.twig. Without an account it is empty.
+     */
+    #[Route(path: '/statistics', name: 'statistics')]
+    public function statistics(): Response
+    {
+        $query = $this->query(false, '');
+
+        return $this->render('my/statistics.html.twig', [
+            ...$this->viewData($query, 'statistics', false, ''),
+            'openChanges' => $this->changes->count($query->openReviewsCount()),
+            'openIssues' => $this->issues->count($query->openIssuesCount()),
+            'ownPeople' => $this->ownPeople(),
+        ]);
+    }
+
+    /**
+     * The keys of the accounts of the user in the filters of people. The index may not have joined the account on
+     * Forge with the one on Gerrit, so there can be two.
+     *
+     * @return list<string>
+     */
+    private function ownPeople(): array
+    {
+        $keys = [];
+        foreach ($this->accounts() as $account) {
+            if (null !== $account->forgeId) {
+                $keys[] = $this->people->keyOf('forge', $account->forgeId);
+            }
+            if (null !== $account->gerritId) {
+                $keys[] = $this->people->keyOf('gerrit', $account->gerritId);
+            }
+        }
+
+        return array_values(array_unique($keys));
     }
 
     /**

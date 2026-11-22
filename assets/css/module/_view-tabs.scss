@@ -43,6 +43,12 @@
         --views-accent-strong: #0f766e;
     }
 
+    // The statistics of My Work
+    &.is-statistics {
+        --views-accent: #b4234c;
+        --views-accent-strong: #9f1239;
+    }
+
     &:hover,
     &:focus-visible {
         color: #111827;
@@ -61,6 +67,10 @@
     .icon {
         color: var(--views-accent);
     }
+}
+
+.view-tab-short {
+    display: none;
 }
 
 .view-tab-count {
@@ -83,17 +93,22 @@
         scrollbar-width: none;
     }
 
-    // Five tabs fit side by side in 320px
+    // The six tabs of My Work fit side by side in 375px
     .view-tab {
         flex: none;
         gap: .4rem;
-        padding: .6rem .35rem .7rem;
+        padding: .6rem .25rem .7rem;
         font-size: .875rem;
 
         // The names say enough where the room is short
         .icon,
-        .view-tab-count {
+        .view-tab-count,
+        .view-tab-long {
             display: none;
+        }
+
+        .view-tab-short {
+            display: inline;
         }
     }
 }

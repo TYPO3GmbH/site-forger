@@ -2138,6 +2138,7 @@ forger-activity-hours {
 
 // Their tiles and cards are widgets of the dashboard grid around them
 forger-activity-figures,
+forger-activity-exchange,
 forger-activity-closed-years {
     display: contents;
 }
@@ -2159,3 +2160,133 @@ a.stream-bar {
     text-decoration: none;
 }
 
+
+// The board of one user in My Work, see assets/ts/activity/exchange.ts: the waits of the own changes, the reviews
+// given and got, and the people the user works with.
+.stream-chart-link {
+    font-size: .875rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.stream-own-waits {
+    display: grid;
+    gap: 1.25rem;
+    margin: 0;
+
+    dd {
+        margin: 0;
+    }
+}
+
+.stream-own-wait {
+    display: grid;
+    gap: .35rem;
+}
+
+.stream-own-wait-note {
+    margin: 0;
+    color: var(--overview-muted);
+    font-size: .8125rem;
+}
+
+// Given and received side by side, as the tiles of the key figures, but inside the card
+.stream-exchange {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+
+    // One more row than a tile: the votes and comments below the number
+    .stream-figure {
+        grid-template-rows: auto auto auto 2rem;
+        padding: 0;
+        border: 0;
+        box-shadow: none;
+    }
+}
+
+.stream-balance {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+    margin: 0;
+}
+
+.stream-partners {
+    display: grid;
+    gap: 1.5rem;
+
+    @container dashboard (min-width: 40rem) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 2.5rem;
+    }
+}
+
+.stream-partner-list h4 {
+    margin: 0 0 .75rem;
+}
+
+.stream-partner-rows {
+    display: grid;
+    gap: .6rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+// The name, a bar as long as the share of the busiest partner, the count
+.stream-partner {
+    display: grid;
+    grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) auto;
+    gap: .75rem;
+    align-items: center;
+
+    @media (max-width: $phone) {
+        grid-template-columns: minmax(0, 1fr) auto;
+
+        .stream-partner-track {
+            display: none;
+        }
+    }
+}
+
+.stream-partner-name {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    min-width: 0;
+    color: inherit;
+    font-size: .875rem;
+
+    span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .avatar {
+        flex: none;
+        border-radius: 50%;
+    }
+}
+
+.stream-partner-track {
+    display: block;
+    height: .5rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--stream-gerrit) 15%, #fff);
+
+    span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--stream-gerrit);
+    }
+}
+
+.stream-partner-count {
+    font-size: .875rem;
+    font-variant-numeric: tabular-nums;
+}

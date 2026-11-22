@@ -68,7 +68,8 @@ abstract class PatternSection<T> extends LightElement {
 }
 
 /**
- * "When people are active": the events per weekday and hour, for 30 days, 6 months or a year of its own.
+ * "When people are active", or "When you are active" on the board of one user: the events per weekday and hour,
+ * for 30 days, 6 months or a year of its own.
  */
 @customElement('forger-activity-hours')
 export class ActivityHours extends PatternSection<ActivityWeekHours> {
@@ -81,11 +82,13 @@ export class ActivityHours extends PatternSection<ActivityWeekHours> {
     }
 
     protected override render(): TemplateResult {
+        const title = this.state.own === null ? 'When people are active' : 'When you are active';
+
         return html`
-            <section class="stream-chart" aria-label="When people are active">
+            <section class="stream-chart" aria-label=${title}>
                 <header class="stream-chart-header">
                     <div>
-                        <h3 class="stream-chart-title">When people are active</h3>
+                        <h3 class="stream-chart-title">${title}</h3>
                         <p class="stream-chart-note">
                             Events per weekday and hour, in ${this.data?.window.timeZone ?? 'your time zone'}
                         </p>

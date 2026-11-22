@@ -268,6 +268,33 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringNotContainsString('<forger-activity-stream', $html);
     }
 
+    public function testStatisticsCountTheAccountsOfTheUserAlone(): void
+    {
+        $html = $this->twig->load('my/statistics.html.twig')->renderBlock('body', [
+            'view' => 'statistics', 'email' => 'me@example.org', 'name' => 'Me', 'includeClosed' => false,
+            'query' => '', 'openChanges' => 1, 'openIssues' => 3, 'followingCount' => 0,
+            'ownPeople' => ['forge:7', 'gerrit:9'],
+        ]);
+
+        self::assertStringContainsString('class="view-tab is-statistics is-active"', $html);
+        self::assertStringContainsString('view="statistics"', $html);
+        self::assertStringContainsString('statistics-url="/my/statistics"', $html);
+        self::assertStringContainsString('own-person="forge:7"', $html);
+        self::assertStringContainsString('own-people="forge:7,gerrit:9"', $html);
+        self::assertStringNotContainsString('me@example.org', $html);
+    }
+
+    public function testStatisticsWithoutAnAccountCountNothing(): void
+    {
+        $html = $this->twig->load('my/statistics.html.twig')->renderBlock('body', [
+            'view' => 'statistics', 'email' => 'me@example.org', 'name' => 'Me', 'includeClosed' => false,
+            'query' => '', 'openChanges' => 0, 'openIssues' => 0, 'followingCount' => 0, 'ownPeople' => [],
+        ]);
+
+        self::assertStringContainsString('No account on Forge or Gerrit is known for you yet', $html);
+        self::assertStringNotContainsString('<forger-activity', $html);
+    }
+
     public function testThePageOfThePeopleAddsAndRemovesThemAndShowsNothingElse(): void
     {
         $data = [

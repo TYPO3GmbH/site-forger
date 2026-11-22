@@ -17,6 +17,11 @@ export interface ActivityState {
      * The events of the people the logged-in user follows, in place of one person, see FollowController.
      */
     following: boolean;
+    /**
+     * The keys of the accounts of the board of one user, separated by commas, see
+     * App\Controller\MyWorkController::statistics(). Set by the page, never by the address.
+     */
+    own: string | null;
     bots: boolean;
     split: Split;
     /**
@@ -63,6 +68,7 @@ export function defaultState(view: ActivityState['view'] = 'stream'): ActivitySt
         branch: null,
         person: null,
         following: false,
+        own: null,
         bots: false,
         split: 'total',
         timelineInterval: null,
@@ -89,6 +95,7 @@ export function stateFromParameters(parameters: URLSearchParams, view: ActivityS
         branch: filtered ? parameters.get('branch') || null : null,
         person: filtered ? parameters.get('person') || null : null,
         following: filtered && parameters.get('person') === null && parameters.get('following') === '1',
+        own: null,
         bots: filtered && ['1', 'true'].includes(parameters.get('bots') ?? ''),
         split: oneOf(parameters.get('split'), SPLITS) ?? 'total',
         timelineInterval: oneOf(parameters.get('timeline'), INTERVALS),
@@ -163,6 +170,10 @@ export function filterParameters(state: ActivityState): URLSearchParams {
 
 export function pageParameters(state: ActivityState): URLSearchParams {
     const parameters = filterParameters(state);
+    // The board of one user has its person in the page, not in the address
+    if (state.view === 'statistics' && state.own !== null) {
+        parameters.delete('person');
+    }
     if (state.view === 'statistics' && state.split !== 'total') {
         parameters.set('split', state.split);
     }

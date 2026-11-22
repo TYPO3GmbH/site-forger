@@ -41,6 +41,8 @@ export class Activity extends LightElement {
     @property({ attribute: 'days-api-url' }) daysApiUrl = '';
     @property({ attribute: 'newcomers-api-url' }) newcomersApiUrl = '';
     @property({ attribute: 'closed-years-api-url' }) closedYearsApiUrl = '';
+    @property({ attribute: 'exchange-api-url' }) exchangeApiUrl = '';
+    @property({ attribute: 'changes-url' }) changesUrl = '';
     @property({ attribute: 'people-url' }) peopleUrl = '';
     /**
      * Where a logged-in user follows a person, and the people the user follows. Empty for a guest, see
@@ -50,6 +52,12 @@ export class Activity extends LightElement {
     @property({ attribute: 'follow-token' }) followToken = '';
     @property({ attribute: 'followed-url' }) followedUrl = '';
     @property({ attribute: 'manage-url' }) manageUrl = '';
+    /**
+     * The statistics of one user, see App\Controller\MyWorkController::statistics(): the key the links to the stream
+     * filter by, and the keys of all accounts of the user, separated by commas. Empty for the board of all.
+     */
+    @property({ attribute: 'own-person' }) ownPerson = '';
+    @property({ attribute: 'own-people' }) ownPeople = '';
 
     @state() private state!: ActivityState;
     @state() private branches: ActivityCount[] = [];
@@ -64,7 +72,7 @@ export class Activity extends LightElement {
 
     override connectedCallback(): void {
         super.connectedCallback();
-        this.state = stateFromParameters(new URLSearchParams(window.location.search), this.view);
+        this.state = this.stateOfAddress();
         this.addEventListener(CHANGE_EVENT, this.onChange as EventListener);
         this.addEventListener(LOADED_EVENT, this.onLoaded as EventListener);
         this.addEventListener(FOLLOW_EVENT, this.loadFollowed);
@@ -113,6 +121,8 @@ export class Activity extends LightElement {
                     days-api-url=${this.daysApiUrl}
                     newcomers-api-url=${this.newcomersApiUrl}
                     closed-years-api-url=${this.closedYearsApiUrl}
+                    exchange-api-url=${this.exchangeApiUrl}
+                    changes-url=${this.changesUrl}
                 ></forger-activity-statistics>
             ` : html`
                 ${this.renderHeader()}
@@ -265,8 +275,17 @@ export class Activity extends LightElement {
     };
 
     private onPopState = (): void => {
-        this.state = stateFromParameters(new URLSearchParams(window.location.search), this.view);
+        this.state = this.stateOfAddress();
     };
+
+    private stateOfAddress(): ActivityState {
+        const state = stateFromParameters(new URLSearchParams(window.location.search), this.view);
+        if (this.ownPeople === '') {
+            return state;
+        }
+
+        return { ...state, person: this.ownPerson || null, own: this.ownPeople };
+    }
 }
 
 declare global {

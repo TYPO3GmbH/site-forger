@@ -75,7 +75,7 @@ export class ActivityFigures extends LightElement {
 
         return html`
             <div class="stream-tiles stream-widget is-full">
-                ${this.people()}
+                ${this.state.own === null ? this.people() : this.activeDays()}
                 ${ofSource('forge')}
                 ${ofSource('gerrit')}
             </div>
@@ -94,6 +94,22 @@ export class ActivityFigures extends LightElement {
                 <span class="stream-figure-label">People active</span>
                 ${valueLine(formatNumber(trend.count), change(trend, before))}
                 <span class="stream-sparkline" aria-hidden="true"></span>
+            </div>
+        `;
+    }
+
+    /**
+     * The days with activity in the window, on the board of one user: the people active would always be one.
+     */
+    private activeDays(): TemplateResult {
+        const trend = this.statistics.activeDays;
+        const before = `${formatNumber(trend.previous)} ${comparedWith(this.statistics)}`;
+
+        return html`
+            <div class="stream-figure" title="The days with activity">
+                <span class="stream-figure-label">Active days</span>
+                ${valueLine(formatNumber(trend.count), change(trend, before))}
+                ${sparkline(trend.values, 'total', { soFar: this.statistics.window.open })}
             </div>
         `;
     }
@@ -399,7 +415,7 @@ interface SparklineOptions {
  * The line of the values, as high as the highest one. 2 pixels, whatever the width. Without values it keeps its
  * place, so the tiles of a row stay alike.
  */
-function sparkline(values: (number | null)[], colorKey: string, options: SparklineOptions = {}): TemplateResult {
+export function sparkline(values: (number | null)[], colorKey: string, options: SparklineOptions = {}): TemplateResult {
     if (values.length < 2) {
         return html`<span class="stream-sparkline" aria-hidden="true"></span>`;
     }
@@ -466,7 +482,7 @@ const BETTER: Record<Better, string> = {
 /**
  * The number of a figure and, on its right, its change.
  */
-function valueLine(value: string, change: TemplateResult | typeof nothing): TemplateResult {
+export function valueLine(value: string, change: TemplateResult | typeof nothing): TemplateResult {
     return html`
         <span class="stream-figure-line">
             <span class="stream-figure-value">${value}</span>
@@ -490,7 +506,7 @@ function carrierMeter(shares: number[]): TemplateResult {
  * The change as a badge: green when the figure got better, red when it got worse, grey when it stayed, is too small
  * to notice or has no better way.
  */
-function badge(text: string, difference: number, better: Better, title: string, noticeable = true): TemplateResult {
+export function badge(text: string, difference: number, better: Better, title: string, noticeable = true): TemplateResult {
     const direction = difference > 0 ? 'actions-arrow-up' : difference < 0 ? 'actions-arrow-down' : 'actions-minus';
     const improved = better === 'more' ? difference > 0 : difference < 0;
     const neutral = better === 'neither' || difference === 0 || !noticeable;
@@ -547,7 +563,7 @@ function startLabel(statistics: ActivityStatistics): string {
 /**
  * A wait as a reader reads it: minutes, hours, days.
  */
-function formatDuration(seconds: number): string {
+export function formatDuration(seconds: number): string {
     if (seconds < 3600) {
         return `${Math.max(1, Math.round(seconds / 60))} min`;
     }

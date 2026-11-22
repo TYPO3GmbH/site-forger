@@ -154,6 +154,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         $this->addLink($parent, 'my_issues', 'Issues', 'my_issues', 'actions-list');
         $this->addLink($parent, 'my_interests', 'Interests', 'my_interests', 'actions-filter');
         $this->addLink($parent, 'my_following', 'Following', 'my_following', 'actions-users');
+        $this->addLink($parent, 'my_statistics', 'Statistics', 'my_statistics', 'actions-history');
     }
 
     /**

@@ -1,9 +1,9 @@
 {#
  # The frame of the views of My Work: the overview, the switch between the Gerrit changes and the issues, named as
  # the tabs of the search and the menu: "Reviews" and "Issues", the interests of the user, and the people the user
- # follows, the search in it. Whether closed work is shown says the checkbox in the search, as in the search. Who
+ # follows, the statistics of the user, the search in it. Whether closed work is shown says the checkbox in the search, as in the search. Who
  # the work is found for only an empty list says, as the rows say how they belong to the person.
- # Expects: view ("overview", "changes", "issues", "interests" or "following"), email, name, includeClosed, query,
+ # Expects: view ("overview", "changes", "issues", "interests", "following" or "statistics"), email, name, includeClosed, query,
  # openChanges, openIssues, followingCount
  #}
 {% extends 'base.html.twig' %}
@@ -69,6 +69,12 @@
                     {{ icon('actions-users') }}
                     <span>Following</span>
                     <span class="view-tab-count" title="People you follow">{{ followingCount }}</span>
+                </a>
+                <a href="{{ path('my_statistics') }}" class="view-tab is-statistics{{ view == 'statistics' ? ' is-active' }}"
+                   {%- if view == 'statistics' %} aria-current="page"{% endif %}>
+                    {{ icon('actions-history') }}
+                    <span class="view-tab-long">Statistics</span>
+                    <span class="view-tab-short">Stats</span>
                 </a>
             </nav>
 
