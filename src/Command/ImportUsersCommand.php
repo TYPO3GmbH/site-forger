@@ -11,8 +11,6 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-namespace App\Command;
-
 use App\CommandRun\CommandRunRecorder;
 use App\Elastic\IndexSetup;
 use App\Http\ApiRequests;
