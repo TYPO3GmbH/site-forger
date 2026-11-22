@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Charts\ChartRegistry;
 use App\Report\KeyFigures;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -20,7 +19,6 @@ use Symfony\Component\Routing\Attribute\Route;
 class ApiController extends AbstractController
 {
     public function __construct(
-        private readonly ChartRegistry $chartRegistry,
         private readonly KeyFigures $keyFigures,
     ) {
     }
@@ -37,18 +35,5 @@ class ApiController extends AbstractController
                 'link' => $this->generateUrl('reviews_ready'),
             ],
         ]);
-    }
-
-    #[Route(path: '/chart/{chartName}', name: 'chart')]
-    public function chart(string $chartName): JsonResponse
-    {
-        try {
-            $chartInstance = $this->chartRegistry->get($chartName);
-        } catch (\InvalidArgumentException $e) {
-            throw $this->createNotFoundException($e->getMessage(), $e);
-        }
-        $data = $chartInstance->getData();
-
-        return new JsonResponse($data);
     }
 }
