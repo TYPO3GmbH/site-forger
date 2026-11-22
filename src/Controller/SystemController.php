@@ -35,10 +35,14 @@ use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 
 /**
  * What Forger runs on and whether its data is complete: Elasticsearch, the indices, the documents waiting
  * for a full import, PHP and Symfony. Only reads, also when Elasticsearch cannot be reached.
+ *
+ * @phpstan-import-type ForgeCheck from ForgeLogin
  */
 #[IsGranted('ROLE_ADMIN')]
 class SystemController extends AbstractController
@@ -50,6 +54,7 @@ class SystemController extends AbstractController
         private readonly UserRepository $users,
         private readonly ForgeLogin $forgeLogin,
         private readonly SchemaBackfill $backfill,
+        private readonly CacheInterface $cache,
         #[Autowire('%kernel.project_dir%/.env')]
         private readonly string $dotEnv,
     ) {
@@ -62,7 +67,7 @@ class SystemController extends AbstractController
         $setup = SetupCheck::settings(
             [...$_ENV, ...$_SERVER],
             $this->dotEnvDefaults(),
-            $this->forgeLogin->check(),
+            $this->forgeLogin(),
         );
         $indices = $elasticsearch['reachable'] ? $this->indices() : [];
         $pending = $elasticsearch['reachable'] ? $this->pendingImport() : [];
@@ -102,6 +107,25 @@ class SystemController extends AbstractController
             )),
             'minimumVersion' => ElasticsearchVersion::MINIMUM,
         ]);
+    }
+
+    /**
+     * What ForgeLogin::check() tells, kept for some minutes. The check asks Forge up to three times, and each
+     * request waits for the rate limit of Forge it shares with the imports: seconds, while an import runs. A
+     * problem is kept for a short time only, so the page shows soon that it is solved.
+     *
+     * @return ForgeCheck
+     */
+    private function forgeLogin(): array
+    {
+        return $this->cache->get('system.forge_login', function (ItemInterface $item): array {
+            $check = $this->forgeLogin->check();
+            // Without a problem the check names the account and nothing else
+            $healthy = null === $check['error'] && 2 === count($check);
+            $item->expiresAfter($healthy ? 300 : 30);
+
+            return $check;
+        });
     }
 
     /**
