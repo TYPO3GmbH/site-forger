@@ -43,11 +43,7 @@ final readonly class ActivityFilters
 
     private const array PEOPLE_FORMS = ['forge:<number>', 'gerrit:<number>', 'a username'];
 
-    /**
-     * The first year with activity: the oldest issue of the TYPO3 Core on Forge is of April 2004. The calendars of
-     * the pages start with it, see StreamTwigExtension::definitions().
-     */
-    public const int FIRST_YEAR = 2004;
+    public const int FIRST_YEAR = StreamRangeEnum::FIRST_YEAR;
 
     public function __construct(
         public StreamFilter $filter,

@@ -85,31 +85,37 @@ final readonly class StreamStatistics
 
     /**
      * The people with the most activity in the window, by the sort: the leaderboard. The events and the lines of the
-     * changes merged, in the window and in the one before.
+     * changes merged, in the window and in the one before. With a source only its events count, and the lines only
+     * with Gerrit: they are those of the changes.
      *
      * @return list<LeaderboardRow>
      */
-    public function leaderboard(StreamWindow $window, LeaderboardSort $sort): array
+    public function leaderboard(StreamWindow $window, LeaderboardSort $sort, ?StreamSourceEnum $source = null): array
     {
-        return $this->cache->get('leaderboard', [$window, $sort->value()], fn (): array => Leaderboards::rows(
-            $this->leaderboardCounts($window),
-            $this->leaderboardCounts($window->previous()),
-            $sort,
-            $this->users->keyOfPerson(...),
-        ));
+        return $this->cache->get(
+            'leaderboard',
+            [$window, $sort->value(), $source?->value],
+            fn (): array => Leaderboards::rows(
+                $this->leaderboardCounts($window, $source),
+                $this->leaderboardCounts($window->previous(), $source),
+                $sort,
+                $this->users->keyOfPerson(...),
+            ),
+        );
     }
 
     /**
      * @return array{people: array<string, mixed>, lines: array<string, mixed>|null}
      */
-    private function leaderboardCounts(StreamWindow $window): array
+    private function leaderboardCounts(StreamWindow $window, ?StreamSourceEnum $source): array
     {
-        $people = $this->stream->search(LeaderboardQuery::request($window));
+        $people = $this->stream->search(LeaderboardQuery::request($window, $source));
         $parts = [LeaderboardQuery::FORGE, LeaderboardQuery::GERRIT, LeaderboardQuery::NAMES];
 
         return [
             'people' => array_combine($parts, array_map($people->aggregation(...), $parts)),
-            'lines' => $this->changes->search(LeaderboardQuery::linesRequest($window))
+            'lines' => StreamSourceEnum::FORGE === $source ? null : $this->changes
+                ->search(LeaderboardQuery::linesRequest($window))
                 ->aggregation(LeaderboardQuery::OWNERS),
         ];
     }

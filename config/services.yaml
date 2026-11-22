@@ -115,6 +115,12 @@ services:
     class: Symfony\Component\Cache\Adapter\FilesystemAdapter
     arguments: ['jobs', 0, '%kernel.project_dir%/var/scheduler']
 
+  # The signal of messenger:stop-workers in var/scheduler too: each release has its own var/cache, and the worker of
+  # the release before has to read the signal of the new one, see forger:worker_restart in deploy.php
+  cache.messenger.restart_workers_signal:
+    class: Symfony\Component\Cache\Adapter\FilesystemAdapter
+    arguments: ['restart_workers', 0, '%kernel.project_dir%/var/scheduler']
+
   App\Menu\Breadcrumb:
     arguments:
       $helper: '@knp_menu.helper'

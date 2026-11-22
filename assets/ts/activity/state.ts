@@ -47,7 +47,7 @@ export type ActivityChange = Partial<ActivityState>;
 export const DEFAULT_RANGE: Range = '7d';
 export const DEFAULT_HOURS: Range = '1y';
 
-const RANGES: Range[] = ['7d', '30d', '6m', '1y'];
+const RANGES: Range[] = ['7d', '30d', '6m', '1y', 'all'];
 const SOURCES: Source[] = ['forge', 'gerrit'];
 const KINDS: Kind[] = ['created', 'commented', 'changed', 'uploaded', 'voted', 'merged', 'resolved', 'closed'];
 const SPLITS: Split[] = ['total', 'source', 'kind'];

@@ -137,7 +137,7 @@ final class ApiDocumentationTest extends KernelTestCase
             'https://forger.test/change/91487',
         );
         $count = new ActivityCount('main', 'main', 816);
-        $page = new ActivityPage(1, 0, 25, $window, $person, [$count], [$event]);
+        $page = new ActivityPage(1, 0, 25, '1763817600000-gerrit:91487:1', $window, $person, [$count], [$event]);
         $trend = new ActivityTrend(133, 112, [4, 5], 'more');
         $figure = new ActivityFigure(
             'reviews',

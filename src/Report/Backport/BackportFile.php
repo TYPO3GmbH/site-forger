@@ -29,11 +29,13 @@ final readonly class BackportFile
      */
     public function read(): ?array
     {
-        if (!is_file($this->path)) {
+        // A deployment creates the shared file empty before the first run, see deploy.php
+        $content = is_file($this->path) ? trim((string) file_get_contents($this->path)) : '';
+        if ('' === $content) {
             return null;
         }
 
-        return (array) json_decode((string) file_get_contents($this->path), true, 512, JSON_THROW_ON_ERROR);
+        return (array) json_decode($content, true, 512, JSON_THROW_ON_ERROR);
     }
 
     /**

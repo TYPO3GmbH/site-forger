@@ -5,7 +5,7 @@ import { CHANGE_EVENT, LightElement } from './light-element';
 import { applyChange, defaultState, withQuery, type ActivityChange, type ActivityState } from './state';
 import type { Range } from './types';
 
-const RANGES: Range[] = ['7d', '30d', '6m', '1y'];
+const RANGES: Range[] = ['7d', '30d', '6m', '1y', 'all'];
 
 /**
  * The time window of the statistics on a page the server renders, like the leaderboard: the ranges and the days

@@ -13,6 +13,7 @@ namespace App\Tests\Search;
 
 use App\Enum\StreamKindEnum;
 use App\Enum\StreamSourceEnum;
+use App\Search\StreamCursor;
 use App\Search\StreamFilter;
 use App\Search\StreamQuery;
 use PHPUnit\Framework\TestCase;
@@ -57,5 +58,18 @@ final class StreamQueryTest extends TestCase
         self::assertSame(['term' => ['branch' => '13.4']], $request['post_filter']);
         self::assertStringNotContainsString('13.4', (string) json_encode($request['query']));
         self::assertSame([['date' => 'desc'], ['id' => 'desc']], $request['sort']);
+    }
+
+    public function testACursorPagesAfterItsEventAndAllEventsCount(): void
+    {
+        $cursor = StreamCursor::fromValue('1763820000000-gerrit:91234:7');
+        self::assertNotNull($cursor);
+
+        $request = StreamQuery::request(new StreamFilter(), 0, 25, $cursor);
+
+        self::assertSame([1763820000000, 'gerrit:91234:7'], $request['search_after']);
+        self::assertArrayNotHasKey('from', $request);
+        self::assertTrue($request['track_total_hits']);
+        self::assertSame(50, StreamQuery::request(new StreamFilter(), 50, 25)['from']);
     }
 }

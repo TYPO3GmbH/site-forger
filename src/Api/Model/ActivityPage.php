@@ -23,7 +23,7 @@ final readonly class ActivityPage
      */
     public function __construct(
         #[OA\Property(
-            description: 'How many events the filter finds, at most 10000: count with the statistics beyond.',
+            description: 'How many events the filter finds.',
             example: 1438,
         )]
         public int $total,
@@ -31,6 +31,11 @@ final readonly class ActivityPage
         public int $offset,
         #[OA\Property(description: 'The size of the page.', example: 25)]
         public int $limit,
+        #[OA\Property(
+            description: 'Where the next page starts: give it as "after". Null on the last page.',
+            example: '1763820000000-gerrit:91234:7',
+        )]
+        public ?string $next,
         #[OA\Property(
             description: 'The time the events are from.',
             allOf: [new OA\Schema(ref: new Model(type: ActivityWindow::class))],

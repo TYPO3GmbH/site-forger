@@ -89,6 +89,17 @@ final class StreamWindowTest extends TestCase
         self::assertSame(1, $window?->wholeDays());
     }
 
+    public function testAllTimeStartsWithTheFirstYearOfForge(): void
+    {
+        $now = new \DateTimeImmutable('2026-11-21 22:30:00', new \DateTimeZone('Europe/Berlin'));
+
+        $window = StreamWindow::ofRange(StreamRangeEnum::ALL, $now);
+
+        self::assertSame('2003/12/31 23:00:00', $window->query()['range']['date']['gte']);
+        self::assertTrue($window->isOpen);
+        self::assertSame(TimeSeries::MONTH, $window->interval());
+    }
+
     public function testTheBarsGetLongerWithTheWindow(): void
     {
         $now = new \DateTimeImmutable('2026-11-21 12:00:00', new \DateTimeZone('UTC'));
