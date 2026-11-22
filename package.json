@@ -19,8 +19,7 @@
     },
     "license": "GPL-2.0-or-later",
     "browserslist": [
-        "last 2 versions",
-        "ios >= 8"
+        "defaults and fully supports es6-module"
     ],
     "private": true,
     "scripts": {
