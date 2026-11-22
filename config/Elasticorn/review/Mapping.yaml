@@ -75,6 +75,10 @@ resolves:
   type: integer
 related:
   type: integer
+# The accounts on Gerrit that voted on the current patch set, see App\Import\GerritChangeImporter::voters(): My Work
+# lists the changes a user did not vote on yet
+voters:
+  type: integer
 # The version of the import that wrote the document, see App\Import\ImportSchema
 import_schema:
   type: integer

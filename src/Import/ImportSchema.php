@@ -54,8 +54,10 @@ final class ImportSchema
      * 5: the day a change closed, "closed_on", and the day Gerrit submitted a merged one, "submitted", see
      *    GerritChangeImporter::closedOn(). The stored review log tells the day too: ChangeClosedOn lifts a change
      *    of version 4 without Gerrit. Such a change has no "submitted" until an import loads it again.
+     * 6: the accounts that voted on the current patch set, "voters", see GerritChangeImporter::voters(). The stored
+     *    votes tell them: ChangeVoters lifts a change of version 5 without Gerrit.
      */
-    public const int REVIEW = 5;
+    public const int REVIEW = 6;
 
     /**
      * @param 'issue'|'review' $index

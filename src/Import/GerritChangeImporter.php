@@ -520,11 +520,14 @@ final class GerritChangeImporter
             ? self::gerritDate((string) $change['submitted'])
             : null;
 
+        $votes = self::singleVotes((array) ($change['labels'] ?? []));
+
         return [
             'messages' => $log,
             'submitted' => $submitted,
             'closed_on' => self::closedOn((string) ($change['status'] ?? ''), $submitted, $log),
-            'votes' => self::singleVotes((array) ($change['labels'] ?? [])),
+            'votes' => $votes,
+            'voters' => self::voters($votes),
             'file_details' => self::fileDetails((array) ($revision['files'] ?? [])),
             'label_states' => self::labelStates((array) ($change['submit_records'] ?? [])),
             'conflicts' => self::conflicts($messages, $patchSet),
@@ -638,6 +641,27 @@ final class GerritChangeImporter
         }
 
         return $votes;
+    }
+
+    /**
+     * The accounts that voted on a label of the current patch set, each once: the votes of Gerrit are those of the
+     * current patch set. My Work finds the changes a user did not vote on yet by them.
+     *
+     * @param list<array<string, mixed>> $votes the votes of singleVotes()
+     *
+     * @return list<int>
+     */
+    public static function voters(array $votes): array
+    {
+        $voters = [];
+        foreach ($votes as $vote) {
+            $id = is_array($vote['account'] ?? null) ? ($vote['account']['id'] ?? null) : null;
+            if (null !== $id) {
+                $voters[] = (int) $id;
+            }
+        }
+
+        return array_values(array_unique($voters));
     }
 
     /**
