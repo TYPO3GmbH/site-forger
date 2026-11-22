@@ -13,6 +13,24 @@ namespace App\Tests\Api;
 
 use App\Api\ChangeMapper;
 use App\Api\IssueMapper;
+use App\Api\Model\ActivityCalendar;
+use App\Api\Model\ActivityClosedYear;
+use App\Api\Model\ActivityClosedYears;
+use App\Api\Model\ActivityCount;
+use App\Api\Model\ActivityCrew;
+use App\Api\Model\ActivityDuration;
+use App\Api\Model\ActivityEvent;
+use App\Api\Model\ActivityFigure;
+use App\Api\Model\ActivityNewcomer;
+use App\Api\Model\ActivityNewcomers;
+use App\Api\Model\ActivityPage;
+use App\Api\Model\ActivityPerson;
+use App\Api\Model\ActivitySeries;
+use App\Api\Model\ActivityStatistics;
+use App\Api\Model\ActivityTrend;
+use App\Api\Model\ActivityWaitBand;
+use App\Api\Model\ActivityWeekHours;
+use App\Api\Model\ActivityWindow;
 use App\Api\Model\Bucket;
 use App\Api\Model\IssueBreakdown;
 use App\Api\Model\IssuePage;
@@ -82,6 +100,123 @@ final class ApiDocumentationTest extends KernelTestCase
 
         self::assertFieldsDescribed('IssuePage', $page);
         self::assertFieldsDescribed('IssueBreakdown', $breakdown);
+    }
+
+    public function testDescribesEveryFieldOfTheActivity(): void
+    {
+        $person = new ActivityPerson('Jane Doe', 36415, 14410, 'forge:36415', 'https://www.gravatar.com/avatar/x');
+        $window = new ActivityWindow(
+            '2026-11-14T23:00:00Z',
+            '2026-11-21T21:00:00Z',
+            true,
+            7,
+            'Europe/Berlin',
+            'day',
+            ['hour', 'day'],
+        );
+        $event = new ActivityEvent(
+            'gerrit-91487-a1',
+            'gerrit',
+            'voted',
+            91487,
+            '[BUGFIX] Clear the cache',
+            '2026-11-21T18:37:29Z',
+            $person,
+            false,
+            ['Code-Review +2'],
+            3,
+            'main',
+            'https://review.typo3.org/c/Packages/TYPO3.CMS/+/91487/',
+            'https://forger.test/change/91487',
+        );
+        $count = new ActivityCount('main', 'main', 816);
+        $page = new ActivityPage(1, 0, 25, $window, $person, [$count], [$event]);
+        $trend = new ActivityTrend(133, 112, [4, 5], 'more');
+        $figure = new ActivityFigure(
+            'reviews',
+            'Reviews',
+            'Votes and comments',
+            42,
+            37,
+            [20, 22],
+            'gerrit',
+            ['voted'],
+            'more',
+            0,
+        );
+        $duration = new ActivityDuration(
+            'time-to-close',
+            'Time to close',
+            'From the first patch set until the change was merged or abandoned',
+            704,
+            432000,
+            518400,
+            [new ActivityWaitBand('week', '1 to 7 days', 30, [new ActivityCount('merged', 'Merged', 24)])],
+            'gerrit',
+            'less',
+        );
+        $newcomer = new ActivityNewcomer(
+            $person,
+            'first-merge',
+            'gerrit',
+            97873,
+            '[BUGFIX] Clear the cache',
+            '2026-11-20T08:55:32Z',
+            'main',
+            'merged',
+            'Merged',
+            false,
+            'https://review.typo3.org/c/Packages/TYPO3.CMS/+/97873/',
+            'https://forger.test/change/97873',
+            $person,
+        );
+        $newcomers = new ActivityNewcomers($window, 8, 6, 'more', [$count], [$newcomer]);
+        $crew = new ActivityCrew(
+            'merging',
+            'Merges',
+            'Who merged changes',
+            16,
+            3,
+            2,
+            [24.1, 15.3, 11.2],
+            'more',
+        );
+        $calendar = new ActivityCalendar($window, '2026-11-15', [700, 739]);
+        $weekHours = new ActivityWeekHours($window, [array_fill(0, 24, 0)]);
+        $closedYear = new ActivityClosedYear(2026, [310, 598, null]);
+        $closedYears = new ActivityClosedYears([$closedYear], [$closedYear]);
+        $statistics = new ActivityStatistics(
+            $window,
+            $person,
+            1439,
+            $trend,
+            $trend,
+            [$figure],
+            $trend,
+            $trend,
+            [$duration],
+            [$count],
+            [$crew],
+            [$count],
+            [$count],
+            ['2026-11-15', '2026-11-16'],
+            [new ActivitySeries('total', 'Events', [700, 739])],
+        );
+
+        self::assertFieldsDescribed('ActivityPage', $page);
+        self::assertFieldsDescribed('ActivityEvent', $event);
+        self::assertFieldsDescribed('ActivityPerson', $person);
+        self::assertFieldsDescribed('ActivityStatistics', $statistics);
+        self::assertFieldsDescribed('ActivityFigure', $figure);
+        self::assertFieldsDescribed('ActivityTrend', $trend);
+        self::assertFieldsDescribed('ActivityDuration', $duration);
+        self::assertFieldsDescribed('ActivityCrew', $crew);
+        self::assertFieldsDescribed('ActivityNewcomer', $newcomer);
+        self::assertFieldsDescribed('ActivityNewcomers', $newcomers);
+        self::assertFieldsDescribed('ActivityCalendar', $calendar);
+        self::assertFieldsDescribed('ActivityWeekHours', $weekHours);
+        self::assertFieldsDescribed('ActivityClosedYear', $closedYear);
+        self::assertFieldsDescribed('ActivityClosedYears', $closedYears);
     }
 
     public function testEveryFieldHasADescription(): void

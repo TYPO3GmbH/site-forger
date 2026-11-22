@@ -56,4 +56,20 @@ final class InvalidParameter extends \InvalidArgumentException
     {
         return new self(sprintf('The parameter "%s" takes a day as YYYY-MM-DD, like 2026-11-21.', $name));
     }
+
+    public static function notATimeZone(string $name): self
+    {
+        return new self(sprintf(
+            'The parameter "%s" takes a time zone of the IANA database, like Europe/Berlin.',
+            $name,
+        ));
+    }
+
+    public static function notATime(string $name): self
+    {
+        return new self(sprintf(
+            'The parameter "%s" takes a time in the past in ISO 8601, like 2026-11-21T08:30:00Z.',
+            $name,
+        ));
+    }
 }

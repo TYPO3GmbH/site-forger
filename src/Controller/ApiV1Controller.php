@@ -11,12 +11,20 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Api\ActivityFilters;
+use App\Api\ActivityMapper;
 use App\Api\ChangeFilters;
 use App\Api\ChangeMapper;
 use App\Api\InvalidParameter;
 use App\Api\IssueFilters;
 use App\Api\IssueMapper;
 use App\Api\ListParameters;
+use App\Api\Model\ActivityCalendar;
+use App\Api\Model\ActivityClosedYears;
+use App\Api\Model\ActivityNewcomers;
+use App\Api\Model\ActivityPage;
+use App\Api\Model\ActivityStatistics;
+use App\Api\Model\ActivityWeekHours;
 use App\Api\Model\ChangeDetail;
 use App\Api\Model\ChangePage;
 use App\Api\Model\DuplicateList;
@@ -26,16 +34,24 @@ use App\Api\Model\IssuePage;
 use App\Document\Relations;
 use App\Duplicates\DuplicateGroups;
 use App\Duplicates\DuplicateSearch;
+use App\Elastic\Bucket;
 use App\Enum\ChangeListEnum;
 use App\Enum\ChangeStateFilterEnum;
 use App\Enum\IssueSortEnum;
 use App\Enum\IssueStateFilterEnum;
 use App\Enum\ReviewSortEnum;
+use App\Enum\StreamIntervalEnum;
+use App\Enum\StreamSplitEnum;
+use App\People\UserDirectory;
 use App\Repository\ChangeRepository;
 use App\Repository\IssueRepository;
+use App\Repository\StreamRepository;
 use App\Search\ApiChangeQuery;
 use App\Search\ApiIssueQuery;
 use App\Search\IssueSearch;
+use App\Search\StreamQuery;
+use App\Stream\NewcomerFinder;
+use App\Stream\StreamStatistics;
 use Doctrine\Common\Collections\ArrayCollection;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
@@ -70,6 +86,11 @@ class ApiV1Controller extends AbstractController
         private readonly DuplicateSearch $duplicateSearch,
         private readonly IssueMapper $issueMapper,
         private readonly ChangeMapper $changeMapper,
+        private readonly StreamRepository $stream,
+        private readonly StreamStatistics $streamStatistics,
+        private readonly NewcomerFinder $newcomerFinder,
+        private readonly ActivityMapper $activityMapper,
+        private readonly UserDirectory $users,
     ) {
     }
 
@@ -448,6 +469,235 @@ class ApiV1Controller extends AbstractController
     private static function issueNotFound(int $id): JsonResponse
     {
         return self::error(sprintf('Issue #%d is not in Forger.', $id), Response::HTTP_NOT_FOUND);
+    }
+
+    #[Route(path: '/activity', name: 'activity')]
+    #[OA\Get(
+        operationId: 'listActivity',
+        description: 'What happened on Forge and in Gerrit, the newest first: an issue reported, commented, changed '
+            . 'or closed, a change pushed, voted on, merged or abandoned. Without parameters it lists the last seven '
+            . 'days, without the events of tools.',
+        summary: 'List the activity',
+        tags: ['Activity'],
+    )]
+    #[OA\Parameter(ref: '#/components/parameters/activityRange')]
+    #[OA\Parameter(ref: '#/components/parameters/activityFrom')]
+    #[OA\Parameter(ref: '#/components/parameters/activityTo')]
+    #[OA\Parameter(ref: '#/components/parameters/activitySince')]
+    #[OA\Parameter(ref: '#/components/parameters/activityTimeZone')]
+    #[OA\Parameter(ref: '#/components/parameters/activitySource')]
+    #[OA\Parameter(ref: '#/components/parameters/activityKind')]
+    #[OA\Parameter(ref: '#/components/parameters/activityBranch')]
+    #[OA\Parameter(ref: '#/components/parameters/activityPerson')]
+    #[OA\Parameter(ref: '#/components/parameters/activityBots')]
+    #[OA\Parameter(ref: '#/components/parameters/limit')]
+    #[OA\Parameter(ref: '#/components/parameters/offset')]
+    #[OA\Response(response: 200, description: 'One page of events.', content: new Model(type: ActivityPage::class))]
+    #[OA\Response(response: 400, description: self::BAD_REQUEST, content: new Model(type: Error::class))]
+    #[OA\Response(response: 429, description: self::TOO_MANY_REQUESTS, content: new Model(type: Error::class))]
+    public function activity(Request $request): JsonResponse
+    {
+        try {
+            $list = ListParameters::fromRequest($request);
+            $filters = ActivityFilters::fromRequest($request, $this->users);
+        } catch (InvalidParameter $e) {
+            return self::error($e->getMessage(), Response::HTTP_BAD_REQUEST);
+        }
+        $events = $this->stream->search(
+            StreamQuery::requestWithBranches($filters->filter, $list->offset, $list->limit),
+        );
+
+        return self::respond($this->activityMapper->page(
+            $events,
+            $list,
+            $filters,
+            Bucket::facetOf($events->aggregation(StreamQuery::BRANCHES)),
+        ));
+    }
+
+    #[Route(path: '/activity/statistics', name: 'activity_statistics')]
+    #[OA\Get(
+        operationId: 'getActivityStatistics',
+        description: 'Counts the activity of the filter: the key figures, the events per hour, day or week, and per '
+            . 'weekday and hour, all in "timeZone". Without parameters it counts the last seven days in UTC, without '
+            . 'the events of tools.',
+        summary: 'Count the activity',
+        tags: ['Activity'],
+    )]
+    #[OA\Parameter(ref: '#/components/parameters/activityRange')]
+    #[OA\Parameter(ref: '#/components/parameters/activityFrom')]
+    #[OA\Parameter(ref: '#/components/parameters/activityTo')]
+    #[OA\Parameter(ref: '#/components/parameters/activitySince')]
+    #[OA\Parameter(ref: '#/components/parameters/activityTimeZone')]
+    #[OA\Parameter(ref: '#/components/parameters/activitySource')]
+    #[OA\Parameter(ref: '#/components/parameters/activityKind')]
+    #[OA\Parameter(ref: '#/components/parameters/activityBranch')]
+    #[OA\Parameter(ref: '#/components/parameters/activityPerson')]
+    #[OA\Parameter(ref: '#/components/parameters/activityBots')]
+    #[OA\Parameter(
+        name: 'interval',
+        description: 'The length of a bucket over time. One that does not fit the window, see "intervals" of the '
+            . 'window, leaves the one by the length of the window.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', enum: StreamIntervalEnum::class),
+    )]
+    #[OA\Parameter(
+        name: 'split',
+        description: 'How the events over time are split: one series for all, one per channel, or one per kind.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', default: 'total', enum: StreamSplitEnum::class),
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'The statistics of the activity.',
+        content: new Model(type: ActivityStatistics::class),
+    )]
+    #[OA\Response(response: 400, description: self::BAD_REQUEST, content: new Model(type: Error::class))]
+    #[OA\Response(response: 429, description: self::TOO_MANY_REQUESTS, content: new Model(type: Error::class))]
+    public function activityStatistics(Request $request): JsonResponse
+    {
+        try {
+            $filters = ActivityFilters::fromRequest($request, $this->users);
+            $split = ActivityFilters::split($request);
+        } catch (InvalidParameter $e) {
+            return self::error($e->getMessage(), Response::HTTP_BAD_REQUEST);
+        }
+        $insights = $this->streamStatistics->insights($filters->filter, $filters->window, $split);
+
+        return self::respond($this->activityMapper->statistics($insights, $filters));
+    }
+
+    #[Route(path: '/activity/newcomers', name: 'activity_newcomers')]
+    #[OA\Get(
+        operationId: 'getActivityNewcomers',
+        description: 'Lists the firsts of new people in the time window, the newest first: their first issue on '
+            . 'Forge, their first change in Gerrit, the first change of theirs that was merged. And where each '
+            . 'stands now: so a mentor sees who could use help. Without parameters it covers the last seven days in '
+            . 'UTC.',
+        summary: 'List the new contributors',
+        tags: ['Activity'],
+    )]
+    #[OA\Parameter(ref: '#/components/parameters/activityRange')]
+    #[OA\Parameter(ref: '#/components/parameters/activityFrom')]
+    #[OA\Parameter(ref: '#/components/parameters/activityTo')]
+    #[OA\Parameter(ref: '#/components/parameters/activitySince')]
+    #[OA\Parameter(ref: '#/components/parameters/activityTimeZone')]
+    #[OA\Response(
+        response: 200,
+        description: 'The new contributors.',
+        content: new Model(type: ActivityNewcomers::class),
+    )]
+    #[OA\Response(response: 400, description: self::BAD_REQUEST, content: new Model(type: Error::class))]
+    #[OA\Response(response: 429, description: self::TOO_MANY_REQUESTS, content: new Model(type: Error::class))]
+    public function activityNewcomers(Request $request): JsonResponse
+    {
+        try {
+            $filters = ActivityFilters::fromRequest($request, $this->users);
+        } catch (InvalidParameter $e) {
+            return self::error($e->getMessage(), Response::HTTP_BAD_REQUEST);
+        }
+
+        return self::respond($this->activityMapper->newcomers($this->newcomerFinder->find($filters->window), $filters));
+    }
+
+    #[Route(path: '/activity/week-hours', name: 'activity_week_hours')]
+    #[OA\Get(
+        operationId: 'getActivityWeekHours',
+        description: 'Counts the activity of the filter per weekday and hour in "timeZone": when people are active. '
+            . 'Without parameters it counts the last seven days in UTC.',
+        summary: 'Count the activity per weekday and hour',
+        tags: ['Activity'],
+    )]
+    #[OA\Parameter(ref: '#/components/parameters/activityRange')]
+    #[OA\Parameter(ref: '#/components/parameters/activityYear')]
+    #[OA\Parameter(ref: '#/components/parameters/activityFrom')]
+    #[OA\Parameter(ref: '#/components/parameters/activityTo')]
+    #[OA\Parameter(ref: '#/components/parameters/activitySince')]
+    #[OA\Parameter(ref: '#/components/parameters/activityTimeZone')]
+    #[OA\Parameter(ref: '#/components/parameters/activitySource')]
+    #[OA\Parameter(ref: '#/components/parameters/activityKind')]
+    #[OA\Parameter(ref: '#/components/parameters/activityBranch')]
+    #[OA\Parameter(ref: '#/components/parameters/activityPerson')]
+    #[OA\Parameter(ref: '#/components/parameters/activityBots')]
+    #[OA\Response(
+        response: 200,
+        description: 'The activity per weekday and hour.',
+        content: new Model(type: ActivityWeekHours::class),
+    )]
+    #[OA\Response(response: 400, description: self::BAD_REQUEST, content: new Model(type: Error::class))]
+    #[OA\Response(response: 429, description: self::TOO_MANY_REQUESTS, content: new Model(type: Error::class))]
+    public function activityWeekHours(Request $request): JsonResponse
+    {
+        try {
+            $filters = ActivityFilters::fromRequest($request, $this->users);
+        } catch (InvalidParameter $e) {
+            return self::error($e->getMessage(), Response::HTTP_BAD_REQUEST);
+        }
+
+        return self::respond($this->activityMapper->weekHours(
+            $this->streamStatistics->weekHours($filters->filter),
+            $filters,
+        ));
+    }
+
+    #[Route(path: '/activity/days', name: 'activity_days')]
+    #[OA\Get(
+        operationId: 'getActivityDays',
+        description: 'Counts the activity of the filter per day of a year in "timeZone": when in the year people '
+            . 'work. Without "year" it counts the last 12 months.',
+        summary: 'Count the activity per day of a year',
+        tags: ['Activity'],
+    )]
+    #[OA\Parameter(ref: '#/components/parameters/activityYear')]
+    #[OA\Parameter(ref: '#/components/parameters/activityTimeZone')]
+    #[OA\Parameter(ref: '#/components/parameters/activitySource')]
+    #[OA\Parameter(ref: '#/components/parameters/activityKind')]
+    #[OA\Parameter(ref: '#/components/parameters/activityBranch')]
+    #[OA\Parameter(ref: '#/components/parameters/activityPerson')]
+    #[OA\Parameter(ref: '#/components/parameters/activityBots')]
+    #[OA\Response(
+        response: 200,
+        description: 'The activity per day.',
+        content: new Model(type: ActivityCalendar::class),
+    )]
+    #[OA\Response(response: 400, description: self::BAD_REQUEST, content: new Model(type: Error::class))]
+    #[OA\Response(response: 429, description: self::TOO_MANY_REQUESTS, content: new Model(type: Error::class))]
+    public function activityDays(Request $request): JsonResponse
+    {
+        try {
+            // A year: the one given, else the last 12 months
+            $query = array_diff_key($request->query->all(), array_flip(['from', 'to', 'since']));
+            $request = $request->duplicate([...$query, 'range' => '1y']);
+            $filters = ActivityFilters::fromRequest($request, $this->users);
+        } catch (InvalidParameter $e) {
+            return self::error($e->getMessage(), Response::HTTP_BAD_REQUEST);
+        }
+
+        return self::respond($this->activityMapper->calendar(
+            $this->streamStatistics->days($filters->filter, $filters->window),
+            $filters,
+        ));
+    }
+
+    #[Route(path: '/activity/closed-years', name: 'activity_closed_years')]
+    #[OA\Get(
+        operationId: 'getActivityClosedYears',
+        description: 'Counts the issues and the changes closed in this year and the two before, summed up month by '
+            . 'month: so the years can be compared. It takes no filter.',
+        summary: 'Count what was closed over the years',
+        tags: ['Activity'],
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'What was closed per year.',
+        content: new Model(type: ActivityClosedYears::class),
+    )]
+    #[OA\Response(response: 429, description: self::TOO_MANY_REQUESTS, content: new Model(type: Error::class))]
+    public function activityClosedYears(): JsonResponse
+    {
+        $years = $this->streamStatistics->closedYears(new \DateTimeImmutable());
+
+        return self::respond(ActivityMapper::closedYears($years));
     }
 
     private static function error(string $message, int $status): JsonResponse

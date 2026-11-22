@@ -36,11 +36,91 @@ nelmio_api_doc:
                         How many items to skip before the page starts. Offset and limit together may not exceed
                         10000.
                     schema: { type: integer, minimum: 0, default: 0 }
+                # The filter of the activity, the same for its list and its statistics
+                activityRange:
+                    name: range
+                    in: query
+                    description: >-
+                        The time window up to now. The days start at midnight in "timeZone". "from", "to" and
+                        "since" take its place.
+                    schema: { type: string, enum: ['7d', '30d', '6m', '1y'], default: '7d' }
+                activityYear:
+                    name: year
+                    in: query
+                    description: >-
+                        A year of the calendar as the time window, in "timeZone": the current one up to now. It
+                        takes the place of "range", "from", "to" and "since".
+                    schema: { type: integer, minimum: 2004 }
+                    example: 2025
+                activityFrom:
+                    name: from
+                    in: query
+                    description: >-
+                        The first day of the time window, included, as YYYY-MM-DD in "timeZone". Without "to" the
+                        window ends now.
+                    schema: { type: string, format: date }
+                activityTo:
+                    name: to
+                    in: query
+                    description: >-
+                        The last day of the time window, included, as YYYY-MM-DD in "timeZone". Without "from" the
+                        window starts with the first year of Forge, on 2004-01-01.
+                    schema: { type: string, format: date }
+                activitySince:
+                    name: since
+                    in: query
+                    description: >-
+                        The time window from this time up to now, in ISO 8601, like the last visit of a reader.
+                    schema: { type: string, format: date-time }
+                    example: '2026-11-21T08:30:00Z'
+                activityTimeZone:
+                    name: timeZone
+                    in: query
+                    description: >-
+                        The time zone of the IANA database the days and hours count in: the start of the time
+                        window, the buckets over time and the hours of the week.
+                    schema: { type: string, default: UTC }
+                    example: Europe/Berlin
+                activitySource:
+                    name: source
+                    in: query
+                    description: Only the events of this channel.
+                    schema: { type: string, enum: [forge, gerrit] }
+                activityKind:
+                    name: kind
+                    in: query
+                    description: Only events of these kinds, any of them, separated by commas.
+                    schema: { type: string }
+                    example: voted,merged
+                activityBranch:
+                    name: branch
+                    in: query
+                    description: Only the events of the changes of this branch.
+                    schema: { type: string }
+                    example: main
+                activityPerson:
+                    name: person
+                    in: query
+                    description: >-
+                        Only the events of this person: "forge:<number>" or "gerrit:<number>", as "key" of a
+                        person has it, the username of the TYPO3 account, or a number alone for the user on Forge.
+                        Words are searched in the name.
+                    schema: { type: string }
+                    example: forge:36415
+                activityBots:
+                    name: bots
+                    in: query
+                    description: Also the events of tools, like the votes of the CI. Without it, people only.
+                    schema: { type: boolean, default: false }
         tags:
             - name: Issues
               description: The issues of the project TYPO3 Core on Forge.
             - name: Changes
               description: The changes of Packages/TYPO3.CMS on Gerrit.
+            - name: Activity
+              description: >-
+                  What happens on Forge and in Gerrit: the notes of the issues and the review logs of the changes, as
+                  events, and statistics of them.
     areas:
         default:
             path_patterns:

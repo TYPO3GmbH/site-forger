@@ -27,7 +27,7 @@ use Twig\Markup;
  */
 final readonly class UserTwigExtension
 {
-    private const string PLACEHOLDER = 'd41d8cd98f00b204e9800998ecf8427e';
+    public const string PLACEHOLDER = 'd41d8cd98f00b204e9800998ecf8427e';
 
     public function __construct(
         private UserDirectory $users,
