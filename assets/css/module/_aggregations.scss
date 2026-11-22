@@ -41,6 +41,36 @@
     gap: .625rem;
 }
 
+// The paths of a filter typed in, each a chip that takes it away, see assets/ts/filter/path-filter.ts
+forger-path-filter {
+    display: flex;
+    flex-direction: column;
+    gap: .625rem;
+}
+
+.aggregation-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+}
+
+.aggregation-chip {
+    max-width: 100%;
+    font-family: inherit;
+    cursor: pointer;
+
+    .icon {
+        flex-shrink: 0;
+    }
+}
+
+// A long path breaks anywhere instead of making the filters wider than a phone
+.aggregation-chip-path {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: left;
+}
+
 .aggregation-range-actions {
     display: flex;
     gap: .5rem;

@@ -119,15 +119,42 @@ final class ReviewLists
     /**
      * The changes that touch a file, or a file in a folder: the filter "File" of the review lists and of the search.
      * The path as in the repository, like "typo3/sysext/core/Classes/Cache/CacheManager.php", a "/" around it counts
-     * for nothing. Null for no path.
+     * for nothing. A "*" stands for any characters, "/" included: "*.rst" finds the changes of any ".rst" file.
+     * Several paths are separated by commas, a change touches each of them. Null for no path.
      *
      * @return array<string, mixed>|null
      */
-    public static function fileQuery(string $path): ?array
+    public static function fileQuery(string $paths): ?array
     {
-        $path = trim(trim($path), '/');
-        if ('' === $path) {
-            return null;
+        $queries = array_map(self::pathQuery(...), self::filePaths($paths));
+
+        return match (count($queries)) {
+            0 => null,
+            1 => $queries[0],
+            default => ['bool' => ['must' => $queries]],
+        };
+    }
+
+    /**
+     * The paths of the filter "File", each once, without a "/" around it: "*.rst, typo3/sysext/core/" has "*.rst"
+     * and "typo3/sysext/core".
+     *
+     * @return list<string>
+     */
+    public static function filePaths(string $paths): array
+    {
+        $parts = array_map(static fn (string $path): string => trim(trim($path), '/'), explode(',', $paths));
+
+        return array_values(array_unique(array_filter($parts, static fn (string $path): bool => '' !== $path)));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function pathQuery(string $path): array
+    {
+        if (str_contains($path, '*')) {
+            return ['wildcard' => ['files' => ['value' => self::filePattern($path)]]];
         }
 
         return ['bool' => [
@@ -184,6 +211,14 @@ final class ReviewLists
         }
 
         return $query;
+    }
+
+    /**
+     * Elasticsearch reads "?" as any one character and "\" as an escape, a path means them as they are.
+     */
+    private static function filePattern(string $path): string
+    {
+        return strtr($path, ['\\' => '\\\\', '?' => '\\?']);
     }
 
     /**

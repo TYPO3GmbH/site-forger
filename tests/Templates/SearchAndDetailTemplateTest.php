@@ -451,12 +451,30 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         ]);
 
         $html = $render(['path' => 'typo3/sysext/core']);
-        self::assertStringContainsString('<input type="text" id="facet-changes-file-value" class="form-control form-control-sm" name="filters[file][path]" value="typo3/sysext/core" placeholder="A path, or a folder">', $html);
+        self::assertStringContainsString(
+            '<forger-path-filter name="filters[file][path]" paths="typo3/sysext/core" input-id="facet-changes-file-value" placeholder="A path, or a folder">',
+            $html,
+        );
+        self::assertStringContainsString('<label class="sr-only" for="facet-changes-file-value">Add to File</label>', $html);
         self::assertStringContainsString('id="facet-changes-file" class="collapse show"', $html);
         // After the filters to tick, before the dates
         self::assertGreaterThan(strpos($html, 'facet-changes-size'), strpos($html, 'facet-changes-file'));
         self::assertLessThan(strpos($html, 'facet-changes-updated'), strpos($html, 'facet-changes-file'));
         self::assertStringContainsString('id="facet-changes-file" class="collapse"', $render([]));
+        self::assertStringContainsString('paths=""', $render([]));
+    }
+
+    public function testTheFilterFileHasEachPathOnce(): void
+    {
+        $html = $this->twig->render('_partials/aggregations.html.twig', [
+            'facetScope' => 'changes',
+            'textFilters' => ['file' => ['title' => 'File', 'value' => ['path' => ' /*.rst, typo3/sysext/core/*, *.rst']]],
+            'aggregations' => [],
+        ]);
+
+        self::assertStringContainsString('paths="*.rst, typo3/sysext/core/*"', $html);
+        // The icon of the chips, from the template bundle
+        self::assertMatchesRegularExpression('#<template>\s*<span class="icon[^"]*">.*actions-close#s', $html);
     }
 
     public function testEveryFilterOfDatesHasTheDatepicker(): void

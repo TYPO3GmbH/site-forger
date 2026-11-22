@@ -17,7 +17,7 @@
                 {% include '_partials/aggregations.html.twig' with {
                     'facetScope': 'changes',
                     'aggregations': aggregations,
-                    'textFilters': {'file': {'title': 'File', 'value': filters.file ?? {}, 'placeholder': 'A path, or a folder'}},
+                    'textFilters': {'file': {'title': 'File', 'value': filters.file ?? {}, 'placeholder': 'Add a path, a folder or *.rst'}},
                     'dateFilters': {'updated': {'title': 'Updated', 'value': filters.updated ?? {}}},
                     'query': query,
                     'personSearch': {

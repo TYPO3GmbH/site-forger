@@ -343,7 +343,10 @@ class ApiV1Controller extends AbstractController
     #[OA\Parameter(
         name: 'path',
         description: 'Only changes whose current patch set touches this file, or a file in this folder, as the path '
-            . 'in the repository, like "typo3/sysext/core/Classes/Cache".',
+            . 'in the repository, like "typo3/sysext/core/Classes/Cache". A "*" stands for any characters, "/" '
+            . 'included: "*.rst" finds the changes of any reST file, "typo3/sysext/*/Configuration/*" the '
+            . 'configuration of all system extensions. Several paths are separated by commas, a change touches each '
+            . 'of them: "*.rst,typo3/sysext/install" finds the changes of the install tool with documentation.',
         in: 'query',
         schema: new OA\Schema(type: 'string'),
     )]

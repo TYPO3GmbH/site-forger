@@ -18,6 +18,7 @@ import './js/date-range.js';
 import './js/flash-messages.js';
 import './js/copy.js';
 import './ts/activity/index.ts';
+import './ts/filter/path-filter.ts';
 import { loadEditor } from './js/editor.js';
 
 function initializeEditor(ace, textarea) {
