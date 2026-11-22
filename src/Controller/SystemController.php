@@ -19,7 +19,6 @@ use App\Enum\SystemCheckEnum;
 use App\Import\Backfill\SchemaBackfill;
 use App\Import\ImportSchema;
 use App\Import\PendingImport;
-use App\People\User;
 use App\People\UserHealth;
 use App\People\UserStatistics;
 use App\Repository\UserRepository;
@@ -91,7 +90,7 @@ class SystemController extends AbstractController
             'pending' => $pending,
             'users' => $users,
             'userStatistics' => $statistics,
-            'unmappedUsers' => null === $statistics ? [] : $this->unmappedUsers(),
+            'withoutUsernameCount' => null === $statistics ? 0 : $this->withoutUsernameCount(),
             'application' => [
                 'php' => PHP_VERSION,
                 'symfony' => Kernel::VERSION,
@@ -204,16 +203,15 @@ class SystemController extends AbstractController
     }
 
     /**
-     * The people Forge was asked for that cannot be mapped to an email, in the card of the users.
-     *
-     * @return list<User>
+     * How many accounts of Forge and Gerrit have no username. The tab "No username" of the people lists them, see
+     * PeopleController.
      */
-    private function unmappedUsers(): array
+    private function withoutUsernameCount(): int
     {
         try {
-            return $this->users->unmapped();
+            return count($this->users->withoutUsername());
         } catch (\Exception) {
-            return [];
+            return 0;
         }
     }
 

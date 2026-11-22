@@ -23,6 +23,8 @@ use App\Import\GerritNames;
 use App\Import\ImportRun;
 use App\Import\UserForms;
 use App\People\PersonLinkCleanup;
+use App\Repository\AccountRequestRepository;
+use App\Repository\UserRepository;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -34,6 +36,13 @@ final class ImportUsersCommand extends ImportJobCommand
 {
     public const string LOCK = 'users';
     public const string STEP_TAKE_OVER = 'Take the users of the issues over';
+    public const string STEP_REQUESTED = 'Ask for the accounts the admins requested';
+
+    /**
+     * The accounts an admin requested that one run asks their source for, see AccountRequestRepository. More than
+     * the due ones: an admin waits for them. With a run each 5 minutes, a thousand accounts take less than an hour.
+     */
+    public const int REQUESTED_PER_RUN = 100;
 
     public function __construct(
         private readonly ForgeUserSync $userSync,
@@ -42,6 +51,8 @@ final class ImportUsersCommand extends ImportJobCommand
         private readonly UserForms $userForms,
         private readonly GerritAccountRepair $gerritRepair,
         private readonly PersonLinkCleanup $linkCleanup,
+        private readonly AccountRequestRepository $requests,
+        private readonly UserRepository $users,
         IndexSetup $indexSetup,
         CommandRunRecorder $recorder,
         ApiRequests $apiRequests,
@@ -100,6 +111,8 @@ final class ImportUsersCommand extends ImportJobCommand
         $this->recorder->progress(GerritNames::STEP, $named, $named);
         $run->writeln(sprintf('Took the name of Gerrit of %d users over from the activity', $named));
 
+        $this->askRequested($run);
+
         $limit = max(0, (int) $input->getOption('limit'));
         $this->recorder->progress(ForgeUserSync::STEP, 0, null);
         $this->report($run, $this->userSync->fetchDue($limit, new \DateTimeImmutable()));
@@ -116,6 +129,66 @@ final class ImportUsersCommand extends ImportJobCommand
         $removed = $this->linkCleanup->removeJoined();
         $this->recorder->progress(PersonLinkCleanup::STEP, $removed, $removed);
         $run->writeln(sprintf('Dropped %d %s the sources joined', $removed, 1 === $removed ? 'link' : 'links'));
+    }
+
+    /**
+     * Asks the sources for the accounts the admins requested, the oldest requests first: Forge for "forge:<number>",
+     * Gerrit for "gerrit:<number>". A request goes once its source answered. When a source fails, its requests stay
+     * for the next run.
+     */
+    private function askRequested(ImportRun $run): void
+    {
+        $accounts = $this->requests->oldest(self::REQUESTED_PER_RUN);
+        $this->recorder->progress(self::STEP_REQUESTED, 0, count($accounts));
+        if ([] === $accounts) {
+            return;
+        }
+        $total = count($accounts);
+        $forge = self::numbersOf($accounts, 'forge');
+        if ([] !== $forge) {
+            $result = $this->userSync->update(
+                array_values($forge),
+                new \DateTimeImmutable(),
+                fn (int $done) => $this->recorder->progress(self::STEP_REQUESTED, $done, $total),
+            );
+            if (null === $result['stopped']) {
+                $this->requests->remove(array_keys($forge));
+            }
+            $this->report($run, $result);
+        }
+        $answered = [];
+        foreach (array_keys(self::numbersOf($accounts, 'gerrit')) as $account) {
+            $user = $this->users->byKey($account);
+            // An account that has its username by now needs no answer
+            $ask = null !== $user && null === $user->username;
+            if ($ask && null === $this->gerritLookup->lookUpNumber($user, new \DateTimeImmutable())) {
+                break;
+            }
+            $answered[] = $account;
+            $this->recorder->progress(self::STEP_REQUESTED, count($forge) + count($answered), $total);
+        }
+        $this->requests->remove($answered);
+        if ([] !== $answered) {
+            $run->writeln(sprintf('Asked Gerrit for %d accounts the admins requested', count($answered)));
+        }
+        $this->recorder->progress(self::STEP_REQUESTED, $total, $total);
+    }
+
+    /**
+     * @param list<string> $accounts like "forge:<number>"
+     *
+     * @return array<string, int> the numbers of the accounts of the source, by account
+     */
+    private static function numbersOf(array $accounts, string $source): array
+    {
+        $numbers = [];
+        foreach ($accounts as $account) {
+            if (str_starts_with($account, $source . ':')) {
+                $numbers[$account] = (int) substr($account, strlen($source) + 1);
+            }
+        }
+
+        return $numbers;
     }
 
     /**

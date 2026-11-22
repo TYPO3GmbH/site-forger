@@ -3,7 +3,7 @@
 {#
  # A person for the admins, see App\Controller\PeopleController::show(): the accounts of its document and the ones
  # linked to it, each by source with how much it did. Linking takes an account of the search; unlinking makes it its
- # own person again.
+ # own person again. An account without a username is linked to its person from here.
  # Expects: person (App\People\Person as the pages show it, or null), document (App\People\User), linked (list of
  #          link: App\Entity\PersonLink, document: App\People\User or null), activity, canLink, csrfTokenId
  #}
@@ -87,8 +87,20 @@
                         ></forger-person-search>
                     </form>
                 {% else %}
+                    <form class="people-search" id="people-link" method="post"
+                          action="{{ path('management_people_link_to', {'key': document.id}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token(csrfTokenId) }}">
+                        <input type="hidden" name="person" value="">
+                        <forger-person-search
+                            search-url="{{ path('activity_people') }}"
+                            label="Link to a person"
+                            placeholder="Find its person by name or username"
+                            show-keys
+                            submit
+                        ></forger-person-search>
+                    </form>
                     <p class="people-lead">
-                        Only a person with a TYPO3 username takes accounts. Link this one to its person instead.
+                        This account has no TYPO3 username, so it takes no accounts. Link it to its person instead.
                     </p>
                 {% endif %}
             </section>

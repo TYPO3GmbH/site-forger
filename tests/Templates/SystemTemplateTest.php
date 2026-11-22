@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace App\Tests\Templates;
 
 use App\Enum\SystemCheckEnum;
-use App\People\User;
 use App\People\UserStatistics;
 use App\Setup\SetupSetting;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -39,9 +38,8 @@ final class SystemTemplateTest extends KernelTestCase
         self::assertStringContainsString('<code class="system-list-name">FORGE_ACCESS_TOKEN</code>', $html);
     }
 
-    public function testThePeopleWithoutAnEmailAreListedInTheCardOfTheUsers(): void
+    public function testTheCardOfTheUsersLeadsToTheAccountsWithoutAUsername(): void
     {
-        $now = new \DateTimeImmutable('2026-11-20 18:34:00', new \DateTimeZone('UTC'));
         $html = $this->render([], [
             'users' => [
                 'result' => SystemCheckEnum::ATTENTION,
@@ -50,20 +48,11 @@ final class SystemTemplateTest extends KernelTestCase
                 'emails' => 'An email address for 3,432 of 5,632 people · 771 with no email on Forge',
                 'hint' => null,
             ],
-            'unmappedUsers' => [
-                new User(45758, 'Andreas Lindner', fetchedOn: $now, gone: true, goneStatus: 403),
-                new User(45755, 'Adrian Widmer', 'awidmer', fetchedOn: $now),
-                new User(41, 'Old Group', fetchedOn: $now, gone: true),
-            ],
+            'withoutUsernameCount' => 825,
         ]);
 
-        self::assertStringContainsString('3 people without an email address', $html);
-        self::assertStringContainsString('<a href="https://forge.typo3.org/users/45758"', $html);
-        self::assertStringContainsString('Refused (403)', $html);
-        self::assertStringContainsString('Login: awidmer', $html);
-        self::assertStringContainsString('No answer stored', $html);
-        // By why, with how many each
-        self::assertMatchesRegularExpression('/Unknown to Forge <span>2<\/span>.*No email on Forge <span>1<\/span>/s', $html);
+        self::assertMatchesRegularExpression('/825\s+accounts of Forge and Gerrit\s+without a username/', $html);
+        self::assertStringContainsString('href="/management/people?view=no-username"', $html);
     }
 
     public function testEachSectionHasATileThatLeadsToIt(): void
@@ -160,7 +149,7 @@ final class SystemTemplateTest extends KernelTestCase
                 'indices' => [],
                 'users' => null,
                 'userStatistics' => null,
-                'unmappedUsers' => [],
+                'withoutUsernameCount' => 0,
             ],
             'application' => ['php' => PHP_VERSION, 'symfony' => '7.4', 'environment' => 'test', 'debug' => false],
             'checks' => [

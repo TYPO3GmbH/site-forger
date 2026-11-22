@@ -16,6 +16,7 @@ use App\Elastic\Indices;
 use App\Http\ApiClient;
 use App\Http\ApiFailure;
 use App\People\User;
+use App\Repository\PersonLinkRepository;
 use App\Repository\UserRepository;
 
 /**
@@ -71,6 +72,7 @@ final readonly class ForgeUserSync
         private UserRepository $users,
         private CommandRunRecorder $recorder,
         private GerritAccountLookup $gerritLookup,
+        private PersonLinkRepository $links,
     ) {
     }
 
@@ -95,7 +97,7 @@ final readonly class ForgeUserSync
      */
     public function fetchDue(int $limit, \DateTimeImmutable $now): array
     {
-        $due = self::due($this->users->all(), $now, $limit);
+        $due = self::due($this->users->all(), $now, $limit, $this->links->persons());
 
         return $this->updateUsers($due, $now, fn (int $done) => $this->recorder->progress(self::STEP, $done, count($due)));
     }
@@ -103,16 +105,17 @@ final readonly class ForgeUserSync
     /**
      * Loads the users from Forge and writes them. A user that Forge does not know any more is marked as gone.
      *
-     * @param list<int> $forgeIds
+     * @param list<int>                  $forgeIds
+     * @param (\Closure(int): void)|null $afterUser gets the number of users done
      *
      * @return array{updated: int, gone: int, stopped: string|null} why it stopped early, if it did
      */
-    public function update(array $forgeIds, \DateTimeImmutable $now): array
+    public function update(array $forgeIds, \DateTimeImmutable $now, ?\Closure $afterUser = null): array
     {
         $known = $this->users->all();
         $users = array_map(static fn (int $forgeId): User => $known[$forgeId] ?? new User($forgeId, ''), $forgeIds);
 
-        return $this->updateUsers($users, $now);
+        return $this->updateUsers($users, $now, $afterUser);
     }
 
     /**
@@ -268,18 +271,21 @@ final readonly class ForgeUserSync
     /**
      * The users to ask Forge for next: never asked for, those without an email first, then those asked for longest
      * ago, after REFRESH_AFTER_DAYS. The users marked as gone before the status was stored come first: they show
-     * whether Forge refused them for the token only, see User::wasAsked().
+     * whether Forge refused them for the token only, see User::wasAsked(). An account an admin linked to a person
+     * is not asked for: the link maps it already.
      *
-     * @param array<int, User> $users
+     * @param array<int, User>      $users
+     * @param array<string, string> $linked the person of each account linked, by the key of the account
      *
      * @return list<User>
      */
-    public static function due(array $users, \DateTimeImmutable $now, int $limit): array
+    public static function due(array $users, \DateTimeImmutable $now, int $limit, array $linked = []): array
     {
         $refreshBefore = $now->modify(sprintf('-%d days', self::REFRESH_AFTER_DAYS));
         $due = array_filter(
             $users,
-            static fn (User $user): bool => !$user->wasAsked() || $user->fetchedOn < $refreshBefore,
+            static fn (User $user): bool => !isset($linked[$user->id()])
+                && (!$user->wasAsked() || $user->fetchedOn < $refreshBefore),
         );
         usort($due, static fn (User $a, User $b): int => self::dueOrder($a) <=> self::dueOrder($b));
 

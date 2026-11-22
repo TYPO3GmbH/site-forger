@@ -16,6 +16,7 @@ use App\Elastic\Indices;
 use App\Import\ForgeUserSync;
 use App\Import\GerritAccountLookup;
 use App\People\User;
+use App\Repository\PersonLinkRepository;
 use App\Repository\UserRepository;
 use App\Tests\Http\MockApi;
 use Doctrine\DBAL\Connection;
@@ -79,6 +80,16 @@ final class ForgeUserSyncTest extends TestCase
         self::assertSame([6, 4, 3, 5, 2], array_map(static fn (User $user): ?int => $user->forgeId, $due));
         self::assertCount(2, ForgeUserSync::due($users, $now, 2));
         self::assertSame([], ForgeUserSync::due($users, $now, 0));
+    }
+
+    public function testALinkedAccountIsNotAskedFor(): void
+    {
+        $now = new \DateTimeImmutable('2026-11-20 18:00:00');
+        $users = [4 => new User(4, 'Linked'), 6 => new User(6, 'Not linked')];
+
+        $due = ForgeUserSync::due($users, $now, 10, ['forge:4' => 'benni']);
+
+        self::assertSame([6], array_map(static fn (User $user): ?int => $user->forgeId, $due));
     }
 
     public function testUsersMarkedAsGoneBeforeTheStatusWasStoredAreAskedForFirst(): void
@@ -215,6 +226,7 @@ final class ForgeUserSyncTest extends TestCase
             $users,
             $recorder,
             new GerritAccountLookup((new MockApi($gerrit, $recorder, 'Gerrit'))->client, $users, $recorder),
+            $this->createStub(PersonLinkRepository::class),
         );
     }
 }

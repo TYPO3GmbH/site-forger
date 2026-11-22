@@ -104,6 +104,7 @@ final readonly class JobSchedule implements ScheduleProviderInterface
                 GerritAccountRepair::STEP,
                 ImportUsersCommand::STEP_TAKE_OVER,
                 GerritNames::STEP,
+                ImportUsersCommand::STEP_REQUESTED,
                 ForgeUserSync::STEP,
                 GerritAccountLookup::STEP,
                 PersonLinkCleanup::STEP,
