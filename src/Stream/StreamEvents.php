@@ -91,8 +91,33 @@ final class StreamEvents
                 $events[] = $event;
             }
         }
+        $kinds = array_map(static fn (StreamEvent $event): StreamKindEnum => $event->kind, $events);
+        if (!in_array(StreamKindEnum::CREATED, $kinds, true) && null !== $change->createdOn) {
+            array_unshift($events, self::creationOf($change, $change->createdOn));
+        }
 
         return $events;
+    }
+
+    /**
+     * The creation of a change whose log has no first patch set. Gerrit writes none for a change pushed by hand,
+     * like those of a security release. Without it the change would close without ever opening.
+     */
+    private static function creationOf(Change $change, string $date): StreamEvent
+    {
+        return new StreamEvent(
+            id: 'gerrit-' . $change->id . '-created',
+            source: StreamSourceEnum::GERRIT,
+            kind: StreamKindEnum::CREATED,
+            number: $change->id,
+            title: $change->subject,
+            date: $date,
+            author: self::owner($change),
+            patchSet: 1,
+            branch: $change->branch,
+            openDelta: 1,
+            owner: self::owner($change),
+        );
     }
 
     private static function ofJournal(Issue $issue, IssueJournal $journal, int $position): ?StreamEvent
