@@ -19,6 +19,12 @@ final readonly class Pagination
     public const int PER_PAGE = 25;
 
     /**
+     * Elasticsearch returns no result beyond this one, see its setting "index.max_result_window". The total counts
+     * further, the pages end here.
+     */
+    public const int MAX_RESULTS = 10000;
+
+    /**
      * The links show this many pages before and after the current one, so the pagination fits a phone.
      */
     private const int AROUND = 2;
@@ -27,7 +33,7 @@ final readonly class Pagination
 
     public function __construct(int $page, public int $total = 0, public int $perPage = self::PER_PAGE)
     {
-        $this->page = max(1, $page);
+        $this->page = max(1, min($page, self::reachablePages($perPage)));
     }
 
     public function withTotal(int $total): self
@@ -45,7 +51,12 @@ final readonly class Pagination
 
     public function lastPage(): int
     {
-        return (int) ceil($this->total / $this->perPage);
+        return min((int) ceil($this->total / $this->perPage), self::reachablePages($this->perPage));
+    }
+
+    private static function reachablePages(int $perPage): int
+    {
+        return intdiv(self::MAX_RESULTS, max(1, $perPage));
     }
 
     /**

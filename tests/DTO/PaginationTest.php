@@ -49,6 +49,16 @@ final class PaginationTest extends TestCase
         self::assertSame([26, 30, 0, 1], [$viewData['startingAtItem'], $viewData['endingAtItem'], $viewData['next'], $viewData['prev']]);
     }
 
+    public function testThePagesEndWhereElasticsearchStopsReturningResults(): void
+    {
+        $page = new Pagination(9999, 61211);
+
+        self::assertSame(400, $page->page);
+        self::assertSame(400, $page->lastPage());
+        self::assertSame(61211, $page->viewData()['totalResults']);
+        self::assertSame(Pagination::MAX_RESULTS - Pagination::PER_PAGE, $page->from());
+    }
+
     public function testAPageBelowTheFirstIsTheFirst(): void
     {
         self::assertSame(0, new Pagination(-3, 100)->from());

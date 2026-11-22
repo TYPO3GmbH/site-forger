@@ -120,15 +120,21 @@ final class StreamEvents
         foreach ($change->messages as $position => $message) {
             $firstReview = !$reviewed && self::isReview($change, $message);
             $reviewed = $reviewed || $firstReview;
+            $wasOpen = $open;
             $wasInProgress = $open && $wip;
-            $open = match (self::messageOpenDelta($message)) {
-                1 => true,
-                -1 => false,
-                default => $open,
-            };
-            $wip = $message->workInProgress ?? $wip;
+            // Only a message with a date makes an event, so only such a message changes the state. A second close
+            // without an open between them, like an old abandon and a later merge, closes nothing.
+            if (null !== $message->date && '' !== $message->date) {
+                $open = match (self::messageOpenDelta($message)) {
+                    1 => true,
+                    -1 => false,
+                    default => $open,
+                };
+                $wip = $message->workInProgress ?? $wip;
+            }
+            $openDelta = (int) $open - (int) $wasOpen;
             $wipDelta = (int) ($open && $wip) - (int) $wasInProgress;
-            $event = self::ofMessage($change, $message, $position, $firstReview, $wipDelta);
+            $event = self::ofMessage($change, $message, $position, $firstReview, $openDelta, $wipDelta);
             if (null !== $event) {
                 $events[] = $event;
             }
@@ -309,6 +315,7 @@ final class StreamEvents
         ReviewMessage $message,
         int $position,
         bool $firstReview,
+        int $openDelta,
         int $wipDelta,
     ): ?StreamEvent {
         if (null === $message->date || '' === $message->date) {
@@ -328,9 +335,9 @@ final class StreamEvents
             summary: $summary,
             patchSet: $message->patchSet,
             branch: $change->branch,
-            openDelta: self::messageOpenDelta($message),
+            openDelta: $openDelta,
             // The first review ends a wait, so does the merge or the abandon, see StreamDurationEnum
-            duration: $firstReview || -1 === self::messageOpenDelta($message)
+            duration: $firstReview || -1 === $openDelta
                 ? self::seconds($change->createdOn, $message->date)
                 : null,
             firstReview: $firstReview,

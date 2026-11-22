@@ -50,6 +50,8 @@ final readonly class ReviewListSearch
             'sort' => ReviewSortQuery::sort($sort),
             'size' => $page->perPage,
             'from' => $page->from(),
+            // Count every change found, not only the first 10 000
+            'track_total_hits' => true,
         ];
         if (null !== $listQuery) {
             $request['query'] = $listQuery;
