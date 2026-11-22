@@ -95,22 +95,23 @@ final class StreamQuery
     }
 
     /**
-     * The events of the person: by the numbers on Forge or Gerrit, else by the words of the name.
+     * The events of the person: by the numbers on Forge or Gerrit, else by the words of the name. The field is the
+     * person of the event, "author" or "owner", see ReviewExchangeQuery.
      *
      * @return array<string, mixed>
      */
-    private static function person(StreamFilter $filter): array
+    public static function person(StreamFilter $filter, string $field = 'author'): array
     {
         $should = [];
         if ([] !== $filter->forgeIds) {
-            $should[] = ['terms' => ['author.forge_id' => $filter->forgeIds]];
+            $should[] = ['terms' => [$field . '.forge_id' => $filter->forgeIds]];
         }
         if ([] !== $filter->gerritIds) {
-            $should[] = ['terms' => ['author.gerrit_id' => $filter->gerritIds]];
+            $should[] = ['terms' => [$field . '.gerrit_id' => $filter->gerritIds]];
         }
         if ([] !== $filter->nameWords) {
             $should[] = ['bool' => ['must' => array_map(
-                static fn (string $word): array => ['wildcard' => ['author.name' => [
+                static fn (string $word): array => ['wildcard' => [$field . '.name' => [
                     'value' => '*' . addcslashes($word, '\\*?') . '*',
                     'case_insensitive' => true,
                 ]]],

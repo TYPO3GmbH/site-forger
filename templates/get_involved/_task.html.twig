@@ -1,13 +1,11 @@
 {#
  # A task of the page "Get involved" as a card: an icon, the title, what to do, what it takes, the first items as
- # short links and a button to all of them.
+ # rows of the size "xs", see _partials/row/, and a button to all of them.
  # Expects: id, icon, title, text, chips (time and skill), url (the list or search with the same filter), items (a
  #          SearchResult), kind ("issue" or "change"), empty (the text without items)
- # Each item has its title in the first line and its state in the second: of a change the branch, the type, the
- # votes, the size and the last update, of an issue the tracker, the status, its marks, the category and the version.
- # Optional: guide, a page of the Contribution Guide on the task: url and label
+ # Optional: known, what all items have in common, left out of their rows, see _partials/row/;
+ #           guide, a page of the Contribution Guide on the task: url and label
  #}
-{% import '_macros/status.html.twig' as status %}
 {% set shown = 3 %}
 <section class="info-card task-card" aria-labelledby="{{ id }}">
     <span class="info-card-tile" aria-hidden="true">{{ icon(icon) }}</span>
@@ -29,9 +27,9 @@
             {% for item in items|slice(0, shown) %}
                 <li>
                     {% if kind == 'change' %}
-                        {{ _self.change(item) }}
+                        {% include '_partials/row/change.html.twig' with {'change': item, 'size': 'xs', 'known': known ?? []} only %}
                     {% else %}
-                        {{ _self.issue(item) }}
+                        {% include '_partials/row/issue.html.twig' with {'issue': item, 'size': 'xs', 'known': known ?? []} only %}
                     {% endif %}
                 </li>
             {% endfor %}
@@ -41,50 +39,3 @@
         {{- items.total > 0 ? 'Show all ' ~ items.total : 'Show the list' }} {{ icon('actions-arrow-right') -}}
     </a>
 </section>
-
-{% macro change(change) %}
-    {% import '_macros/status.html.twig' as status %}
-    {% set type = change.type %}
-    {% set branch = change.branch ?? 'main' %}
-    <a href="{{ change_path(change.id) }}" title="{{ change.subject }}">
-        <span class="task-card-line">
-            <span class="task-card-number">{{ change.id }}</span>
-            <span class="task-card-subject">{{ change.title }}</span>
-        </span>
-        <span class="task-card-meta">
-            <span class="tag-label{{ branch != 'main' ? ' is-backport' }}" title="Branch">{{ branch }}</span>
-            {% if type is not null %}
-                <span class="tag-label tag-label-{{ type.severity }}">{{ type.value }}</span>
-            {% endif %}
-            {{ status.votes(change) }}
-            {{ status.size(change) }}
-            {% if change.updatedOn is not null %}
-                <time datetime="{{ to_datetime(change.updatedOn)|date('c') }}" title="Updated {{ change.updatedOn }}">
-                    {{- relativetime(to_datetime(change.updatedOn)) -}}
-                </time>
-            {% endif %}
-        </span>
-    </a>
-{% endmacro %}
-
-{% macro issue(issue) %}
-    {% import '_macros/status.html.twig' as status %}
-    {% set tracker = issue_tracker(issue.tracker.name ?? null) %}
-    <a href="{{ issue_path(issue.id) }}" title="{{ issue.subject }}">
-        <span class="task-card-line">
-            <span class="task-card-number">#{{ issue.id }}</span>
-            <span class="task-card-subject">{{ issue.subject }}</span>
-        </span>
-        <span class="task-card-meta">
-            <span class="tag-label tag-label-{{ tracker.severity ?? 'default' }}">
-                {{- tracker.label ?? issue.tracker.name ?? 'Issue' -}}
-            </span>
-            {{ status.issue(issue.status.name ?? null) }}
-            {{ status.issueMarks(issue) }}
-            {% if issue.category.name is defined %}<span title="Category">{{ issue.category.name }}</span>{% endif %}
-            {% if (issue.typo3Version ?? '-') != '-' %}
-                <span title="TYPO3 version">v{{ issue.typo3Version }}</span>
-            {% endif %}
-        </span>
-    </a>
-{% endmacro %}

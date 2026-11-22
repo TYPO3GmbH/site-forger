@@ -18,6 +18,8 @@ export interface ActivityPerson {
     gerritId: number | null;
     key: string;
     avatar: string;
+    /** The username of the TYPO3 account, null when not known */
+    username: string | null;
 }
 
 export interface ActivityEvent {
@@ -191,4 +193,38 @@ export interface ActivityStatistics {
     kinds: ActivityCount[];
     buckets: string[];
     series: ActivitySeries[];
+}
+
+export interface ActivityPartner {
+    person: ActivityPerson;
+    /** The changes reviewed between them */
+    changes: number;
+    /** The votes and comments on these changes */
+    reviews: number;
+}
+
+export interface ActivityOwnWait {
+    key: string;
+    label: string;
+    description: string;
+    count: number;
+    median: number | null;
+    allMedian: number | null;
+}
+
+/**
+ * The reviews between a person and the others, see App\Api\Model\ActivityExchange.
+ */
+export interface ActivityExchange {
+    window: ActivityWindow;
+    buckets: string[];
+    /** The changes of others the person reviewed */
+    given: ActivityTrend;
+    /** The changes of the person others reviewed */
+    received: ActivityTrend;
+    givenReviews: number;
+    receivedReviews: number;
+    reviewed: ActivityPartner[];
+    reviewers: ActivityPartner[];
+    waits: ActivityOwnWait[];
 }

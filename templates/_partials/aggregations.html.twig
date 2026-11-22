@@ -17,7 +17,8 @@
  #          textFilters (optional): filters of a value typed in, after the others: filter key => title, value (the
  #          parameters of the filter), placeholder. The paths of the filter, separated by commas, are sent as
  #          filters[<key>][path]. <forger-path-filter> shows each as a chip and adds those typed in, see
- #          assets/ts/filter/path-filter.ts;
+ #          assets/ts/filter/path-filter.ts. With "match", the filter asks whether a change touches all paths or any
+ #          of them, sent as filters[<key>][match] = "any";
  #          dateFilters (optional): the filters of dates, last in the list: filter key => title, and value (the
  #          parameters of the filter). Each is the calendar of <forger-days-filter>, which sends the first day as
  #          filters[<key>][from] and the last as filters[<key>][to], see assets/ts/filter/days-filter.ts and
@@ -70,6 +71,22 @@
                     <forger-path-filter name="filters[{{ key }}][path]" paths="{{ paths|join(', ') }}" input-id="{{ panelId }}-value" placeholder="{{ textFilter.placeholder ?? '' }}">
                         <template>{{ icon('actions-close') }}</template>
                     </forger-path-filter>
+                    {% if textFilter.match ?? false %}
+                        {% set any = ((textFilter.value ?? {}).match ?? '') == 'any' %}
+                        <fieldset class="aggregation-match">
+                            <legend class="aggregation-match-legend">Changes touch</legend>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" id="{{ panelId }}-all"
+                                       name="filters[{{ key }}][match]" value=""{{ any ? '' : ' checked' }}>
+                                <label class="form-check-label" for="{{ panelId }}-all">all paths</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" id="{{ panelId }}-any"
+                                       name="filters[{{ key }}][match]" value="any"{{ any ? ' checked' }}>
+                                <label class="form-check-label" for="{{ panelId }}-any">any path</label>
+                            </div>
+                        </fieldset>
+                    {% endif %}
                     <div class="aggregation-range-actions">
                         <button type="submit" class="btn btn-sm btn-default">Apply</button>
                         {% if active %}

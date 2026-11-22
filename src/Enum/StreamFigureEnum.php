@@ -43,6 +43,24 @@ enum StreamFigureEnum: string
         };
     }
 
+    /**
+     * The label below the heading of its channel, where room is short, like the columns of the leaderboard.
+     */
+    public function shortLabel(): string
+    {
+        return match ($this) {
+            self::ISSUES_CREATED => 'Created',
+            self::ISSUES_RESOLVED => 'Resolved',
+            self::ISSUES_CLOSED => 'Closed',
+            self::ISSUE_COMMENTS => 'Comments',
+            self::NEW_CHANGES => 'New',
+            self::PATCH_SETS => 'Patch sets',
+            self::REVIEWS => 'Reviews',
+            self::CHANGES_MERGED => 'Merged',
+            self::CHANGES_ABANDONED => 'Abandoned',
+        };
+    }
+
     public function description(): string
     {
         return match ($this) {

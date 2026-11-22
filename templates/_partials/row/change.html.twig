@@ -1,16 +1,23 @@
 {#
- # A Gerrit change in one row of a list: the branch, the subject, below it the state unless ready, owner, votes,
- # releases, topic and size, the last update. A merge conflict shows in every row.
+ # A Gerrit change in one row of a list, in one of four sizes. Each size has its template in
+ # _partials/row/change/:
+ #   xs two lines that never wrap, for narrow cards like the tasks of "Get involved": the subject, below it the
+ #      owner, the lines and how it stands;
+ #   s  two lines, for the cards of the dashboard: the subject, below it the owner, the targets and how it
+ #      stands;
+ #   m  three lines, for the lists of a detail page: the subject, the owner with targets and size, how it stands;
+ #   l  for the review lists, the content of their pages: the whole subject, more facts, a column on the right.
+ # In each line, what every row has comes first and in the same order. What only some rows have follows it, so it
+ # never moves the rest.
+ # A list that is about one fact names it in "known", so its rows do not repeat it: "owner" or "votes".
  # Expects: change, an App\Document\Change
- # Optional: relation, how it belongs to the page, like "Resolves this issue";
- #           detailed, for the review lists: the whole subject, below it in one line the state unless ready, the owner with a small
- #           avatar, the branch and the releases together as the targets, topic, files and patch sets; on the right the size first, beside the subject, as it tells
- #           how long the review takes, below it the update and the votes, the votes on the edge, so they stand the same in every row. Two lines on either
- #           side, so the rows are balanced.
+ # Optional: size, "xs", "s", "m" or "l", "m" without;
+ #           known, what every row of the list has in common, left out of the rows;
+ #           relation, for "m": how it belongs to the page, like "Resolves this issue".
  #}
 {% import '_macros/status.html.twig' as status %}
 {% import '_macros/user.html.twig' as user %}
-{% set detailed = detailed ?? false %}
+{% set size = size ?? 'm' %}
 {% set releases = (change.releases ?? [])|filter(release => release != (change.branch ?? '') and release != 'omitted') %}
 {% set conflict = change.conflict %}
 {% set lines %}
@@ -18,47 +25,28 @@
         <span class="overview-list-size" title="Lines added and removed"><span class="is-added">+{{ change.insertions }}</span> <span class="is-removed">&minus;{{ change.deletions }}</span></span>
     {% endif %}
 {% endset %}
+{% set pills %}
+    {% if conflict %}<span class="status-pill status-pill-conflict" title="Gerrit cannot merge it, it needs a rebase">Merge conflict</span>{% endif %}
+    {{ status.unresolved(change) }}
+{% endset %}
 {# The avatar beside the name, so it is clear whom it shows #}
-{% set owner %}{{ user.inline(change.ownerPerson, role: 'Owner') }}{% endset %}
-{% set branch %}<span class="tag-label{{ (change.branch ?? 'main') != 'main' ? ' is-backport' }}" title="Branch">{{ change.branch ?? 'main' }}</span>{% endset %}
-<a class="overview-list-item kind-change{{ detailed ? ' overview-list-item-detailed' }}" href="{{ change_path(change.id) }}" title="{{ change.subject }}">
-    {% if not detailed %}
-        {{ branch }}
-    {% endif %}
-    <span class="overview-list-item-main">
-        <span class="overview-list-item-title"><span class="overview-list-item-id" title="Review">{{ icon('actions-code-pull-request') }}{{ change.id }}</span>{{ change.subject }}</span>
-        {% if detailed %}
-            <span class="overview-list-item-meta">
-                {# Only when it is not ready for review, see ReviewStateEnum::isNoteworthy() #}
-                {% if change.state.isNoteworthy %}{{ status.review(change) }}{% endif %}
-                {% if conflict %}<span class="status-pill status-pill-conflict" title="Gerrit cannot merge it, it needs a rebase">Merge conflict</span>{% endif %}
-                {{ status.activity(change) }}
-                {{ owner }}
-                <span title="Branch{{ releases is not empty ? ' and target releases' }}">→ {{ ([change.branch ?? 'main']|merge(releases))|join(', ') }}</span>
-                {% if change.hasTopic %}<span title="Topic">{{ change.topic }}</span>{% endif %}
-                {% if change.affectedFiles is not null %}<span>{{ change.affectedFiles }} {{ change.affectedFiles == 1 ? 'file' : 'files' }}</span>{% endif %}
-                {% if change.patchsets is not null %}<span>{{ change.patchsets }} patch {{ change.patchsets == 1 ? 'set' : 'sets' }}</span>{% endif %}
-            </span>
-        {% else %}
-            <span class="overview-list-item-meta">
-                {% if relation is defined %}<span class="overview-list-relation">{{ relation }}</span>{% endif %}
-                {% if change.state.isNoteworthy %}{{ status.review(change) }}{% endif %}
-                {% if conflict %}<span class="status-pill status-pill-conflict" title="Gerrit cannot merge it, it needs a rebase">Merge conflict</span>{% endif %}
-                {{ owner }}
-                {{ status.votes(change) }}
-                {% if releases is not empty %}<span title="Target releases">→ {{ releases|join(', ') }}</span>{% endif %}
-                {% if change.hasTopic %}<span title="Topic">{{ change.topic }}</span>{% endif %}
-                {{ status.size(change) }}
-                {{ lines }}
-            </span>
-        {% endif %}
-    </span>
-    {% if detailed %}
-        <span class="overview-list-column">
-            <span class="overview-list-column-line overview-list-column-size">{{ lines }}{{ status.size(change) }}</span>
-            <span class="overview-list-column-line overview-list-column-votes"><time class="overview-list-item-date" datetime="{{ to_datetime(change.updatedOn)|date('c') }}" title="Updated {{ change.updatedOn }}{{ change.createdOn is not null ? ', created ' ~ change.createdOn }}">{{ relativetime(to_datetime(change.updatedOn)) }}</time>{{ status.votes(change) }}</span>
-        </span>
-    {% else %}
-        <time class="overview-list-item-date" datetime="{{ to_datetime(change.updatedOn)|date('c') }}" title="Updated {{ change.updatedOn }}{{ change.createdOn is not null ? ', created ' ~ change.createdOn }}">{{ relativetime(to_datetime(change.updatedOn)) }}</time>
-    {% endif %}
-</a>
+{% set known = known ?? [] %}
+{% set owner %}{% if 'owner' not in known %}{{ user.inline(change.ownerPerson, role: 'Owner') }}{% endif %}{% endset %}
+{# The branch and the releases together as the targets. A branch other than main stands out: it is a backport #}
+{% set targets -%}
+    <span title="Branch{{ releases is not empty ? ' and target releases' }}">→ {% if (change.branch ?? 'main') != 'main' -%}
+        <span class="tag-label is-backport">{{ change.branch }}</span>
+    {%- else -%}
+        main
+    {%- endif -%}
+    {{- releases is not empty ? ', ' ~ releases|join(', ') }}</span>
+{%- endset %}
+{% set date %}<time class="overview-list-item-date" datetime="{{ to_datetime(change.updatedOn)|date('c') }}" title="Updated {{ change.updatedOn }}{{ change.createdOn is not null ? ', created ' ~ change.createdOn }}">{{ relativetime(to_datetime(change.updatedOn)) }}</time>{% endset %}
+{% set title %}<span class="overview-list-item-title"><span class="overview-list-item-id" title="Review">{{ icon('actions-code-pull-request') }}{{ change.id }}</span>{{ change.subject }}</span>{% endset %}
+{# How it stands: the votes every row has, then the state unless ready, a merge conflict, the unresolved comments #}
+{% set standing %}
+    {% if 'votes' not in known %}{{ status.votes(change) }}{% endif %}
+    {% if change.state.isNoteworthy %}{{ status.review(change) }}{% endif %}
+    {{ pills }}
+{% endset %}
+{% include '_partials/row/change/' ~ size ~ '.html.twig' %}

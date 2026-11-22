@@ -22,6 +22,8 @@ use Twig\Environment;
  */
 final class CardsWithoutNewFieldsTest extends KernelTestCase
 {
+    use KnowsNoPeople;
+
     /**
      * A change as the import stored it before "ownerEmail" and the tag "!!!".
      */
@@ -76,6 +78,7 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         self::assertTrue($this->twig->isStrictVariables());
         // The avatars of the issues come from the index "user", here from its cache
         $this->avatars([]);
+        self::knowNoPeople();
     }
 
     protected function tearDown(): void
@@ -89,7 +92,7 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         $change = self::OLD_CHANGE;
 
         $card = $this->twig->render('_partials/review_card.html.twig', ['card' => Change::fromDocument($change)]);
-        $full = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'detailed' => true]);
+        $full = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'size' => 'l']);
 
         foreach ([$card, $full] as $html) {
             self::assertStringContainsString('Benni Mack', $html);
@@ -102,21 +105,21 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
 
     public function testOnlyChangesLyingStillShowTheirActivity(): void
     {
-        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::OLD_CHANGE), 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::OLD_CHANGE), 'size' => 'l']);
         self::assertStringContainsString('status-pill-activity-', $row);
 
         $change = ['updated_on' => date('Y/m/d H:i:s'), 'created_on' => date('Y/m/d H:i:s')] + self::OLD_CHANGE;
-        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'size' => 'l']);
         self::assertStringNotContainsString('status-pill-activity-', $row);
     }
 
     public function testRowsNameTheStateOnlyWhenNotReady(): void
     {
-        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::OLD_CHANGE), 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::OLD_CHANGE), 'size' => 'l']);
         self::assertStringNotContainsString('status-pill-ready', $row);
 
         foreach (['wip' => ['work_in_progress' => true], 'merged' => ['reviewstatus' => 'MERGED']] as $state => $fields) {
-            $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($fields + self::OLD_CHANGE), 'detailed' => true]);
+            $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($fields + self::OLD_CHANGE), 'size' => 'l']);
             self::assertStringContainsString('status-pill-' . $state . '"', $row);
         }
     }
@@ -124,13 +127,13 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     public function testRowShowsBranchAndReleasesTogether(): void
     {
         $change = self::OLD_CHANGE;
-        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'size' => 'l']);
         // The branch is in the releases of old documents, it shows once
         self::assertStringContainsString('<span title="Branch">→ main</span>', $row);
         self::assertStringNotContainsString('class="tag-label" title="Branch"', $row);
 
         $change['releases'] = ['main', '14.3'];
-        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'detailed' => true]);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'size' => 'l']);
         self::assertStringContainsString('<span title="Branch and target releases">→ main, 14.3</span>', $row);
     }
 
@@ -163,7 +166,7 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     public function testIssueWithoutNewFields(array $issue): void
     {
         $card = $this->twig->render('_partials/issue_card.html.twig', ['card' => Issue::fromDocument($issue)]);
-        $listed = $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument($issue), 'detailed' => true]);
+        $listed = $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument($issue), 'size' => 'l']);
 
         foreach ([$card, $listed] as $html) {
             self::assertStringContainsString('Benni Mack', $html);
@@ -176,7 +179,7 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         $this->avatars(['forge:2' => md5('benjamin@example.org')]);
 
         $card = $this->twig->render('_partials/issue_card.html.twig', ['card' => Issue::fromDocument(self::OLD_ISSUE)]);
-        $listed = $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument(self::OLD_ISSUE), 'detailed' => true]);
+        $listed = $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument(self::OLD_ISSUE), 'size' => 'l']);
 
         // The assignee has one, the author none: the placeholder
         self::assertSame(2, substr_count($card, 'class="avatar"'));

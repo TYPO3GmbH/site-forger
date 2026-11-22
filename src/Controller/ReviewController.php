@@ -14,6 +14,7 @@ namespace App\Controller;
 use App\DTO\Pagination;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewSortEnum;
+use App\People\OwnAccounts;
 use App\People\UserDirectory;
 use App\Report\StaleIssues;
 use App\Search\GlobalSearch;
@@ -27,6 +28,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use T3G\Bundle\Keycloak\Security\KeyCloakUser;
 
 class ReviewController extends AbstractController
 {
@@ -36,6 +38,7 @@ class ReviewController extends AbstractController
         private readonly GlobalSearch $globalSearch,
         private readonly RequestStack $requestStack,
         private readonly UserDirectory $users,
+        private readonly OwnAccounts $ownAccounts,
     ) {
     }
 
@@ -265,7 +268,14 @@ class ReviewController extends AbstractController
         );
         $page = $this->page();
         $filters = $this->query()->all('filters');
-        $changes = $this->reviewListSearch->search($listQuery, $sort, $aggregations, $filters, $page);
+        $changes = $this->reviewListSearch->search(
+            $listQuery,
+            $sort,
+            $aggregations,
+            $filters,
+            $page,
+            $this->gerritIds(),
+        );
         $viewData = $changes->page->viewData() + [
             'changes' => $changes->results,
             'aggregations' => $changes->facets,
@@ -289,6 +299,20 @@ class ReviewController extends AbstractController
         }
 
         return $viewData;
+    }
+
+    /**
+     * The accounts on Gerrit of the user logged in, for "Your vote" of the filter "Waiting for".
+     *
+     * @return list<int>
+     */
+    private function gerritIds(): array
+    {
+        $user = $this->getUser();
+
+        return $user instanceof KeyCloakUser
+            ? $this->ownAccounts->gerritIds($user->getUserIdentifier(), (string) $user->getEmail())
+            : [];
     }
 
     private function page(): Pagination

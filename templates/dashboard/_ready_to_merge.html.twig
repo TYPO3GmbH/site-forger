@@ -14,7 +14,7 @@
         <ul class="overview-list-items">
             {% for change in changes %}
                 <li>
-                    {% include '_partials/row/change.html.twig' with {'change': change} only %}
+                    {% include '_partials/row/change.html.twig' with {'change': change, 'size': 's'} only %}
                 </li>
             {% endfor %}
         </ul>

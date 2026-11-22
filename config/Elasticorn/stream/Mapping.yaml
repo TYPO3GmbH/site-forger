@@ -50,3 +50,13 @@ duration:
 # The first vote or comment on a change by somebody else than its owner, not by a tool
 first_review:
   type: boolean
+# The owner of the change, for the events of Gerrit: whose work a review is about, see
+# App\Search\ReviewExchangeQuery. Without the email.
+owner:
+  properties:
+    name:
+      type: keyword
+    username:
+      type: keyword
+    gerrit_id:
+      type: integer

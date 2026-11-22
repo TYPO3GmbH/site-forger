@@ -17,7 +17,12 @@
                 {% include '_partials/aggregations.html.twig' with {
                     'facetScope': 'changes',
                     'aggregations': aggregations,
-                    'textFilters': {'file': {'title': 'File', 'value': filters.file ?? {}, 'placeholder': 'Add a path, a folder or *.rst'}},
+                    'textFilters': {'file': {
+                        'title': 'File',
+                        'value': filters.file ?? {},
+                        'placeholder': 'Add a path, a folder or *.rst',
+                        'match': true,
+                    }},
                     'dateFilters': {'updated': {'title': 'Updated', 'value': filters.updated ?? {}}},
                     'query': query,
                     'personSearch': {
@@ -73,7 +78,7 @@
             {% else %}
                 <ul class="row-list row-list-panel">
                     {% for change in changes %}
-                        <li>{% include '_partials/row/change.html.twig' with {'change': change, 'detailed': true} only %}</li>
+                        <li>{% include '_partials/row/change.html.twig' with {'change': change, 'size': 'l'} only %}</li>
                     {% endfor %}
                 </ul>
                 {# The pages only below the list, the count stands above it #}

@@ -1,0 +1,23 @@
+{#
+ # The statistics of the user: the board of the statistics for the accounts of the user alone, see
+ # templates/stream/_frame.html.twig. It leaves out what counts all people, like the open work and the waits.
+ # Expects: ownPeople (the keys of the accounts of the user), and what my/_layout.html.twig expects
+ #}
+{% extends 'my/_layout.html.twig' %}
+{% block title %}My Statistics{% endblock %}
+
+{% block view %}
+    {% if ownPeople is empty %}
+        <p class="stream-empty">
+            No account on Forge or Gerrit is known for you yet, so there is nothing to count.
+        </p>
+    {% else %}
+        <div class="overview mywork-statistics">
+            {% include 'stream/_frame.html.twig' with {
+                'view': 'statistics',
+                'ownPeople': ownPeople,
+                'statisticsUrl': path('my_statistics'),
+            } only %}
+        </div>
+    {% endif %}
+{% endblock %}

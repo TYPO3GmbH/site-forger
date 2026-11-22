@@ -1,0 +1,58 @@
+{#
+ # The interests of the user: the changes to review and the new issues of the areas the user cares for. The chips
+ # pick all interests, one of them, or everything. InterestController adds and changes the interests.
+ # Expects: interests (list of App\Entity\Interest), selection (App\People\InterestSelection), maxInterests, what
+ #          my/_interest_lists.html.twig expects, and what my/_layout.html.twig expects
+ #}
+{% extends 'my/_layout.html.twig' %}
+{% block title %}My interests{% endblock %}
+
+{% block view %}
+    {% import 'my/_layout.html.twig' as my %}
+    {% set picked = interests|filter(interest => interest.id ~ '' == selection.key)|first %}
+    {% for message in app.flashes('danger') %}
+        <p class="alert alert-danger" role="alert">{{ message }}</p>
+    {% endfor %}
+
+    <div class="overview mywork-overview">
+        {% if interests is empty %}
+            {% include 'my/_interests_start.html.twig' %}
+        {% else %}
+            <div class="mywork-interests">
+                <nav class="chips" aria-label="Show the work of">
+                    {{ my.chip(
+                        'My interests',
+                        interests|length,
+                        path('my_interests'),
+                        selection.key == 'mine',
+                        false,
+                    ) }}
+                    {% for interest in interests %}
+                        {% set active = selection.key == interest.id ~ '' %}
+                        <a href="{{ path('my_interests', {'interest': interest.id}) }}"
+                           class="chip{{ active ? ' is-active' }}"{% if active %} aria-current="true"{% endif %}>
+                            {{- interest.name -}}
+                        </a>
+                    {% endfor %}
+                    <a href="{{ path('my_interests', {'interest': 'all'}) }}"
+                       class="chip{{ selection.isEverything ? ' is-active' }}"
+                       {%- if selection.isEverything %} aria-current="true"{% endif %}>Everything</a>
+                </nav>
+                <div class="mywork-interests-actions">
+                    {% if picked %}
+                        <a class="mywork-interests-action" href="{{ path('my_interests_edit', {'id': picked.id}) }}">
+                            {{- icon('actions-cog') }} Edit “{{ picked.name }}”
+                        </a>
+                    {% endif %}
+                    {% if interests|length < maxInterests %}
+                        <a class="mywork-interests-action" href="{{ path('my_interests_new') }}">
+                            {{- icon('actions-plus') }} Add an interest
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% include 'my/_interest_lists.html.twig' %}
+    </div>
+{% endblock %}

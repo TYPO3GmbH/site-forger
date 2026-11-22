@@ -1,0 +1,93 @@
+{#
+ # The form of an interest: its name, the paths of the files of the changes, the categories of the issues.
+ # Expects: interest (App\Entity\Interest, null for a new one), input (App\People\InterestInput), categories (the
+ #          names of the categories of Forge), csrfTokenId, maxPaths
+ #}
+{% extends 'base.html.twig' %}
+{% block title %}{{ interest ? 'Edit ' ~ interest.name : 'Add an interest' }}{% endblock %}
+
+{% block breadcrumb %}
+    {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+    {{ breadcrumb.trail([
+        {'label': 'My Work', 'url': path('my_overview')},
+        {'label': 'Interests', 'url': path('my_interests')},
+        {'label': interest ? interest.name : 'Add an interest'},
+    ]) }}
+{% endblock %}
+
+{% block body %}
+    <div class="content-section content-section-small mywork mywork-view-overview">
+        <div class="container">
+            <div class="mywork-interest">
+                {% set heading = interest ? 'Edit “' ~ interest.name ~ '”' : 'Add an interest' %}
+                <h1 class="mywork-interest-title">{{ heading }}</h1>
+                <p class="mywork-following-start-text">
+                    Your overview shows the changes to review that touch these files, and the new issues of these
+                    categories. Leave one of them empty to see all of it.
+                </p>
+
+                {% for message in app.flashes('danger') %}
+                    <p class="alert alert-danger" role="alert">{{ message }}</p>
+                {% endfor %}
+                {% if input.errors is not empty %}
+                    <div class="alert alert-danger" role="alert">
+                        <ul class="mb-0">
+                            {% for error in input.errors %}<li>{{ error }}</li>{% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {% set action = interest ? path('my_interests_edit', {'id': interest.id}) : path('my_interests_new') %}
+                <form class="mywork-interest-form" method="post" action="{{ action }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token(csrfTokenId) }}">
+
+                    <div class="mywork-interest-field">
+                        <label class="form-label" for="interest-name">Name</label>
+                        <input class="form-control" id="interest-name" name="name" maxlength="100" required
+                               value="{{ input.name }}" placeholder="Documentation">
+                    </div>
+
+                    <div class="mywork-interest-field">
+                        <label class="form-label" for="interest-paths">Files of the changes</label>
+                        {% set example = "*.rst\ntypo3/sysext/core/Documentation/" %}
+                        <textarea class="form-control" id="interest-paths" name="paths" rows="4"
+                                  aria-describedby="interest-paths-help"
+                                  placeholder="{{ example }}">{{ input.paths|join("\n") }}</textarea>
+                        <p class="form-text" id="interest-paths-help">
+                            One path per line, up to {{ maxPaths }}. A folder counts with all of its files. A
+                            <code>*</code> stands for any characters: <code>*.rst</code> finds every ReST file.
+                        </p>
+                    </div>
+
+                    <fieldset class="mywork-interest-field">
+                        <legend class="form-label">Categories of the issues</legend>
+                        <div class="mywork-interest-categories">
+                            {% for category in categories %}
+                                <label class="mywork-interest-category">
+                                    <input class="form-check-input" type="checkbox" name="categories[]"
+                                           value="{{ category }}"{{ category in input.categories ? ' checked' }}>
+                                    <span>{{ category }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </fieldset>
+
+                    <div class="mywork-interest-buttons">
+                        <button type="submit" class="btn btn-primary">{{ interest ? 'Save' : 'Add interest' }}</button>
+                        <a class="btn btn-default" href="{{ path('my_interests') }}">Cancel</a>
+                    </div>
+                </form>
+
+                {% if interest %}
+                    <form class="mywork-interest-delete" method="post"
+                          action="{{ path('my_interests_delete', {'id': interest.id}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token(csrfTokenId) }}">
+                        <button type="submit" class="btn btn-sm btn-default">
+                            {{ icon('actions-delete') }} Remove this interest
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

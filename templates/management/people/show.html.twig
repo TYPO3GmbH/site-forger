@@ -1,0 +1,97 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ person.name ?? document.id }}{% endblock %}
+{#
+ # A person for the admins, see App\Controller\PeopleController::show(): the accounts of its document and the ones
+ # linked to it, each by source with how much it did. Linking takes an account of the search; unlinking makes it its
+ # own person again.
+ # Expects: person (App\People\Person as the pages show it, or null), document (App\People\User), linked (list of
+ #          link: App\Entity\PersonLink, document: App\People\User or null), activity, canLink, csrfTokenId
+ #}
+{% block breadcrumb %}
+    {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+    {{ breadcrumb.trail([
+        {'label': 'Admin'},
+        {'label': 'People', 'url': path('management_people')},
+        {'label': person.name ?? document.id},
+    ]) }}
+{% endblock %}
+{% block body %}
+    <div class="content-section content-section-small">
+        <div class="container">
+            <header class="page-intro people-person">
+                {{ user_avatar(person ?? null, 96) }}
+                <div>
+                    <h1 class="page-intro-title">{{ person.name ?? document.id }}</h1>
+                    <p class="page-intro-summary">
+                        <code>{{ document.id }}</code>
+                        · <a href="{{ path('activity_index', {'person': document.id}) }}">Activity</a>
+                    </p>
+                </div>
+            </header>
+
+            <section class="people-card" aria-labelledby="people-own">
+                <h2 id="people-own" class="people-heading">Own accounts</h2>
+                {% include 'management/people/_account.html.twig' with {
+                    'document': document,
+                    'activity': activity,
+                    'csrfTokenId': csrfTokenId,
+                } only %}
+            </section>
+
+            <section class="people-card" aria-labelledby="people-linked">
+                <h2 id="people-linked" class="people-heading">Linked accounts</h2>
+                {% if linked is empty %}
+                    <p class="people-lead">No account is linked to this person.</p>
+                {% endif %}
+                {% for entry in linked %}
+                    {% set account = entry.link.account %}
+                    <article class="people-linked">
+                        <header class="people-linked-head">
+                            <h3 class="people-linked-title">
+                                {{ entry.document ? entry.document.displayName : account }} <code>{{ account }}</code>
+                            </h3>
+                            <span class="people-lead">
+                                Linked by {{ entry.link.linkedBy }} on {{ entry.link.linkedAt|date('M j, Y') }}
+                            </span>
+                            <form method="post"
+                                  action="{{ path('management_people_unlink', {'key': document.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token(csrfTokenId) }}">
+                                <input type="hidden" name="account" value="{{ account }}">
+                                <button type="submit" class="btn btn-sm btn-default"
+                                        title="Count {{ account }} as its own person again">Unlink</button>
+                            </form>
+                        </header>
+                        {% if entry.document %}
+                            {% include 'management/people/_account.html.twig' with {
+                                'document': entry.document,
+                                'activity': activity,
+                                'csrfTokenId': csrfTokenId,
+                            } only %}
+                        {% else %}
+                            <p class="people-none">The index of the users has no document of this account.</p>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+
+                {% if canLink %}
+                    <form class="people-search" method="post"
+                          action="{{ path('management_people_link', {'key': document.id}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token(csrfTokenId) }}">
+                        <input type="hidden" name="person" value="">
+                        <forger-person-search
+                            search-url="{{ path('activity_people') }}"
+                            label="Link an account"
+                            placeholder="Link an account by name, username or number"
+                            show-keys
+                            submit
+                        ></forger-person-search>
+                    </form>
+                {% else %}
+                    <p class="people-lead">
+                        Only a person with a TYPO3 username takes accounts. Link this one to its person instead.
+                    </p>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+{% endblock %}

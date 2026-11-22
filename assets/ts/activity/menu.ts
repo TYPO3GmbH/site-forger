@@ -34,6 +34,10 @@ export interface MenuOptions {
      * A class of the panel, for a panel with its own layout.
      */
     panel?: string;
+    /**
+     * A selector of the part of the panel that takes the focus when the menu opens, like a search field.
+     */
+    focus?: string;
 }
 
 /**
@@ -48,7 +52,10 @@ export function menu(options: MenuOptions, content: TemplateResult): TemplateRes
 
     return html`
         <forger-activity-menu>
-            <details class="stream-menu${options.end ? ' stream-menu-end' : ''}">
+            <details
+                class="stream-menu${options.end ? ' stream-menu-end' : ''}"
+                @toggle=${(event: Event) => focusOnOpen(event, options.focus)}
+            >
                 <summary class="${button}${options.active ? ' is-active' : ''}" title=${options.title ?? nothing}>
                     ${options.icon === undefined ? nothing : icon(options.icon)}
                     <span>${options.label}</span>
@@ -62,6 +69,13 @@ export function menu(options: MenuOptions, content: TemplateResult): TemplateRes
             </details>
         </forger-activity-menu>
     `;
+}
+
+function focusOnOpen(event: Event, selector: string | undefined): void {
+    const details = event.currentTarget as HTMLDetailsElement;
+    if (selector !== undefined && details.open) {
+        details.querySelector<HTMLElement>(selector)?.focus();
+    }
 }
 
 /**

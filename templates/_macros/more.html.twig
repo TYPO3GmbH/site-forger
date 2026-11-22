@@ -1,0 +1,15 @@
+{#
+ # The toggle "Show more" of the rest of a list or of a long text, "Show less" once it is open. Put it after what
+ # it opens: a list with the class "show-more-rows" or a text with the class "show-more-text". It stays below
+ # them and closes them again. With "row" it is the last row of a list with a frame.
+ # See assets/css/module/_show-more.scss.
+ #}
+{% macro toggle(label, row = false) %}
+    <details class="show-more{{ row ? ' is-row' }}">
+        <summary>
+            <span class="show-more-closed">{{ label }}</span>
+            <span class="show-more-open">Show less</span>
+            {{ icon('actions-chevron-down') }}
+        </summary>
+    </details>
+{% endmacro %}

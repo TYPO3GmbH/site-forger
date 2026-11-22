@@ -2,6 +2,7 @@ import { filterParameters, withQuery, type ActivityState } from './state';
 import type {
     ActivityCalendar,
     ActivityClosedYears,
+    ActivityExchange,
     ActivityNewcomers,
     ActivityPage,
     ActivityStatistics,
@@ -35,6 +36,13 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
 
 function parameters(state: ActivityState): URLSearchParams {
     const parameters = filterParameters(state);
+    // The API knows no user: the page sends the people followed as "people", see ActivityStream
+    parameters.delete('following');
+    // All accounts of the user: the index may not have joined the one on Forge with the one on Gerrit
+    if (state.own !== null) {
+        parameters.delete('person');
+        parameters.set('people', state.own);
+    }
     parameters.set('timeZone', timeZone());
 
     return parameters;
@@ -46,10 +54,14 @@ export function fetchPage(
     limit: number,
     offset: number,
     signal?: AbortSignal,
+    people = '',
 ): Promise<ActivityPage> {
     const query = parameters(state);
     query.set('limit', String(limit));
     query.set('offset', String(offset));
+    if (people !== '') {
+        query.set('people', people);
+    }
 
     return getJson<ActivityPage>(withQuery(apiUrl, query), signal);
 }
@@ -73,6 +85,13 @@ export function fetchStatistics(
     }
 
     return getJson<ActivityStatistics>(withQuery(apiUrl, query), signal);
+}
+
+/**
+ * The reviews between the person of the filter and the others, in the window of the page.
+ */
+export function fetchExchange(apiUrl: string, state: ActivityState, signal?: AbortSignal): Promise<ActivityExchange> {
+    return getJson<ActivityExchange>(withQuery(apiUrl, parameters(state)), signal);
 }
 
 /**

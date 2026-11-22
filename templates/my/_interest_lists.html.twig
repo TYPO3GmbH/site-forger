@@ -1,0 +1,33 @@
+{#
+ # The changes to review and the new issues of the interests in the selection. "Show all" opens the search with
+ # the same filters, see OverviewQuery.
+ # Expects: selection (App\People\InterestSelection), reviewable and newIssues (SearchResults), reviewableFilters
+ #          and newIssuesFilters (the filters of the search), newDays
+ #}
+{% set list = '_partials/short_list.html.twig' %}
+{% set filesNote = selection.paths is empty
+    ? 'All open changes'
+    : 'Changes that touch ' ~ selection.paths|join(', ') %}
+{% set categoriesNote = selection.categories is empty
+    ? 'Issues of all categories'
+    : 'Issues in ' ~ selection.categories|join(', ') %}
+<div class="overview-lists">
+    {% include list with {
+        'id': 'interests-reviewable',
+        'title': 'Ready for you to review',
+        'url': path('search_changes', {'filters': reviewableFilters}),
+        'text': filesNote ~ ' that you did not vote on yet. Not yours, no work in progress.',
+        'items': reviewable,
+        'kind': 'change',
+        'empty': 'Nothing waits for your review here. Thank you!',
+    } only %}
+    {% include list with {
+        'id': 'interests-new-issues',
+        'title': 'New issues',
+        'url': path('search_search', {'filters': newIssuesFilters}),
+        'text': categoriesNote ~ ', reported in the last ' ~ newDays ~ ' days and still new.',
+        'items': newIssues,
+        'kind': 'issue',
+        'empty': 'No new issues in the last ' ~ newDays ~ ' days.',
+    } only %}
+</div>

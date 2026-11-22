@@ -42,7 +42,12 @@ final readonly class Typo3LoginSubscriber implements EventSubscriberInterface
             return;
         }
         try {
-            $this->users->recordLogin($user->getUserIdentifier(), (string) $user->getEmail(), new \DateTimeImmutable());
+            $this->users->recordLogin(
+                $user->getUserIdentifier(),
+                (string) $user->getEmail(),
+                new \DateTimeImmutable(),
+                (string) $user->getDisplayName(),
+            );
         } catch (\Exception $e) {
             $this->logger->warning('The login could not be noted in the users: ' . $e->getMessage(), ['exception' => $e]);
         }

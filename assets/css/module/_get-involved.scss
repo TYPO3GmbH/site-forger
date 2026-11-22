@@ -157,7 +157,7 @@ $hero-faces: (
     margin: 0;
 }
 
-// The first items, each with its title and its state
+// The first items, see templates/_partials/row/
 .task-card-items {
     flex: 1;
     margin: .5rem 0 0;
@@ -168,51 +168,15 @@ $hero-faces: (
         border-top: 1px solid #f0f1f3;
     }
 
-    a {
-        display: flex;
-        flex-direction: column;
-        gap: .375rem;
+    // The rows of the lists, in the width of the card
+    .overview-list-item {
         padding: .625rem 0;
-        color: #0b0b0b;
-        font-size: .9375rem;
-        text-decoration: none;
 
         &:hover,
         &:focus-visible {
-            .task-card-subject {
-                text-decoration: underline;
-            }
+            background: none;
         }
     }
-}
-
-// The title in one line, the number muted before it
-.task-card-line {
-    display: flex;
-    gap: .5rem;
-    min-width: 0;
-}
-
-// The state below the title: the pills of the lists, the other facts muted
-.task-card-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .25rem .5rem;
-    align-items: center;
-    color: var(--overview-muted);
-    font-size: .8125rem;
-}
-
-.task-card-number {
-    flex: none;
-    color: var(--overview-muted);
-}
-
-.task-card-subject {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .task-card-empty {

@@ -1,0 +1,28 @@
+{% import '_macros/status.html.twig' as status %}
+{#
+ # A change in a row of the review lists, see _partials/row/change.html.twig: the whole subject, below it in one
+ # line the owner, the targets, files and patch sets, then the topic, the state unless ready, a merge conflict, the
+ # unresolved comments and the activity. On the right the size first, beside the subject, as it tells how long the
+ # review takes, below it the update and the votes, the votes on the edge, so they stand the same in every row.
+ # Two lines on either side, so the rows are balanced.
+ #}
+<a class="overview-list-item kind-change overview-list-item-detailed" href="{{ change_path(change.id) }}" title="{{ change.subject }}">
+    <span class="overview-list-item-main">
+        {{ title }}
+        <span class="overview-list-item-meta">
+            {{ owner }}
+            {{ targets }}
+            {% if change.affectedFiles is not null %}<span>{{ change.affectedFiles }} {{ change.affectedFiles == 1 ? 'file' : 'files' }}</span>{% endif %}
+            {% if change.patchsets is not null %}<span>{{ change.patchsets }} patch {{ change.patchsets == 1 ? 'set' : 'sets' }}</span>{% endif %}
+            {% if change.hasTopic %}<span title="Topic">{{ change.topic }}</span>{% endif %}
+            {# Only when it is not ready for review, see ReviewStateEnum::isNoteworthy() #}
+            {% if change.state.isNoteworthy %}{{ status.review(change) }}{% endif %}
+            {{ pills }}
+            {{ status.activity(change) }}
+        </span>
+    </span>
+    <span class="overview-list-column">
+        <span class="overview-list-column-line overview-list-column-size">{{ lines }}{{ status.size(change) }}</span>
+        <span class="overview-list-column-line overview-list-column-votes">{{ date }}{{ status.votes(change) }}</span>
+    </span>
+</a>

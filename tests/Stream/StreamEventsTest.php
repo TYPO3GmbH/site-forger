@@ -180,6 +180,33 @@ final class StreamEventsTest extends TestCase
         );
     }
 
+    public function testAnEventOfAChangeKnowsTheOwnerWithoutTheEmail(): void
+    {
+        $change = Change::fromDocument([
+            'id' => 97002,
+            'subject' => 'Clear the cache',
+            'owner' => 'Jane Doe',
+            'owner_id' => 7,
+            'owner_username' => 'jdoe',
+            'ownerEmail' => 'jane@example.org',
+            'messages' => [
+                self::message('a1', 'Uploaded patch set 1.', 1, ['id' => 7, 'name' => 'Jane Doe']),
+                self::message('a2', 'Patch Set 1: Code-Review+1', 1, ['id' => 8, 'name' => 'John Roe']),
+            ],
+        ]);
+
+        $event = StreamEvents::ofChange($change)[1];
+        $document = $event->toDocument();
+
+        self::assertSame('John Roe', $event->author?->name);
+        self::assertSame(
+            ['name' => 'Jane Doe', 'username' => 'jdoe', 'forge_id' => null, 'gerrit_id' => 7],
+            $document['owner'],
+        );
+        self::assertStringNotContainsString('example.org', (string) json_encode($document));
+        self::assertEquals($event, StreamEvent::fromDocument($document));
+    }
+
     public function testAnEventReadsBackFromTheIndex(): void
     {
         $event = StreamEvents::ofIssue(self::issue())[2];

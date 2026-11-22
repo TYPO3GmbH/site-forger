@@ -1,0 +1,159 @@
+// The card of a person with what the person did, see templates/_partials/person_card.html.twig. The figures stand in
+// columns of the same width, so the cards of a row have the same height whatever the numbers.
+.person-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    > li {
+        display: flex;
+        min-width: 0;
+    }
+}
+
+.person-card {
+    --person-card-muted: #4b5563;
+
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: .875rem;
+    min-width: 0;
+    padding: 1rem 1.125rem;
+    border: 1px solid #e6e8eb;
+    border-radius: .75rem;
+    background: #fff;
+    box-shadow: var(--card-shadow);
+}
+
+.person-card-head {
+    display: flex;
+    gap: .75rem;
+    align-items: center;
+
+    // The button on the right, like the one to stop following
+    > :last-child:not(.person-card-names) {
+        margin-left: auto;
+    }
+}
+
+.person-card-avatar {
+    flex-shrink: 0;
+
+    .avatar {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+    }
+}
+
+.person-card-names {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.person-card-name,
+.person-card-username {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.person-card-name {
+    color: inherit;
+    font-weight: 700;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: underline;
+    }
+}
+
+.person-card-username {
+    display: inline-flex;
+    gap: .25rem;
+    align-items: center;
+    align-self: flex-start;
+    max-width: 100%;
+    color: var(--person-card-muted);
+    font-size: .8125rem;
+    text-decoration: none;
+
+    .icon {
+        flex-shrink: 0;
+        width: .75rem;
+        height: .75rem;
+    }
+
+    &:hover,
+    &:focus-visible {
+        color: #111827;
+        text-decoration: underline;
+    }
+}
+
+.person-card-figures {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .5rem;
+    margin: 0;
+}
+
+.person-card-figure {
+    display: flex;
+    flex-direction: column-reverse;
+    min-width: 0;
+
+    dt {
+        overflow: hidden;
+        color: var(--person-card-muted);
+        font-size: .8125rem;
+        font-weight: 400;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    dd {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.3;
+    }
+}
+
+.person-card-line {
+    height: 2.5rem;
+    margin-top: auto;
+
+    polyline {
+        stroke: var(--stream-total);
+    }
+
+    polygon {
+        fill: var(--stream-total);
+    }
+}
+
+.person-card-axis {
+    display: flex;
+    justify-content: space-between;
+    margin-top: -.5rem;
+    color: var(--person-card-muted);
+    font-size: .75rem;
+}
+
+.person-card-quiet {
+    display: flex;
+    align-items: center;
+    height: 2.5rem;
+    margin: auto 0 0;
+    color: var(--person-card-muted);
+    font-size: .875rem;
+}

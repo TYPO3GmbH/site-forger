@@ -18,7 +18,8 @@ use Twig\Attribute\AsTwigFilter;
 use Twig\Attribute\AsTwigFunction;
 
 /**
- * Where an issue or a Gerrit change is linked to: its detail page in Forger, or its page in Forge or Gerrit.
+ * Where an issue or a Gerrit change is linked to: its detail page in Forger, or its page in Forge or Gerrit. Also the
+ * profile of a person on my.typo3.org.
  *
  * Lists, cards and rows lead to the detail page. Forge and Gerrit are linked from the detail page, and where an
  * issue or a change may not be imported, like a missing backport.
@@ -29,8 +30,10 @@ final readonly class LinkTwigExtension
     public const string FORGE_ISSUE_EDIT = 'https://forge.typo3.org/issues/%d/edit';
     public const string FORGE_JOURNAL = 'https://forge.typo3.org/issues/%d#change-%d';
     public const string FORGE_USER = 'https://forge.typo3.org/users/%d';
+    public const string TYPO3_PROFILE = 'https://my.typo3.org/u/%s';
     public const string GERRIT_CHANGE = 'https://review.typo3.org/c/Packages/TYPO3.CMS/+/%d/';
     public const string GERRIT_REPOSITORY = 'https://review.typo3.org/Packages/TYPO3.CMS';
+    public const string GERRIT_USER = 'https://review.typo3.org/dashboard/%d';
     public const string CONTRIBUTION_GUIDE = 'https://docs.typo3.org/m/typo3/guide-contributionworkflow/main/en-us/';
 
     public function __construct(
@@ -54,6 +57,24 @@ final readonly class LinkTwigExtension
     public function forgeUserUrl(int $id): string
     {
         return sprintf(self::FORGE_USER, $id);
+    }
+
+    /**
+     * The dashboard of an account on Gerrit: its changes and the ones it reviews.
+     */
+    #[AsTwigFunction(name: 'gerrit_user_url')]
+    public function gerritUserUrl(int $id): string
+    {
+        return sprintf(self::GERRIT_USER, $id);
+    }
+
+    /**
+     * The public profile of a TYPO3 account on my.typo3.org. Its username is the one of Forge and Gerrit.
+     */
+    #[AsTwigFunction(name: 'typo3_profile_url')]
+    public function typo3ProfileUrl(string $username): string
+    {
+        return sprintf(self::TYPO3_PROFILE, rawurlencode(mb_strtolower($username)));
     }
 
     #[AsTwigFunction(name: 'forge_issue_url')]

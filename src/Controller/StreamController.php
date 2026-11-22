@@ -11,7 +11,15 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\People\Person;
+use App\People\User;
+use App\People\UserDirectory;
+use App\Repository\StreamRepository;
+use App\Repository\UserRepository;
+use App\Search\PeopleQuery;
+use App\Stream\StreamPeople;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -31,10 +39,68 @@ class StreamController extends AbstractController
      */
     public const int DASHBOARD_COUNT = 6;
 
+    private const int AVATAR_SIZE = 48;
+
+    public function __construct(
+        private readonly StreamRepository $stream,
+        private readonly UserDirectory $users,
+        private readonly UserRepository $accounts,
+    ) {
+    }
+
     #[Route(name: 'index', methods: ['GET'])]
     public function index(): Response
     {
         return $this->render('stream/page.html.twig', ['view' => 'stream']);
+    }
+
+    /**
+     * The people of the activity whose name or username matches "term", for the menu of people of the filter and
+     * the search of My Work. Names, keys and avatars only, no email addresses.
+     */
+    #[Route(path: '/people', name: 'people', methods: ['GET'])]
+    public function people(Request $request): JsonResponse
+    {
+        $term = $request->query->getString('term');
+        if (mb_strlen(trim($term)) < PeopleQuery::MIN_LENGTH) {
+            return new JsonResponse([]);
+        }
+        $accounts = $this->accounts->byUsernamePrefix($term, PeopleQuery::SIZE);
+        $search = PeopleQuery::search(
+            $term,
+            array_values(array_filter(array_map(static fn (User $user): ?int => $user->forgeId, $accounts))),
+            array_values(array_filter(array_map(static fn (User $user): ?int => $user->gerritId, $accounts))),
+        );
+        if (null === $search) {
+            return new JsonResponse([]);
+        }
+        $people = [];
+        foreach (StreamPeople::found($this->stream->search($search)->aggregation(PeopleQuery::PEOPLE)) as $found) {
+            // As every page shows the person, see UserDirectory::shown()
+            $person = $this->users->shown($found) ?? $found;
+            $key = $this->keyOf($person);
+            if (null !== $key) {
+                $people[$key] ??= [
+                    'key' => $key,
+                    'name' => $person->name,
+                    'avatar' => $this->users->avatarOfPerson($person, self::AVATAR_SIZE),
+                ];
+            }
+        }
+
+        return new JsonResponse(array_values($people));
+    }
+
+    /**
+     * The key of the person by its numbers: a person known by the name alone cannot be filtered or followed.
+     */
+    private function keyOf(Person $person): ?string
+    {
+        if (null === $person->forgeId && null === $person->gerritId) {
+            return null;
+        }
+
+        return $this->users->keyOfPerson($person);
     }
 
     /**

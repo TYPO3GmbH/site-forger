@@ -22,11 +22,19 @@ use App\Duplicates\DuplicateGroups;
 use App\Duplicates\DuplicateHit;
 use App\Elastic\Bucket;
 use App\Elastic\SearchResult;
+use App\Entity\Interest;
 use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
+use App\Enum\StreamRangeEnum;
 use App\Enum\TrackerEnum;
+use App\Enum\WaitingForEnum;
+use App\People\FollowedPerson;
+use App\People\InterestSelection;
+use App\People\PersonActivity;
+use App\People\SuggestedPerson;
+use App\People\UserDirectory;
 use App\Report\Backport\BackportRow;
 use App\Report\Backport\BackportVersion;
 use App\Report\CategoryOverview;
@@ -36,9 +44,13 @@ use App\Report\MonthOverview;
 use App\Report\StaleIssue;
 use App\Report\StaleIssues;
 use App\Search\IssueStatusCount;
+use App\Search\OverviewQuery;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Twig\Environment;
 
 /**
@@ -47,6 +59,8 @@ use Twig\Environment;
  */
 final class SearchAndDetailTemplateTest extends KernelTestCase
 {
+    use KnowsNoPeople;
+
     private const array CHANGE = [
         'id' => 81234,
         'reviewstatus' => 'NEW',
@@ -86,6 +100,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::bootKernel();
         $this->twig = self::getContainer()->get('twig');
         self::assertTrue($this->twig->isStrictVariables());
+        self::knowNoPeople();
     }
 
     /**
@@ -182,7 +197,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         $template = $this->twig->load('my/changes.html.twig');
         $html = $template->renderBlock('body', [
             'view' => 'changes', 'email' => 'me@example.org', 'name' => 'Me', 'includeClosed' => false, 'query' => '',
-            'openChanges' => 2, 'openIssues' => 3, 'changes' => [], 'shown' => 0, 'total' => 0, 'selected' => null,
+            'openChanges' => 2, 'openIssues' => 3, 'followingCount' => 0, 'changes' => [], 'shown' => 0, 'total' => 0, 'selected' => null,
             'labels' => ['ready' => 'Ready for review', 'wip' => 'Work in progress'], 'counts' => [], 'closedStates' => [],
             'sort' => ReviewSortEnum::UPDATED, 'sortOptions' => ReviewSortEnum::options(false), 'isDefaultSort' => true,
         ]);
@@ -218,6 +233,228 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringNotContainsString('mywork-group', $html);
     }
 
+    public function testFollowingShowsWhereThePeopleNeedHelpAndWhatTheyDid(): void
+    {
+        $html = $this->twig->load('my/following.html.twig')->renderBlock('body', [
+            'view' => 'following', 'email' => 'me@example.org', 'name' => 'Me', 'includeClosed' => false, 'query' => '',
+            'openChanges' => 1, 'openIssues' => 3, 'followingCount' => 2,
+            'help' => self::helpLists(['jdoe', 'forge:7']),
+            'followed' => ['jdoe', 'forge:7'],
+        ]);
+
+        self::assertStringContainsString('class="view-tab is-following is-active"', $html);
+        self::assertStringContainsString('href="/my/following/manage"', $html);
+        self::assertStringContainsString('people="jdoe,forge:7"', $html);
+        self::assertStringContainsString('range="30d"', $html);
+        // Where they need help, each list with the search of all of it
+        self::assertStringContainsString('Needs help', $html);
+        self::assertStringContainsString('None of their changes is stuck.', $html);
+        self::assertStringContainsString(
+            '/search/changes?filters%5Bowner%5D%5Bjdoe%5D=true&amp;filters%5Bowner%5D%5Bforge:7%5D=true'
+            . '&amp;filters%5Bwaiting_for%5D%5BFirst_review%5D=true',
+            $html,
+        );
+        self::assertStringContainsString('/search?filters%5Bauthor%5D%5Bjdoe%5D=true', $html);
+        // The people are managed on a page of their own
+        self::assertStringNotContainsString('<forger-person-search', $html);
+        self::assertStringNotContainsString('action="/my/following/state"', $html);
+    }
+
+    public function testFollowingNobodyLeadsToThePageOfThePeople(): void
+    {
+        $html = $this->twig->load('my/following.html.twig')->renderBlock('body', [
+            'view' => 'following', 'email' => 'me@example.org', 'name' => 'Me', 'includeClosed' => false, 'query' => '',
+            'openChanges' => 1, 'openIssues' => 3, 'followingCount' => 0, 'help' => null, 'followed' => [],
+        ]);
+
+        self::assertStringContainsString('Follow the people you mentor or work with', $html);
+        self::assertStringContainsString('href="/my/following/manage"', $html);
+        self::assertStringNotContainsString('<forger-activity-stream', $html);
+    }
+
+    public function testStatisticsCountTheAccountsOfTheUserAlone(): void
+    {
+        $html = $this->twig->load('my/statistics.html.twig')->renderBlock('body', [
+            'view' => 'statistics', 'email' => 'me@example.org', 'name' => 'Me', 'includeClosed' => false,
+            'query' => '', 'openChanges' => 1, 'openIssues' => 3, 'followingCount' => 0,
+            'ownPeople' => ['forge:7', 'gerrit:9'],
+        ]);
+
+        self::assertStringContainsString('class="view-tab is-statistics is-active"', $html);
+        self::assertStringContainsString('view="statistics"', $html);
+        self::assertStringContainsString('statistics-url="/my/statistics"', $html);
+        self::assertStringContainsString('own-person="forge:7"', $html);
+        self::assertStringContainsString('own-people="forge:7,gerrit:9"', $html);
+        self::assertStringNotContainsString('me@example.org', $html);
+    }
+
+    public function testStatisticsWithoutAnAccountCountNothing(): void
+    {
+        $html = $this->twig->load('my/statistics.html.twig')->renderBlock('body', [
+            'view' => 'statistics', 'email' => 'me@example.org', 'name' => 'Me', 'includeClosed' => false,
+            'query' => '', 'openChanges' => 0, 'openIssues' => 0, 'followingCount' => 0, 'ownPeople' => [],
+        ]);
+
+        self::assertStringContainsString('No account on Forge or Gerrit is known for you yet', $html);
+        self::assertStringNotContainsString('<forger-activity', $html);
+    }
+
+    public function testThePageOfThePeopleAddsAndRemovesThemAndShowsNothingElse(): void
+    {
+        $data = [
+            'limit' => 100, 'csrfTokenId' => 'follow', 'searchUrl' => '/activity/people',
+            'range' => StreamRangeEnum::HALF_YEAR,
+            'people' => [
+                new FollowedPerson('jdoe', 'Jane Doe', 'https://example.org/jane.png', 'jdoe', new PersonActivity(
+                    1521,
+                    376,
+                    666,
+                    42,
+                    [2, 5, 3],
+                )),
+                new FollowedPerson('forge:7', 'forge:7', null, null, PersonActivity::none(3)),
+            ],
+            'newcomers' => [new SuggestedPerson('forge:5', 'New Person', null, 'First change', null)],
+        ];
+        // The forms carry a CSRF token, which needs a session
+        $request = new Request();
+        $request->setSession(new Session(new MockArraySessionStorage()));
+        self::getContainer()->get('request_stack')->push($request);
+        $html = $this->twig->load('my/people.html.twig')->renderBlock('body', $data);
+        $trail = $this->twig->load('my/people.html.twig')->renderBlock('breadcrumb', $data);
+
+        self::assertStringContainsString('People you follow', $html);
+        self::assertStringContainsString('You follow 2 of 100', $html);
+        self::assertStringContainsString('href="/help#person-cards"', $html);
+        // A card per person: the figures of the last weeks and the events per week
+        self::assertMatchesRegularExpression('~<dt>reviews</dt>\s*<dd>1,521</dd>~', $html);
+        self::assertMatchesRegularExpression('~<dt>patch sets</dt>\s*<dd>376</dd>~', $html);
+        self::assertMatchesRegularExpression('~<dt>issues</dt>\s*<dd>666</dd>~', $html);
+        self::assertMatchesRegularExpression('~<dt>comments</dt>\s*<dd>42</dd>~', $html);
+        self::assertSame(2, substr_count($html, '<article class="person-card"'));
+        self::assertStringContainsString('aria-label="10 events in the last 6 months, per week"', $html);
+        self::assertStringContainsString('No activity in the last 6 months.', $html);
+        // The username, and the activity in the same range
+        self::assertStringContainsString('href="https://my.typo3.org/u/jdoe" target="_blank"', $html);
+        self::assertStringContainsString('href="/activity?person=jdoe&amp;range=6m"', $html);
+        self::assertStringContainsString('<forger-person-search', $html);
+        // The search, a form per person to stop following, and one per new contributor to follow
+        self::assertSame(4, substr_count($html, 'action="/my/following/state"'));
+        self::assertSame(2, substr_count($html, '<input type="hidden" name="following" value="0">'));
+        self::assertStringContainsString('<input type="hidden" name="person" value="forge:5">', $html);
+        self::assertStringNotContainsString('<forger-activity-stream', $html);
+        self::assertStringNotContainsString('Needs help', $html);
+        self::assertStringContainsString('<a href="/my/following">Following</a>', $trail);
+        self::assertStringContainsString('aria-current="page">People you follow</li>', $trail);
+    }
+
+    public function testTheInterestsNameWhatTheyAreNarrowedToAndLinkToTheSearch(): void
+    {
+        $docs = new Interest('jdoe', 'Docs', ['*.rst'], ['Documentation'], new \DateTimeImmutable());
+        new \ReflectionProperty(Interest::class, 'id')->setValue($docs, 4);
+        $selection = InterestSelection::of('4', [$docs]);
+        $now = new \DateTimeImmutable('2026-11-22 12:00:00');
+        $html = $this->twig->load('my/interests.html.twig')->renderBlock('body', [
+            'view' => 'interests', 'email' => 'me@example.org', 'name' => 'Me', 'includeClosed' => false, 'query' => '',
+            'openChanges' => 1, 'openIssues' => 3, 'followingCount' => 0, 'maxInterests' => 20, 'newDays' => 14,
+            'interests' => [$docs],
+            'selection' => $selection,
+            'reviewable' => SearchResult::ofDocuments([], 0),
+            'reviewableFilters' => OverviewQuery::reviewableFilters($selection->paths),
+            'newIssues' => SearchResult::ofDocuments([Issue::fromDocument(self::ISSUE)], 1),
+            'newIssuesFilters' => OverviewQuery::newIssuesFilters($selection->categories, $now),
+        ]);
+
+        self::assertStringContainsString('class="view-tab is-interests is-active"', $html);
+        self::assertMatchesRegularExpression('~href="/my/interests\?interest=4"\s+class="chip is-active"~', $html);
+        self::assertStringContainsString('href="/my/interests/4"', $html);
+        self::assertStringContainsString('Changes that touch *.rst that you did not vote on yet.', $html);
+        self::assertStringContainsString('Issues in Documentation, reported in the last 14 days', $html);
+        self::assertStringContainsString('Nothing waits for your review here.', $html);
+        self::assertStringContainsString(
+            '/search/changes?filters%5Bwaiting_for%5D%5BYour_vote%5D=true&amp;filters%5Bfile%5D%5Bpath%5D=*.rst'
+            . '&amp;filters%5Bfile%5D%5Bmatch%5D=any',
+            $html,
+        );
+        self::assertStringContainsString(
+            '/search?filters%5Bstatus%5D%5BNew%5D=true&amp;filters%5Bcreated%5D%5Bfrom%5D=2026-11-08'
+            . '&amp;filters%5Bcategory%5D%5BDocumentation%5D=true',
+            $html,
+        );
+    }
+
+    public function testTheOverviewShowsAFewOfEachListAndLinksToAll(): void
+    {
+        $docs = new Interest('jdoe', 'Docs', ['*.rst'], [], new \DateTimeImmutable());
+        $html = $this->twig->load('my/overview.html.twig')->renderBlock('body', [
+            'view' => 'overview', 'email' => 'me@example.org', 'name' => 'Me', 'includeClosed' => false, 'query' => '',
+            'openChanges' => 1, 'openIssues' => 3, 'followingCount' => 1, 'newDays' => 14,
+            'waitingChanges' => SearchResult::ofDocuments([], 0),
+            'assignedIssues' => SearchResult::ofDocuments([], 0),
+            'interests' => [$docs],
+            'selection' => InterestSelection::of('', [$docs]),
+            'reviewable' => SearchResult::ofDocuments([], 0),
+            'reviewableFilters' => OverviewQuery::reviewableFilters(['*.rst']),
+            'newIssues' => SearchResult::ofDocuments([], 0),
+            'newIssuesFilters' => OverviewQuery::newIssuesFilters([], new \DateTimeImmutable()),
+            'help' => self::helpLists(['jdoe']),
+            'followed' => ['jdoe'],
+        ]);
+
+        self::assertStringContainsString('class="view-tab is-overview is-active"', $html);
+        // The chips of the interests are on their own page
+        self::assertStringNotContainsString('class="chip', $html);
+        self::assertStringContainsString('href="/my/interests"', $html);
+        self::assertStringContainsString('Changes that touch *.rst that you did not vote on yet.', $html);
+        self::assertStringContainsString('All of their changes have a review.', $html);
+        self::assertStringContainsString('filters%5Bwaiting_for%5D%5BOwner%5D=true', $html);
+        self::assertStringNotContainsString('<forger-activity-stream', $html);
+    }
+
+    public function testWithoutInterestsTheOverviewInvitesToAddOne(): void
+    {
+        $html = $this->twig->load('my/overview.html.twig')->renderBlock('body', [
+            'view' => 'overview', 'email' => 'me@example.org', 'name' => 'Me', 'includeClosed' => false, 'query' => '',
+            'openChanges' => 1, 'openIssues' => 3, 'followingCount' => 0, 'newDays' => 14,
+            'waitingChanges' => SearchResult::ofDocuments([], 0),
+            'assignedIssues' => SearchResult::ofDocuments([Issue::fromDocument(self::ISSUE)], 1),
+            'interests' => [],
+            'selection' => InterestSelection::of('', []),
+            'help' => null,
+            'followed' => [],
+        ]);
+
+        self::assertStringContainsString('Waiting for you', $html);
+        self::assertStringContainsString('None of your changes waits for you.', $html);
+        self::assertStringContainsString('href="/my/issues"', $html);
+        self::assertStringContainsString('What do you care for?', $html);
+        self::assertStringContainsString('href="/my/interests/new"', $html);
+        self::assertStringNotContainsString('Ready for you to review', $html);
+        self::assertStringContainsString('You follow nobody yet.', $html);
+    }
+
+    /**
+     * The lists of the work of people that needs help, all empty.
+     *
+     * @param list<string> $keys
+     *
+     * @return array<string, mixed>
+     */
+    private static function helpLists(array $keys): array
+    {
+        $now = new \DateTimeImmutable();
+
+        return [
+            'owner' => SearchResult::ofDocuments([], 0),
+            'ownerFilters' => OverviewQuery::peopleChangesFilters($keys, WaitingForEnum::OWNER),
+            'review' => SearchResult::ofDocuments([], 0),
+            'reviewFilters' => OverviewQuery::peopleChangesFilters($keys, WaitingForEnum::FIRST_REVIEW),
+            'issues' => SearchResult::ofDocuments([], 0),
+            'issuesFilters' => OverviewQuery::unansweredIssuesFilters($keys, $now),
+            'issueDays' => OverviewQuery::UNANSWERED_DAYS,
+        ];
+    }
+
     public function testMyIssuesHaveAChipPerStatusTheClosedOnesHidden(): void
     {
         $html = $this->twig->load('my/issues.html.twig')->renderBlock('view', [
@@ -247,7 +484,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
     {
         $data = [
             'view' => 'changes', 'email' => 'me@example.org', 'name' => 'Me', 'includeClosed' => true, 'query' => 'cache',
-            'openChanges' => 1, 'openIssues' => 3, 'changes' => [], 'shown' => 0, 'total' => 0, 'selected' => 'wip',
+            'openChanges' => 1, 'openIssues' => 3, 'followingCount' => 0, 'changes' => [], 'shown' => 0, 'total' => 0, 'selected' => 'wip',
             'labels' => ['ready' => 'Ready for review', 'wip' => 'Work in progress'], 'counts' => ['wip' => 1], 'closedStates' => [],
             'sort' => ReviewSortEnum::SMALLEST, 'sortOptions' => ReviewSortEnum::options(true), 'isDefaultSort' => false,
         ];
@@ -585,8 +822,9 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('href="/search/changes?query=caching"', $html);
         self::assertStringContainsString('>BUGFIX</a>', $html);
         // #12 is not imported: no link to a page Forger does not have
-        // The text in the expander of the template bundle, the footer below it, outside
-        self::assertMatchesRegularExpression('~<div class="expander-content-inner">\\s*<pre class="detail-message">The cache is cleared.</pre>~', $html);
+        // The text, the footer below it, apart. A short text has no toggle
+        self::assertStringContainsString('<pre class="detail-message">The cache is cleared.</pre>', $html);
+        self::assertStringNotContainsString('show-more', $html);
         self::assertStringContainsString("<pre class=\"detail-message detail-message-footer\">Resolves: <a href=\"/issue/91089\">#91089</a>\nRelated: #12</pre>", $html);
         self::assertStringNotContainsString('Resolves:', explode('detail-message-footer', $html)[0]);
         self::assertStringContainsString('<span class="overview-list-relation">Resolved by this change</span>', $html);
@@ -686,7 +924,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
         self::assertStringContainsString('<a class="tag-label tag-label-bugfix" href="/search/changes?filters%5Btype%5D%5BBUGFIX%5D=true" title="Bugfix: the changes with this tag">BUGFIX</a>', $html);
         // Not in the rows
-        self::assertStringNotContainsString('<a class="tag-label', $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::CHANGE), 'detailed' => true]));
+        self::assertStringNotContainsString('<a class="tag-label', $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::CHANGE), 'size' => 'l']));
     }
 
     public function testTheFilesAfterTheFirstTwentyAreCollapsed(): void
@@ -694,9 +932,9 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         $files = array_map(static fn (int $number): string => sprintf('Classes/File%02d.php', $number), range(1, 23));
         $html = $this->twig->load('change/show.html.twig')->renderBlock('body', ['change' => Change::fromDocument(self::CHANGE + ['files' => $files]), 'message' => '', 'issues' => []]);
 
-        [$shown, $collapsed] = explode('<details class="detail-files-more">', $html);
+        [$shown, $collapsed] = explode('<ul class="show-more-rows', $html);
         self::assertSame(20, substr_count($shown, ': the changes touching this file"'));
-        self::assertStringContainsString('<summary>Show 3 more files</summary>', $collapsed);
+        self::assertStringContainsString('<span class="show-more-closed">Show 3 more files</span>', $collapsed);
         self::assertSame(3, substr_count($collapsed, ': the changes touching this file"'));
         // The order of the tree goes on in the collapsed ones
         self::assertStringContainsString('Classes/File20.php', $shown);
@@ -706,7 +944,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('<span class="detail-file-folder">Classes/</span><span class="detail-file-name">File01.php</span>', $shown);
 
         $html = $this->twig->load('change/show.html.twig')->renderBlock('body', ['change' => Change::fromDocument(self::CHANGE + ['files' => array_slice($files, 0, 20)]), 'message' => '', 'issues' => []]);
-        self::assertStringNotContainsString('detail-files-more', $html);
+        self::assertStringNotContainsString('show-more', $html);
     }
 
     public function testAChangeShowsEachLabelWithItsVotesItsFilesWithTheirLinesAndItsReviewLog(): void
@@ -794,8 +1032,18 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         // The comment under the message it was published with, open, and counted on its file
         self::assertStringContainsString('<code title="composer.json">composer.json:3</code>', $html);
         self::assertStringContainsString('<div class="timeline-comment-text">Why this version?</div>', $html);
-        self::assertStringContainsString('<div class="timeline-comment is-open">', $html);
-        self::assertStringContainsString('title="Comments on this file">', $html);
+        self::assertStringContainsString('<div class="timeline-comment is-open" id="comment-c1">', $html);
+        self::assertStringContainsString('class="detail-file-comments is-open"', $html);
+        self::assertStringContainsString('title="Comments on this file, 1 unresolved"', $html);
+        // The notice on top names the unresolved comments and leads to the first one
+        self::assertStringContainsString('<strong>1 unresolved comment</strong>', $html);
+        self::assertStringContainsString('<a href="#comment-c1">Show the first one</a>', $html);
+        // A row of a list names them, too. Not for a closed change: nobody has to answer any more
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change)]);
+        self::assertStringContainsString('title="1 unresolved comment, the owner has to answer"', $row);
+        $merged = Change::fromDocument(['reviewstatus' => 'MERGED'] + $change);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => $merged, 'size' => 'l']);
+        self::assertStringNotContainsString('unresolved', $row);
         self::assertStringContainsString('href="/change/80000">Change 80000</a>', $html);
     }
 
@@ -872,9 +1120,43 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
         self::assertStringContainsString('Merge conflicts <span class="detail-count">2</span>', $html);
         self::assertStringContainsString('href="/change/95192"', $html);
-        self::assertStringContainsString('Conflicts with this change', $html);
+        // The title of the section says how they belong to the change, the rows do not repeat it
+        self::assertStringNotContainsString('overview-list-relation', $html);
         // Not in Forger: its number leads to Gerrit
         self::assertStringContainsString('target="gerrit94029"', $html);
+        self::assertStringNotContainsString('show-more', $html);
+    }
+
+    public function testALongCommitMessageIsCollapsed(): void
+    {
+        $html = $this->twig->load('change/show.html.twig')->renderBlock('body', [
+            'change' => Change::fromDocument(self::CHANGE),
+            'message' => implode("\n", array_fill(0, 13, 'A line of the text.')) . "\n\nResolves: #91089",
+            'issues' => [],
+        ]);
+
+        self::assertStringContainsString('<pre class="detail-message show-more-text">', $html);
+        self::assertStringContainsString('<span class="show-more-closed">Show more</span>', $html);
+        // The footer stays in sight, below the toggle
+        self::assertLessThan(strpos($html, 'detail-message-footer'), strpos($html, '<details class="show-more">'));
+    }
+
+    public function testTheMergeConflictsAfterTheFirstFiveAreCollapsed(): void
+    {
+        $html = $this->twig->load('change/show.html.twig')->renderBlock('body', [
+            'change' => Change::fromDocument(self::CHANGE + ['merge_conflicts' => range(95001, 95007)]),
+            'message' => '',
+            'issues' => [],
+        ]);
+
+        [$shown, $collapsed] = explode('<ul class="show-more-rows', $html);
+        self::assertSame(5, substr_count($shown, 'target="gerrit950'));
+        self::assertStringContainsString('<span class="show-more-closed">Show 2 more changes</span>', $collapsed);
+        self::assertSame(2, substr_count($collapsed, 'target="gerrit950'));
+        self::assertStringContainsString('target="gerrit95005"', $shown);
+        self::assertStringContainsString('target="gerrit95006"', $collapsed);
+        // The toggle stays below the rows and closes them again
+        self::assertStringContainsString('<span class="show-more-open">Show less</span>', $collapsed);
     }
 
     public function testAChangeOfAnOlderImportHasNoReviewLog(): void
@@ -913,12 +1195,14 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         ];
         // The author is "benni" to the index "user", see UserDirectory::keyOf()
         $cache = self::getContainer()->get('cache.app');
-        $cache->delete('user_people');
-        $cache->get('user_people', static fn (): array => ['keys' => ['forge:1' => 'benni'], 'people' => ['benni' => ['name' => 'Benni Mack', 'username' => 'benni', 'forge' => 1, 'gerrit' => null]]]);
+        $cache->delete(UserDirectory::PEOPLE_CACHE_KEY);
+        $cache->get(UserDirectory::PEOPLE_CACHE_KEY, static fn (): array => ['keys' => ['forge:1' => 'benni'], 'people' => [
+            'benni' => ['name' => 'Benni Mack', 'names' => ['Benni Mack'], 'username' => 'benni', 'forge' => 1, 'gerrit' => null, 'linked' => ['forge' => [], 'gerrit' => []]],
+        ], 'aliases' => []]);
         try {
             $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', ['issue' => Issue::fromDocument($issue), 'changes' => [], 'unknownChanges' => []]);
         } finally {
-            $cache->delete('user_people');
+            $cache->delete(UserDirectory::PEOPLE_CACHE_KEY);
         }
 
         // As the checkboxes of the search write the filters, a space as "_"; a person by the username
@@ -935,7 +1219,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         $page = $this->twig->load('issue/show.html.twig')->renderBlock('body', ['issue' => Issue::fromDocument($none), 'changes' => [], 'unknownChanges' => []]);
         self::assertStringNotContainsString('<dt>TYPO3 version</dt>', $page);
         self::assertStringNotContainsString('<dt>Complexity</dt>', $page);
-        self::assertStringNotContainsString('title="TYPO3 version">v-', $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument($none), 'detailed' => true]));
+        self::assertStringNotContainsString('title="TYPO3 version">v-', $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument($none), 'size' => 'l']));
 
         // Forger has only one project
         $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', ['issue' => Issue::fromDocument($issue + ['project' => ['id' => 27, 'name' => 'TYPO3 Core']]), 'changes' => [], 'unknownChanges' => []]);
@@ -1054,8 +1338,8 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
     public function testListsLeadToTheDetailPages(): void
     {
-        self::assertStringContainsString('href="/change/81234"', $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::CHANGE), 'detailed' => true]));
-        self::assertStringContainsString('href="/issue/91089"', $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument(self::ISSUE), 'detailed' => true]));
+        self::assertStringContainsString('href="/change/81234"', $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::CHANGE), 'size' => 'l']));
+        self::assertStringContainsString('href="/issue/91089"', $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument(self::ISSUE), 'size' => 'l']));
     }
 
     public function testTheBreadcrumbLinksAllButThePageItself(): void
@@ -1266,6 +1550,17 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertMatchesRegularExpression('~over 10000 lines~', $html);
     }
 
+    public function testTheHelpExplainsMyWorkAndTheFiguresOfThePersonCards(): void
+    {
+        $html = $this->twig->load('static_page/help.html.twig')->renderBlock('body', []);
+
+        self::assertStringContainsString('<p id="person-cards">', $html);
+        self::assertStringContainsString('did in the last 6 months', $html);
+        self::assertStringContainsString('<dt>patch sets</dt><dd>new changes and new patch sets in Gerrit</dd>', $html);
+        self::assertMatchesRegularExpression('~You can follow up to\s+100 people\.~', $html);
+        self::assertStringContainsString('The "Waiting for" filter of the changes', $html);
+    }
+
     public function testAMergeConflictShowsInEveryRow(): void
     {
         $html = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(['mergeable' => 'no'] + self::CHANGE)]);
@@ -1286,7 +1581,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
     public function testListsShowTheSize(): void
     {
-        $html = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::CHANGE + ['insertions' => 40, 'deletions' => 20]), 'detailed' => true]);
+        $html = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::CHANGE + ['insertions' => 40, 'deletions' => 20]), 'size' => 'l']);
 
         self::assertStringContainsString('status-pill-size-normal" title="Normal: +40 −20 lines, up to 250 lines changed">Normal</span>', $html);
     }

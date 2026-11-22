@@ -7,8 +7,10 @@
     {% set list = '_partials/short_list.html.twig' %}
     {% set regressionSearch = {'filters': {'marked_as': {'Regression': 'true'}}, 'sort': 'updated'} %}
 
-    <div class="content-section content-section-small overview">
-        <div class="container">
+    {# The bands of the page are frames of the template bundle. The class "overview" in each sets the colors of
+       the cards, see assets/css/module/_dashboard.scss #}
+    {% frame %}
+        <div class="overview">
             <h1 class="sr-only">Dashboard</h1>
             {{ search.field(path('search_search'), '', {
                 'id': 'dashboard-search',
@@ -59,19 +61,28 @@
                 </a>
             </div>
         </div>
-    </div>
+    {% endframe %}
+
+    {# The own work of who is logged in, in a band of its own: white as the merges below it, a line between them #}
+    {% if personal is not null %}
+        {% frame with {'color': 'white', 'rulerAfter': true} %}
+            <div class="overview">
+                {% include 'dashboard/_for_you.html.twig' with {'personal': personal} only %}
+            </div>
+        {% endframe %}
+    {% endif %}
 
     {# The merges right below the figures, as thanks and as a spur: what the people of the Core got done, and the
        invitation to be next #}
-    <div class="content-section content-section-small bg-default overview">
-        <div class="container">
+    {% frame with {'color': 'white'} %}
+        <div class="overview">
             {% include 'dashboard/_recently_merged.html.twig' with {'changes': recentlyMerged} only %}
         </div>
-    </div>
+    {% endframe %}
 
     {# Who started to contribute, to welcome them and to help where they wait, beside the latest events #}
-    <div class="content-section content-section-small overview">
-        <div class="container">
+    {% frame %}
+        <div class="overview">
             {{ section.heading(
                 'Happening now',
                 'overview-now-title',
@@ -82,12 +93,10 @@
                 {% include 'dashboard/_activity.html.twig' %}
             </div>
         </div>
-    </div>
-    {# What the elements of the activity take from the server, once for the page #}
-    {% include 'stream/_definitions.html.twig' %}
+    {% endframe %}
 
-    <div class="content-section content-section-small overview">
-        <div class="container">
+    {% frame %}
+        <div class="overview">
             {# Where work waits: for the mergers first, then for every reviewer and triager #}
             {{ section.heading('What needs attention', 'overview-attention-title') }}
             <div class="overview-lists">
@@ -105,11 +114,15 @@
                     'title': 'Open regressions',
                     'url': path('search_search', regressionSearch),
                     'items': regressions,
+                    'known': ['regression'],
                     'kind': 'issue',
                     'empty': 'There is no open regression.',
                 } only %}
                 {% include 'dashboard/_new_issues.html.twig' with {'issues': newIssues} only %}
             </div>
         </div>
-    </div>
+    {% endframe %}
+    {# What the elements of the activity take from the server, once for the page. Below the frames: two frames of
+       the same color in a row share the room between them #}
+    {% include 'stream/_definitions.html.twig' %}
 {% endblock %}

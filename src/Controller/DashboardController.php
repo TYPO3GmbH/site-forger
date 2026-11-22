@@ -13,6 +13,8 @@ namespace App\Controller;
 
 use App\Enum\StreamFigureEnum;
 use App\Enum\StreamRangeEnum;
+use App\People\PersonalFigures;
+use App\People\PersonalWork;
 use App\Report\KeyFigures;
 use App\Search\StreamFilter;
 use App\Search\StreamWindow;
@@ -20,6 +22,7 @@ use App\Stream\StreamStatistics;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use T3G\Bundle\Keycloak\Security\KeyCloakUser;
 
 #[Route(path: '/', name: 'dashboard_')]
 class DashboardController extends AbstractController
@@ -32,12 +35,13 @@ class DashboardController extends AbstractController
     public function __construct(
         private readonly KeyFigures $keyFigures,
         private readonly StreamStatistics $statistics,
+        private readonly PersonalWork $personalWork,
     ) {
     }
 
     /**
-     * Where work waits: the key figures and the short lists of what needs attention. The charts are on the page of
-     * statistics, for a look now and then.
+     * Where work waits: for a user logged in the numbers of My Work, then the key figures and the short lists of
+     * what needs attention. The charts are on the page of statistics, for a look now and then.
      */
     #[Route(name: 'index')]
     public function index(): Response
@@ -64,7 +68,26 @@ class DashboardController extends AbstractController
             'changesTotal' => array_sum($changes),
             'waitingChanges' => $this->keyFigures->waitingChanges($today),
             'waitingFilter' => KeyFigures::waitingFilter($today),
+            'personal' => $this->personalFigures($today),
         ]);
+    }
+
+    /**
+     * What waits in My Work of the user logged in, null for a guest.
+     */
+    private function personalFigures(\DateTimeImmutable $now): ?PersonalFigures
+    {
+        $user = $this->getUser();
+        if (!$user instanceof KeyCloakUser) {
+            return null;
+        }
+
+        return $this->personalWork->figures(
+            $user->getUserIdentifier(),
+            (string) $user->getEmail(),
+            (string) $user->getDisplayName(),
+            $now,
+        );
     }
 
     /**

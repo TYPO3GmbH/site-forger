@@ -18,10 +18,13 @@ use App\Api\Model\ActivityCount;
 use App\Api\Model\ActivityCrew;
 use App\Api\Model\ActivityDuration;
 use App\Api\Model\ActivityEvent;
+use App\Api\Model\ActivityExchange;
 use App\Api\Model\ActivityFigure;
 use App\Api\Model\ActivityNewcomer;
 use App\Api\Model\ActivityNewcomers;
+use App\Api\Model\ActivityOwnWait;
 use App\Api\Model\ActivityPage;
+use App\Api\Model\ActivityPartner;
 use App\Api\Model\ActivityPerson;
 use App\Api\Model\ActivitySeries;
 use App\Api\Model\ActivityStatistics;
@@ -42,6 +45,9 @@ use App\People\Person;
 use App\People\User;
 use App\People\UserDirectory;
 use App\Search\StreamWindow;
+use App\Stream\OwnWait;
+use App\Stream\ReviewExchange;
+use App\Stream\ReviewPartner;
 use App\Stream\StreamClosedYear;
 use App\Stream\StreamCrew;
 use App\Stream\StreamDuration;
@@ -250,6 +256,49 @@ final readonly class ActivityMapper
         return new ActivityClosedYears(array_map($map, $years['issues']), array_map($map, $years['changes']));
     }
 
+    public function exchange(ReviewExchange $exchange, ActivityFilters $filters): ActivityExchange
+    {
+        return new ActivityExchange(
+            window: self::window($filters->window),
+            buckets: $exchange->buckets,
+            given: self::trend($exchange->given),
+            received: self::trend($exchange->received),
+            givenReviews: $exchange->givenReviews,
+            receivedReviews: $exchange->receivedReviews,
+            reviewed: $this->partners($exchange->reviewed),
+            reviewers: $this->partners($exchange->reviewers),
+            waits: array_map(
+                static fn (OwnWait $wait): ActivityOwnWait => new ActivityOwnWait(
+                    $wait->duration->value,
+                    $wait->duration->label(),
+                    $wait->duration->description(),
+                    $wait->count,
+                    $wait->median,
+                    $wait->allMedian,
+                ),
+                $exchange->waits,
+            ),
+        );
+    }
+
+    /**
+     * @param list<ReviewPartner> $partners
+     *
+     * @return list<ActivityPartner>
+     */
+    private function partners(array $partners): array
+    {
+        $mapped = [];
+        foreach ($partners as $partner) {
+            $person = $this->person($partner->person);
+            if (null !== $person) {
+                $mapped[] = new ActivityPartner($person, $partner->changes, $partner->reviews);
+            }
+        }
+
+        return $mapped;
+    }
+
     private static function trend(StreamTrend $trend): ActivityTrend
     {
         return new ActivityTrend($trend->count, $trend->previous, $trend->values, $trend->better->value);
@@ -360,20 +409,24 @@ final readonly class ActivityMapper
     }
 
     /**
-     * The person without the email: the API never shows one, see AGENTS.md.
+     * The person without the email: the API never shows one, see AGENTS.md. As every page shows the person: the
+     * name, the username and the key of the TYPO3 account, see UserDirectory::shown().
      */
     public function person(?Person $person): ?ActivityPerson
     {
-        if (null === $person || '' === $person->name) {
+        $shown = $this->users->shown($person);
+        if (null === $shown || '' === $shown->name) {
             return null;
         }
-        $key = match (true) {
-            null !== $person->forgeId => 'forge:' . $person->forgeId,
-            null !== $person->gerritId => 'gerrit:' . $person->gerritId,
-            default => $person->name,
-        };
 
-        return new ActivityPerson($person->name, $person->forgeId, $person->gerritId, $key, $this->avatar($person));
+        return new ActivityPerson(
+            $shown->name,
+            $shown->forgeId,
+            $shown->gerritId,
+            $this->users->keyOfPerson($shown),
+            $this->avatar($shown),
+            $shown->username,
+        );
     }
 
     private function personOfKey(?string $key): ?ActivityPerson
@@ -392,6 +445,7 @@ final readonly class ActivityMapper
             $person->gerritId,
             $key,
             $this->avatar($person),
+            $person->username,
         );
     }
 

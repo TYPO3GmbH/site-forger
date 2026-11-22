@@ -1,0 +1,19 @@
+{% import '_macros/status.html.twig' as status %}
+{#
+ # A change in three lines, see _partials/row/change.html.twig: the subject, below it who and what it is, then how
+ # it stands.
+ #}
+<a class="overview-list-item kind-change" href="{{ change_path(change.id) }}" title="{{ change.subject }}">
+    <span class="overview-list-item-main">
+        {{ title }}
+        <span class="overview-list-item-meta">
+            {% if relation is defined %}<span class="overview-list-relation">{{ relation }}</span>{% endif %}
+            {{ owner }}
+            {{ targets }}
+            {{ status.size(change) }}
+            {{ lines }}
+        </span>
+        <span class="overview-list-item-meta">{{ standing }}</span>
+    </span>
+    {{ date }}
+</a>

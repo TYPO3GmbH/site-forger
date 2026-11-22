@@ -17,16 +17,19 @@ use OpenApi\Attributes as OA;
 final readonly class ActivityPerson
 {
     public function __construct(
-        #[OA\Property(description: 'The name as Forge or Gerrit shows it.', example: 'Jane Doe')]
+        #[OA\Property(
+            description: 'The name of the TYPO3 account, the one of Gerrit first, as every page of Forger shows it.',
+            example: 'Jane Doe',
+        )]
         public string $name,
         #[OA\Property(description: 'The number of the user on Forge, null when not known.', example: 36415)]
         public ?int $forgeId,
         #[OA\Property(description: 'The number of the account on Gerrit, null when not known.', example: 14410)]
         public ?int $gerritId,
         #[OA\Property(
-            description: 'The key to filter the activity by the person, the parameter "person": "forge:<number>" '
-                . 'or "gerrit:<number>".',
-            example: 'forge:36415',
+            description: 'The key to filter the activity by the person, the parameter "person": the username of the '
+                . 'TYPO3 account, "forge:<number>" or "gerrit:<number>" while Forger does not know it.',
+            example: 'jdoe',
         )]
         public string $key,
         #[OA\Property(
@@ -35,6 +38,12 @@ final readonly class ActivityPerson
             example: 'https://www.gravatar.com/avatar/d41d8cd98f00b204e9800998ecf8427e?s=48&d=mp',
         )]
         public string $avatar,
+        #[OA\Property(
+            description: 'The username of the TYPO3 account, the same on Forge, Gerrit and my.typo3.org, where '
+                . '"https://my.typo3.org/u/<username>" is the public profile. Null when not known.',
+            example: 'jdoe',
+        )]
+        public ?string $username = null,
     ) {
     }
 }

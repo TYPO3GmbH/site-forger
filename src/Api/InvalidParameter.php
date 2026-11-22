@@ -42,6 +42,21 @@ final class InvalidParameter extends \InvalidArgumentException
         ));
     }
 
+    public static function needsOneOf(string $name, string $other): self
+    {
+        return new self(sprintf('The parameter "%s" or "%s" is required.', $name, $other));
+    }
+
+    public static function notTogether(string $name, string $other): self
+    {
+        return new self(sprintf('The parameters "%s" and "%s" do not go together. Use one of them.', $name, $other));
+    }
+
+    public static function tooMany(string $name, int $maximum): self
+    {
+        return new self(sprintf('The parameter "%s" takes at most %d values.', $name, $maximum));
+    }
+
     public static function notSingle(string $name): self
     {
         return new self(sprintf('The parameter "%s" takes a single value.', $name));

@@ -14,6 +14,7 @@ namespace App\Search;
 use App\Enum\ActivityEnum;
 use App\Enum\ReviewSizeEnum;
 use App\Enum\ReviewStatusEnum;
+use App\Enum\WaitingForEnum;
 use App\People\UserDirectory;
 use App\Report\MonthOverview;
 use Elastica\Query\BoolQuery;
@@ -41,6 +42,11 @@ final class ReviewLists
      * The changes of the search, also work in progress, and also merged and abandoned ones if asked for.
      */
     public const string SEARCH = 'search_changes';
+
+    /**
+     * The value of "filters[file][match]" for the changes that touch any of the paths, not each of them.
+     */
+    public const string FILES_ANY = 'any';
 
     /**
      * The query of the list, null for a name that is no list.
@@ -136,6 +142,21 @@ final class ReviewLists
     }
 
     /**
+     * The changes that touch any of the paths, as fileQuery() reads each of them: the interests of My Work. Null
+     * for no path.
+     *
+     * @param list<string> $paths
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function anyFileQuery(array $paths): ?array
+    {
+        $queries = array_map(self::pathQuery(...), self::filePaths(implode(',', $paths)));
+
+        return [] === $queries ? null : ['bool' => ['should' => $queries, 'minimum_should_match' => 1]];
+    }
+
+    /**
      * The paths of the filter "File", each once, without a "/" around it: "*.rst, typo3/sysext/core/" has "*.rst"
      * and "typo3/sysext/core".
      *
@@ -185,6 +206,8 @@ final class ReviewLists
             // The tags in the subject, like "BUGFIX" or "!!!", filtered as "filters[type][...]"
             'Type' => ['terms' => ['field' => 'reviewtags', 'size' => 50]],
             'Activity' => ActivityQuery::changeAggregation(),
+            // ReviewListSearch adds "Your vote" for the user logged in
+            WaitingQuery::TITLE => WaitingQuery::aggregation(),
         ];
 
         return array_diff_key($aggregations, array_flip($without));
@@ -194,16 +217,17 @@ final class ReviewLists
      * The query of the selected filters: "filters[<key>][<value>]=true", any value of a filter and all filters.
      *
      * @param array<string, mixed> $filters
+     * @param list<int>            $gerritIds the accounts of the user logged in, for "Your vote" of "Waiting for"
      */
-    public static function filterQuery(array $filters, UserDirectory $users): BoolQuery
+    public static function filterQuery(array $filters, UserDirectory $users, array $gerritIds = []): BoolQuery
     {
         $query = new BoolQuery();
         foreach ($filters as $key => $values) {
             $filter = match ((string) $key) {
-                'file' => self::simple(self::fileQuery(is_array($values) ? (string) ($values['path'] ?? '') : '')),
+                'file' => self::simple(self::fileFilterQuery(is_array($values) ? $values : [])),
                 'updated' => self::simple(self::updatedQuery(is_array($values) ? $values : [])),
                 'owner' => self::simple(PeopleFacet::query('Owner', FacetSelection::keys($filters, 'owner'), $users)),
-                default => is_array($values) ? self::anyOf((string) $key, $values) : null,
+                default => is_array($values) ? self::anyOf((string) $key, $values, $gerritIds) : null,
             };
             if (null !== $filter) {
                 $query->addMust($filter);
@@ -211,6 +235,23 @@ final class ReviewLists
         }
 
         return $query;
+    }
+
+    /**
+     * The filter "File": a change touches each path, or with "match" = "any" one of them.
+     *
+     * @param array<mixed> $values the parameters of the filter: path and match
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function fileFilterQuery(array $values): ?array
+    {
+        $paths = (string) ($values['path'] ?? '');
+        if (self::FILES_ANY === ($values['match'] ?? '')) {
+            return self::anyFileQuery(self::filePaths($paths));
+        }
+
+        return self::fileQuery($paths);
     }
 
     /**
@@ -243,8 +284,9 @@ final class ReviewLists
 
     /**
      * @param array<int|string, mixed> $values
+     * @param list<int>                $gerritIds
      */
-    private static function anyOf(string $key, array $values): ?BoolQuery
+    private static function anyOf(string $key, array $values, array $gerritIds): ?BoolQuery
     {
         $any = new BoolQuery();
         $count = 0;
@@ -252,7 +294,7 @@ final class ReviewLists
             if ('true' !== $selected) {
                 continue;
             }
-            $filter = self::valueQuery($key, str_replace('_', ' ', (string) $value));
+            $filter = self::valueQuery($key, str_replace('_', ' ', (string) $value), $gerritIds);
             if (null !== $filter) {
                 $any->addShould($filter);
                 ++$count;
@@ -262,9 +304,16 @@ final class ReviewLists
         return $count > 0 ? $any : null;
     }
 
-    private static function valueQuery(string $key, string $value): Simple|Range|Term|null
+    /**
+     * @param list<int> $gerritIds
+     */
+    private static function valueQuery(string $key, string $value, array $gerritIds): Simple|Range|Term|null
     {
         switch ($key) {
+            case WaitingQuery::KEY:
+                $step = WaitingForEnum::tryFromLabel($value);
+
+                return null === $step ? null : new Simple(WaitingQuery::changes($step, $gerritIds));
             case 'activity':
                 // Only open changes have a stage, also when closed ones are searched
                 $stage = ActivityEnum::tryFromLabel($value);

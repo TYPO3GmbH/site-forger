@@ -38,6 +38,9 @@ final class LinkTwigExtensionTest extends KernelTestCase
         $change = 'https://review.typo3.org/c/Packages/TYPO3.CMS/+/81234/';
 
         self::assertSame('https://forge.typo3.org/issues/91089/edit', $render('{{ forge_issue_edit_url(91089) }}'));
+        self::assertSame('https://my.typo3.org/u/benjaminkott', $render("{{ typo3_profile_url('BenjaminKott') }}"));
+        self::assertSame('https://forge.typo3.org/users/128', $render('{{ forge_user_url(128) }}'));
+        self::assertSame('https://review.typo3.org/dashboard/7342', $render('{{ gerrit_user_url(7342) }}'));
         self::assertSame(
             'https://forge.typo3.org/issues/91089#change-584554',
             $render('{{ forge_journal_url(91089, 584554) }}'),

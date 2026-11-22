@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\People;
 
 use App\Elastic\Indices;
+use App\Repository\PersonLinkRepository;
 use App\Repository\UserRepository;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -22,11 +23,21 @@ use Symfony\Contracts\Cache\ItemInterface;
  *
  * The issues keep only the number and the name of their author and assignee. The changes keep the number of their
  * owner on Gerrit. The pages look up the rest here. A page shows dozens of people, so the lookups are cached.
+ *
+ * An admin can link accounts to a person, see App\Entity\PersonLink: an account on Forge or Gerrit, or the person
+ * of another TYPO3 account. The account then counts as the person's everywhere: its keys lead to the person, and
+ * numbersOf() gives its numbers with the person's.
+ *
+ * @phpstan-type Entry array{name: string, names: list<string>, username: string|null, forge: int|null,
+ *     gerrit: int|null, linked: array{forge: list<int>, gerrit: list<int>}}
+ * @phpstan-type People array{keys: array<string, string>, people: array<string, Entry>,
+ *     aliases: array<string, string>}
  */
 class UserDirectory
 {
     private const string AVATARS_CACHE_KEY = 'user_avatars';
-    private const string PEOPLE_CACHE_KEY = 'user_people';
+    // The version changes with what it keeps of a person
+    public const string PEOPLE_CACHE_KEY = 'user_people_3';
     private const int CACHE_LIFETIME = 600;
 
     /**
@@ -38,7 +49,7 @@ class UserDirectory
     private ?array $avatars = null;
 
     /**
-     * @var array{keys: array<string, string>, people: array<string, array{name: string, username: string|null, forge: int|null, gerrit: int|null}>}|null
+     * @var People|null
      */
     private ?array $people = null;
 
@@ -53,6 +64,7 @@ class UserDirectory
         private readonly Indices $indices,
         private readonly CacheInterface $cache,
         private readonly LoggerInterface $logger,
+        private readonly ?PersonLinkRepository $links = null,
     ) {
     }
 
@@ -114,6 +126,30 @@ class UserDirectory
     }
 
     /**
+     * The person as every page and the API show it: the name, the username and both numbers of the TYPO3 account,
+     * the name of Gerrit first, see User::displayName(). An event or a document only has the name of its system,
+     * like "Ge Rie" of Forge for "Georg Ringer". A person the index of the users does not know stays as it is.
+     */
+    public function shown(?Person $person): ?Person
+    {
+        if (null === $person || (null === $person->forgeId && null === $person->gerritId)) {
+            return $person;
+        }
+        $known = $this->personOf($this->keyOfPerson($person));
+        if (null === $known || '' === $known->name) {
+            return $person;
+        }
+
+        return new Person(
+            $known->name,
+            forgeId: $known->forgeId ?? $person->forgeId,
+            gerritId: $known->gerritId ?? $person->gerritId,
+            email: $person->email,
+            username: $known->username ?? $person->username,
+        );
+    }
+
+    /**
      * The person of a key of the filters of people, see keyOf().
      * A key "forge:<number>" without a document gives the number alone. A key that is no person's is a name, as
      * the links had them before: then it is null.
@@ -130,9 +166,54 @@ class UserDirectory
 
             return 'forge' === $matches[1] ? new Person('', forgeId: $number) : new Person('', gerritId: $number);
         }
-        $person = $people['people'][mb_strtolower($key)] ?? null;
+        $person = $this->entryOf($key);
 
         return null === $person ? null : self::person($person);
+    }
+
+    /**
+     * The person of a key that is the id of a document, or of a document linked to a person.
+     *
+     * @return Entry|null
+     */
+    private function entryOf(string $key): ?array
+    {
+        $people = $this->people();
+        $id = mb_strtolower($key);
+
+        return $people['people'][$people['aliases'][$id] ?? $id] ?? null;
+    }
+
+    /**
+     * The key to keep for a person, see keyOf(): given as "forge:<number>", "gerrit:<number>" or the username.
+     * Null when the value names no person, like the words of a name.
+     */
+    public function storedKeyOf(string $value): ?string
+    {
+        $value = mb_strtolower(trim($value));
+        if (1 === preg_match('/^(forge|gerrit):(\d{1,9})$/', $value, $matches)) {
+            return $this->keyOf($matches[1], (int) $matches[2]);
+        }
+
+        return null === $this->personOf($value) ? null : $value;
+    }
+
+    /**
+     * Every key of the person of a key: the key itself, "forge:<number>" and "gerrit:<number>". A link names a
+     * person by any of them.
+     *
+     * @return list<string>
+     */
+    public function keysOf(string $key): array
+    {
+        $keys = [$key];
+        foreach (['forge', 'gerrit'] as $system) {
+            foreach ($this->numbersOf($key, $system) as $number) {
+                $keys[] = $system . ':' . $number;
+            }
+        }
+
+        return array_values(array_unique($keys));
     }
 
     /**
@@ -148,9 +229,9 @@ class UserDirectory
     public function numbersOf(string $key, string $system): array
     {
         $person = $this->personOf($key);
-        $number = 'forge' === $system ? $person?->forgeId : $person?->gerritId;
-        if (null !== $number) {
-            return [$number];
+        $numbers = $this->accountNumbers($key, $system);
+        if ([] !== $numbers) {
+            return $numbers;
         }
         $name = null === $person ? str_replace('_', ' ', $key) : $person->name;
         if ('' === $name) {
@@ -159,13 +240,52 @@ class UserDirectory
         if (!isset($this->byName[$system])) {
             $this->byName[$system] = [];
             foreach ($this->people()['people'] as $other) {
-                if (null !== $other[$system]) {
-                    $this->byName[$system][$other['name']][] = (int) $other[$system];
+                if (null === $other[$system]) {
+                    continue;
+                }
+                // A person is found by each name: the one shown and the one of Forge
+                foreach ($other['names'] as $otherName) {
+                    $this->byName[$system][$otherName][] = (int) $other[$system];
                 }
             }
         }
 
         return $this->byName[$system][$name] ?? [];
+    }
+
+    /**
+     * The numbers of the accounts of the person of a key in a system: its own and the ones linked to it.
+     *
+     * @param string $system "forge" or "gerrit"
+     *
+     * @return list<int>
+     */
+    private function accountNumbers(string $key, string $system): array
+    {
+        if (1 === preg_match('/^(forge|gerrit):(\d+)$/', $key, $matches)) {
+            $id = $this->people()['keys'][$key] ?? null;
+            if (null === $id) {
+                return $matches[1] === $system ? [(int) $matches[2]] : [];
+            }
+            $key = $id;
+        }
+        $entry = $this->entryOf($key);
+        if (null === $entry) {
+            return [];
+        }
+
+        $forge = 'forge' === $system;
+        $numbers = [];
+        foreach ([
+            $forge ? $entry['forge'] : $entry['gerrit'],
+            ...($forge ? $entry['linked']['forge'] : $entry['linked']['gerrit']),
+        ] as $number) {
+            if (null !== $number && !in_array($number, $numbers, true)) {
+                $numbers[] = $number;
+            }
+        }
+
+        return $numbers;
     }
 
     /**
@@ -202,9 +322,11 @@ class UserDirectory
                 foreach ($user->keys() as $key) {
                     $avatars[$key] = $avatar;
                 }
-                $byName[$user->name][$avatar] = true;
-            } elseif (null !== $user->forgeId && null === $user->fetchedOn && '' !== $user->name) {
-                $waiting['forge:' . $user->forgeId] = $user->name;
+                foreach ($user->names() as $name) {
+                    $byName[$name][$avatar] = true;
+                }
+            } elseif (null !== $user->forgeId && null === $user->fetchedOn && '' !== $user->forgeName) {
+                $waiting['forge:' . $user->forgeId] = $user->forgeName;
             }
         }
         foreach ($waiting as $key => $name) {
@@ -217,7 +339,7 @@ class UserDirectory
     }
 
     /**
-     * @param array{name: string, username: string|null, forge: int|null, gerrit: int|null} $person see people()
+     * @param Entry $person see people()
      */
     private static function person(array $person): Person
     {
@@ -229,6 +351,50 @@ class UserDirectory
         );
     }
 
+    /**
+     * @param Entry $entry
+     *
+     * @return Entry
+     */
+    private static function withNumber(array $entry, string $system, int $number): array
+    {
+        $linked = $entry['linked'];
+        if ('forge' === $system) {
+            $linked['forge'][] = $number;
+        } else {
+            $linked['gerrit'][] = $number;
+        }
+        $entry['linked'] = $linked;
+
+        return $entry;
+    }
+
+    /**
+     * The person with the numbers and names of a document linked to it.
+     *
+     * @param Entry $entry
+     * @param Entry $document
+     *
+     * @return Entry
+     */
+    private static function withDocument(array $entry, array $document): array
+    {
+        $numbers = static fn (?int $own, array $linked): array => array_values(array_filter(
+            [$own, ...$linked],
+            static fn (?int $number): bool => null !== $number,
+        ));
+        $entry['linked'] = [
+            'forge' => [...$entry['linked']['forge'], ...$numbers($document['forge'], $document['linked']['forge'])],
+            'gerrit' => [
+                ...$entry['linked']['gerrit'],
+                ...$numbers($document['gerrit'], $document['linked']['gerrit']),
+            ],
+        ];
+        $entry['names'] = array_values(array_unique([...$entry['names'], ...$document['names']]));
+
+        return $entry;
+    }
+
     private function avatarBy(string $key, int $size): ?string
     {
         $hash = $this->avatars()[$key] ?? null;
@@ -237,15 +403,16 @@ class UserDirectory
     }
 
     /**
-     * The id of the document by "forge:<number>" and "gerrit:<number>" ("keys"), and the people by the id.
+     * The id of the document by "forge:<number>" and "gerrit:<number>" ("keys"), the people by the id, and the
+     * person of each document linked to another ("aliases"), see linked().
      *
-     * @return array{keys: array<string, string>, people: array<string, array{name: string, username: string|null, forge: int|null, gerrit: int|null}>}
+     * @return People
      */
     private function people(): array
     {
         return $this->people ??= $this->cache->get(self::PEOPLE_CACHE_KEY, function (ItemInterface $item): array {
             $item->expiresAfter(self::CACHE_LIFETIME);
-            $people = ['keys' => [], 'people' => []];
+            $people = ['keys' => [], 'people' => [], 'aliases' => []];
             try {
                 foreach ($this->everyone() as $user) {
                     $id = $user->id();
@@ -253,12 +420,15 @@ class UserDirectory
                         $people['keys'][$key] = $id;
                     }
                     $people['people'][$id] = [
-                        'name' => $user->name,
+                        'name' => $user->displayName(),
+                        'names' => $user->names(),
                         'username' => $user->username,
                         'forge' => $user->forgeId,
                         'gerrit' => $user->gerritId,
+                        'linked' => ['forge' => [], 'gerrit' => []],
                     ];
                 }
+                $people = self::linked($people, $this->links?->persons() ?? []);
             } catch (\Exception $e) {
                 // The filters find the people by their numbers and names then
                 $this->logger->warning('The people could not be read: ' . $e->getMessage(), ['exception' => $e]);
@@ -267,6 +437,51 @@ class UserDirectory
 
             return $people;
         });
+    }
+
+    /**
+     * The people with the accounts an admin linked to them: the document of an account goes up in the person, its
+     * keys lead to the person, its numbers count as the person's. An account of no document still leads to the
+     * person by its key. A link to a person the index does not know does nothing.
+     *
+     * @param People                $people
+     * @param array<string, string> $links  the username of the person by the key of the account
+     *
+     * @return People
+     */
+    public static function linked(array $people, array $links): array
+    {
+        foreach ($links as $account => $person) {
+            $target = $people['people'][$person] ?? null;
+            if (null === $target) {
+                continue;
+            }
+            $source = $people['keys'][$account] ?? (isset($people['people'][$account]) ? $account : null);
+            if (null === $source) {
+                // An account of no document: its key leads to the person
+                if (1 === preg_match('/^(forge|gerrit):(\d+)$/', $account, $matches)) {
+                    $people['keys'][$account] = $person;
+                    $people['people'][$person] = self::withNumber($target, $matches[1], (int) $matches[2]);
+                }
+                continue;
+            }
+            if ($source === $person) {
+                continue;
+            }
+            $people['people'][$person] = self::withDocument($target, $people['people'][$source]);
+            unset($people['people'][$source]);
+            $people['keys'] = array_map(
+                static fn (string $id): string => $id === $source ? $person : $id,
+                $people['keys'],
+            );
+            $people['aliases'] = array_map(
+                static fn (string $id): string => $id === $source ? $person : $id,
+                $people['aliases'],
+            );
+            $people['aliases'][$source] = $person;
+        }
+
+        return $people;
     }
 
     /**

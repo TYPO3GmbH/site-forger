@@ -2,67 +2,63 @@
 {% block title %}Dev Login{% endblock %}
 {% block body %}
 
-    <div class="content-section bg-primary text-white">
-        <div class="container">
-            <h1>Dev Login</h1>
-            <p>Only available in the dev environment. Log in as one of the fixed users or with your Keycloak account.</p>
-        </div>
-    </div>
+    {% frame with {'color': 'primary'} %}
+        <h1>Dev Login</h1>
+        <p>Only available in the dev environment. Log in as one of the fixed users or with your Keycloak account.</p>
+    {% endframe %}
 
-    <div class="content-section bg-transparent">
-        <div class="container">
-            {% if error %}
-                <div class="alert alert-danger" role="alert">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
-            {% endif %}
-            {% if app.user %}
-                <div class="alert alert-info" role="alert">
-                    Logged in as <strong>{{ app.user.displayName }}</strong> ({{ app.user.roles|join(', ') }}).
-                    <a href="{{ path('logout') }}">Sign out</a>
-                </div>
-            {% endif %}
+    {% frame %}
+        {% if error %}
+            <div class="alert alert-danger" role="alert">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+        {% endif %}
+        {% if app.user %}
+            <div class="alert alert-info" role="alert">
+                Logged in as <strong>{{ app.user.displayName }}</strong> ({{ app.user.roles|join(', ') }}).
+                <a href="{{ path('logout') }}">Sign out</a>
+            </div>
+        {% endif %}
 
-            <div class="card">
-                <div class="card-body">
-                    <h3>Fixed users</h3>
-                    <table class="table">
-                        <thead>
+        <div class="card">
+            <div class="card-body">
+                <h3>Fixed users</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Roles</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for identifier, user in users %}
                             <tr>
-                                <th>User</th>
-                                <th>Roles</th>
-                                <th></th>
+                                <td>{{ user.name }} <code>{{ identifier }}</code></td>
+                                <td>
+                                    {% for role in user.roles %}
+                                        <span class="badge badge-secondary">{{ role }}</span>
+                                    {% endfor %}
+                                </td>
+                                <td class="text-right">
+                                    <form method="post" action="{{ path('dev_login') }}">
+                                        <input type="hidden" name="identifier" value="{{ identifier }}">
+                                        <input type="hidden" name="_csrf_token" value="{{ csrf_token(csrf_token_id) }}">
+                                        <button type="submit" class="btn btn-primary">Log in</button>
+                                    </form>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {% for identifier, user in users %}
-                                <tr>
-                                    <td>{{ user.name }} <code>{{ identifier }}</code></td>
-                                    <td>
-                                        {% for role in user.roles %}
-                                            <span class="badge badge-secondary">{{ role }}</span>
-                                        {% endfor %}
-                                    </td>
-                                    <td class="text-right">
-                                        <form method="post" action="{{ path('dev_login') }}">
-                                            <input type="hidden" name="identifier" value="{{ identifier }}">
-                                            <input type="hidden" name="_csrf_token" value="{{ csrf_token(csrf_token_id) }}">
-                                            <button type="submit" class="btn btn-primary">Log in</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-body">
-                    <h3>Keycloak</h3>
-                    <p>Requires a valid <code>KEYCLOAK_CLIENT_SECRET</code> in <code>.env.local</code>.</p>
-                    <a href="{{ path('t3g_keycloak_login') }}" class="btn btn-secondary">Login with Keycloak</a>
-                </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
-    </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h3>Keycloak</h3>
+                <p>Requires a valid <code>KEYCLOAK_CLIENT_SECRET</code> in <code>.env.local</code>.</p>
+                <a href="{{ path('t3g_keycloak_login') }}" class="btn btn-secondary">Login with Keycloak</a>
+            </div>
+        </div>
+    {% endframe %}
 
 {% endblock %}

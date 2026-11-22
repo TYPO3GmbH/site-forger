@@ -1,0 +1,15 @@
+{#
+ # A change in two lines for a narrow card, see _partials/row/change.html.twig: the subject, below it the owner, the
+ # lines it changes and how it stands. The second line never wraps: the name of the owner gives way, what does not fit is cut.
+ #}
+<a class="overview-list-item kind-change is-xs" href="{{ change_path(change.id) }}" title="{{ change.subject }}">
+    <span class="overview-list-item-main">
+        {{ title }}
+        <span class="overview-list-item-meta">
+            {{ owner }}
+            {{ lines }}
+            {{ standing }}
+        </span>
+    </span>
+    {{ date }}
+</a>

@@ -2,6 +2,7 @@ import { html, nothing, type PropertyValues, type TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { fetchStatistics } from './api';
 import './closed-years';
+import './exchange';
 import './filter';
 import { comparedWith, type FigureGroup } from './figures';
 import './flow';
@@ -16,7 +17,7 @@ import type { ActivityStatistics as Statistics } from './types';
 const REFRESH_SECONDS = 60;
 
 /**
- * The statistics of the activity: one board of all of it, the key figures, the waits, what came in and went out,
+ * The statistics of the activity: one board of all of it, or of one user, see personalBoard(), the key figures, the waits, what came in and went out,
  * the new contributors, the events over time and per weekday and hour, what was closed over the years. Only the
  * time window changes it: so each widget has its fixed place, see ".stream-dashboard". It loads them with the API
  * and renders them again every minute while the window ends now.
@@ -31,6 +32,8 @@ export class ActivityStatisticsElement extends LightElement {
     @property({ attribute: 'days-api-url' }) daysApiUrl = '';
     @property({ attribute: 'newcomers-api-url' }) newcomersApiUrl = '';
     @property({ attribute: 'closed-years-api-url' }) closedYearsApiUrl = '';
+    @property({ attribute: 'exchange-api-url' }) exchangeApiUrl = '';
+    @property({ attribute: 'changes-url' }) changesUrl = '';
 
     private readonly loader = new Loader<Statistics>(this);
     private timer: number | undefined;
@@ -101,7 +104,6 @@ export class ActivityStatisticsElement extends LightElement {
             return html`<p class="stream-empty" aria-busy="true">Counting the activity …</p>`;
         }
 
-        const crew = statistics.crews.length > 0;
         const figures = (group: FigureGroup): TemplateResult => html`
             <forger-activity-figures
                 group=${group}
@@ -110,6 +112,11 @@ export class ActivityStatisticsElement extends LightElement {
                 stream-url=${this.streamUrl}
             ></forger-activity-figures>
         `;
+
+        if (this.state.own !== null) {
+            return this.personalBoard(statistics, figures);
+        }
+        const crew = statistics.crews.length > 0;
 
         return html`
             <div class="stream-statistics" aria-busy=${this.loader.loading ? 'true' : 'false'}>
@@ -162,6 +169,52 @@ export class ActivityStatisticsElement extends LightElement {
                     <forger-activity-closed-years
                         api-url=${this.closedYearsApiUrl}
                     ></forger-activity-closed-years>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * The board of one user: what the user got done, how long the changes of the user wait, the reviews with
+     * others, the activity over time, per weekday and hour, and over the year. The open work, the waits of all, the
+     * flow and the crews count all people, so they stay on the board of all.
+     */
+    private personalBoard(
+        statistics: Statistics,
+        figures: (group: FigureGroup) => TemplateResult,
+    ): TemplateResult {
+        return html`
+            <div class="stream-statistics" aria-busy=${this.loader.loading ? 'true' : 'false'}>
+                <h2 class="sr-only">Key figures</h2>
+                <div class="stream-dashboard">
+                    ${figures('counts')}
+                    <forger-activity-exchange
+                        .state=${this.state}
+                        api-url=${this.exchangeApiUrl}
+                        stream-url=${this.streamUrl}
+                        changes-url=${this.changesUrl}
+                    ></forger-activity-exchange>
+                    <forger-activity-timeline
+                        class="stream-widget is-full"
+                        .statistics=${statistics}
+                        .state=${this.state}
+                        api-url=${this.apiUrl}
+                        statistics-url=${this.statisticsUrl}
+                        stream-url=${this.streamUrl}
+                    ></forger-activity-timeline>
+                    <forger-activity-hours
+                        class="stream-widget is-full"
+                        .state=${this.state}
+                        api-url=${this.weekHoursApiUrl}
+                        statistics-url=${this.statisticsUrl}
+                    ></forger-activity-hours>
+                    <forger-activity-year
+                        class="stream-widget is-full"
+                        .state=${this.state}
+                        api-url=${this.daysApiUrl}
+                        statistics-url=${this.statisticsUrl}
+                        stream-url=${this.streamUrl}
+                    ></forger-activity-year>
                 </div>
             </div>
         `;

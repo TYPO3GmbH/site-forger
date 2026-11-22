@@ -147,11 +147,11 @@ export class ActivityNewcomersElement extends LightElement {
         return html`
             <button
                 type="button"
-                class="stream-newcomers-more"
+                class="show-more stream-newcomers-more"
                 aria-expanded=${this.expanded ? 'true' : 'false'}
                 @click=${() => { this.expanded = !this.expanded; }}
             >
-                ${this.expanded ? 'Show fewer' : `Show all ${formatNumber(people.length)}`}
+                ${this.expanded ? 'Show less' : `Show ${formatNumber(people.length - COLLAPSED_ROWS)} more`}
                 ${icon('actions-chevron-down')}
             </button>
         `;

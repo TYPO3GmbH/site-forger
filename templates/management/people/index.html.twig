@@ -1,0 +1,244 @@
+{% extends 'base.html.twig' %}
+{% block title %}People{% endblock %}
+{#
+ # The people for the admins, see App\Controller\PeopleController: the search of a person, and the accounts that
+ # may belong to another person, by reason. Each suggestion puts the account beside the person: avatar, name, key
+ # and activity, and whether the names match. Each link and each "no" is confirmed on its own, one click per
+ # suggestion: an account renamed to "old_…" may belong to someone else. A suggestion turned down does not come
+ # again.
+ # The tab "Linked" lists the accounts linked already, the latest first, to check and to unlink. A link the sources
+ # contradict carries a warning: Forge or Gerrit give the account to another username. The links the sources joined
+ # go by themselves, see App\People\PersonLinkCleanup.
+ # Expects: view ("suggestions" or "linked"), links (list of link: App\Entity\PersonLink, account and person:
+ #          App\People\User or null, contradicted: the username of the sources or null), linkedCount, suggestions
+ #          (list of App\People\LinkSuggestion), total, reason (LinkReasonEnum), reasons, counts (by the value of
+ #          the reason), limit, more, activity (App\People\AccountActivity by account key), csrfTokenId
+ #}
+
+{% macro did(document, activity) %}
+    {% set forge = document.forgeId ? activity['forge:' ~ document.forgeId] ?? null : null %}
+    {% set gerrit = document.gerritId ? activity['gerrit:' ~ document.gerritId] ?? null : null %}
+    {% set events = (forge.events ?? 0) + (gerrit.events ?? 0) %}
+    {% set forgeLast = forge.last ?? null ? forge.last|date('Y') : 0 %}
+    {% set last = max(forgeLast, gerrit.last ?? null ? gerrit.last|date('Y') : 0) %}
+    <span class="people-did">
+        {%- if events > 0 -%}
+            {{ events|number_format(0, '.', ',') }} events, last {{ last }}
+        {%- else -%}
+            no events
+        {%- endif -%}
+    </span>
+{% endmacro %}
+
+{#
+ # One decision on one suggestion, a form of its own: each link and each "no" is confirmed on its own.
+ #}
+{% macro decide(pair, action, label, title, reason, limit, token) %}
+    <form class="people-decide" method="post" action="{{ path('management_people_' ~ action ~ '_suggestion') }}">
+        <input type="hidden" name="_token" value="{{ token }}">
+        <input type="hidden" name="pair" value="{{ pair }}">
+        <input type="hidden" name="reason" value="{{ reason.value }}">
+        <input type="hidden" name="limit" value="{{ limit }}">
+        <button type="submit" title="{{ title }}"
+                class="btn btn-sm {{ action == 'link' ? 'btn-default' : 'btn-link' }}">
+            {{- label -}}
+        </button>
+    </form>
+{% endmacro %}
+
+{% macro who(document, extra = null) %}
+    <a class="people-who" href="{{ path('management_people_show', {'key': document.id}) }}">
+        {{ user_avatar(document.asPerson, 32) }}
+        <span class="people-who-text">
+            <span class="people-who-name">{{ document.displayName ?: document.id }}</span>
+            <code class="people-who-key">{{ document.id }}</code>
+        </span>
+    </a>
+    {{ extra }}
+{% endmacro %}
+
+{% block body %}
+    {% import _self as people %}
+    {% set pairToken = csrf_token(csrfTokenId) %}
+    <div class="content-section content-section-small">
+        <div class="container">
+            <header class="page-intro">
+                <h1 class="page-intro-title">People</h1>
+                <p class="page-intro-summary">
+                    The accounts of a person on Forge, on Gerrit and of TYPO3. Link the accounts no source joins:
+                    they count as the person's everywhere in Forger. Forge, Gerrit and the TYPO3 accounts stay as
+                    they are.
+                </p>
+            </header>
+
+            <form class="people-search" method="get" action="{{ path('management_people') }}">
+                <input type="hidden" name="person" value="">
+                <forger-person-search
+                    search-url="{{ path('activity_people') }}"
+                    label="Find a person"
+                    placeholder="Find a person by name or username"
+                    show-keys
+                    submit
+                ></forger-person-search>
+            </form>
+
+            <h2 class="people-heading">Accounts</h2>
+            <nav class="chips people-reasons" aria-label="Accounts to check and accounts linked">
+                {% for item in reasons %}
+                    {% set active = view == 'suggestions' and item == reason %}
+                    <a href="{{ path('management_people', {'reason': item.value}) }}" title="{{ item.description }}"
+                       class="chip{{ active ? ' is-active' }}"{% if active %} aria-current="true"{% endif %}>
+                        {{ item.label }} <span class="chip-count">{{ counts[item.value] }}</span>
+                    </a>
+                {% endfor %}
+                <a href="{{ path('management_people', {'view': 'linked'}) }}" title="The accounts linked already"
+                   class="chip{{ view == 'linked' ? ' is-active' }}"
+                   {%- if view == 'linked' %} aria-current="true"{% endif %}>
+                    Linked <span class="chip-count">{{ linkedCount }}</span>
+                </a>
+            </nav>
+
+            {% if view == 'linked' %}
+                {{ block('linked') }}
+            {% else %}
+            <p class="people-lead">{{ reason.description }}. Check the names and the activity before you link one.</p>
+
+            {% if suggestions is empty %}
+                {% include '_partials/alert.html.twig' with {'message': 'Nothing to check.', 'style': 'info'} only %}
+            {% else %}
+                <div>
+                    <div class="count-table-frame">
+                        <table class="count-table people-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Account</th>
+                                    <th scope="col" class="people-match"><span class="sr-only">Names</span></th>
+                                    <th scope="col">May belong to</th>
+                                    <th scope="col"><span class="sr-only">Actions</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for suggestion in suggestions %}
+                                    {% set account = suggestion.account %}
+                                    {% set person = suggestion.person %}
+                                    {% set pair = account.id ~ ' ' ~ person.id %}
+                                    <tr class="{{ suggestion.sameName ? 'is-same' : 'is-other' }}">
+                                        <td>{{ people.who(account, people.did(account, activity)) }}</td>
+                                        <td class="people-match">
+                                            {% if suggestion.sameName %}
+                                                <span class="people-match-same" title="The names match">=</span>
+                                            {% else %}
+                                                <span class="people-match-other" title="The names differ">≠</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {{ people.who(person) }}
+                                            <a class="people-source-link" href="{{ typo3_profile_url(person.id) }}"
+                                               target="_blank" rel="noopener" title="The profile on my.typo3.org">
+                                                my.typo3.org {{ icon('actions-window-open') }}
+                                            </a>
+                                        </td>
+                                        <td class="people-actions">
+                                            {% set link = account.id ~ ' counts as ' ~ person.id %}
+                                            {% set dismiss = account.id ~ ' is not ' ~ person.id %}
+                                            {{ people.decide(pair, 'link', 'Link', link, reason, limit, pairToken) }}
+                                            {{ people.decide(
+                                                pair,
+                                                'dismiss',
+                                                'Not the same',
+                                                dismiss,
+                                                reason,
+                                                limit,
+                                                pairToken,
+                                            ) }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="people-picked">
+                        <span class="people-lead">{{ suggestions|length }} of {{ total }}</span>
+                        {% if total > suggestions|length %}
+                            <a href="{{ path('management_people', {'reason': reason.value, 'limit': limit + more}) }}">
+                                Show {{ min(more, total - suggestions|length) }} more
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+{#
+ # The accounts linked already: the account, the person it counts as, who linked it and when, and "Unlink".
+ #}
+{% block linked %}
+    {% import _self as people %}
+    <p class="people-lead">The accounts linked to a person, the latest first. Each counts as the person's.</p>
+    {% if links is empty %}
+        {% include '_partials/alert.html.twig' with {'message': 'No account is linked yet.', 'style': 'info'} only %}
+    {% else %}
+        <div class="count-table-frame">
+            <table class="count-table people-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Account</th>
+                        <th scope="col" class="people-match"><span class="sr-only">Counts as</span></th>
+                        <th scope="col">Counts as</th>
+                        <th scope="col">Linked</th>
+                        <th scope="col"><span class="sr-only">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in links %}
+                        {% set account = entry.link.account %}
+                        {% set person = entry.link.person %}
+                        <tr>
+                            <td>
+                                {% if entry.account %}
+                                    {{ people.who(entry.account) }}
+                                {% else %}
+                                    <code>{{ account }}</code> <span class="people-none">not in the index</span>
+                                {% endif %}
+                            </td>
+                            <td class="people-match">{{ icon('actions-arrow-right') }}</td>
+                            <td>
+                                {% if entry.person %}
+                                    {{ people.who(entry.person) }}
+                                {% else %}
+                                    <code>{{ person }}</code> <span class="people-none">not in the index</span>
+                                {% endif %}
+                                {% if entry.contradicted %}
+                                    <span class="people-contradicted">
+                                        {{ icon('actions-exclamation-triangle') }}
+                                        The sources say {{ account }} is
+                                        <a href="{{ path('management_people_show', {'key': entry.contradicted}) }}">
+                                            {{- entry.contradicted -}}
+                                        </a>
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ entry.link.linkedBy }}
+                                <span class="people-did">{{ entry.link.linkedAt|date('M j, Y') }}</span>
+                            </td>
+                            <td class="people-actions">
+                                <form method="post"
+                                      action="{{ path('management_people_unlink', {'key': person}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token(csrfTokenId) }}">
+                                    <input type="hidden" name="account" value="{{ account }}">
+                                    <input type="hidden" name="back" value="linked">
+                                    <button type="submit" class="btn btn-sm btn-link"
+                                            title="Count {{ account }} as its own person again">Unlink</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

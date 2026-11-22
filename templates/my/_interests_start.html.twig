@@ -1,0 +1,14 @@
+{#
+ # No interest yet: what interests are for, and the button to add one.
+ #}
+<div class="mywork-interests-start">
+    <span class="mywork-following-start-icon" aria-hidden="true">{{ icon('actions-filter') }}</span>
+    <div class="mywork-interests-start-text">
+        <h3 class="mywork-following-start-title">What do you care for?</h3>
+        <p class="mywork-following-start-text">
+            Add an interest, like the documentation: the files of the changes, such as <code>*.rst</code>, and the
+            categories of the issues. Your lists then show only the changes and issues of it.
+        </p>
+    </div>
+    <a class="btn btn-primary" href="{{ path('my_interests_new') }}">{{ icon('actions-plus') }} Add an interest</a>
+</div>

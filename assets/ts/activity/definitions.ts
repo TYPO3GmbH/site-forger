@@ -33,6 +33,7 @@ interface Definitions {
     newcomerStates: NewcomerStateDefinition[];
     reviewTypes: { value: string; severity: string }[];
     firstYear: number;
+    profileUrl: string;
 }
 
 let definitions: Definitions | null = null;
@@ -43,7 +44,14 @@ function load(): Definitions {
         const script = document.getElementById('forger-activity-definitions');
         definitions = script
             ? (JSON.parse(script.textContent ?? '{}') as Definitions)
-            : { sources: [], kinds: [], newcomerStates: [], reviewTypes: [], firstYear: new Date().getFullYear() };
+            : {
+                sources: [],
+                kinds: [],
+                newcomerStates: [],
+                reviewTypes: [],
+                firstYear: new Date().getFullYear(),
+                profileUrl: '',
+            };
     }
 
     return definitions;
@@ -62,6 +70,16 @@ export function firstYear(): number {
  */
 export function reviewTypeSeverity(tag: string): string | null {
     return load().reviewTypes.find(type => type.value === tag)?.severity ?? null;
+}
+
+/**
+ * The public profile of a TYPO3 account on my.typo3.org, see App\Twig\LinkTwigExtension::typo3ProfileUrl(). Null
+ * without the address.
+ */
+export function profileUrl(username: string): string | null {
+    const pattern = load().profileUrl;
+
+    return pattern === '' ? null : pattern.replace('%s', encodeURIComponent(username.toLowerCase()));
 }
 
 export function sources(): SourceDefinition[] {

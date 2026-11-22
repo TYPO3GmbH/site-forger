@@ -31,6 +31,24 @@
         --views-accent-strong: #b54708;
     }
 
+    // The interests of My Work
+    &.is-interests {
+        --views-accent: #7c3aed;
+        --views-accent-strong: #6d28d9;
+    }
+
+    // The people of My Work
+    &.is-following {
+        --views-accent: #0f8a7e;
+        --views-accent-strong: #0f766e;
+    }
+
+    // The statistics of My Work
+    &.is-statistics {
+        --views-accent: #b4234c;
+        --views-accent-strong: #9f1239;
+    }
+
     &:hover,
     &:focus-visible {
         color: #111827;
@@ -51,6 +69,10 @@
     }
 }
 
+.view-tab-short {
+    display: none;
+}
+
 .view-tab-count {
     min-width: 1.6em;
     padding: .05rem .5rem;
@@ -60,4 +82,33 @@
     font-size: .875rem;
     font-variant-numeric: tabular-nums;
     text-align: center;
+}
+
+// The tabs on a phone: smaller, and they scroll on their own instead of the page
+@media (max-width: 575px) {
+    .view-tabs {
+        justify-content: space-between;
+        gap: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    // The six tabs of My Work fit side by side in 375px
+    .view-tab {
+        flex: none;
+        gap: .4rem;
+        padding: .6rem .25rem .7rem;
+        font-size: .875rem;
+
+        // The names say enough where the room is short
+        .icon,
+        .view-tab-count,
+        .view-tab-long {
+            display: none;
+        }
+
+        .view-tab-short {
+            display: inline;
+        }
+    }
 }

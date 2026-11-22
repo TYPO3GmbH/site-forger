@@ -105,6 +105,24 @@ final readonly class Bucket
      */
     public function buckets(string $name): ReadableCollection
     {
-        return self::listOf(is_array($this->bucket[$name] ?? null) ? $this->bucket[$name] : null);
+        return self::listOf($this->aggregation($name));
+    }
+
+    /**
+     * The documents of a sub-aggregation of a single bucket, like a "filter" aggregation.
+     */
+    public function countOf(string $name): int
+    {
+        return (int) ($this->bucket[$name]['doc_count'] ?? 0);
+    }
+
+    /**
+     * A sub-aggregation as Elasticsearch sends it, like a histogram, null without it.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function aggregation(string $name): ?array
+    {
+        return is_array($this->bucket[$name] ?? null) ? $this->bucket[$name] : null;
     }
 }

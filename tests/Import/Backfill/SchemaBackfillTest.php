@@ -14,6 +14,7 @@ namespace App\Tests\Import\Backfill;
 use App\Elastic\Indices;
 use App\Import\Backfill\BackfillStep;
 use App\Import\Backfill\ChangeClosedOn;
+use App\Import\Backfill\ChangeVoters;
 use App\Import\Backfill\SchemaBackfill;
 use App\Import\Backfill\SchemaStep;
 use App\Import\ImportSchema;
@@ -44,7 +45,10 @@ final class SchemaBackfillTest extends KernelTestCase
         $steps = array_map(static fn (BackfillStep $step): string => $step::class, $this->backfill()->steps());
 
         // By index, the steps of the import before the stream: the events come from the lifted document
-        self::assertSame([IssueActivity::class, ChangeClosedOn::class, ChangeActivity::class], $steps);
+        self::assertSame(
+            [IssueActivity::class, ChangeClosedOn::class, ChangeVoters::class, ChangeActivity::class],
+            $steps,
+        );
     }
 
     public function testAStepOfTheImportWritesItsFieldsAndTheNextVersion(): void
@@ -68,11 +72,12 @@ final class SchemaBackfillTest extends KernelTestCase
 
     public function testTheStatusTellsWhatLiftsEachVersion(): void
     {
-        $versions = PendingImport::versions(Indices::REVIEW, [3 => 10, 5 => 30, 4 => 20], $this->backfill());
+        $versions = PendingImport::versions(Indices::REVIEW, [3 => 10, 5 => 30, 4 => 20, 6 => 40], $this->backfill());
 
         self::assertSame(
             [
-                ['version' => 5, 'documents' => 30, 'state' => 'current'],
+                ['version' => 6, 'documents' => 40, 'state' => 'current'],
+                ['version' => 5, 'documents' => 30, 'state' => 'backfill'],
                 ['version' => 4, 'documents' => 20, 'state' => 'backfill'],
                 ['version' => 3, 'documents' => 10, 'state' => 'import'],
             ],
@@ -90,6 +95,19 @@ final class SchemaBackfillTest extends KernelTestCase
             $step->derive(['reviewstatus' => 'MERGED', 'messages' => [$merge]]),
         );
         self::assertSame(['closed_on' => null], $step->derive(['reviewstatus' => 'NEW', 'messages' => []]));
+    }
+
+    public function testTheVotersComeFromTheStoredVotes(): void
+    {
+        $votes = [
+            ['label' => 'Code-Review', 'value' => 1, 'account' => ['id' => 7, 'name' => 'Jane Doe']],
+            ['label' => 'Verified', 'value' => 1, 'account' => ['id' => 7, 'name' => 'Jane Doe']],
+            ['label' => 'Code-Review', 'value' => -1, 'account' => ['id' => 9, 'name' => 'John Roe']],
+            ['label' => 'Verified', 'value' => 1, 'account' => null],
+        ];
+
+        self::assertSame(['voters' => [7, 9]], new ChangeVoters()->derive(['votes' => $votes]));
+        self::assertSame(['voters' => []], new ChangeVoters()->derive([]));
     }
 
     public function testDocumentsWithoutAVersionAreOfTheFirst(): void

@@ -1,28 +1,56 @@
 # The people of Forge and Gerrit, see App\Repository\UserRepository: the issues keep only their number and name.
-# A document per TYPO3 account, its id the username, "forge:<forge_id>" until Forge told the username.
-username:
-  type: keyword
-forge_id:
+# A document per TYPO3 account, its id the username, "forge:<number>" or "gerrit:<number>" while it is not known.
+# Each source has its own part, and none writes the part of another, see App\People\User.
+
+# The form of the document, see App\People\User::SCHEMA
+schema:
   type: integer
-gerrit_id:
-  type: integer
+# The name the pages show, of the parts: the account first, then Gerrit, then Forge
 name:
   type: keyword
+# The addresses known of the person, in lower case: to find a person and its avatar, never shown
 email:
   type: keyword
-fetched_on:
-  type: date
-  format: yyyy/MM/dd HH:mm:ss
-gone:
-  type: boolean
-# The HTTP status Forge answered for a gone user, see App\Import\ForgeUserSync
-gone_status:
-  type: integer
-# When Gerrit was asked for the account of the username, see App\Import\GerritAccountLookup
-gerrit_looked_up_on:
-  type: date
-  format: yyyy/MM/dd HH:mm:ss
-# When the person logged in here with the TYPO3 account last, see App\Repository\UserRepository::recordLogin()
-typo3_login_on:
-  type: date
-  format: yyyy/MM/dd HH:mm:ss
+# The TYPO3 account, the login of Forge, Gerrit and Forger
+account:
+  properties:
+    # Joins the parts: the Forge login and the Gerrit username are the same
+    username:
+      type: keyword
+    # The name the account sent at the last login here
+    name:
+      type: keyword
+    # When the person logged in here last, see App\Repository\UserRepository::recordLogin()
+    login_on:
+      type: date
+      format: yyyy/MM/dd HH:mm:ss
+# The user on Forge, see App\Import\ForgeUserSync
+forge:
+  properties:
+    id:
+      type: integer
+    # The first and the last name of the profile
+    name:
+      type: keyword
+    # When Forge was asked for the user last
+    fetched_on:
+      type: date
+      format: yyyy/MM/dd HH:mm:ss
+    # Forge does not know the user (any more): deleted, locked, or a group
+    gone:
+      type: boolean
+    # The HTTP status Forge answered for a gone user
+    gone_status:
+      type: integer
+# The account on Gerrit, see App\Import\GerritChangeImporter and App\Import\GerritAccountLookup
+gerrit:
+  properties:
+    id:
+      type: integer
+    # Empty when the activity has none, see App\Import\GerritNames
+    name:
+      type: keyword
+    # When Gerrit was asked for the account of the username
+    looked_up_on:
+      type: date
+      format: yyyy/MM/dd HH:mm:ss

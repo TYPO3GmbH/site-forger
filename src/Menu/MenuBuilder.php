@@ -29,6 +29,11 @@ use T3G\Bundle\TemplateBundle\Utility\AvatarUtility;
  */
 class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
 {
+    /**
+     * The name of the item of the dashboard, the home page: every breadcrumb starts there, see Breadcrumb.
+     */
+    public const string HOME = 'index';
+
     public function __construct(
         ParameterBagInterface $parameters,
         FactoryInterface $factory,
@@ -52,20 +57,10 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
     public function mainDefault(array $options): ItemInterface
     {
         $menu = $this->factory->createItem('root');
-        $menu->addChild('index', ['label' => 'Dashboard', 'route' => 'dashboard_index']);
-        $activity = $menu->addChild('activity', ['label' => 'Activity', 'route' => 'activity_index']);
-        $this->addLink($activity, 'activity_index', 'Stream', 'activity_index', 'actions-list');
-        $this->addLink($activity, 'statistics', 'Statistics', 'dashboard_statistics', 'actions-viewmode-tiles');
-        // Where somebody new starts, before the lists the Core team works with
-        $menu->addChild('get_involved', ['label' => 'Get involved', 'route' => 'get_involved']);
+        // The work first: the own one, then the lists. Get involved stands beside Help, see mainProfile().
+        $menu->addChild(self::HOME, ['label' => 'Dashboard', 'route' => 'dashboard_index']);
         if ($this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
-            $myWork = $menu->addChild('my_work', ['label' => 'My Work', 'route' => 'my_changes']);
-            $this->addLink($myWork, 'my_changes', 'My reviews', 'my_changes', 'actions-code-pull-request');
-            $this->addLink($myWork, 'my_issues', 'My issues', 'my_issues', 'actions-list');
-            // The tabs of My Work say where the page is
-            foreach ($myWork->getChildren() as $child) {
-                $child->setExtra('breadcrumb', false);
-            }
+            $this->addMyWork($menu->addChild('my_work', ['label' => 'My Work', 'route' => 'my_overview']));
         }
 
         // A click on "Reviews" or "Issues" opens their search, all open ones without search words: the entry page,
@@ -88,6 +83,11 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         $this->addLink($issues, 'issues_duplicates', 'Possible duplicates', 'issues_duplicates', 'actions-duplicates');
         $this->addLink($issues, 'issues_by_category', 'By category', 'issues_by_category', 'actions-tag');
         $this->addLink($issues, 'issues_by_month', 'By month', 'issues_by_month', 'actions-calendar');
+
+        // The statistics first: what got done and what waits. The stream of the single events comes second.
+        $activity = $menu->addChild('activity', ['label' => 'Activity', 'route' => 'dashboard_statistics']);
+        $this->addLink($activity, 'statistics', 'Statistics', 'dashboard_statistics', 'actions-viewmode-tiles');
+        $this->addLink($activity, 'activity_index', 'Stream', 'activity_index', 'actions-list');
 
         $sprints = $menu->addChild('sprint', ['label' => 'Sprints', 'route' => 'sprint_overview']);
         $this->addLink($sprints, 'sprint_overview', 'Overview', 'sprint_overview', 'actions-viewmode-layout');
@@ -145,6 +145,19 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
     }
 
     /**
+     * The views of My Work: in the main menu and in the menu of the account.
+     */
+    private function addMyWork(ItemInterface $parent): void
+    {
+        $this->addLink($parent, 'my_overview', 'Overview', 'my_overview', 'actions-viewmode-tiles');
+        $this->addLink($parent, 'my_changes', 'Reviews', 'my_changes', 'actions-code-pull-request');
+        $this->addLink($parent, 'my_issues', 'Issues', 'my_issues', 'actions-list');
+        $this->addLink($parent, 'my_interests', 'Interests', 'my_interests', 'actions-filter');
+        $this->addLink($parent, 'my_following', 'Following', 'my_following', 'actions-users');
+        $this->addLink($parent, 'my_statistics', 'Statistics', 'my_statistics', 'actions-history');
+    }
+
+    /**
      * A heading of a group in a dropdown: an item without a link, rendered as label only.
      */
     private function addHeader(ItemInterface $parent, string $label): void
@@ -160,6 +173,8 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
     public function mainProfile(array $options): ItemInterface
     {
         $menu = $this->factory->createItem('root');
+        // Where somebody new starts, beside the help
+        $menu->addChild('get_involved', ['label' => 'Get involved', 'route' => 'get_involved']);
         $menu->addChild(
             'help',
             [
@@ -195,6 +210,9 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             $this->addHeader($admin, 'Operations');
             $this->addLink($admin, 'management-command-runs', 'Command runs', 'management_command_runs', 'actions-history');
             $this->addLink($admin, 'management-system', 'System', 'management_system', 'actions-database');
+            $this->addHeader($admin, 'Community');
+            $this->addLink($admin, 'management-leaderboard', 'Leaderboard', 'management_leaderboard', 'actions-users');
+            $this->addLink($admin, 'management-people', 'People', 'management_people', 'actions-user');
         }
         $user = $this->tokenStorage->getToken()?->getUser();
         if ($user instanceof KeyCloakUser && $this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
@@ -208,6 +226,11 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     ],
                 ]
             );
+            // The own pages first, as on other sites the menu of the account
+            $this->addHeader($account, 'My Work');
+            $this->addMyWork($account);
+            $this->addHeader($account, 'Account');
+            $this->addLink($account, 'my_following_manage', 'People you follow', 'my_following_manage', 'actions-user');
             if ($this->isKeycloakSession()) {
                 $this->addAccountItems($account, 't3g_keycloak_logout');
             } else {

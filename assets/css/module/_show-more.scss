@@ -1,0 +1,79 @@
+// "Show more": the rest of a list or of a long text on a click, "Show less" closes it again. One toggle for all of
+// them. In a template it is an empty "details" after what it opens, see templates/_macros/more.html.twig. In a
+// web component it is a button with "aria-expanded".
+
+.show-more > summary,
+button.show-more {
+    display: inline-flex;
+    gap: .35rem;
+    align-items: center;
+    padding: .35rem 0;
+    border: 0;
+    background: none;
+    color: #374151;
+    font-family: var(--bs-body-font-family, sans-serif);
+    font-size: .875rem;
+    font-weight: 600;
+    list-style: none;
+    cursor: pointer;
+
+    &::-webkit-details-marker {
+        display: none;
+    }
+
+    &:hover,
+    &:focus-visible {
+        color: #0b0b0b;
+    }
+}
+
+.show-more[open] .icon,
+.show-more[aria-expanded="true"] .icon {
+    transform: rotate(180deg);
+}
+
+.show-more[open] .show-more-closed,
+.show-more:not([open]) .show-more-open {
+    display: none;
+}
+
+// In a list with a frame the toggle is its last row
+.show-more.is-row {
+    border-top: 1px solid #f0f1f3;
+
+    > summary {
+        display: flex;
+        padding: .5rem 1rem;
+
+        &:hover,
+        &:focus-visible {
+            background: #f7f8fa;
+        }
+    }
+}
+
+// The rows of a list after the first ones
+.show-more-rows {
+    border-top: 1px solid #f0f1f3;
+
+    &:not(:has(~ .show-more[open])) {
+        display: none;
+    }
+}
+
+// A long text: about eight lines, fading out
+.show-more-text:not(:has(~ .show-more[open])) {
+    position: relative;
+    max-height: 13rem;
+    overflow: hidden;
+
+    &::after {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: 2rem;
+        background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #fff);
+        content: '';
+    }
+}

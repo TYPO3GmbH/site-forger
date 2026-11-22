@@ -69,11 +69,12 @@ final readonly class GerritAccountLookup
 
     /**
      * The user with the number and the email of its account on Gerrit, if Gerrit has one. Null when Gerrit fails:
-     * then the user is asked for again later.
+     * then the user is asked for again later. With $always it asks for every user with a username, for an admin
+     * who misses something of it, see App\Controller\PeopleController::refresh().
      */
-    public function lookUp(User $user, \DateTimeImmutable $now): ?User
+    public function lookUp(User $user, \DateTimeImmutable $now, bool $always = false): ?User
     {
-        if (!self::needsLookUp($user)) {
+        if (null === $user->username || (!$always && !self::needsLookUp($user))) {
             return $user;
         }
         try {

@@ -16,11 +16,11 @@ use Knp\Menu\Twig\Helper;
 use Twig\Attribute\AsTwigFunction;
 
 /**
- * The breadcrumb of a page in the menu, from its item: "Reviews › Needs rebase".
+ * The breadcrumb of a page in the menu, from its item: "Reviews › Needs rebase". The trail starts at the dashboard,
+ * which _macros/breadcrumb.html.twig puts first.
  *
  * A page with a block "breadcrumb" of its own, like the detail pages, does not ask for it. Without a trail are the
- * pages a click on the first level opens (the search of the reviews and the issues, the dashboard), pages the menu does
- * not have, and the items with the extra "breadcrumb" set to false, as the tabs of My Work say where the page is.
+ * dashboard itself and pages the menu does not have.
  */
 final readonly class Breadcrumb
 {
@@ -51,7 +51,8 @@ final readonly class Breadcrumb
      */
     public static function trail(ItemInterface $current): array
     {
-        if (false === $current->getExtra('breadcrumb', true)) {
+        // The dashboard is where every trail starts
+        if (MenuBuilder::HOME === $current->getName()) {
             return [];
         }
         $items = [];
@@ -63,7 +64,6 @@ final readonly class Breadcrumb
                 : ['label' => $item->getLabel(), 'url' => $uri]);
         }
 
-        // An item of the first level is a page of its own, it needs no trail
-        return count($items) > 1 ? $items : [];
+        return $items;
     }
 }

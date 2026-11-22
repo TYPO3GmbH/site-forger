@@ -12,8 +12,11 @@ declare(strict_types=1);
 namespace App\Tests\Search;
 
 use App\Enum\ReviewStatusEnum;
+use App\Enum\WaitingForEnum;
+use App\People\UserDirectory;
 use App\Search\ReviewLists;
 use App\Search\ReviewSearch;
+use App\Search\WaitingQuery;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -133,6 +136,29 @@ final class ReviewListsTest extends TestCase
         ]], $patterns);
         self::assertNull(ReviewLists::fileQuery(' , / '));
         self::assertSame(['*.rst', 'typo3/sysext/core'], ReviewLists::filePaths(' *.rst,/typo3/sysext/core/ ,, *.rst'));
+    }
+
+    public function testTheFilterFileFindsTheChangesThatTouchAnyPathOnRequest(): void
+    {
+        $filters = ['file' => ['path' => '*.rst, *.md', 'match' => ReviewLists::FILES_ANY]];
+        $query = ReviewLists::filterQuery($filters, self::createStub(UserDirectory::class))->toArray();
+
+        self::assertSame(
+            ReviewLists::anyFileQuery(['*.rst', '*.md']),
+            $query['bool']['must'][0],
+        );
+    }
+
+    public function testTheFilterWaitingForFindsTheChangesOfTheStepsTicked(): void
+    {
+        $filters = [WaitingQuery::KEY => ['Your_vote' => 'true', 'Owner' => 'false']];
+        $query = ReviewLists::filterQuery($filters, self::createStub(UserDirectory::class), [9])->toArray();
+
+        self::assertEquals(
+            [WaitingQuery::changes(WaitingForEnum::YOUR_VOTE, [9])],
+            $query['bool']['must'][0]['bool']['should'],
+        );
+        self::assertArrayHasKey(WaitingQuery::TITLE, ReviewLists::aggregations());
     }
 
     public function testUnknownListHasNoQuery(): void

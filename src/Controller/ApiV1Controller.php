@@ -21,6 +21,7 @@ use App\Api\IssueMapper;
 use App\Api\ListParameters;
 use App\Api\Model\ActivityCalendar;
 use App\Api\Model\ActivityClosedYears;
+use App\Api\Model\ActivityExchange;
 use App\Api\Model\ActivityNewcomers;
 use App\Api\Model\ActivityPage;
 use App\Api\Model\ActivityStatistics;
@@ -492,6 +493,7 @@ class ApiV1Controller extends AbstractController
     #[OA\Parameter(ref: '#/components/parameters/activityKind')]
     #[OA\Parameter(ref: '#/components/parameters/activityBranch')]
     #[OA\Parameter(ref: '#/components/parameters/activityPerson')]
+    #[OA\Parameter(ref: '#/components/parameters/activityPeople')]
     #[OA\Parameter(ref: '#/components/parameters/activityBots')]
     #[OA\Parameter(ref: '#/components/parameters/limit')]
     #[OA\Parameter(ref: '#/components/parameters/offset')]
@@ -536,6 +538,7 @@ class ApiV1Controller extends AbstractController
     #[OA\Parameter(ref: '#/components/parameters/activityKind')]
     #[OA\Parameter(ref: '#/components/parameters/activityBranch')]
     #[OA\Parameter(ref: '#/components/parameters/activityPerson')]
+    #[OA\Parameter(ref: '#/components/parameters/activityPeople')]
     #[OA\Parameter(ref: '#/components/parameters/activityBots')]
     #[OA\Parameter(
         name: 'interval',
@@ -621,6 +624,7 @@ class ApiV1Controller extends AbstractController
     #[OA\Parameter(ref: '#/components/parameters/activityKind')]
     #[OA\Parameter(ref: '#/components/parameters/activityBranch')]
     #[OA\Parameter(ref: '#/components/parameters/activityPerson')]
+    #[OA\Parameter(ref: '#/components/parameters/activityPeople')]
     #[OA\Parameter(ref: '#/components/parameters/activityBots')]
     #[OA\Response(
         response: 200,
@@ -657,6 +661,7 @@ class ApiV1Controller extends AbstractController
     #[OA\Parameter(ref: '#/components/parameters/activityKind')]
     #[OA\Parameter(ref: '#/components/parameters/activityBranch')]
     #[OA\Parameter(ref: '#/components/parameters/activityPerson')]
+    #[OA\Parameter(ref: '#/components/parameters/activityPeople')]
     #[OA\Parameter(ref: '#/components/parameters/activityBots')]
     #[OA\Response(
         response: 200,
@@ -678,6 +683,48 @@ class ApiV1Controller extends AbstractController
 
         return self::respond($this->activityMapper->calendar(
             $this->streamStatistics->days($filters->filter, $filters->window),
+            $filters,
+        ));
+    }
+
+    #[Route(path: '/activity/exchange', name: 'activity_exchange')]
+    #[OA\Get(
+        operationId: 'getActivityExchange',
+        description: 'Counts the reviews between a person and the others in the time window: the votes and comments '
+            . 'of the person on the changes of others, the ones of others on the changes of the person, and the '
+            . 'closest partners of each. Also how long the changes of the person waited, beside all changes. It needs '
+            . '"person" or "people". Without a time window it covers the last seven days in UTC.',
+        summary: 'Count the reviews between a person and the others',
+        tags: ['Activity'],
+    )]
+    #[OA\Parameter(ref: '#/components/parameters/activityRange')]
+    #[OA\Parameter(ref: '#/components/parameters/activityFrom')]
+    #[OA\Parameter(ref: '#/components/parameters/activityTo')]
+    #[OA\Parameter(ref: '#/components/parameters/activitySince')]
+    #[OA\Parameter(ref: '#/components/parameters/activityTimeZone')]
+    #[OA\Parameter(ref: '#/components/parameters/activityPerson')]
+    #[OA\Parameter(ref: '#/components/parameters/activityPeople')]
+    #[OA\Response(
+        response: 200,
+        description: 'The reviews between the person and the others.',
+        content: new Model(type: ActivityExchange::class),
+    )]
+    #[OA\Response(response: 400, description: self::BAD_REQUEST, content: new Model(type: Error::class))]
+    #[OA\Response(response: 429, description: self::TOO_MANY_REQUESTS, content: new Model(type: Error::class))]
+    public function activityExchange(Request $request): JsonResponse
+    {
+        try {
+            // A person nobody has counts nothing, as "people" finds nothing then
+            if (!$request->query->has('person') && !$request->query->has('people')) {
+                throw InvalidParameter::needsOneOf('person', 'people');
+            }
+            $filters = ActivityFilters::fromRequest($request, $this->users);
+        } catch (InvalidParameter $e) {
+            return self::error($e->getMessage(), Response::HTTP_BAD_REQUEST);
+        }
+
+        return self::respond($this->activityMapper->exchange(
+            $this->streamStatistics->exchange($filters->filter, $filters->window),
             $filters,
         ));
     }

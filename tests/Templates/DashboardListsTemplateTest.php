@@ -22,6 +22,8 @@ use Twig\Environment;
  */
 final class DashboardListsTemplateTest extends KernelTestCase
 {
+    use KnowsNoPeople;
+
     /**
      * An issue without the optional fields: no category, nobody assigned.
      */
@@ -53,6 +55,7 @@ final class DashboardListsTemplateTest extends KernelTestCase
         self::bootKernel();
         $this->twig = self::getContainer()->get('twig');
         self::assertTrue($this->twig->isStrictVariables());
+        self::knowNoPeople();
     }
 
     public function testNewIssues(): void
@@ -87,8 +90,11 @@ final class DashboardListsTemplateTest extends KernelTestCase
 
         // The priority is not of interest in a list, the page of the issue has it
         self::assertStringNotContainsString('Must have', $html);
-        self::assertStringContainsString('<span title="Category">Backend</span>', $html);
-        self::assertStringContainsString('v13', $html);
+        // Category and version are for the larger rows, the card stays lean
+        self::assertStringNotContainsString('title="Category"', $html);
+        $row = $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument($issue)]);
+        self::assertStringContainsString('title="Category">Backend</span>', $row);
+        self::assertStringContainsString('v13', $row);
     }
 
     public function testARegressionIsMarked(): void
@@ -132,9 +138,12 @@ final class DashboardListsTemplateTest extends KernelTestCase
         self::assertStringContainsString('status-pill-vote-approved" title="Code review: +2 by a merger · 3 for, 0 against">CR +2</span>', $html);
         self::assertStringContainsString('status-pill-vote-recommended" title="Verified: +1 · 2 for, 0 against">V +1</span>', $html);
         // The branch of the change and "omitted" are no target releases
-        self::assertStringContainsString('→ main</span>', $html);
-        self::assertStringContainsString('<span title="Topic">cache</span>', $html);
-        self::assertStringContainsString('<span class="is-added">+12</span> <span class="is-removed">&minus;3</span>', $html);
+        self::assertStringContainsString('→ <span class="tag-label is-backport">13.4</span>, main</span>', $html);
+        // The topic is for the review lists and the page of the change, the lines for the larger rows
+        self::assertStringNotContainsString('title="Topic"', $html);
+        self::assertStringNotContainsString('Lines added and removed', $html);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change)]);
+        self::assertStringContainsString('<span class="is-added">+12</span> <span class="is-removed">&minus;3</span>', $row);
     }
 
     public function testNoNewIssues(): void

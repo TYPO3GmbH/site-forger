@@ -1,0 +1,34 @@
+{% import '_macros/status.html.twig' as status %}
+{% import '_macros/user.html.twig' as user %}
+{#
+ # An issue in a row of the search, see _partials/row/issue.html.twig: the whole subject, below it the beginning of
+ # the description, then in one line the tracker and the status, the author, category and versions, then the
+ # activity and the marks. The update and the assignee in a column on the right, the same in every row.
+ #}
+<a class="overview-list-item kind-issue overview-list-item-detailed" href="{{ issue_path(issue.id) }}" title="{{ issue.subject }}">
+    <span class="overview-list-item-main">
+        {{ title }}
+        {% set teaser = (issue.description ?? null)|forgeTeaser(teaserLength ?? 240) %}
+        {% if teaser is not empty %}<span class="overview-list-item-teaser">{{ teaser }}</span>{% endif %}
+        <span class="overview-list-item-meta">
+            {{ trackerTag }}
+            {{ statusPill }}
+            {{ author }}
+            {{ category }}
+            {{ version }}
+            {% if issue.fixedVersion.name is defined %}<span title="Target version">→ {{ issue.fixedVersion.name }}</span>{% endif %}
+            {{ status.issueActivity(issue) }}
+            {{ marks }}
+        </span>
+        {% if note is defined and note is not empty %}<span class="overview-list-item-note">{{ note }}</span>{% endif %}
+    </span>
+    <span class="overview-list-column">
+        {{ date }}
+        {% set assignee = issue.assignedTo.name ?? null %}
+        {% if viewer is defined and viewer is not empty and (assignee is null or assignee == viewer) %}
+            <span class="overview-list-column-line" title="Assigned to">{{ assignee is null ? 'Unassigned' : 'Assigned to you' }}</span>
+        {% elseif assignee is not null %}
+            <span class="overview-list-column-line">{{ user.inline(issue.assignedTo, role: 'Assigned to') }}</span>
+        {% endif %}
+    </span>
+</a>

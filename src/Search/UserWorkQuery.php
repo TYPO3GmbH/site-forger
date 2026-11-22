@@ -16,6 +16,7 @@ use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
 use App\Enum\ReviewStatusEnum;
+use App\Enum\WaitingForEnum;
 use App\Repository\UserRepository;
 
 /**
@@ -81,11 +82,7 @@ final readonly class UserWorkQuery
      */
     public function reviews(): array
     {
-        $request = $this->request([
-            ['owner_id' => $this->gerritIds],
-            ['ownerEmail' => $this->emails()],
-            ['owner' => $this->names()],
-        ], ReviewSearch::query($this->searchTerms));
+        $request = $this->request($this->owner(), ReviewSearch::query($this->searchTerms));
         $request['sort'] = ReviewSortQuery::sort($this->reviewSort);
         $states = [];
         foreach (ReviewStateEnum::cases() as $state) {
@@ -100,6 +97,40 @@ final readonly class UserWorkQuery
             ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]],
             null === $this->reviewState ? null : ReviewStateQuery::changes($this->reviewState),
         );
+    }
+
+    /**
+     * The open changes of the person that wait for the person, not for a review: a negative vote, a merge conflict
+     * or unresolved comments. For the overview of My Work, the ones updated last first.
+     *
+     * @return array<string, mixed> the Elasticsearch request
+     */
+    public function changesWaitingForOwner(int $size): array
+    {
+        $request = $this->request($this->owner());
+
+        return [...$request, 'size' => $size, 'query' => ['bool' => ['filter' => [
+            $request['query'],
+            WaitingQuery::changes(WaitingForEnum::OWNER),
+        ]]]];
+    }
+
+    /**
+     * The open issues assigned to the person, for the overview of My Work, the ones updated last first.
+     *
+     * @return array<string, mixed> the Elasticsearch request
+     */
+    public function assignedIssues(int $size): array
+    {
+        $request = $this->request([
+            ['assigned_to.id' => $this->forgeIds],
+            ['assigned_to.name.keyword' => $this->names()],
+        ]);
+
+        return [...$request, 'size' => $size, 'query' => ['bool' => [
+            'filter' => [$request['query']],
+            'must_not' => [IssueSearch::closed()],
+        ]]];
     }
 
     /**
@@ -120,6 +151,20 @@ final readonly class UserWorkQuery
     public function openReviewsCount(): array
     {
         return $this->openCount($this->reviews(), ['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]]);
+    }
+
+    /**
+     * The person as the owner of a change: the account on Gerrit, else the email or the name of older changes.
+     *
+     * @return list<array<string, list<int|string>>>
+     */
+    private function owner(): array
+    {
+        return [
+            ['owner_id' => $this->gerritIds],
+            ['ownerEmail' => $this->emails()],
+            ['owner' => $this->names()],
+        ];
     }
 
     /**

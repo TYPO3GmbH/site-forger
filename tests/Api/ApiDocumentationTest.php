@@ -104,7 +104,14 @@ final class ApiDocumentationTest extends KernelTestCase
 
     public function testDescribesEveryFieldOfTheActivity(): void
     {
-        $person = new ActivityPerson('Jane Doe', 36415, 14410, 'forge:36415', 'https://www.gravatar.com/avatar/x');
+        $person = new ActivityPerson(
+            'Jane Doe',
+            36415,
+            14410,
+            'forge:36415',
+            'https://www.gravatar.com/avatar/x',
+            'jdoe',
+        );
         $window = new ActivityWindow(
             '2026-11-14T23:00:00Z',
             '2026-11-21T21:00:00Z',

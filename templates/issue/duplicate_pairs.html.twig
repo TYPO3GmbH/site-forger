@@ -42,8 +42,8 @@
                                 </span>
                             </span>
                             <div class="duplicates-pair-issues">
-                                {% include '_partials/row/issue.html.twig' with {'issue': row.newer, 'detailed': true} only %}
-                                {% include '_partials/row/issue.html.twig' with {'issue': row.older, 'detailed': true} only %}
+                                {% include '_partials/row/issue.html.twig' with {'issue': row.newer, 'size': 'l'} only %}
+                                {% include '_partials/row/issue.html.twig' with {'issue': row.older, 'size': 'l'} only %}
                                 <div class="duplicates-pair-actions">
                                     <a class="btn btn-sm btn-default duplicates-compare" href="{{ path('issue_duplicates', {'id': row.newer.id}) }}">{{ icon('actions-duplicates') }} Compare</a>
                                 </div>

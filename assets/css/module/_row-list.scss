@@ -32,11 +32,37 @@
     }
 }
 
-// On its own on a page, like the panels of the dashboard: round corners, no shadow
+// The size "xs" of a row, for a narrow card: its second line never wraps, so every row is two lines high. The
+// name of a person and a category give way first, what still does not fit is cut.
+.overview-list-item.is-xs .overview-list-item-meta {
+    flex-wrap: nowrap;
+    overflow: hidden;
+
+    > * {
+        flex-shrink: 0;
+    }
+
+    // Not to nothing: the first letters still tell who or what it is
+    > .user,
+    > .overview-list-item-category {
+        flex-shrink: 1;
+        min-width: 2.5rem;
+    }
+
+    .user-name,
+    .overview-list-item-category {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+// On its own on a page, like the panels of the dashboard: round corners, the shadow of all cards
 .row-list-panel {
     margin-bottom: 1.5rem;
     border-radius: 1rem;
     background: #fff;
+    box-shadow: var(--card-shadow);
 
     .overview-list-item {
         padding: 1.25rem;

@@ -1,0 +1,78 @@
+{#
+ # What waits for the user, a few of each, in three parts: the own work that needs a step of the user, the changes
+ # to review and the new issues of all interests of the user, and the work of the people followed that needs help.
+ # "Show all" of a list opens all of it; the parts link to the pages of the interests and of Following.
+ # Expects: waitingChanges and assignedIssues (SearchResults of the own work), interests (list of
+ #          App\Entity\Interest), followed (keys of the people followed), what my/_interest_lists.html.twig and
+ #          my/_help_lists.html.twig expect, and what my/_layout.html.twig expects
+ #}
+{% extends 'my/_layout.html.twig' %}
+{% block title %}My overview{% endblock %}
+
+{% block view %}
+    {% import '_macros/section.html.twig' as section %}
+    {% set list = '_partials/short_list.html.twig' %}
+
+    <div class="overview mywork-overview">
+        <section class="mywork-overview-section" aria-labelledby="overview-own-title">
+            {{ section.heading(
+                'Waiting for you',
+                'overview-own-title',
+                'Your own work that needs a step from you.',
+            ) }}
+            <div class="overview-lists">
+                {% include list with {
+                    'id': 'overview-own-changes',
+                    'title': 'Your changes',
+                    'url': path('my_changes'),
+                    'text': 'With a negative vote, a merge conflict or unresolved comments.',
+                    'items': waitingChanges,
+                    'known': ['owner'],
+                    'kind': 'change',
+                    'empty': 'None of your changes waits for you.',
+                } only %}
+                {% include list with {
+                    'id': 'overview-assigned',
+                    'title': 'Assigned to you',
+                    'url': path('my_issues'),
+                    'text': 'Open issues on Forge.',
+                    'items': assignedIssues,
+                    'kind': 'issue',
+                    'empty': 'No open issue is assigned to you.',
+                } only %}
+            </div>
+        </section>
+
+        <section class="mywork-overview-section" aria-labelledby="overview-interests-title">
+            {{ section.heading(
+                'Your interests',
+                'overview-interests-title',
+                'Changes to review and new issues of the areas you care for.',
+                interests is empty ? null : {'url': path('my_interests'), 'label': 'All interests'},
+            ) }}
+            {% if interests is empty %}
+                {% include 'my/_interests_start.html.twig' %}
+            {% else %}
+                {% include 'my/_interest_lists.html.twig' with {'selection': selection} %}
+            {% endif %}
+        </section>
+
+        <section class="mywork-overview-section" aria-labelledby="overview-following-title">
+            {{ section.heading(
+                'People you follow',
+                'overview-following-title',
+                'Where the people you mentor or work with need help.',
+                {'url': path('my_following'), 'label': followed is empty ? 'Follow people' : 'Following'},
+            ) }}
+            {% if help is null %}
+                <div class="overview-list">
+                    <p class="overview-list-empty">
+                        You follow nobody yet. Follow people, and where they need help shows here.
+                    </p>
+                </div>
+            {% else %}
+                {% include 'my/_help_lists.html.twig' %}
+            {% endif %}
+        </section>
+    </div>
+{% endblock %}

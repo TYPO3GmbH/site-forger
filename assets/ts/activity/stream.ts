@@ -6,7 +6,7 @@ import { dayKey, dayTitle, formatDay, formatFull, formatTime } from './format';
 import { handledByPage, LightElement } from './light-element';
 import { row, subjectOf, tags } from './row';
 import { defaultState, pageParameters, withQuery, type ActivityState } from './state';
-import type { ActivityEvent, ActivityPage } from './types';
+import type { ActivityEvent, ActivityPage, Range } from './types';
 
 const POLL_SECONDS = 60;
 
@@ -22,6 +22,9 @@ export const LOADED_EVENT = 'activity-loaded';
  * them. The events since the last visit are marked too.
  *
  * <forger-activity-stream api-url="/api/v1/activity" stream-url="/activity" limit="6" compact live>
+ *
+ * With "people" it shows the events of these people, keys separated by commas, and "range" sets the time window:
+ * the people a user follows, see templates/my/following.html.twig.
  */
 @customElement('forger-activity-stream')
 export class ActivityStream extends LightElement {
@@ -31,6 +34,8 @@ export class ActivityStream extends LightElement {
     @property({ type: Number }) limit = 50;
     @property({ type: Boolean }) compact = false;
     @property({ type: Boolean }) live = false;
+    @property() people = '';
+    @property() range: Range | '' = '';
     @property({ attribute: false }) previousVisit: string | null = null;
 
     @state() private events: ActivityEvent[] = [];
@@ -55,7 +60,8 @@ export class ActivityStream extends LightElement {
     }
 
     protected override willUpdate(changed: PropertyValues<this>): void {
-        if (changed.has('state') || changed.has('apiUrl') || changed.has('limit')) {
+        const inputs = ['state', 'apiUrl', 'limit', 'people', 'range'] as const;
+        if (inputs.some(name => changed.has(name))) {
             void this.load(false);
         }
     }
@@ -219,6 +225,10 @@ export class ActivityStream extends LightElement {
         return withQuery(this.streamUrl, pageParameters({ ...defaultState(), person: key }));
     }
 
+    private filter(): ActivityState {
+        return this.range === '' ? this.state : { ...this.state, range: this.range };
+    }
+
     /**
      * The first page anew, or the next page after the events shown.
      */
@@ -233,7 +243,7 @@ export class ActivityStream extends LightElement {
         window.clearTimeout(this.timer);
         try {
             const offset = more ? this.events.length : 0;
-            const page = await fetchPage(this.apiUrl, this.state, this.limit, offset, request.signal);
+            const page = await fetchPage(this.apiUrl, this.filter(), this.limit, offset, request.signal, this.people);
             this.newIds.clear();
             this.events = more ? [...this.events, ...page.items] : page.items;
             this.page = page;
@@ -273,7 +283,7 @@ export class ActivityStream extends LightElement {
         this.request = request;
         window.clearTimeout(this.timer);
         try {
-            const page = await fetchPage(this.apiUrl, this.state, this.limit, 0, request.signal);
+            const page = await fetchPage(this.apiUrl, this.filter(), this.limit, 0, request.signal, this.people);
             const known = new Set(this.events.map(event => event.id));
             const fresh = page.items.filter(event => !known.has(event.id));
             fresh.forEach(event => this.newIds.add(event.id));

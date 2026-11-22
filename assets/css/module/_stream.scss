@@ -213,6 +213,194 @@ forger-activity-menu {
     }
 }
 
+// The menu of people, see ActivityFilter::renderPeople(): a search, then the people followed
+.stream-people-panel {
+    width: 18rem;
+
+    // Icons and avatars in one column
+    .stream-menu-icon {
+        justify-content: center;
+        width: 20px;
+    }
+
+    .avatar {
+        flex: none;
+        border-radius: 50%;
+    }
+
+    .stream-menu-item.is-active {
+        background: #f3f4f6;
+    }
+}
+
+// The person picked in the button of the menu: the avatar takes the place of an icon and keeps the height of the
+// other buttons
+.stream-menu-person {
+    display: inline-flex;
+    gap: .4rem;
+    align-items: center;
+    // At the top of the line, so the line is no higher than the text
+    vertical-align: top;
+
+    .avatar {
+        display: block;
+        margin: -.25rem 0 -.25rem -.35rem;
+        border-radius: 50%;
+    }
+}
+
+.stream-menu-note {
+    padding: .2rem .5rem .4rem;
+    color: var(--overview-muted);
+    font-size: .8125rem;
+}
+
+// Who the stream is of: one person, or the people followed, with the button to follow, see Activity::renderHeader()
+.stream-person-header {
+    display: flex;
+    gap: .9rem;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: .9rem 1rem;
+    border: 1px solid #e6e8eb;
+    border-radius: .75rem;
+    background: #fff;
+    box-shadow: var(--card-shadow);
+
+    > .avatar {
+        flex: none;
+        border-radius: 50%;
+    }
+
+    > forger-follow-button,
+    > a {
+        margin-left: auto;
+    }
+}
+
+.stream-person-header-avatars {
+    display: inline-flex;
+    flex: none;
+
+    .avatar {
+        border: 2px solid #fff;
+        border-radius: 50%;
+    }
+
+    .avatar + .avatar {
+        margin-left: -.75rem;
+    }
+}
+
+.stream-person-header-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.stream-person-header-name {
+    margin: 0;
+    overflow: hidden;
+    font-size: 1.125rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stream-person-header-meta {
+    color: var(--overview-muted);
+    font-size: .875rem;
+}
+
+// The username, linked to the profile on my.typo3.org
+.stream-person-header-profile {
+    display: inline-flex;
+    gap: .25rem;
+    align-items: center;
+    color: inherit;
+    text-decoration: none;
+
+    .icon {
+        width: .75rem;
+        height: .75rem;
+    }
+
+    &:hover,
+    &:focus-visible {
+        color: #111827;
+        text-decoration: underline;
+    }
+}
+
+// Follow a person, see assets/ts/activity/follow.ts
+forger-follow-button {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: .25rem .5rem;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.stream-follow {
+    display: inline-flex;
+    gap: .4rem;
+    align-items: center;
+    padding: .45rem 1rem;
+    border: 1px solid #0f766e;
+    border-radius: 999px;
+    background: #0f766e;
+    color: #fff;
+    font-size: .875rem;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color .15s, color .15s, border-color .15s;
+
+    &:hover {
+        border-color: #115e59;
+        background: #115e59;
+    }
+
+    // Followed: a quiet button, the check says so
+    &.is-following {
+        border-color: #c9ced4;
+        background: #fff;
+        color: #0f766e;
+        text-decoration: none;
+
+        &:hover {
+            border-color: #9ca3af;
+            background: #f3f4f6;
+        }
+    }
+
+    &:focus-visible {
+        outline: 2px solid #2a78d6;
+        outline-offset: 2px;
+    }
+
+    &:disabled {
+        cursor: wait;
+        opacity: .7;
+    }
+}
+
+.stream-follow-error {
+    color: #b42318;
+    font-size: .8125rem;
+}
+
+@media (max-width: $phone) {
+    .stream-person-header {
+        flex-wrap: wrap;
+    }
+
+    .stream-person-header-text {
+        flex: 1;
+    }
+}
+
 .stream-reset {
     margin-left: .25rem;
     color: var(--overview-muted);
@@ -347,6 +535,21 @@ forger-activity-menu {
     color: var(--overview-muted);
     font-size: .75rem;
     font-weight: 600;
+}
+
+// The search of people in the menu of people looks like the one in the filters of the lists, see
+// _person-search.scss: its suggestions are part of the menu, not a box of their own.
+.stream-people-panel {
+    .person-search {
+        margin-bottom: .25rem;
+    }
+
+    .person-search-results {
+        max-height: none;
+        padding: 0;
+        border: 0;
+        box-shadow: none;
+    }
 }
 
 // The calendar of a window of one's own, see assets/ts/activity/days.ts: a month, seven days a row. The two ends
@@ -716,6 +919,7 @@ forger-activity-menu {
     border: 1px solid var(--overview-border);
     border-radius: .75rem;
     background: #fff;
+    box-shadow: var(--card-shadow);
     list-style: none;
 }
 
@@ -988,6 +1192,7 @@ forger-activity-menu {
     border: 1px solid var(--overview-border);
     border-radius: .75rem;
     background: #fff;
+    box-shadow: var(--card-shadow);
     color: inherit;
     text-decoration: none;
 
@@ -1626,21 +1831,9 @@ forger-activity-newcomers {
     }
 }
 
+// The toggle of the rows, see _show-more.scss
 .stream-newcomers-more {
-    display: inline-flex;
-    gap: .35rem;
-    align-items: center;
     margin-top: .5rem;
-    padding: .35rem 0;
-    border: 0;
-    background: none;
-    color: #0b0b0b;
-    font-size: .875rem;
-    font-weight: 600;
-
-    &[aria-expanded="true"] .icon {
-        transform: rotate(180deg);
-    }
 }
 
 // Who carries the review, see assets/ts/activity/figures.ts: the fewest people who did half of the work
@@ -1945,6 +2138,7 @@ forger-activity-hours {
 
 // Their tiles and cards are widgets of the dashboard grid around them
 forger-activity-figures,
+forger-activity-exchange,
 forger-activity-closed-years {
     display: contents;
 }
@@ -1966,3 +2160,133 @@ a.stream-bar {
     text-decoration: none;
 }
 
+
+// The board of one user in My Work, see assets/ts/activity/exchange.ts: the waits of the own changes, the reviews
+// given and got, and the people the user works with.
+.stream-chart-link {
+    font-size: .875rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.stream-own-waits {
+    display: grid;
+    gap: 1.25rem;
+    margin: 0;
+
+    dd {
+        margin: 0;
+    }
+}
+
+.stream-own-wait {
+    display: grid;
+    gap: .35rem;
+}
+
+.stream-own-wait-note {
+    margin: 0;
+    color: var(--overview-muted);
+    font-size: .8125rem;
+}
+
+// Given and received side by side, as the tiles of the key figures, but inside the card
+.stream-exchange {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+
+    // One more row than a tile: the votes and comments below the number
+    .stream-figure {
+        grid-template-rows: auto auto auto 2rem;
+        padding: 0;
+        border: 0;
+        box-shadow: none;
+    }
+}
+
+.stream-balance {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+    margin: 0;
+}
+
+.stream-partners {
+    display: grid;
+    gap: 1.5rem;
+
+    @container dashboard (min-width: 40rem) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 2.5rem;
+    }
+}
+
+.stream-partner-list h4 {
+    margin: 0 0 .75rem;
+}
+
+.stream-partner-rows {
+    display: grid;
+    gap: .6rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+// The name, a bar as long as the share of the busiest partner, the count
+.stream-partner {
+    display: grid;
+    grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) auto;
+    gap: .75rem;
+    align-items: center;
+
+    @media (max-width: $phone) {
+        grid-template-columns: minmax(0, 1fr) auto;
+
+        .stream-partner-track {
+            display: none;
+        }
+    }
+}
+
+.stream-partner-name {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    min-width: 0;
+    color: inherit;
+    font-size: .875rem;
+
+    span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .avatar {
+        flex: none;
+        border-radius: 50%;
+    }
+}
+
+.stream-partner-track {
+    display: block;
+    height: .5rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--stream-gerrit) 15%, #fff);
+
+    span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--stream-gerrit);
+    }
+}
+
+.stream-partner-count {
+    font-size: .875rem;
+    font-variant-numeric: tabular-nums;
+}

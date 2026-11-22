@@ -43,7 +43,7 @@
                                 Under review, but no change linked
                             {%- endif -%}
                         {% endset %}
-                        <li>{% include '_partials/row/issue.html.twig' with {'issue': item.issue, 'detailed': true, 'note': note} only %}</li>
+                        <li>{% include '_partials/row/issue.html.twig' with {'issue': item.issue, 'size': 'l', 'note': note} only %}</li>
                     {% endfor %}
                 </ul>
                 {% include '_partials/pagination.html.twig' with {

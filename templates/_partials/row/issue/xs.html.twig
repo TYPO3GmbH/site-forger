@@ -1,0 +1,17 @@
+{#
+ # An issue in two lines for a narrow card, see _partials/row/issue.html.twig: the subject, below it the tracker and
+ # the status, then category, version and the marks as icons. The second line never wraps: what does not fit is cut.
+ #}
+<a class="overview-list-item kind-issue is-xs" href="{{ issue_path(issue.id) }}" title="{{ issue.subject }}">
+    <span class="overview-list-item-main">
+        {{ title }}
+        <span class="overview-list-item-meta">
+            {{ trackerTag }}
+            {{ statusPill }}
+            {{ category }}
+            {{ version }}
+            {{ marks }}
+        </span>
+    </span>
+    {{ date }}
+</a>

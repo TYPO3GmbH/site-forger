@@ -1,5 +1,6 @@
 
 // Modules
+@use "module/card";
 @use "module/sprint-wizard";
 @use "module/sprint-overview";
 @use "module/my-work";
@@ -11,6 +12,7 @@
 @use "module/search";
 @use "module/detail";
 @use "module/row-list";
+@use "module/show-more";
 @use "module/backports";
 @use "module/pagination";
 @use "module/count-table";
@@ -31,10 +33,13 @@
 @use "module/api-doc";
 @use "module/review";
 @use "module/person-search";
+@use "module/person-card";
 @use "module/user";
 @use "module/system";
 @use "module/duplicates";
 @use "module/stream";
+@use "module/leaderboard";
+@use "module/people";
 
 .label-info {
     background-color: #5bc0de

@@ -1,0 +1,102 @@
+{#
+ # The accounts of one document of the index "user", by source: the TYPO3 account, Forge, Gerrit, each with what
+ # its source tells, how much the account did, and a link to it in its source: the profile on my.typo3.org, the
+ # user on Forge, the dashboard on Gerrit. See App\Controller\PeopleController.
+ # A button asks Forge or Gerrit again for what is missing, see App\Controller\PeopleController::refresh().
+ # Expects: document (App\People\User), activity (App\People\AccountActivity by "forge:<number>" and
+ #          "gerrit:<number>"), csrfTokenId
+ #}
+{% macro did(activity) %}
+    {%- if activity -%}
+        {% set first = activity.first|date('Y') %}
+        {% set last = activity.last|date('Y') %}
+        {{ activity.events|number_format(0, '.', ',') }} events, {{ first }}{% if last != first %}–{{ last }}{% endif %}
+    {%- else -%}
+        no events
+    {%- endif -%}
+{% endmacro %}
+
+{% macro ask(document, source, label, title, token) %}
+    <form class="people-ask" method="post" action="{{ path('management_people_refresh', {'key': document.id}) }}">
+        <input type="hidden" name="_token" value="{{ token }}">
+        <input type="hidden" name="source" value="{{ source }}">
+        <button type="submit" class="btn btn-sm btn-link" title="{{ title }}">
+            {{- icon('actions-refresh') }} {{ label -}}
+        </button>
+    </form>
+{% endmacro %}
+
+{% macro external(url, label, title) %}
+    <a class="people-source-link" href="{{ url }}" target="_blank" rel="noopener" title="{{ title }}">
+        {{- label }} {{ icon('actions-window-open') -}}
+    </a>
+{% endmacro %}
+
+<dl class="people-accounts">
+    <div>
+        <dt>TYPO3 account</dt>
+        <dd>
+            {% if document.username %}
+                {{ _self.external(
+                    typo3_profile_url(document.username),
+                    document.username,
+                    'The profile on my.typo3.org',
+                ) }}
+                {% if document.accountName %} · {{ document.accountName }}{% endif %}
+                {% if document.typo3LoginOn %} · last login here {{ document.typo3LoginOn|date('M j, Y') }}{% endif %}
+            {% else %}
+                <span class="people-none">No username known</span>
+            {% endif %}
+        </dd>
+    </div>
+    <div>
+        <dt>Forge</dt>
+        <dd>
+            {% if document.forgeId %}
+                {{ _self.external(
+                    forge_user_url(document.forgeId),
+                    'forge:' ~ document.forgeId,
+                    'The user on Forge',
+                ) }}
+                · {{ document.forgeName ?: 'no name' }}
+                · {{ _self.did(activity['forge:' ~ document.forgeId] ?? null) }}
+                {% if not document.fetchedOn %}· <span class="people-none">Forge not asked yet</span>{% endif %}
+                {% if document.gone %}· <span class="people-none">unknown to Forge</span>{% endif %}
+                {{ _self.ask(
+                    document,
+                    'forge',
+                    'Ask Forge again',
+                    'Load the user from Forge again: name, username, email',
+                    csrf_token(csrfTokenId),
+                ) }}
+            {% else %}
+                <span class="people-none">No account</span>
+            {% endif %}
+        </dd>
+    </div>
+    <div>
+        <dt>Gerrit</dt>
+        <dd>
+            {% if document.gerritId %}
+                {{ _self.external(
+                    gerrit_user_url(document.gerritId),
+                    'gerrit:' ~ document.gerritId,
+                    'The dashboard on Gerrit',
+                ) }}
+                · {{ document.gerritName ?: 'no name' }}
+                · {{ _self.did(activity['gerrit:' ~ document.gerritId] ?? null) }}
+            {% else %}
+                <span class="people-none">No account</span>
+            {% endif %}
+            {% if document.username %}
+                {{ _self.ask(
+                    document,
+                    'gerrit',
+                    'Ask Gerrit again',
+                    'Look up the account of the username ' ~ document.username ~ ' on Gerrit again',
+                    csrf_token(csrfTokenId),
+                ) }}
+            {% endif %}
+        </dd>
+    </div>
+</dl>
