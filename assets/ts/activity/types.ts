@@ -4,7 +4,7 @@
 
 export type Source = 'forge' | 'gerrit';
 export type Kind = 'created' | 'commented' | 'changed' | 'uploaded' | 'voted' | 'merged' | 'resolved' | 'closed';
-export type Range = '7d' | '30d' | '6m' | '1y';
+export type Range = '7d' | '30d' | '6m' | '1y' | 'all';
 export type Split = 'total' | 'source' | 'kind';
 export type Interval = 'hour' | 'day' | 'week' | 'month';
 /**

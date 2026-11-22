@@ -16,6 +16,7 @@ const RANGES: { value: Range; label: string; title: string }[] = [
     { value: '30d', label: '30 d', title: 'The last 30 days' },
     { value: '6m', label: '6 m', title: 'The last 6 months' },
     { value: '1y', label: '1 y', title: 'The last year' },
+    { value: 'all', label: 'All', title: 'Since the first year of Forge' },
 ];
 
 const RESET: ActivityChange = { source: null, kinds: [], branch: null, person: null, following: false, bots: false };

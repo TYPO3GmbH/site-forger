@@ -41,9 +41,9 @@ nelmio_api_doc:
                     name: range
                     in: query
                     description: >-
-                        The time window up to now. The days start at midnight in "timeZone". "from", "to" and
-                        "since" take its place.
-                    schema: { type: string, enum: ['7d', '30d', '6m', '1y'], default: '7d' }
+                        The time window up to now. The days start at midnight in "timeZone". "all" starts with the
+                        first year of Forge, on 2004-01-01. "from", "to" and "since" take its place.
+                    schema: { type: string, enum: ['7d', '30d', '6m', '1y', 'all'], default: '7d' }
                 activityYear:
                     name: year
                     in: query
