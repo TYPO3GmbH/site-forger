@@ -49,6 +49,8 @@ final readonly class Change
      *                                              itself among them; empty without a chain
      * @param list<CodeComment>     $comments       the comments on the code and on the patch sets, the oldest first
      * @param list<int>             $mergeConflicts the open changes that conflict with this open one, by number
+     * @param string|null           $closedOn       when the change was merged or abandoned, see
+     *                                              GerritChangeImporter::closedOn()
      */
     public function __construct(
         public int $id,
@@ -88,6 +90,7 @@ final readonly class Change
         public array $chain = [],
         public array $comments = [],
         public array $mergeConflicts = [],
+        public ?string $closedOn = null,
     ) {
     }
 
@@ -152,6 +155,7 @@ final readonly class Change
                 array_filter((array) ($document['comments'] ?? []), is_array(...)),
             )),
             mergeConflicts: array_values(array_map(intval(...), (array) ($document['merge_conflicts'] ?? []))),
+            closedOn: self::stringOrNull($document['closed_on'] ?? null),
         );
     }
 

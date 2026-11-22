@@ -93,6 +93,12 @@ readonly class ChangeSummary
         )]
         public ?string $updatedOn,
         #[OA\Property(
+            description: 'When the change was merged or abandoned, null for an open one. ' . ApiDate::DESCRIPTION,
+            format: 'date-time',
+            example: ApiDate::EXAMPLE,
+        )]
+        public ?string $closedOn,
+        #[OA\Property(
             description: 'The change on Gerrit.',
             format: 'uri',
             example: 'https://review.typo3.org/c/Packages/TYPO3.CMS/+/97865/',

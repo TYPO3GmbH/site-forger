@@ -40,6 +40,8 @@ final readonly class IssueFilters
         public ?\DateTimeImmutable $createdBefore = null,
         public ?\DateTimeImmutable $updatedSince = null,
         public ?\DateTimeImmutable $updatedBefore = null,
+        public ?\DateTimeImmutable $closedSince = null,
+        public ?\DateTimeImmutable $closedBefore = null,
     ) {
     }
 
@@ -48,8 +50,14 @@ final readonly class IssueFilters
      */
     public static function fromRequest(Request $request): self
     {
+        $closedSince = ListParameters::day($request, 'closedSince');
+        $closedBefore = ListParameters::day($request, 'closedBefore');
+        // Asked by the day they closed, the issues are closed ones
+        $byClosing = null !== $closedSince || null !== $closedBefore;
+        $state = $byClosing ? IssueStateFilterEnum::CLOSED : IssueStateFilterEnum::OPEN;
+
         return new self(
-            state: ListParameters::choice($request, 'status', IssueStateFilterEnum::class, IssueStateFilterEnum::OPEN),
+            state: ListParameters::choice($request, 'status', IssueStateFilterEnum::class, $state),
             tracker: ListParameters::optional($request, 'tracker'),
             category: ListParameters::optional($request, 'category'),
             author: ListParameters::person($request, 'author'),
@@ -59,6 +67,8 @@ final readonly class IssueFilters
             createdBefore: ListParameters::day($request, 'createdBefore'),
             updatedSince: ListParameters::day($request, 'updatedSince'),
             updatedBefore: ListParameters::day($request, 'updatedBefore'),
+            closedSince: $closedSince,
+            closedBefore: $closedBefore,
         );
     }
 }

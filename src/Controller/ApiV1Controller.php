@@ -180,6 +180,19 @@ class ApiV1Controller extends AbstractController
         schema: new OA\Schema(type: 'string', format: 'date'),
     )]
     #[OA\Parameter(
+        name: 'closedSince',
+        description: 'Only issues closed on this day or later, as YYYY-MM-DD in UTC. Without "status" it lists '
+            . 'the closed issues. An issue that opened again does not count.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', format: 'date'),
+    )]
+    #[OA\Parameter(
+        name: 'closedBefore',
+        description: 'Only issues closed before this day, as YYYY-MM-DD in UTC.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', format: 'date'),
+    )]
+    #[OA\Parameter(
         name: 'breakdown',
         description: 'Also count how all issues of the search spread by status, tracker, category and year, not '
             . 'only those of the page.',
@@ -386,6 +399,19 @@ class ApiV1Controller extends AbstractController
     #[OA\Parameter(
         name: 'updatedBefore',
         description: 'Only changes nothing happened to since this day, as YYYY-MM-DD in UTC.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', format: 'date'),
+    )]
+    #[OA\Parameter(
+        name: 'closedSince',
+        description: 'Only changes merged or abandoned on this day or later, as YYYY-MM-DD in UTC. Without '
+            . '"status" it lists the merged and the abandoned changes.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string', format: 'date'),
+    )]
+    #[OA\Parameter(
+        name: 'closedBefore',
+        description: 'Only changes merged or abandoned before this day, as YYYY-MM-DD in UTC.',
         in: 'query',
         schema: new OA\Schema(type: 'string', format: 'date'),
     )]

@@ -101,6 +101,8 @@ final class ApiIssueQuery
     {
         $created = DayRange::query('created_on', $filters->createdSince, $filters->createdBefore);
         $updated = DayRange::query('updated_on', $filters->updatedSince, $filters->updatedBefore);
+        // Forge keeps the day an issue closed when it opens again: only a closed issue counts by it
+        $closed = DayRange::query('closed_on', $filters->closedSince, $filters->closedBefore);
 
         return array_values(array_filter([
             IssueStateFilterEnum::CLOSED === $filters->state ? IssueSearch::closed() : null,
@@ -114,6 +116,8 @@ final class ApiIssueQuery
             ]],
             $created,
             $updated,
+            $closed,
+            null === $closed ? null : IssueSearch::closed(),
         ]));
     }
 

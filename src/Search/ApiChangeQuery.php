@@ -66,6 +66,7 @@ final class ApiChangeQuery
             null === $filters->maxLines ? null : ReviewSizeQuery::atMost($filters->maxLines),
             DayRange::query('created_on', $filters->createdSince, $filters->createdBefore),
             DayRange::query('updated_on', $filters->updatedSince, $filters->updatedBefore),
+            DayRange::query('closed_on', $filters->closedSince, $filters->closedBefore),
         ]));
     }
 }

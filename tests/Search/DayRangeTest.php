@@ -22,7 +22,11 @@ final class DayRangeTest extends TestCase
         $before = new \DateTimeImmutable('2026-02-01 00:00:00 UTC');
 
         self::assertSame(
-            ['range' => ['created_on' => ['gte' => '2026/01/01 00:00:00', 'lt' => '2026/02/01 00:00:00']]],
+            ['range' => ['created_on' => [
+                'gte' => '2026/01/01 00:00:00',
+                'lt' => '2026/02/01 00:00:00',
+                'format' => 'yyyy/MM/dd HH:mm:ss',
+            ]]],
             DayRange::query('created_on', $since, $before),
         );
     }

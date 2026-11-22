@@ -75,6 +75,7 @@ final readonly class ChangeMapper
             ),
             createdOn: ApiDate::fromIndex($change->createdOn),
             updatedOn: ApiDate::fromIndex($change->updatedOn),
+            closedOn: $change->state()->isClosed() ? ApiDate::fromIndex($change->closedOn) : null,
             url: sprintf(LinkTwigExtension::GERRIT_CHANGE, $change->id),
             forgerUrl: $this->urls->generate(
                 'change_show',

@@ -20,6 +20,7 @@ use App\Report\CategoryOverview;
 use App\Search\ApiIssueQuery;
 use App\Search\IssueSearch;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
 
 final class ApiIssueQueryTest extends TestCase
 {
@@ -107,11 +108,39 @@ final class ApiIssueQueryTest extends TestCase
 
         self::assertSame(
             [
-                ['range' => ['created_on' => ['gte' => '2026/01/01 00:00:00', 'lt' => '2026/07/01 00:00:00']]],
-                ['range' => ['updated_on' => ['lt' => '2020/01/01 00:00:00']]],
+                ['range' => ['created_on' => [
+                    'gte' => '2026/01/01 00:00:00',
+                    'lt' => '2026/07/01 00:00:00',
+                    'format' => 'yyyy/MM/dd HH:mm:ss',
+                ]]],
+                ['range' => ['updated_on' => ['lt' => '2020/01/01 00:00:00', 'format' => 'yyyy/MM/dd HH:mm:ss']]],
             ],
             self::request($filters)['query']['bool']['filter'],
         );
+    }
+
+    public function testOnlyAClosedIssueCountsByTheDayItClosed(): void
+    {
+        $filters = new IssueFilters(
+            IssueStateFilterEnum::ALL,
+            closedSince: new \DateTimeImmutable('2026-05-25 00:00:00 UTC'),
+        );
+
+        self::assertSame(
+            [
+                ['range' => ['closed_on' => ['gte' => '2026/05/25 00:00:00', 'format' => 'yyyy/MM/dd HH:mm:ss']]],
+                IssueSearch::closed(),
+            ],
+            self::request($filters)['query']['bool']['filter'],
+        );
+    }
+
+    public function testAClosedDayListsTheClosedIssuesWithoutAStatus(): void
+    {
+        $filters = IssueFilters::fromRequest(new Request(['closedBefore' => '2026-05-25']));
+
+        self::assertSame(IssueStateFilterEnum::CLOSED, $filters->state);
+        self::assertSame(IssueStateFilterEnum::OPEN, IssueFilters::fromRequest(new Request())->state);
     }
 
     public function testCountsHowTheIssuesSpreadOnlyWhenAsked(): void

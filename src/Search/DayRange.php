@@ -22,6 +22,12 @@ final class DayRange
     private const string INDEX_DATE = 'Y/m/d H:i:s';
 
     /**
+     * The same format for Elasticsearch. The query names it, because "closed_on" of the issues has the format of
+     * Forge.
+     */
+    private const string QUERY_FORMAT = 'yyyy/MM/dd HH:mm:ss';
+
+    /**
      * @param \DateTimeImmutable|null $since  the first day, included
      * @param \DateTimeImmutable|null $before the day after the last one, left out
      *
@@ -34,6 +40,6 @@ final class DayRange
             'lt' => $before?->format(self::INDEX_DATE),
         ]);
 
-        return [] === $range ? null : ['range' => [$field => $range]];
+        return [] === $range ? null : ['range' => [$field => [...$range, 'format' => self::QUERY_FORMAT]]];
     }
 }

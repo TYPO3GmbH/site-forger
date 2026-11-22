@@ -60,6 +60,7 @@ final readonly class IssueMapper
             assignedTo: self::person($issue->assignedTo),
             createdOn: ApiDate::fromIndex($issue->createdOn),
             updatedOn: ApiDate::fromIndex($issue->updatedOn),
+            closedOn: true === $issue->statusEnum()?->isClosed() ? ApiDate::fromForge($issue->closedOn) : null,
             url: sprintf(LinkTwigExtension::FORGE_ISSUE, $issue->id),
             forgerUrl: $this->urls->generate(
                 'issue_show',

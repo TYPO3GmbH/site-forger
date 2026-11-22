@@ -41,6 +41,8 @@ final readonly class Issue
      * @param list<IssueRelation>                 $relations    the other relations of Forge
      * @param list<IssueAttachment>               $attachments  the files, the oldest first
      * @param bool                                $regression   Forge marks it with "Is Regression"
+     * @param string|null                         $closedOn     when Forge closed it last, as Forge sends it. Forge
+     *                                                          keeps it when the issue opens again.
      */
     public function __construct(
         public int $id,
@@ -68,6 +70,7 @@ final readonly class Issue
         public array $relations = [],
         public array $attachments = [],
         public bool $regression = false,
+        public ?string $closedOn = null,
     ) {
     }
 
@@ -102,6 +105,7 @@ final readonly class Issue
             relations: IssueRelation::listFrom($document['issue_relations'] ?? []),
             attachments: IssueAttachment::listFrom($document['attachments'] ?? []),
             regression: true === ($document['isregression'] ?? false),
+            closedOn: self::stringOrNull($document['closed_on'] ?? null),
         );
     }
 

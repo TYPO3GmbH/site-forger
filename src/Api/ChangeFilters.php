@@ -46,6 +46,8 @@ final readonly class ChangeFilters
         public ?\DateTimeImmutable $createdBefore = null,
         public ?\DateTimeImmutable $updatedSince = null,
         public ?\DateTimeImmutable $updatedBefore = null,
+        public ?\DateTimeImmutable $closedSince = null,
+        public ?\DateTimeImmutable $closedBefore = null,
     ) {
     }
 
@@ -54,7 +56,12 @@ final readonly class ChangeFilters
      */
     public static function fromRequest(Request $request): self
     {
-        $state = ListParameters::choice($request, 'status', ChangeStateFilterEnum::class, ChangeStateFilterEnum::OPEN);
+        $closedSince = ListParameters::day($request, 'closedSince');
+        $closedBefore = ListParameters::day($request, 'closedBefore');
+        // Asked by the day they closed, the changes are merged or abandoned ones
+        $byClosing = null !== $closedSince || null !== $closedBefore;
+        $default = $byClosing ? ChangeStateFilterEnum::ALL : ChangeStateFilterEnum::OPEN;
+        $state = ListParameters::choice($request, 'status', ChangeStateFilterEnum::class, $default);
         $list = null === ListParameters::optional($request, 'list')
             ? null
             : ListParameters::choice($request, 'list', ChangeListEnum::class, ChangeListEnum::READY);
@@ -72,6 +79,8 @@ final readonly class ChangeFilters
             createdBefore: ListParameters::day($request, 'createdBefore'),
             updatedSince: ListParameters::day($request, 'updatedSince'),
             updatedBefore: ListParameters::day($request, 'updatedBefore'),
+            closedSince: $closedSince,
+            closedBefore: $closedBefore,
         );
     }
 }

@@ -69,6 +69,12 @@ readonly class IssueSummary
         )]
         public ?string $updatedOn,
         #[OA\Property(
+            description: 'When Forge closed the issue, null for an open one. ' . ApiDate::DESCRIPTION,
+            format: 'date-time',
+            example: ApiDate::EXAMPLE,
+        )]
+        public ?string $closedOn,
+        #[OA\Property(
             description: 'The issue on Forge.',
             format: 'uri',
             example: 'https://forge.typo3.org/issues/105403',

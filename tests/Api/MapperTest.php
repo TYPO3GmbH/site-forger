@@ -232,6 +232,29 @@ final class MapperTest extends TestCase
         self::assertSame([], $breakdown->tracker);
     }
 
+    public function testOnlyAClosedIssueOrChangeHasTheDayItClosed(): void
+    {
+        $issues = new IssueMapper(ApiFixtures::urls());
+        $issue = static fn (int $status): Issue => Issue::fromDocument([
+            'id' => 105000,
+            'subject' => 'Closed once',
+            'status' => ['id' => $status, 'name' => 'Any'],
+            'closed_on' => '2026-05-20T10:00:00Z',
+        ]);
+        $changes = new ChangeMapper(ApiFixtures::urls());
+        $change = static fn (string $status, ?string $closedOn): Change => Change::fromDocument([
+            'id' => 97000,
+            'subject' => 'Merged',
+            'reviewstatus' => $status,
+            'closed_on' => $closedOn,
+        ]);
+
+        self::assertSame('2026-05-20T10:00:00Z', $issues->summary($issue(5))->closedOn);
+        self::assertNull($issues->summary($issue(1))->closedOn, 'Forge keeps the day when the issue opens again');
+        self::assertSame('2026-05-20T10:00:00Z', $changes->summary($change('MERGED', '2026/05/20 10:00:00'))->closedOn);
+        self::assertNull($changes->summary($change('NEW', null))->closedOn);
+    }
+
     public function testAChangeOfAnOlderImportHasThePathsOfItsFiles(): void
     {
         $change = Change::fromDocument(['id' => 1, 'subject' => 'Old', 'files' => ['composer.json']]);
