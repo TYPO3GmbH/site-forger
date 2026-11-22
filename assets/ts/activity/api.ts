@@ -48,17 +48,23 @@ function parameters(state: ActivityState): URLSearchParams {
     return parameters;
 }
 
+/**
+ * A page of the activity: the first one, or the one after the cursor "next" of a page before. The cursor reaches
+ * beyond the 10000 events an offset reaches.
+ */
 export function fetchPage(
     apiUrl: string,
     state: ActivityState,
     limit: number,
-    offset: number,
+    after: string | null,
     signal?: AbortSignal,
     people = '',
 ): Promise<ActivityPage> {
     const query = parameters(state);
     query.set('limit', String(limit));
-    query.set('offset', String(offset));
+    if (after !== null) {
+        query.set('after', after);
+    }
     if (people !== '') {
         query.set('people', people);
     }

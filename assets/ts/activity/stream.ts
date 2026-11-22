@@ -94,7 +94,7 @@ export class ActivityStream extends LightElement {
                     </section>
                 `)}
             </div>
-            ${this.events.length >= Math.min(total, 10000) ? nothing : html`
+            ${this.page.next === null || this.events.length >= total ? nothing : html`
                 <p class="stream-more">
                     <button
                         type="button"
@@ -242,8 +242,8 @@ export class ActivityStream extends LightElement {
         this.loading = true;
         window.clearTimeout(this.timer);
         try {
-            const offset = more ? this.events.length : 0;
-            const page = await fetchPage(this.apiUrl, this.filter(), this.limit, offset, request.signal, this.people);
+            const after = more ? this.page?.next ?? null : null;
+            const page = await fetchPage(this.apiUrl, this.filter(), this.limit, after, request.signal, this.people);
             this.newIds.clear();
             this.events = more ? [...this.events, ...page.items] : page.items;
             this.page = page;
@@ -283,12 +283,14 @@ export class ActivityStream extends LightElement {
         this.request = request;
         window.clearTimeout(this.timer);
         try {
-            const page = await fetchPage(this.apiUrl, this.filter(), this.limit, 0, request.signal, this.people);
+            const page = await fetchPage(this.apiUrl, this.filter(), this.limit, null, request.signal, this.people);
             const known = new Set(this.events.map(event => event.id));
             const fresh = page.items.filter(event => !known.has(event.id));
             fresh.forEach(event => this.newIds.add(event.id));
-            this.events = [...fresh, ...this.events].slice(0, Math.max(this.limit, this.events.length));
-            this.page = page;
+            // The list keeps every event shown: "Show more" goes on after the last one, see load()
+            const events = [...fresh, ...this.events];
+            this.events = this.compact ? events.slice(0, this.limit) : events;
+            this.page = { ...page, next: this.page?.next ?? page.next };
         } catch {
             // The server is away, or a new filter took over: the stream stays as it is
         } finally {

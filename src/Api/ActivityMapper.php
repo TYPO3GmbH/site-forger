@@ -44,6 +44,7 @@ use App\Enum\StreamSourceEnum;
 use App\People\Person;
 use App\People\User;
 use App\People\UserDirectory;
+use App\Search\StreamCursor;
 use App\Search\StreamWindow;
 use App\Stream\OwnWait;
 use App\Stream\ReviewExchange;
@@ -93,10 +94,15 @@ final readonly class ActivityMapper
             $counts[] = new ActivityCount($bucket->key, $bucket->key, $bucket->count);
         }
 
+        $last = $events->last();
+
         return new ActivityPage(
             total: $events->total,
             offset: $list->offset,
             limit: $list->limit,
+            next: $events->count() < $list->limit || !$last instanceof StreamEvent
+                ? null
+                : StreamCursor::after($last)?->value(),
             window: self::window($filters->window),
             person: $this->personOfKey($filters->personKey),
             branches: $counts,

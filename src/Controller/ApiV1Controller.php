@@ -50,6 +50,7 @@ use App\Repository\StreamRepository;
 use App\Search\ApiChangeQuery;
 use App\Search\ApiIssueQuery;
 use App\Search\IssueSearch;
+use App\Search\StreamCursor;
 use App\Search\StreamQuery;
 use App\Stream\NewcomerFinder;
 use App\Stream\StreamStatistics;
@@ -460,6 +461,18 @@ class ApiV1Controller extends AbstractController
         ));
     }
 
+    /**
+     * The cursor of the parameter "after", null without it.
+     *
+     * @throws InvalidParameter
+     */
+    private static function cursor(Request $request): ?StreamCursor
+    {
+        $value = ListParameters::optional($request, 'after');
+
+        return null === $value ? null : StreamCursor::fromValue($value) ?? throw InvalidParameter::notACursor('after');
+    }
+
     private static function issueSort(ListParameters $list): IssueSortEnum
     {
         return IssueSortEnum::default('' !== $list->query);
@@ -497,6 +510,14 @@ class ApiV1Controller extends AbstractController
     #[OA\Parameter(ref: '#/components/parameters/activityBots')]
     #[OA\Parameter(ref: '#/components/parameters/limit')]
     #[OA\Parameter(ref: '#/components/parameters/offset')]
+    #[OA\Parameter(
+        name: 'after',
+        description: 'The page after this one: "next" of a page. It takes the place of "offset" and pages beyond the '
+            . '10000 events "offset" reaches.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string'),
+        example: '1763820000000-gerrit:91234:7',
+    )]
     #[OA\Response(response: 200, description: 'One page of events.', content: new Model(type: ActivityPage::class))]
     #[OA\Response(response: 400, description: self::BAD_REQUEST, content: new Model(type: Error::class))]
     #[OA\Response(response: 429, description: self::TOO_MANY_REQUESTS, content: new Model(type: Error::class))]
@@ -505,11 +526,12 @@ class ApiV1Controller extends AbstractController
         try {
             $list = ListParameters::fromRequest($request);
             $filters = ActivityFilters::fromRequest($request, $this->users);
+            $after = self::cursor($request);
         } catch (InvalidParameter $e) {
             return self::error($e->getMessage(), Response::HTTP_BAD_REQUEST);
         }
         $events = $this->stream->search(
-            StreamQuery::requestWithBranches($filters->filter, $list->offset, $list->limit),
+            StreamQuery::requestWithBranches($filters->filter, $list->offset, $list->limit, $after),
         );
 
         return self::respond($this->activityMapper->page(

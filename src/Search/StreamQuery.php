@@ -18,11 +18,6 @@ use App\Enum\StreamKindEnum;
  */
 final class StreamQuery
 {
-    /**
-     * Elasticsearch pages through this many events at most, see "index.max_result_window".
-     */
-    public const int MAX_WINDOW = 10000;
-
     public const string BRANCHES = 'branches';
 
     /**
@@ -31,17 +26,23 @@ final class StreamQuery
     private const int BRANCH_COUNT = 15;
 
     /**
+     * A page of events: from the position $from, or after the event of the cursor. The cursor pages beyond the
+     * 10000 events "from" reaches. It counts all events of the filter.
+     *
      * @return array<string, mixed>
      */
-    public static function request(StreamFilter $filter, int $from, int $size): array
+    public static function request(StreamFilter $filter, int $from, int $size, ?StreamCursor $after = null): array
     {
-        return [
+        $request = [
             'query' => self::query($filter),
             'sort' => [['date' => 'desc'], ['id' => 'desc']],
-            'from' => $from,
             'size' => $size,
-            'track_total_hits' => self::MAX_WINDOW,
+            'track_total_hits' => true,
         ];
+
+        return null === $after
+            ? [...$request, 'from' => $from]
+            : [...$request, 'search_after' => $after->searchAfter()];
     }
 
     /**
@@ -50,10 +51,14 @@ final class StreamQuery
      *
      * @return array<string, mixed>
      */
-    public static function requestWithBranches(StreamFilter $filter, int $from, int $size): array
-    {
+    public static function requestWithBranches(
+        StreamFilter $filter,
+        int $from,
+        int $size,
+        ?StreamCursor $after = null,
+    ): array {
         $request = [
-            ...self::request(self::withoutBranch($filter), $from, $size),
+            ...self::request(self::withoutBranch($filter), $from, $size, $after),
             'aggs' => [self::BRANCHES => ['terms' => ['field' => 'branch', 'size' => self::BRANCH_COUNT]]],
         ];
         if (null !== $filter->branch) {

@@ -34,6 +34,11 @@ final class InvalidParameter extends \InvalidArgumentException
         return new self(sprintf('The parameter "%s" must be between %d and %d.', $name, $minimum, $maximum));
     }
 
+    public static function notACursor(string $name): self
+    {
+        return new self(sprintf('The parameter "%s" is no cursor: use "next" of a page.', $name));
+    }
+
     public static function beyondWindow(int $window): self
     {
         return new self(sprintf(

@@ -64,6 +64,10 @@ export interface ActivityPage {
     total: number;
     offset: number;
     limit: number;
+    /**
+     * Where the next page starts, as the parameter "after"; null on the last page.
+     */
+    next: string | null;
     window: ActivityWindow;
     person: ActivityPerson | null;
     branches: ActivityCount[];
