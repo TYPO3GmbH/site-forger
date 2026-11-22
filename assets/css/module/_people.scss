@@ -121,15 +121,48 @@
     margin-bottom: .5rem;
 }
 
+// Each cell starts at the line of the avatar and the name: the sign of the names and the buttons center on it, the
+// lines below the name stay below it
 .people-table {
     td {
-        vertical-align: middle;
+        vertical-align: top;
     }
 
     // The sign of the names: narrow
     .people-match {
         width: 1%;
         text-align: center;
+    }
+
+    .people-match-same,
+    .people-match-other {
+        margin-top: .25rem;
+    }
+
+    .people-match > .icon {
+        margin-top: .5rem;
+    }
+
+    // Who linked and when: no avatar to stand beside
+    .people-linked-by .people-did {
+        margin-left: 0;
+    }
+
+    // As narrow as its buttons, at the right edge
+    .people-actions {
+        width: 1%;
+        text-align: right;
+    }
+
+    .people-actions .btn {
+        margin-top: .125rem;
+        padding: .3rem .65rem;
+        font-size: .8125rem;
+        line-height: 1.2;
+    }
+
+    .people-actions .btn-link {
+        padding-inline: .4rem;
     }
 
     // A suggestion of another name needs a closer look
@@ -201,7 +234,6 @@
 
 .people-actions {
     white-space: nowrap;
-    text-align: right;
 }
 
 .people-decide {
@@ -250,13 +282,27 @@
 
 // The tab "No email": what Forge answered and when, beside the account, not below an avatar
 .people-table {
-    .people-group th {
-        padding-top: .9rem;
-        background: #f9fafb;
-        font-size: .8125rem;
+    // The head of a group, with its button: one band across the table
+    .people-group {
+        th,
+        td {
+            vertical-align: middle;
+            background: #f9fafb;
+        }
+
+        th {
+            font-size: .8125rem;
+        }
+
+        .btn {
+            margin-top: 0;
+        }
     }
 
-    .people-forge .people-source-link,
+    .people-forge .people-source-link {
+        margin: 0;
+    }
+
     .people-forge .people-did {
         margin-left: 0;
     }

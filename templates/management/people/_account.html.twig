@@ -10,7 +10,8 @@
     {%- if activity -%}
         {% set first = activity.first|date('Y') %}
         {% set last = activity.last|date('Y') %}
-        {{ activity.events|number_format(0, '.', ',') }} events, {{ first }}{% if last != first %}–{{ last }}{% endif %}
+        {{ activity.events|number_format(0, '.', ',') }} {{ activity.events == 1 ? 'event' : 'events' -}}
+        , {{ first }}{% if last != first %}–{{ last }}{% endif %}
     {%- else -%}
         no events
     {%- endif -%}

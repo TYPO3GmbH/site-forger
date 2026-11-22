@@ -3,8 +3,10 @@
 // the gray of the page like the panels of the lists, the counts centered in one column each, the whole cell a quiet
 // link that shows as one on hover.
 
-// Wide enough for every column, else it scrolls within itself
+// Wide enough for every column, else it scrolls within itself. Positioned, so a ".sr-only" heading scrolls with
+// it: absolute, it would widen the page on a phone.
 .count-table-frame {
+    position: relative;
     overflow-x: auto;
     border: 1px solid #e6e8eb;
     border-radius: .75rem;

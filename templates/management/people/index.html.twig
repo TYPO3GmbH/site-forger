@@ -29,7 +29,7 @@
     {% set last = max(forgeLast, gerrit.last ?? null ? gerrit.last|date('Y') : 0) %}
     <span class="people-did">
         {%- if events > 0 -%}
-            {{ events|number_format(0, '.', ',') }} events, last {{ last }}
+            {{ events|number_format(0, '.', ',') }} {{ events == 1 ? 'event' : 'events' }}, last {{ last }}
         {%- else -%}
             no events
         {%- endif -%}
@@ -108,7 +108,7 @@
         {{ user_avatar(document.asPerson, 32) }}
         <span class="people-who-text">
             <span class="people-who-name">{{ document.displayName ?: document.id }}</span>
-            <code class="people-who-key">{{ document.id }}</code>
+            {% if document.displayName %}<code class="people-who-key">{{ document.id }}</code>{% endif %}
         </span>
     </a>
     {{ extra }}
@@ -286,7 +286,7 @@
                                     </span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td class="people-linked-by">
                                 {{ entry.link.linkedBy }}
                                 <span class="people-did">{{ entry.link.linkedAt|date('M j, Y') }}</span>
                             </td>
