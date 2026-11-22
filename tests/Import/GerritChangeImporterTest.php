@@ -18,6 +18,7 @@ use App\Import\GerritChangeImporter;
 use App\Import\ProjectChanges;
 use App\People\UserDirectory;
 use App\Repository\UserRepository;
+use App\Stream\StreamWriter;
 use App\Tests\Http\MockApi;
 use Doctrine\DBAL\Connection;
 use Elastica\Client;
@@ -183,6 +184,37 @@ final class GerritChangeImporterTest extends TestCase
         $owner = GerritChangeImporter::owner($document);
         self::assertNotNull($owner);
         self::assertSame(['ingoholl', 52917, null, ['ingo@example.org'], md5('ingo@example.org')], [$owner->id(), $owner->gerritId, $owner->forgeId, $owner->emails, $owner->avatar()]);
+    }
+
+    public function testAMergedChangeClosedWhenGerritSubmittedIt(): void
+    {
+        $log = self::log(['2026-11-01 10:00:00', 'Change has been successfully merged']);
+
+        self::assertSame(
+            '2026/11/02 09:30:00',
+            GerritChangeImporter::closedOn('MERGED', '2026/11/02 09:30:00', $log),
+        );
+        // An older change without "submitted": the message of the merge
+        self::assertSame('2026/11/01 10:00:00', GerritChangeImporter::closedOn('MERGED', null, $log));
+    }
+
+    public function testAnAbandonedChangeClosedWithItsLastAbandon(): void
+    {
+        $log = self::log(
+            ['2026-10-01 08:00:00', 'Abandoned'],
+            ['2026-10-05 08:00:00', 'Restored'],
+            ['2026-10-09 08:00:00', 'Abandoned: Superseded by another change'],
+            ['2026-10-20 08:00:00', 'Patch Set 3: Code-Review+1'],
+        );
+
+        self::assertSame('2026/10/09 08:00:00', GerritChangeImporter::closedOn('ABANDONED', null, $log));
+    }
+
+    public function testAnOpenChangeHasNotClosed(): void
+    {
+        $log = self::log(['2026-10-01 08:00:00', 'Abandoned'], ['2026-10-05 08:00:00', 'Restored']);
+
+        self::assertNull(GerritChangeImporter::closedOn('NEW', null, $log));
     }
 
     public function testKeepsTheReviewLogWithTheAccountsButNotTheirAvatars(): void
@@ -493,6 +525,22 @@ final class GerritChangeImporterTest extends TestCase
                 new UserDirectory(new Indices(new Client()), new ArrayAdapter(), new NullLogger()),
                 new NullLogger(),
             ),
+            $this->createStub(StreamWriter::class),
         );
+    }
+
+    /**
+     * A review log of messages, each a date and a text.
+     *
+     * @param array{string, string} ...$messages
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function log(array ...$messages): array
+    {
+        return GerritChangeImporter::messages(array_map(
+            static fn (array $message): array => ['date' => $message[0] . '.000000000', 'message' => $message[1]],
+            array_values($messages),
+        ));
     }
 }

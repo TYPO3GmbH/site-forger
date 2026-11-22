@@ -23,14 +23,22 @@ final class TimeSeries
 {
     public const string MONTH = 'month';
     public const string WEEK = 'week';
+    public const string DAY = 'day';
+    public const string HOUR = 'hour';
 
     /**
-     * The aggregation of a histogram with one bucket per interval, the empty ones included, up to now.
+     * The aggregation of a histogram with one bucket per interval, the empty ones included, up to now or $to.
+     * With a time zone the intervals start at midnight there, give $from and $to in it, too.
      *
      * @return array<string, mixed>
      */
-    public static function histogram(string $field, string $interval, ?\DateTimeImmutable $from = null): array
-    {
+    public static function histogram(
+        string $field,
+        string $interval,
+        ?\DateTimeImmutable $from = null,
+        ?\DateTimeImmutable $to = null,
+        ?\DateTimeZone $timeZone = null,
+    ): array {
         $histogram = [
             'field' => $field,
             'calendar_interval' => $interval,
@@ -38,9 +46,15 @@ final class TimeSeries
             'min_doc_count' => 0,
             'extended_bounds' => ['max' => 'now/d'],
         ];
+        // Elasticsearch reads the bounds in the format of the keys
         if (null !== $from) {
-            // Elasticsearch reads the bound in the format of the keys
             $histogram['extended_bounds']['min'] = self::start($from, $interval)->format(self::phpFormat($interval));
+        }
+        if (null !== $to) {
+            $histogram['extended_bounds']['max'] = self::start($to, $interval)->format(self::phpFormat($interval));
+        }
+        if (null !== $timeZone) {
+            $histogram['time_zone'] = $timeZone->getName();
         }
 
         return ['date_histogram' => $histogram];
@@ -58,7 +72,7 @@ final class TimeSeries
         $keys = [];
         while ($current <= $last) {
             $keys[] = $current->format(self::phpFormat($interval));
-            $current = $current->modify(self::MONTH === $interval ? '+1 month' : '+1 week');
+            $current = $current->modify('+1 ' . $interval);
         }
 
         return $keys;
@@ -95,42 +109,6 @@ final class TimeSeries
     }
 
     /**
-     * How many documents are open at the end of each interval: all opened up to then minus all closed up to then.
-     * Counts before the first key are part of the first value, so the series starts at the real level.
-     *
-     * @param array<string, int> $opened by key, may reach back further than the keys
-     * @param array<string, int> $closed by key, may reach back further than the keys
-     * @param list<string>       $keys   ascending
-     *
-     * @return list<int>
-     */
-    public static function openAtEnd(array $opened, array $closed, array $keys): array
-    {
-        $open = 0;
-        $values = [];
-        $events = [];
-        foreach ($opened as $key => $count) {
-            $events[$key] = ($events[$key] ?? 0) + $count;
-        }
-        foreach ($closed as $key => $count) {
-            $events[$key] = ($events[$key] ?? 0) - $count;
-        }
-        ksort($events, SORT_STRING);
-        foreach ($keys as $key) {
-            foreach ($events as $eventKey => $change) {
-                if (strcmp((string) $eventKey, $key) > 0) {
-                    break;
-                }
-                $open += $change;
-                unset($events[$eventKey]);
-            }
-            $values[] = $open;
-        }
-
-        return $values;
-    }
-
-    /**
      * Running totals, e.g. the issues closed in a year up to each month.
      *
      * @param list<int> $values
@@ -149,16 +127,24 @@ final class TimeSeries
     }
 
     /**
-     * Keys sort like dates: "2026-11" for a month, the Monday "2026-11-16" for a week.
+     * Keys sort like dates: "2026-11" for a month, the Monday "2026-11-16" for a week, "2026-11-16T14" for an hour.
      */
     private static function phpFormat(string $interval): string
     {
-        return self::MONTH === $interval ? 'Y-m' : 'Y-m-d';
+        return match ($interval) {
+            self::MONTH => 'Y-m',
+            self::HOUR => 'Y-m-d\\TH',
+            default => 'Y-m-d',
+        };
     }
 
     private static function elasticFormat(string $interval): string
     {
-        return self::MONTH === $interval ? 'yyyy-MM' : 'yyyy-MM-dd';
+        return match ($interval) {
+            self::MONTH => 'yyyy-MM',
+            self::HOUR => "yyyy-MM-dd'T'HH",
+            default => 'yyyy-MM-dd',
+        };
     }
 
     private static function start(\DateTimeImmutable $date, string $interval): \DateTimeImmutable
@@ -166,6 +152,8 @@ final class TimeSeries
         return match ($interval) {
             self::MONTH => $date->modify('first day of this month')->setTime(0, 0),
             self::WEEK => $date->modify('monday this week')->setTime(0, 0),
+            self::DAY => $date->setTime(0, 0),
+            self::HOUR => $date->setTime((int) $date->format('G'), 0),
             default => throw new \InvalidArgumentException(sprintf('The interval "%s" is not supported.', $interval)),
         };
     }

@@ -54,6 +54,13 @@
     {% set waiting = pending|filter(check => check.result != constant('App\\Enum\\SystemCheckEnum::OK')) %}
     {% set outdated = 0 %}
     {% for check in waiting %}{% set outdated = outdated + check.matches %}{% endfor %}
+    {# Of the outdated documents, those the backfill lifts without a request #}
+    {% set liftable = 0 %}
+    {% for check in pending %}
+        {% for row in check.versions|default([])|filter(row => row.state == 'backfill') %}
+            {% set liftable = liftable + row.documents %}
+        {% endfor %}
+    {% endfor %}
     {% set documents = 0 %}
     {% set bytes = 0 %}
     {% for index in indices %}
@@ -120,7 +127,10 @@
                         'Outdated documents',
                         checks['Outdated documents'],
                         outdated|number_format(0, '.', ','),
-                        'The imports update them over time',
+                        outdated == 0
+                            ? 'All documents are current'
+                            : (outdated - liftable)|number_format(0, '.', ',') ~ ' wait for the imports · '
+                                ~ liftable|number_format(0, '.', ',') ~ ' for the backfill',
                         'system-outdated',
                     ) }}
                     {% if userStatistics is not null and userStatistics.total > 0 %}
@@ -272,6 +282,31 @@
                                     {% if check.result != constant('App\\Enum\\SystemCheckEnum::OK') %}
                                         <span class="system-list-detail">{{ check.description }}</span>
                                     {% endif %}
+                                    {# Where the documents stand: the version that wrote them and what lifts it #}
+                                    {% set versions = check.versions|default([]) %}
+                                    {% if versions and check.documents > 0 %}
+                                        <span class="system-versions" aria-hidden="true">
+                                            {% for row in versions %}
+                                                <span
+                                                    class="system-version is-{{ row.state }}"
+                                                    style="width: {{ (row.documents / check.documents * 100)|round(2) }}%"
+                                                    title="Version {{ row.version }}"
+                                                ></span>
+                                            {% endfor %}
+                                        </span>
+                                    {% endif %}
+                                    {% for row in versions %}
+                                        <span class="system-list-meta system-version-row">
+                                            <span class="system-version-key is-{{ row.state }}"></span>
+                                            Version {{ row.version }}:
+                                            {{ row.documents|number_format(0, '.', ',') }}
+                                            {%- if row.state == 'current' %}, current
+                                            {%- elseif row.state == 'backfill' %}, the backfill lifts them from the
+                                                stored data
+                                            {%- else %}, the import loads them again
+                                            {%- endif %}
+                                        </span>
+                                    {% endfor %}
                                 </div>
                                 {{ system.result(check.result) }}
                             </li>

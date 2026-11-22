@@ -11,10 +11,13 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Elastic\Bucket;
 use App\Elastic\ElasticsearchVersion;
 use App\Elastic\IndexSetup;
 use App\Elastic\Indices;
 use App\Enum\SystemCheckEnum;
+use App\Import\Backfill\SchemaBackfill;
+use App\Import\ImportSchema;
 use App\Import\PendingImport;
 use App\People\User;
 use App\People\UserHealth;
@@ -46,6 +49,7 @@ class SystemController extends AbstractController
         private readonly KernelInterface $kernel,
         private readonly UserRepository $users,
         private readonly ForgeLogin $forgeLogin,
+        private readonly SchemaBackfill $backfill,
         #[Autowire('%kernel.project_dir%/.env')]
         private readonly string $dotEnv,
     ) {
@@ -198,8 +202,14 @@ class SystemController extends AbstractController
         foreach (PendingImport::checks() as $check) {
             $index = $this->indices->get($check['index']);
             $matches = $index->count(['query' => $check['query']]);
+            // Documents without the field are of version 1
+            $byVersion = $index->search([
+                'size' => 0,
+                'aggs' => ['versions' => ['terms' => ['field' => ImportSchema::FIELD, 'missing' => 1, 'size' => 100]]],
+            ])->getAggregation('versions');
             $pending[] = $check + [
                 'matches' => $matches,
+                'versions' => PendingImport::versions($check['index'], Bucket::countsOf($byVersion), $this->backfill),
                 'documents' => $index->count(),
                 'result' => PendingImport::result($matches),
             ];

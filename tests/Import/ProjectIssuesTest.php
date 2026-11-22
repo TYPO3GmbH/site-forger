@@ -13,6 +13,7 @@ namespace App\Tests\Import;
 
 use App\Elastic\Indices;
 use App\Import\ProjectIssues;
+use App\Repository\StreamRepository;
 use Elastica\Client;
 use PHPUnit\Framework\TestCase;
 
@@ -22,7 +23,11 @@ final class ProjectIssuesTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->projectIssues = new ProjectIssues(new Indices(new Client()), 27);
+        $this->projectIssues = new ProjectIssues(
+            new Indices(new Client()),
+            $this->createStub(StreamRepository::class),
+            27,
+        );
     }
 
     public function testOnlyTheIssuesOfTheProjectItselfAreImported(): void

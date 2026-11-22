@@ -41,6 +41,7 @@ final readonly class Change
      * @param list<SingleVote>      $singleVotes    each vote with who gave it, the CI too
      * @param array<string, string> $labelStates    what each label lacks for a merge, by its name: OK, NEED, REJECT,
      *                                              IMPOSSIBLE or MAY
+     * @param string|null           $submittedOn    when Gerrit merged the change, null for an older import
      * @param list<ReviewMessage>   $messages       the review log, the oldest first
      * @param list<string>          $conflicts      the files with a conflict in the current patch set
      * @param int|null              $cherryPickOf   the change this one is a cherry-pick of
@@ -65,6 +66,7 @@ final readonly class Change
         public ?int $patchsets = null,
         public ?string $createdOn = null,
         public ?string $updatedOn = null,
+        public ?string $submittedOn = null,
         public ?string $owner = null,
         public ?int $ownerId = null,
         public ?string $ownerUsername = null,
@@ -119,6 +121,7 @@ final readonly class Change
             patchsets: self::intOrNull($document['patchsets'] ?? null),
             createdOn: self::stringOrNull($document['created_on'] ?? null),
             updatedOn: self::stringOrNull($document['updated_on'] ?? null),
+            submittedOn: self::stringOrNull($document['submitted'] ?? null),
             owner: self::stringOrNull($document['owner'] ?? null),
             ownerId: self::intOrNull($document['owner_id'] ?? null),
             ownerUsername: self::stringOrNull($document['owner_username'] ?? null),

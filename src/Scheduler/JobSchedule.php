@@ -12,6 +12,8 @@ declare(strict_types=1);
 namespace App\Scheduler;
 
 use App\Command\ImportUsersCommand;
+use App\Command\SchemaBackfillCommand;
+use App\Import\Backfill\SchemaBackfill;
 use App\Import\DuplicateImport;
 use App\Import\ForgeImport;
 use App\Import\ForgeUserSync;
@@ -71,18 +73,36 @@ final readonly class JobSchedule implements ScheduleProviderInterface
             'lock' => ForgeImport::LOCK,
             'steps' => [
                 ForgeImport::STEP_DELTA,
-                ForgeImport::STEP_OUTDATED,
                 ForgeImport::STEP_RECONCILE,
+                ForgeImport::STEP_OUTDATED,
                 DuplicateImport::STEP,
             ],
         ],
-        'reviewDelta' => ['label' => 'Update Gerrit changes', 'every' => '5 minutes', 'command' => ['app:import:review'], 'lock' => GerritImport::LOCK, 'steps' => [GerritImport::STEP_DELTA_LIST, GerritImport::STEP_DELTA_LOAD, GerritImport::STEP_AFFECTED, GerritImport::STEP_OUTDATED]],
+        'reviewDelta' => [
+            'label' => 'Update Gerrit changes',
+            'every' => '5 minutes',
+            'command' => ['app:import:review'],
+            'lock' => GerritImport::LOCK,
+            'steps' => [
+                GerritImport::STEP_DELTA_LIST,
+                GerritImport::STEP_DELTA_LOAD,
+                GerritImport::STEP_AFFECTED,
+                GerritImport::STEP_OUTDATED,
+            ],
+        ],
         'users' => [
             'label' => 'Update users',
             'every' => '5 minutes',
             'command' => ['app:import:users'],
             'lock' => ImportUsersCommand::LOCK,
             'steps' => [ImportUsersCommand::STEP_TAKE_OVER, ForgeUserSync::STEP, GerritAccountLookup::STEP],
+        ],
+        'backfill' => [
+            'label' => 'Lift stored documents and write the activity stream',
+            'every' => '5 minutes',
+            'command' => ['app:import:backfill'],
+            'lock' => SchemaBackfillCommand::LOCK,
+            'steps' => [SchemaBackfill::STEP],
         ],
         'backports' => ['label' => 'Find missing backports', 'every' => '5 minutes', 'command' => ['app:backports']],
     ];

@@ -13,14 +13,18 @@ namespace App\Import;
 
 use App\CommandRun\CommandRunRecorder;
 use App\Document\CommitMessage;
+use App\Document\ReviewMessage;
 use App\Document\ReviewSubject;
 use App\Elastic\Indices;
+use App\Enum\ReviewEventEnum;
 use App\Enum\ReviewLabelEnum;
 use App\Enum\ReviewStatusEnum;
 use App\Http\ApiClient;
 use App\Http\ApiFailure;
 use App\People\User;
 use App\Repository\UserRepository;
+use App\Stream\StreamSchema;
+use App\Stream\StreamWriter;
 use Elastica\Document;
 
 /**
@@ -93,6 +97,7 @@ final class GerritChangeImporter
         private readonly CommandRunRecorder $recorder,
         private readonly ProjectChanges $projectChanges,
         private readonly UserRepository $users,
+        private readonly StreamWriter $stream,
     ) {
     }
 
@@ -164,7 +169,14 @@ final class GerritChangeImporter
         // The owners the index "user" lacks, complete: Gerrit told all of them with the change
         $this->users->ensureGerrit(array_merge(...array_map(self::accounts(...), array_values($documents))));
         foreach (array_chunk(array_values($documents), self::BULK_SIZE) as $chunk) {
-            $this->indices->reviews()->addDocuments(array_map(static fn (array $document): Document => new Document((string) $document['id'], $document), $chunk));
+            $chunk = array_map(StreamSchema::marked(...), $chunk);
+            // The documents before their events: SchemaBackfill runs at the same time and tells by the document
+            // that an import wrote it, see SchemaBackfill::write()
+            $this->indices->reviews()->addDocuments(array_map(
+                static fn (array $document): Document => new Document((string) $document['id'], $document),
+                $chunk,
+            ));
+            $this->stream->changes($chunk);
             $this->recorder->document(count($chunk));
         }
         if ($refresh && [] !== $documents) {
@@ -503,9 +515,15 @@ final class GerritChangeImporter
         $messages = (array) ($change['messages'] ?? []);
         $revision = (array) ($change['revisions'][$change['current_revision'] ?? ''] ?? []);
         $patchSet = (int) ($revision['_number'] ?? 0);
+        $log = self::messages($messages);
+        $submitted = ReviewStatusEnum::MERGED->value === ($change['status'] ?? null) && isset($change['submitted'])
+            ? self::gerritDate((string) $change['submitted'])
+            : null;
 
         return [
-            'messages' => self::messages($messages),
+            'messages' => $log,
+            'submitted' => $submitted,
+            'closed_on' => self::closedOn((string) ($change['status'] ?? ''), $submitted, $log),
             'votes' => self::singleVotes((array) ($change['labels'] ?? [])),
             'file_details' => self::fileDetails((array) ($revision['files'] ?? [])),
             'label_states' => self::labelStates((array) ($change['submit_records'] ?? [])),
@@ -514,6 +532,32 @@ final class GerritChangeImporter
             'comment_count' => (int) ($change['total_comment_count'] ?? 0),
             'unresolved_comment_count' => (int) ($change['unresolved_comment_count'] ?? 0),
         ];
+    }
+
+    /**
+     * The day a change closed, null while it is open: when Gerrit submitted a merged change, when the last message
+     * abandoned an abandoned one. A merged change without "submitted" takes the message of its merge.
+     *
+     * @param list<array<string, mixed>> $log the review log, see messages()
+     */
+    public static function closedOn(string $status, ?string $submitted, array $log): ?string
+    {
+        $event = match ($status) {
+            ReviewStatusEnum::MERGED->value => ReviewEventEnum::MERGED,
+            ReviewStatusEnum::ABANDONED->value => ReviewEventEnum::ABANDONED,
+            default => null,
+        };
+        if (null === $event || null !== $submitted) {
+            return $submitted;
+        }
+        foreach (array_reverse($log) as $message) {
+            $message = ReviewMessage::fromDocument($message);
+            if ($event === $message->event) {
+                return $message->date;
+            }
+        }
+
+        return null;
     }
 
     /**

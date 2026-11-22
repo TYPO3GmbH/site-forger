@@ -21,6 +21,7 @@ use App\Enum\ReviewSizeEnum;
 use App\Enum\ReviewStateEnum;
 use App\Enum\ReviewStatusEnum;
 use App\Enum\ReviewVoteEnum;
+use App\Enum\StreamNewcomerStateEnum;
 use App\Enum\SystemCheckEnum;
 use PHPUnit\Framework\TestCase;
 
@@ -106,6 +107,7 @@ final class StatusEnumTest extends TestCase
             ...ReviewVoteEnum::cases(),
             ...ReviewSizeEnum::cases(),
             ...ReviewLabelStateEnum::cases(),
+            ...StreamNewcomerStateEnum::cases(),
         ];
         foreach ($states as $state) {
             self::assertMatchesRegularExpression('/\\.status-pill-' . preg_quote($state->severity(), '/') . '[\\s,{]/', $styles, $state->name . ' has no status pill style');
