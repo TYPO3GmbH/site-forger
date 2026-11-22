@@ -428,10 +428,17 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         $html = $render(['range' => '2025-03-01 to 2025-03-31']);
         // After the other filters, two fields of months
         self::assertGreaterThan(strpos($html, 'facet-issues-tracker'), strpos($html, 'facet-issues-created'));
-        // One field with the datepicker of the template bundle: the first and the last day in one calendar
-        self::assertStringContainsString('name="filters[created][range]" value="2025-03-01 to 2025-03-31" placeholder="Pick the first and the last day" data-datepicker="{&quot;mode&quot;:&quot;range&quot;', $html);
-        // Links with from and to show in it, too
-        self::assertStringContainsString('value="2025-03 to 2025-06"', $render(['from' => '2025-03', 'to' => '2025-06']));
+        // The calendar of the activity takes the days of a range of a link shared before
+        self::assertMatchesRegularExpression(
+            '#<forger-days-filter\s+name="filters\[created\]"\s+from="2025-03-01"\s+to="2025-03-31"#',
+            $html,
+        );
+        // A day alone is the first and the last day
+        self::assertMatchesRegularExpression('#from="2025-03-01"\s+to="2025-03-01"#', $render(['range' => '2025-03-01']));
+        // From and to as the calendar sends them, an end left open
+        self::assertMatchesRegularExpression('#from="2025-03-01"\s+to=""#', $render(['from' => '2025-03-01']));
+        // The icons and the first year of the calendar
+        self::assertStringContainsString('id="forger-activity-definitions"', $html);
         // Open, and to be cleared, while a month is set
         self::assertStringContainsString('id="facet-issues-created" class="collapse show"', $html);
         self::assertStringContainsString('>Clear</button>', $html);
@@ -477,7 +484,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertMatchesRegularExpression('#<template>\s*<span class="icon[^"]*">.*actions-close#s', $html);
     }
 
-    public function testEveryFilterOfDatesHasTheDatepicker(): void
+    public function testEveryFilterOfDatesHasTheCalendar(): void
     {
         $html = $this->twig->render('_partials/aggregations.html.twig', [
             'facetScope' => 'changes',
@@ -486,8 +493,11 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         ]);
 
         self::assertStringContainsString('<span class="aggregation-title-text">Updated</span>', $html);
-        self::assertStringContainsString('<label class="sr-only" for="facet-changes-updated-days">Updated from and to</label>', $html);
-        self::assertStringContainsString('name="filters[updated][range]" value="2026-11-01 to 2026-11-20" placeholder="Pick the first and the last day" data-datepicker=', $html);
+        self::assertMatchesRegularExpression(
+            '#<forger-days-filter\s+name="filters\[updated\]"\s+from="2026-11-01"\s+to="2026-11-20"\s+'
+            . 'aria-label="Updated from and to"#',
+            $html,
+        );
         // Clear empties its own field only
         self::assertStringContainsString('[name^=&quot;filters[updated]&quot;]', $html);
         self::assertGreaterThan(strpos($html, 'facet-changes-size'), strpos($html, 'facet-changes-updated'));

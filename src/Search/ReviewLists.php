@@ -230,7 +230,7 @@ final class ReviewLists
     }
 
     /**
-     * @param array<string, mixed> $range the days of the datepicker
+     * @param array<string, mixed> $range the days of the filter, see MonthOverview::days()
      *
      * @return array<string, mixed>|null
      */
@@ -275,7 +275,7 @@ final class ReviewLists
 
                 return null === $size ? null : new Simple(ReviewSizeQuery::changes($size));
             case 'updated_on':
-                // A month of the filter "Updated on" ticked before the datepicker, in links shared then
+                // A month of the filter "Updated on" ticked before the calendar, in links shared then
                 $start = new \DateTimeImmutable('@' . intdiv((int) $value, 1000));
 
                 return new Range($key, ['gte' => $start->format('Y/m/d H:i:s'), 'lte' => $start->modify('+1 month -1 second')->format('Y/m/d H:i:s')]);

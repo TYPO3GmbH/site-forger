@@ -19,10 +19,13 @@
  #          filters[<key>][path]. <forger-path-filter> shows each as a chip and adds those typed in, see
  #          assets/ts/filter/path-filter.ts;
  #          dateFilters (optional): the filters of dates, last in the list: filter key => title, and value (the
- #          parameters of the filter). Each is one field with the datepicker of the template bundle, the first and the
- #          last day clicked in one calendar, see MonthOverview::days()
+ #          parameters of the filter). Each is the calendar of <forger-days-filter>, which sends the first day as
+ #          filters[<key>][from] and the last as filters[<key>][to], see assets/ts/filter/days-filter.ts and
+ #          MonthOverview::days()
  #}
 {% import '_macros/user.html.twig' as user %}
+{# The icons and the first year of the calendar #}
+{% if dateFilters ?? {} is not empty %}{% include 'stream/_definitions.html.twig' %}{% endif %}
 <div class="aggregations" id="aggregations" role="tablist">
     {% for title, buckets in aggregations %}
         {% set panelId = 'facet-' ~ facetScope ~ '-' ~ (title|filterKey|lower) %}
@@ -89,17 +92,25 @@
             </div>
             <div id="{{ panelId }}" class="collapse{{ active ? ' show' }}" role="tabpanel" aria-labelledby="{{ panelId }}-title" data-bs-parent="#aggregations"{% if active %} data-facet-active{% endif %}>
                 <div class="aggregation-body aggregation-range">
-                    {# The first and the last day in one calendar, both included: one day clicked alone is that day, see assets/js/date-range.js #}
-                    {% set picker = {'mode': 'range', 'dateFormat': 'Y-m-d', 'altInput': true, 'altFormat': 'M j, Y', 'maxDate': 'today'}|json_encode %}
-                    {% set days = (value.range ?? '') is not empty ? value.range : ((value.from ?? '') ~ ((value.to ?? '') is not empty ? ' to ' ~ value.to : '')) %}
-                    <label class="sr-only" for="{{ panelId }}-days">{{ dateFilter.title }} from and to</label>
-                    <input type="text" id="{{ panelId }}-days" class="form-control form-control-sm" name="filters[{{ key }}][range]" value="{{ days|trim }}" placeholder="Pick the first and the last day" data-datepicker="{{ picker }}" data-date-range>
-                    <div class="aggregation-range-actions">
-                        <button type="submit" class="btn btn-sm btn-default">Apply</button>
-                        {% if active %}
-                            <button type="submit" class="btn btn-sm btn-link" onclick="this.form.querySelectorAll('[name^=&quot;filters[{{ key }}]&quot;]').forEach(function (field) { field.value = ''; })">Clear</button>
-                        {% endif %}
-                    </div>
+                    {# A link shared before has the days in one value, "2026-11-01 to 2026-11-20", or one day alone #}
+                    {% set days = (value.range ?? '')|split(' to ', 2)|map(day => day|trim) %}
+                    {% set from = (value.range ?? '') is not empty ? days[0] : (value.from ?? '') %}
+                    {% set to = (value.range ?? '') is not empty ? (days[1] ?? days[0]) : (value.to ?? '') %}
+                    <forger-days-filter
+                        name="filters[{{ key }}]"
+                        from="{{ from }}"
+                        to="{{ to }}"
+                        aria-label="{{ dateFilter.title }} from and to"
+                    ></forger-days-filter>
+                    {% if active %}
+                        <div class="aggregation-range-actions">
+                            <button
+                                type="submit"
+                                class="btn btn-sm btn-link"
+                                onclick="this.form.querySelectorAll('[name^=&quot;filters[{{ key }}]&quot;]').forEach(function (field) { field.value = ''; })"
+                            >Clear</button>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

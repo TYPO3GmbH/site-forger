@@ -14,11 +14,11 @@ import './js/header-search.js';
 import './js/command-runs.js';
 import './js/person-search.js';
 import './js/search-tabs.js';
-import './js/date-range.js';
 import './js/flash-messages.js';
 import './js/copy.js';
 import './ts/activity/index.ts';
 import './ts/filter/path-filter.ts';
+import './ts/filter/days-filter.ts';
 import { loadEditor } from './js/editor.js';
 
 function initializeEditor(ace, textarea) {
