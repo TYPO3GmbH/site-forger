@@ -39,7 +39,10 @@ Rules for everyone who works on this repository, people and coding agents.
 
 ## Deployment
 - The CI deploys with `deploy.php` once its checks are green: a push to `develop` goes to stage.forger.typo3.com, a push to `master` to forger.typo3.com.
-- Before the new release goes live, the deployment migrates the database, pauses the jobs and runs `app:elasticsearch:setup`. A new field in `config/Elasticorn/*/Mapping.yaml` needs no step by hand.
+- Before the new release goes live, the deployment migrates the database, builds the cache of the release, pauses the jobs and runs `app:elasticsearch:setup`. A new field in `config/Elasticorn/*/Mapping.yaml` needs no step by hand.
+- Check the deployment with every change, not only the code. Ask how the change goes live: the migrations, the cache, the worker of the schedule, the paused jobs and the paths the releases share. A change that works locally can fail in `deploy.php`.
+- Each release has its own `var/cache`. The releases share only `var/log`, `var/lock`, `var/scheduler` and `var/backports.json`. Keep state that must outlive a release in one of them or in MySQL, not in the cache.
+- After a push, follow the "Deployment" job of the CI until it is green. A failed deployment can leave a release live without its last steps, like the restart of the worker.
 - Raise `ImportSchema::ISSUE` or `ImportSchema::REVIEW` when an import reads more data. The imports then load the older documents again, a share with each run.
 
 ## Conventions
