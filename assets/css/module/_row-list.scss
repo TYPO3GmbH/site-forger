@@ -57,11 +57,12 @@
     }
 }
 
-// On its own on a page, like the panels of the dashboard: round corners, no shadow
+// On its own on a page, like the panels of the dashboard: round corners, the shadow of all cards
 .row-list-panel {
     margin-bottom: 1.5rem;
     border-radius: 1rem;
     background: #fff;
+    box-shadow: var(--card-shadow);
 
     .overview-list-item {
         padding: 1.25rem;

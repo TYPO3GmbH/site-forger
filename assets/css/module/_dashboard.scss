@@ -5,9 +5,9 @@
 .overview {
     --overview-border: #e6e8eb;
     --overview-muted: #6b7280;
-    // The cards of the dashboard and its kin: a gray line around, round corners, no shadow
+    // The cards of the dashboard and its kin: a gray line around, round corners, the shadow of all cards
     --overview-radius: 1rem;
-    --overview-shadow: none;
+    --overview-shadow: var(--card-shadow);
 }
 
 // Key figures. With two columns the wide one gets a row of its own, the others fill the row above it
@@ -87,6 +87,7 @@
     border: 1px solid #fbd9c3;
     border-radius: var(--overview-radius);
     background: linear-gradient(135deg, #fff7f1 0%, #fff 70%);
+    box-shadow: var(--overview-shadow);
     color: inherit;
     text-decoration: none;
     transition: box-shadow .15s, border-color .15s;

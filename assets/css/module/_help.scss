@@ -3,9 +3,9 @@
 .help {
     --help-border: #e6e8eb;
     --help-muted: #6b7280;
-    // As the cards of the dashboard: round corners, no shadow
+    // As the cards of the dashboard: round corners, the shadow of all cards
     --help-radius: 1rem;
-    --help-shadow: none;
+    --help-shadow: var(--card-shadow);
     --help-accent: #eb6834;
     --help-accent-soft: #fdeee7;
 

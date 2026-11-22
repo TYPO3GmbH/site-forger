@@ -79,6 +79,7 @@
     border-radius: .5rem;
     // White like the lists: on the gray of the page the muted label is too light
     background: #fff;
+    box-shadow: var(--card-shadow);
     color: inherit;
     text-decoration: none;
 
