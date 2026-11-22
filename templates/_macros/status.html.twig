@@ -69,6 +69,16 @@
 {% endmacro %}
 
 {#
+ # The unresolved comments of an open Gerrit change: what its owner still has to answer. Nothing without any.
+ #}
+{% macro unresolved(change) %}
+    {% set count = change.unresolvedComments %}
+    {% if count > 0 %}
+        <span class="status-pill status-pill-icon status-pill-label-need" title="{{ count }} unresolved {{ count == 1 ? 'comment' : 'comments' }}, the owner has to answer">{{ icon('actions-comment') }}{{ count }} unresolved</span>
+    {% endif %}
+{% endmacro %}
+
+{#
  # How long ago an open Gerrit change was last updated, nothing for closed ones.
  #}
 {% macro activity(change) %}
@@ -88,11 +98,14 @@
 
 {#
  # The marks of an open Forge issue as pills, like "Regression", see IssueMarkEnum.
+ # except: the marks to leave out, by their name in lower case: the ones a list is about.
+ # iconOnly: the icon without the label, for a narrow row. The title names the mark then.
  #}
-{% macro issueMarks(issue) %}
-    {% for mark in issue.marks %}
-        <span class="status-pill status-pill-icon status-pill-{{ mark.severity }}" title="{{ mark.description }}">
-            {{- icon(mark.icon) }}{{ mark.label -}}
+{% macro issueMarks(issue, except = [], iconOnly = false) %}
+    {% for mark in issue.marks|filter(mark => mark.name|lower not in except) %}
+        {% set title = (iconOnly ? mark.label ~ ': ') ~ mark.description %}
+        <span class="status-pill status-pill-icon status-pill-{{ mark.severity }}" title="{{ title }}">
+            {{- icon(mark.icon) }}{% if iconOnly %}<span class="sr-only">{{ mark.label }}</span>{% else %}{{ mark.label }}{% endif -%}
         </span>
     {% endfor %}
 {% endmacro %}

@@ -27,7 +27,7 @@
                 <span class="duplicates-score duplicates-score-none" title="The search did not find it among the most similar issues">–</span>
             {% endif %}
         </span>
-        {% include '_partials/row/issue.html.twig' with {'issue': hit.issue, 'detailed': true, 'note': note} only %}
+        {% include '_partials/row/issue.html.twig' with {'issue': hit.issue, 'size': 'l', 'note': note} only %}
     </li>
 {% endmacro %}
 
@@ -50,7 +50,7 @@
                     <ul class="row-list duplicates-list">
                         <li class="duplicates-row">
                             <span class="duplicates-side"></span>
-                            {% include '_partials/row/issue.html.twig' with {'issue': issue, 'detailed': true, 'teaserLength': 600} only %}
+                            {% include '_partials/row/issue.html.twig' with {'issue': issue, 'size': 'l', 'teaserLength': 600} only %}
                         </li>
                     </ul>
                 </section>

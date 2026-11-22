@@ -5,6 +5,6 @@
  #}
 <ul class="mywork-list">
     {% for issue in issues %}
-        <li>{% include '_partials/row/issue.html.twig' with {'issue': issue, 'detailed': true, 'viewer': name} only %}</li>
+        <li>{% include '_partials/row/issue.html.twig' with {'issue': issue, 'size': 'l', 'viewer': name} only %}</li>
     {% endfor %}
 </ul>

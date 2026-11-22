@@ -1,17 +1,19 @@
 {#
  # A short list of the dashboard or of the page "Get involved": its title and count, the first rows and a link to all
  # of them.
- # Expects: id, title, url (the list or search with the same filter), items (a SearchResult), kind ("issue" or
- #          "change"), empty (the text without items)
- # Optional: text, a line on what to do with the items; guide, a page of the Contribution Guide on it: url and label;
- #           chips, what the task takes: time and skill
+ # Expects: id, title, items (a SearchResult), kind ("issue" or "change"), empty (the text without items)
+ # Optional: url, the list or search with the same filter; text, a line on what to do with the items;
+ #           guide, a page of the Contribution Guide on it: url and label; chips, what the task takes: time and skill
+ #           known, what all items have in common, left out of their rows, see _partials/row/
  #}
 <section class="overview-list" aria-labelledby="{{ id }}">
     <header class="overview-list-header">
         <h2 class="overview-list-title" id="{{ id }}">
             {{- title }} <span class="overview-list-count">{{ items.total }}</span>
         </h2>
-        <a class="overview-list-all" href="{{ url }}">Show all</a>
+        {% if url is defined %}
+            <a class="overview-list-all" href="{{ url }}">Show all</a>
+        {% endif %}
     </header>
     {% if text is defined %}
         <p class="overview-list-text">
@@ -36,9 +38,9 @@
             {% for item in items %}
                 <li>
                     {% if kind == 'change' %}
-                        {% include '_partials/row/change.html.twig' with {'change': item} only %}
+                        {% include '_partials/row/change.html.twig' with {'change': item, 'size': 's', 'known': known ?? []} only %}
                     {% else %}
-                        {% include '_partials/row/issue.html.twig' with {'issue': item} only %}
+                        {% include '_partials/row/issue.html.twig' with {'issue': item, 'size': 's', 'known': known ?? []} only %}
                     {% endif %}
                 </li>
             {% endfor %}

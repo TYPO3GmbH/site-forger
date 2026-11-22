@@ -52,7 +52,7 @@
                         {% else %}
                             <ul class="row-list row-list-panel">
                                 {% for issue in issues %}
-                                    <li>{% include '_partials/row/issue.html.twig' with {'issue': issue, 'detailed': true} only %}</li>
+                                    <li>{% include '_partials/row/issue.html.twig' with {'issue': issue, 'size': 'l'} only %}</li>
                                 {% endfor %}
                             </ul>
                         {% endif %}

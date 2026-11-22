@@ -63,9 +63,13 @@ final class GetInvolvedTemplateTest extends KernelTestCase
         self::assertStringContainsString('href="/issue/91089"', $html);
         self::assertStringContainsString('Show the list', $html);
         // Each item shows its state below its title
-        self::assertStringContainsString('<span class="task-card-subject">Tidy up</span>', $html);
+        self::assertStringContainsString('Tidy up</span>', $html);
+        // In the size for narrow cards
+        self::assertStringContainsString('class="overview-list-item kind-change is-xs"', $html);
+        self::assertStringContainsString('class="overview-list-item kind-issue is-xs"', $html);
         self::assertStringContainsString('status-pill-new', $html);
-        self::assertStringContainsString('status-pill-mark-good-first-issue', $html);
+        // The card is about the good first issues, its rows do not repeat the mark
+        self::assertStringNotContainsString('status-pill-mark-good-first-issue', $html);
         self::assertStringContainsString('href="/reviews/ready?filters%5Bsize%5D%5BEasy%5D=true"', $html);
         self::assertStringContainsString(
             'href="/search?filters%5Bmarked_as%5D%5BGood_first_issue%5D=true&amp;sort=updated"',

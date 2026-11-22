@@ -1,65 +1,44 @@
 {#
- # A Forge issue in one row of a list: the tracker, the subject, below it status, category, version and
- # author, when it was created.
+ # A Forge issue in one row of a list, in one of four sizes. Each size has its template in _partials/row/issue/:
+ #   xs two lines that never wrap, for narrow cards like the tasks of "Get involved": the subject, below it what
+ #      it is and how it stands;
+ #   s  two lines, for the cards of the dashboard: the subject, below it what it is, how it stands and the author;
+ #   m  three lines, for the lists of a detail page: the subject, the author with category and version, then what
+ #      it is and how it stands;
+ #   l  for the search, the content of its page: the whole subject, the beginning of the description, more facts,
+ #      a column on the right.
+ # In each line, what every row has comes first and in the same order. What only some rows have follows it, so it
+ # never moves the rest.
+ # A list that is about one fact names it in "known", so its rows do not repeat it: "tracker", "status", or a
+ # mark by its name in lower case, like "regression" or "good_first_issue".
  # Expects: issue, a document of the issue index
- # Optional: relation, how it belongs to the page, like "Resolved by this change";
- #           detailed, for the search: the whole subject, below it the beginning of the description, then in one line the tracker and the state, the author with a
- #           small avatar, category and versions; the update and the assignee in a column on the right, the same in every row. The update
- #           instead of the creation, as the search sorts by it;
- #           viewer, the name of the logged-in user, for My Work: the assignee as "Assigned to you" or "Unassigned";
- #           note, for detailed rows: why the issue is in the list, in a line of its own below the others;
- #           teaserLength, for detailed rows: how many characters of the description the row shows.
+ # Optional: size, "xs", "s", "m" or "l", "m" without;
+ #           known, what every row of the list has in common, left out of the rows;
+ #           relation, for "m": how it belongs to the page, like "Resolved by this change";
+ #           viewer, for "l": the name of the logged-in user, for My Work: the assignee as "Assigned to you" or
+ #           "Unassigned";
+ #           note, for "l": why the issue is in the list, in a line of its own below the others;
+ #           teaserLength, for "l": how many characters of the description the row shows.
  #}
 {# "-" in a field of the index: the import found no value #}
 {% import '_macros/status.html.twig' as status %}
 {% import '_macros/user.html.twig' as user %}
-{% set detailed = detailed ?? false %}
+{% set size = size ?? 'm' %}
 {% set tracker = issue_tracker(issue.tracker.name ?? null) %}
-{% set dateValue = detailed ? issue.updatedOn : issue.createdOn %}
-{% set trackerTag %}<span class="tag-label tag-label-{{ tracker.severity ?? 'default' }}">{{ tracker.label ?? issue.tracker.name ?? 'Issue' }}</span>{% endset %}
-{% set date %}<time class="overview-list-item-date" datetime="{{ to_datetime(dateValue)|date('c') }}" title="{{ detailed ? 'Updated' : 'Created' }} {{ dateValue }}">{{ relativetime(to_datetime(dateValue)) }}</time>{% endset %}
-<a class="overview-list-item kind-issue{{ detailed ? ' overview-list-item-detailed' }}" href="{{ issue_path(issue.id) }}" title="{{ issue.subject }}">
-    {% if not detailed %}
-        {{ trackerTag }}
-    {% endif %}
-    <span class="overview-list-item-main">
-        <span class="overview-list-item-title"><span class="overview-list-item-id" title="Issue">{{ icon('actions-list') }}#{{ issue.id }}</span>{{ issue.subject }}</span>
-        {% if detailed %}
-            {% set teaser = (issue.description ?? null)|forgeTeaser(teaserLength ?? 240) %}
-            {% if teaser is not empty %}<span class="overview-list-item-teaser">{{ teaser }}</span>{% endif %}
-            <span class="overview-list-item-meta">
-                {{ trackerTag }}
-                {{ status.issue(issue.status.name ?? null) }}
-                {{ status.issueActivity(issue) }}
-                {{ status.issueMarks(issue) }}
-                {{ user.inline(issue.author ?? null, role: 'Author') }}
-                {% if issue.category.name is defined %}<span title="Category">{{ issue.category.name }}</span>{% endif %}
-                {% if (issue.typo3Version ?? '-') != '-' %}<span title="TYPO3 version">v{{ issue.typo3Version }}</span>{% endif %}
-                {% if issue.fixedVersion.name is defined %}<span title="Target version">→ {{ issue.fixedVersion.name }}</span>{% endif %}
-            </span>
-            {% if note is defined and note is not empty %}<span class="overview-list-item-note">{{ note }}</span>{% endif %}
-        {% else %}
-            <span class="overview-list-item-meta">
-                {% if relation is defined %}<span class="overview-list-relation">{{ relation }}</span>{% endif %}
-                {{ status.issue(issue.status.name ?? null) }}
-                {{ status.issueMarks(issue) }}
-                {% if issue.category.name is defined %}<span title="Category">{{ issue.category.name }}</span>{% endif %}
-                {% if (issue.typo3Version ?? '-') != '-' %}<span title="TYPO3 version">v{{ issue.typo3Version }}</span>{% endif %}
-                {{ user.inline(issue.author ?? null, role: 'Author') }}
-            </span>
-        {% endif %}
-    </span>
-    {% if detailed %}
-        <span class="overview-list-column">
-            {{ date }}
-            {% set assignee = issue.assignedTo.name ?? null %}
-            {% if viewer is defined and viewer is not empty and (assignee is null or assignee == viewer) %}
-                <span class="overview-list-column-line" title="Assigned to">{{ assignee is null ? 'Unassigned' : 'Assigned to you' }}</span>
-            {% elseif assignee is not null %}
-                <span class="overview-list-column-line">{{ user.inline(issue.assignedTo, role: 'Assigned to') }}</span>
-            {% endif %}
-        </span>
-    {% else %}
-        {{ date }}
-    {% endif %}
-</a>
+{# The update instead of the creation in "l", as the search sorts by it #}
+{% set dateValue = size == 'l' ? issue.updatedOn : issue.createdOn %}
+{% set known = known ?? [] %}
+{% set trackerTag %}
+    {%- if 'tracker' not in known -%}
+        <span class="tag-label tag-label-{{ tracker.severity ?? 'default' }}">{{ tracker.label ?? issue.tracker.name ?? 'Issue' }}</span>
+    {%- endif -%}
+{% endset %}
+{% set statusPill %}{% if 'status' not in known %}{{ status.issue(issue.status.name ?? null) }}{% endif %}{% endset %}
+{# In a narrow row the icon of a mark alone, its name in the title #}
+{% set marks %}{{ status.issueMarks(issue, known, size == 'xs') }}{% endset %}
+{% set date %}<time class="overview-list-item-date" datetime="{{ to_datetime(dateValue)|date('c') }}" title="{{ size == 'l' ? 'Updated' : 'Created' }} {{ dateValue }}">{{ relativetime(to_datetime(dateValue)) }}</time>{% endset %}
+{% set title %}<span class="overview-list-item-title"><span class="overview-list-item-id" title="Issue">{{ icon('actions-list') }}#{{ issue.id }}</span>{{ issue.subject }}</span>{% endset %}
+{% set author %}{{ user.inline(issue.author ?? null, role: 'Author') }}{% endset %}
+{% set category %}{% if issue.category.name is defined %}<span class="overview-list-item-category" title="Category">{{ issue.category.name }}</span>{% endif %}{% endset %}
+{% set version %}{% if (issue.typo3Version ?? '-') != '-' %}<span title="TYPO3 version">v{{ issue.typo3Version }}</span>{% endif %}{% endset %}
+{% include '_partials/row/issue/' ~ size ~ '.html.twig' %}

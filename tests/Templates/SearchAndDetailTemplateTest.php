@@ -687,7 +687,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
         self::assertStringContainsString('<a class="tag-label tag-label-bugfix" href="/search/changes?filters%5Btype%5D%5BBUGFIX%5D=true" title="Bugfix: the changes with this tag">BUGFIX</a>', $html);
         // Not in the rows
-        self::assertStringNotContainsString('<a class="tag-label', $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::CHANGE), 'detailed' => true]));
+        self::assertStringNotContainsString('<a class="tag-label', $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::CHANGE), 'size' => 'l']));
     }
 
     public function testTheFilesAfterTheFirstTwentyAreCollapsed(): void
@@ -801,6 +801,12 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         // The notice on top names the unresolved comments and leads to the first one
         self::assertStringContainsString('<strong>1 unresolved comment</strong>', $html);
         self::assertStringContainsString('<a href="#comment-c1">Show the first one</a>', $html);
+        // A row of a list names them, too. Not for a closed change: nobody has to answer any more
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change)]);
+        self::assertStringContainsString('title="1 unresolved comment, the owner has to answer"', $row);
+        $merged = Change::fromDocument(['reviewstatus' => 'MERGED'] + $change);
+        $row = $this->twig->render('_partials/row/change.html.twig', ['change' => $merged, 'size' => 'l']);
+        self::assertStringNotContainsString('unresolved', $row);
         self::assertStringContainsString('href="/change/80000">Change 80000</a>', $html);
     }
 
@@ -974,7 +980,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         $page = $this->twig->load('issue/show.html.twig')->renderBlock('body', ['issue' => Issue::fromDocument($none), 'changes' => [], 'unknownChanges' => []]);
         self::assertStringNotContainsString('<dt>TYPO3 version</dt>', $page);
         self::assertStringNotContainsString('<dt>Complexity</dt>', $page);
-        self::assertStringNotContainsString('title="TYPO3 version">v-', $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument($none), 'detailed' => true]));
+        self::assertStringNotContainsString('title="TYPO3 version">v-', $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument($none), 'size' => 'l']));
 
         // Forger has only one project
         $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', ['issue' => Issue::fromDocument($issue + ['project' => ['id' => 27, 'name' => 'TYPO3 Core']]), 'changes' => [], 'unknownChanges' => []]);
@@ -1093,8 +1099,8 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
     public function testListsLeadToTheDetailPages(): void
     {
-        self::assertStringContainsString('href="/change/81234"', $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::CHANGE), 'detailed' => true]));
-        self::assertStringContainsString('href="/issue/91089"', $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument(self::ISSUE), 'detailed' => true]));
+        self::assertStringContainsString('href="/change/81234"', $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::CHANGE), 'size' => 'l']));
+        self::assertStringContainsString('href="/issue/91089"', $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument(self::ISSUE), 'size' => 'l']));
     }
 
     public function testTheBreadcrumbLinksAllButThePageItself(): void
@@ -1325,7 +1331,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
     public function testListsShowTheSize(): void
     {
-        $html = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::CHANGE + ['insertions' => 40, 'deletions' => 20]), 'detailed' => true]);
+        $html = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument(self::CHANGE + ['insertions' => 40, 'deletions' => 20]), 'size' => 'l']);
 
         self::assertStringContainsString('status-pill-size-normal" title="Normal: +40 −20 lines, up to 250 lines changed">Normal</span>', $html);
     }

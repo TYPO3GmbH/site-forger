@@ -473,7 +473,7 @@
     text-decoration: none;
     transition: background-color .12s;
 
-    // The same width for each tag, so the titles start in one column
+    // The same width for each tag, so what follows it starts in one column
     .tag-label {
         flex-shrink: 0;
         min-width: 3.25rem;

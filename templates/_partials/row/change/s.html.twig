@@ -1,0 +1,15 @@
+{#
+ # A change in two lines, see _partials/row/change.html.twig: the subject, below it the owner, the targets and how it
+ # stands.
+ #}
+<a class="overview-list-item kind-change" href="{{ change_path(change.id) }}" title="{{ change.subject }}">
+    <span class="overview-list-item-main">
+        {{ title }}
+        <span class="overview-list-item-meta">
+            {{ owner }}
+            {{ targets }}
+            {{ standing }}
+        </span>
+    </span>
+    {{ date }}
+</a>

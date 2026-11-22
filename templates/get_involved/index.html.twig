@@ -121,6 +121,7 @@
                     'chips': {'time': '1 to 3 hours', 'skill': 'PHP or TypeScript'},
                     'url': path('search_search', firstIssues),
                     'items': goodFirstIssues,
+                    'known': ['good_first_issue'],
                     'kind': 'issue',
                     'empty': 'There is no good first issue at the moment.',
                 } only %}
@@ -133,6 +134,7 @@
                     'chips': {'time': 'About 15 minutes', 'skill': 'Everyone'},
                     'url': path('search_search', bugs),
                     'items': newBugs,
+                    'known': ['tracker', 'status'],
                     'kind': 'issue',
                     'empty': 'There is no new bug.',
                 } only %}

@@ -1,0 +1,21 @@
+{#
+ # An issue in three lines, see _partials/row/issue.html.twig: the subject, below it who and where, then what it is
+ # and how it stands.
+ #}
+<a class="overview-list-item kind-issue" href="{{ issue_path(issue.id) }}" title="{{ issue.subject }}">
+    <span class="overview-list-item-main">
+        {{ title }}
+        <span class="overview-list-item-meta">
+            {% if relation is defined %}<span class="overview-list-relation">{{ relation }}</span>{% endif %}
+            {{ author }}
+            {{ category }}
+            {{ version }}
+        </span>
+        <span class="overview-list-item-meta">
+            {{ trackerTag }}
+            {{ statusPill }}
+            {{ marks }}
+        </span>
+    </span>
+    {{ date }}
+</a>

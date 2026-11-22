@@ -1,0 +1,16 @@
+{#
+ # An issue in two lines, see _partials/row/issue.html.twig: the subject, below it the tracker, the status and the
+ # author, then the marks.
+ #}
+<a class="overview-list-item kind-issue" href="{{ issue_path(issue.id) }}" title="{{ issue.subject }}">
+    <span class="overview-list-item-main">
+        {{ title }}
+        <span class="overview-list-item-meta">
+            {{ trackerTag }}
+            {{ statusPill }}
+            {{ author }}
+            {{ marks }}
+        </span>
+    </span>
+    {{ date }}
+</a>
