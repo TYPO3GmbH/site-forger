@@ -36,6 +36,8 @@ final class StreamInsightsQuery
     public const string FIGURES = 'figures';
     public const string OPENED = 'opened';
     public const string IN_PROGRESS = 'in_progress';
+    public const string INCOMING = 'incoming';
+    public const string OUTGOING = 'outgoing';
     public const string AFTER = 'after';
     public const string DURATIONS = 'durations';
     public const string DAYS = 'days';
@@ -179,7 +181,7 @@ final class StreamInsightsQuery
      * per bucket of time, and after the window. Counted back from the open ones now, it gives the open ones at the
      * end of each bucket, see StreamStatistics. The events of tools count too: Gerrit closes issues on Forge. The
      * branch counts for the changes only. The sum of "wip_delta" under IN_PROGRESS counts the open changes in
-     * progress the same way.
+     * progress the same way. INCOMING and OUTGOING count the events that opened and closed, for the flow.
      *
      * @return array<string, mixed>
      */
@@ -203,6 +205,8 @@ final class StreamInsightsQuery
         $sums = [
             self::OPENED => ['sum' => ['field' => 'open_delta']],
             self::IN_PROGRESS => ['sum' => ['field' => 'wip_delta']],
+            self::INCOMING => ['filter' => ['term' => ['open_delta' => 1]]],
+            self::OUTGOING => ['filter' => ['term' => ['open_delta' => -1]]],
         ];
         $overTime = TimeSeries::histogram('date', $window->interval(), $window->from, $window->last(), $zone);
         $overTime['aggs'] = $sums;

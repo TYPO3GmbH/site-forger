@@ -20,6 +20,7 @@ use App\Api\Model\ActivityDuration;
 use App\Api\Model\ActivityEvent;
 use App\Api\Model\ActivityExchange;
 use App\Api\Model\ActivityFigure;
+use App\Api\Model\ActivityFlow;
 use App\Api\Model\ActivityNewcomer;
 use App\Api\Model\ActivityNewcomers;
 use App\Api\Model\ActivityOwnWait;
@@ -53,6 +54,7 @@ use App\Stream\StreamClosedYear;
 use App\Stream\StreamCrew;
 use App\Stream\StreamDuration;
 use App\Stream\StreamFigure;
+use App\Stream\StreamFlow;
 use App\Stream\StreamHeatmap;
 use App\Stream\StreamInsights;
 use App\Stream\StreamNewcomers;
@@ -200,6 +202,7 @@ final readonly class ActivityMapper
             openChangesInProgress: self::trend(
                 $insights->openChangesInProgress ?? new StreamTrend(0, 0, [], StreamBetterEnum::LESS),
             ),
+            flows: self::flows($insights->flows),
             durations: array_map(
                 static fn (StreamDuration $duration): ActivityDuration => new ActivityDuration(
                     $duration->duration->value,
@@ -462,5 +465,23 @@ final readonly class ActivityMapper
     {
         return $this->users->avatarOfPerson($person, self::AVATAR_SIZE)
             ?? User::avatarUrl(UserTwigExtension::PLACEHOLDER, self::AVATAR_SIZE);
+    }
+
+    /**
+     * @param array<string, StreamFlow> $flows by channel
+     *
+     * @return list<ActivityFlow> Forge first
+     */
+    private static function flows(array $flows): array
+    {
+        $list = [];
+        foreach (StreamSourceEnum::cases() as $source) {
+            $flow = $flows[$source->value] ?? null;
+            if (null !== $flow) {
+                $list[] = new ActivityFlow($source->value, $flow->incoming, $flow->outgoing);
+            }
+        }
+
+        return $list;
     }
 }

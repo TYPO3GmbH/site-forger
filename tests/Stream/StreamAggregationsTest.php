@@ -90,6 +90,25 @@ final class StreamAggregationsTest extends TestCase
         );
     }
 
+    public function testTheFlowCountsWhatOpenedAndClosedPerChannelAndBucket(): void
+    {
+        $bucket = static fn (string $key, int $in, int $out): array => [
+            'key_as_string' => $key,
+            StreamInsightsQuery::INCOMING => ['doc_count' => $in],
+            StreamInsightsQuery::OUTGOING => ['doc_count' => $out],
+        ];
+        $sources = ['buckets' => [[
+            'key' => 'forge',
+            StreamInsightsQuery::OVER_TIME => ['buckets' => [$bucket('2026-11-03', 4, 7)]],
+        ]]];
+
+        $flows = StreamAggregations::flows($sources, ['2026-11-02', '2026-11-03']);
+
+        self::assertSame([0, 4], $flows['forge']->incoming);
+        self::assertSame([0, 7], $flows['forge']->outgoing);
+        self::assertSame([], StreamAggregations::flows(null, ['2026-11-02']));
+    }
+
     public function testAFigureHasItsCountTheOneBeforeAndItsValuesPerDay(): void
     {
         $figures = StreamAggregations::figures(

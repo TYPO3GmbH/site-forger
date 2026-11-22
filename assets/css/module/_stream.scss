@@ -1645,9 +1645,9 @@ forger-follow-button {
     }
 }
 
+// No gap between the bars: over all time some 270 months share the width. Each bar keeps its gap inside, see below.
 .stream-net-bars {
     display: flex;
-    gap: 2px;
     height: 12rem;
     margin-bottom: 1.5rem;
 }
@@ -1669,6 +1669,13 @@ forger-follow-button {
     display: flex;
     flex-direction: column;
     min-height: 0;
+
+    // 2px less than the bar for the gap, but never less than 1px
+    > span {
+        align-self: center;
+        width: calc(100% - 2px);
+        min-width: 1px;
+    }
 }
 
 .stream-net-up {

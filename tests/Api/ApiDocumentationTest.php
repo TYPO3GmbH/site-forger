@@ -21,6 +21,7 @@ use App\Api\Model\ActivityCrew;
 use App\Api\Model\ActivityDuration;
 use App\Api\Model\ActivityEvent;
 use App\Api\Model\ActivityFigure;
+use App\Api\Model\ActivityFlow;
 use App\Api\Model\ActivityNewcomer;
 use App\Api\Model\ActivityNewcomers;
 use App\Api\Model\ActivityPage;
@@ -192,6 +193,7 @@ final class ApiDocumentationTest extends KernelTestCase
         $weekHours = new ActivityWeekHours($window, [array_fill(0, 24, 0)]);
         $closedYear = new ActivityClosedYear(2026, [310, 598, null]);
         $closedYears = new ActivityClosedYears([$closedYear], [$closedYear]);
+        $flow = new ActivityFlow('forge', [41, 38], [52, 47]);
         $statistics = new ActivityStatistics(
             $window,
             $person,
@@ -202,6 +204,7 @@ final class ApiDocumentationTest extends KernelTestCase
             $trend,
             $trend,
             $trend,
+            [$flow],
             [$duration],
             [$count],
             [$crew],
@@ -217,6 +220,7 @@ final class ApiDocumentationTest extends KernelTestCase
         self::assertFieldsDescribed('ActivityStatistics', $statistics);
         self::assertFieldsDescribed('ActivityFigure', $figure);
         self::assertFieldsDescribed('ActivityTrend', $trend);
+        self::assertFieldsDescribed('ActivityFlow', $flow);
         self::assertFieldsDescribed('ActivityDuration', $duration);
         self::assertFieldsDescribed('ActivityCrew', $crew);
         self::assertFieldsDescribed('ActivityNewcomer', $newcomer);
