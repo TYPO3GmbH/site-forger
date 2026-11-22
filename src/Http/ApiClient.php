@@ -48,7 +48,12 @@ final readonly class ApiClient
     public function get(string $path, array $query = []): mixed
     {
         $url = self::url($path, $query);
-        $body = $this->requests->send($this->name, fn (): string => $this->fetch($url), $this->rateLimiter?->create($this->name), $this->minPauseMs);
+        $body = $this->requests->send(
+            $this->name,
+            fn (): string => $this->fetch($url),
+            $this->rateLimiter?->create($this->name),
+            $this->minPauseMs,
+        );
 
         return $this->decode($body);
     }

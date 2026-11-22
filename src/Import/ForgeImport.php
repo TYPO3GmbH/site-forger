@@ -32,10 +32,22 @@ final readonly class ForgeImport
     private const int DELTA_LIMIT = 2000;
 
     /**
-     * One request per issue, a hundred every five minutes: all issues in about two days. More runs into the rate
-     * limit of Forge, see the pause of api.forge in config/services.yaml.
+     * The seconds a delta may take: the job starts every five minutes, and the search for duplicates takes some
+     * seconds after it. Loading the issues of an older import comes last and fills the time the changed ones and
+     * reconcile() leave, see importOutdated().
      */
-    private const int OUTDATED_LIMIT = 100;
+    private const int RUN_SECONDS = 250;
+
+    /**
+     * The most issues of an older import a run looks at, one request each. The time of the run ends the loading
+     * before: limiter.forge lets some 80 requests a minute through.
+     */
+    private const int OUTDATED_LIMIT = 500;
+
+    /**
+     * The issues loaded between two looks at the time.
+     */
+    private const int OUTDATED_BATCH = 5;
 
     /**
      * Each halving of the ranges costs one count. About a dozen find a single issue among all of them.
@@ -90,13 +102,15 @@ final readonly class ForgeImport
 
     public function delta(ImportRun $run): void
     {
+        $budget = new RunBudget(self::RUN_SECONDS);
         $this->removeOtherProjects($run);
         $upToDate = $this->importChanged($run);
-        $this->importOutdated($run);
         // While the delta catches up, the numbers differ anyway
         if ($upToDate) {
             $this->reconcile($run);
         }
+        // Last: it fills the time the steps before left
+        $this->importOutdated($run, $budget);
     }
 
     /**
@@ -180,20 +194,38 @@ final readonly class ForgeImport
     }
 
     /**
-     * Each run reloads the next share of the issues an older import wrote, see ImportSchema.
+     * Loads the issues an older import wrote again, see ImportSchema, batch by batch while the run has time left. A
+     * run with many changed issues loads few of them, a quiet run many.
      */
-    private function importOutdated(ImportRun $run): void
+    private function importOutdated(ImportRun $run, RunBudget $budget): void
     {
         ['ids' => $ids, 'total' => $total] = $this->watermark->outdated('issue', self::OUTDATED_LIMIT);
         if ([] === $ids) {
             return;
         }
-        // The note belongs to the step that loads them
-        $this->recorder->progress(self::STEP_OUTDATED, 0, count($ids));
-        $this->reportOutdated($run, $total, count($ids));
+        $run->writeln(sprintf('%d issues of an older import, loading them while the run has time', $total));
+        $this->recorder->progress(self::STEP_OUTDATED, 0);
+        // The bar counts to the most it may load. The step has no total: the time ends it.
         $bar = $run->progressBar(count($ids));
-        $removed = $this->reloadOrRemove($run, $ids, self::STEP_OUTDATED, $bar);
+        $loaded = 0;
+        $removed = 0;
+        $budget->each(
+            $ids,
+            self::OUTDATED_BATCH,
+            function (array $batch) use ($run, $bar, &$loaded, &$removed): void {
+                $removed += $this->reloadOrRemove($run, $batch, null, $bar);
+                $loaded += count($batch);
+                $this->recorder->progress(self::STEP_OUTDATED, $loaded);
+            },
+        );
         $run->finish($bar);
+        // The step ends at what it loaded, not at what was left
+        $this->recorder->progress(self::STEP_OUTDATED, $loaded, $loaded);
+        $this->recorder->note(sprintf(
+            '%s issues of an older import left, this run loaded %s again.',
+            number_format(max(0, $total - $loaded)),
+            number_format($loaded),
+        ));
         if ($removed > 0) {
             $run->writeln(sprintf('Removed %d issues that are gone from Forge', $removed));
         }
@@ -224,7 +256,7 @@ final readonly class ForgeImport
      *
      * @return int the number of removed issues
      */
-    private function reloadOrRemove(ImportRun $run, array $ids, string $step, ?ProgressBar $bar): int
+    private function reloadOrRemove(ImportRun $run, array $ids, ?string $step, ?ProgressBar $bar): int
     {
         $afterIssue = static function () use ($run, $bar, $step): void {
             if (null !== $bar) {
@@ -307,12 +339,6 @@ final readonly class ForgeImport
         if ($removed > 0) {
             $run->writeln(sprintf('Removed %d issues of other projects from the index', $removed));
         }
-    }
-
-    private function reportOutdated(ImportRun $run, int $total, int $loading): void
-    {
-        $run->writeln(sprintf('%d issues of an older import, loading %d again', $total, $loading));
-        $this->recorder->note(sprintf('%s issues of an older import left, each run loads %s again.', number_format(max(0, $total - $loading)), number_format(self::OUTDATED_LIMIT)));
     }
 
     /**

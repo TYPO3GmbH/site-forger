@@ -25,12 +25,13 @@ final readonly class RetryPolicy
     }
 
     /**
-     * About 10 minutes in total, so that a full import over night survives a rate limit. A delta keeps its lock
-     * while it waits, so the next delta is skipped.
+     * About 17 minutes in total, so that a full import over night survives a rate limit. A delta keeps its lock
+     * while it waits, so the next delta is skipped. The first pause is 30 seconds: Forge counts by the minute, and
+     * after 10 seconds it answered 429 again half of the time.
      */
     public static function job(): self
     {
-        return new self(6, 10, 300);
+        return new self(6, 30, 300);
     }
 
     /**

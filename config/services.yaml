@@ -57,9 +57,10 @@ services:
               X-Redmine-API-Key: '%env(FORGE_ACCESS_TOKEN)%'
               # forge.typo3.org rejects requests without a User-Agent (bot protection)
               User-Agent: 'TYPO3 Forger'
-      $rateLimiter: '@limiter.api'
+      $rateLimiter: '@limiter.forge'
       # Stephan Großberndt asked for 50 to 100 ms between two requests (Slack #t3a-t3g-infra, 2024-04-15).
       # With 50 ms Forge answered 429 to a run that loads one issue per request, and the run waited most of its time.
+      # The pause spreads the requests. The bucket of limiter.forge keeps their number below the limit of Forge.
       $minPauseMs: 600
 
   # Temporary: the issues as the public sees them, while the token may not view them. See ForgeIssueApi.
@@ -76,7 +77,7 @@ services:
             headers:
               # forge.typo3.org rejects requests without a User-Agent (bot protection)
               User-Agent: 'TYPO3 Forger'
-      $rateLimiter: '@limiter.api'
+      $rateLimiter: '@limiter.forge'
       # The pause of api.forge
       $minPauseMs: 600
 
@@ -93,6 +94,9 @@ services:
             headers:
               User-Agent: 'TYPO3 Forger'
       $rateLimiter: '@limiter.api'
+      # The same hosting as Forge, where 50 to 100 ms between two requests were asked for, see api.forge. Gerrit
+      # sends 25 changes per request, so the pause costs a run little.
+      $minPauseMs: 100
 
   renderer.redmineTextile:
     class: App\Renderer\RedmineTextileRenderer

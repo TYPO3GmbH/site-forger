@@ -44,9 +44,15 @@ final readonly class GerritImport
     private const int CATCH_UP_MIN_WINDOW = 60;
 
     /**
-     * Twelve requests every five minutes: all changes in a day.
+     * The seconds a delta may take: the job starts every five minutes. Loading the changes of an older import fills
+     * the time the updated ones leave, see importOutdated().
      */
-    private const int OUTDATED_LIMIT = 300;
+    private const int RUN_SECONDS = 270;
+
+    /**
+     * The most changes of an older import a run looks at. The time of the run ends the loading long before.
+     */
+    private const int OUTDATED_LIMIT = 10000;
 
     /**
      * The most open changes a run loads again because updated ones affect them, see importAffected(). A merge into
@@ -94,6 +100,7 @@ final readonly class GerritImport
      */
     public function delta(ImportRun $run): void
     {
+        $budget = new RunBudget(self::RUN_SECONDS);
         $since = $this->watermark->since(Indices::REVIEW);
         if (null === $since) {
             $this->recorder->note('The review index is empty: this run imported the latest changes only. "app:import:review --full" fills it.');
@@ -101,7 +108,7 @@ final readonly class GerritImport
         } else {
             $this->importUpdated($run, $since);
         }
-        $this->importOutdated($run);
+        $this->importOutdated($run, $budget);
     }
 
     private function importUpdated(ImportRun $run, \DateTimeImmutable $since): void
@@ -201,25 +208,42 @@ final readonly class GerritImport
     }
 
     /**
-     * Each run reloads the next share of the changes an older import wrote, see ImportSchema.
+     * Loads the changes an older import wrote again, see ImportSchema, batch by batch while the run has time left.
+     * A run with many updated changes loads few of them, a quiet run many.
      */
-    private function importOutdated(ImportRun $run): void
+    private function importOutdated(ImportRun $run, RunBudget $budget): void
     {
         ['ids' => $numbers, 'total' => $total] = $this->watermark->outdated('review', self::OUTDATED_LIMIT);
         if ([] === $numbers) {
             return;
         }
-        // The note belongs to the step that loads them
-        $this->recorder->progress(self::STEP_OUTDATED, 0, count($numbers));
-        $run->writeln(sprintf('%d changes of an older import, loading %d again', $total, count($numbers)));
-        $this->recorder->note(sprintf('%s changes of an older import left, each run loads %s again.', number_format(max(0, $total - count($numbers))), number_format(self::OUTDATED_LIMIT)));
-
+        $run->writeln(sprintf('%d changes of an older import, loading them while the run has time', $total));
+        // The bar counts to the most it may load. The step has no total: the time ends it.
         $bar = $run->progressBar(count($numbers));
-        $removed = $this->changeImporter->update($numbers, $this->afterChange($run, $bar, self::STEP_OUTDATED))['removed'];
+        $afterChange = $this->afterChange($run, $bar, null);
+        $this->recorder->progress(self::STEP_OUTDATED, 0);
+        $loaded = 0;
+        $removed = 0;
+        $budget->each(
+            $numbers,
+            GerritChangeImporter::DETAIL_BATCH,
+            function (array $batch) use ($afterChange, &$loaded, &$removed): void {
+                $removed += $this->changeImporter->update($batch, $afterChange)['removed'];
+                $loaded += count($batch);
+                $this->recorder->progress(self::STEP_OUTDATED, $loaded);
+            },
+        );
+        $run->finish($bar);
+        // The step ends at what it loaded, not at what was left
+        $this->recorder->progress(self::STEP_OUTDATED, $loaded, $loaded);
+        $this->recorder->note(sprintf(
+            '%s changes of an older import left, this run loaded %s again.',
+            number_format(max(0, $total - $loaded)),
+            number_format($loaded),
+        ));
         if ($removed > 0) {
             $run->writeln(sprintf('Removed %d changes that Gerrit does not show any more', $removed));
         }
-        $run->finish($bar);
     }
 
     /**

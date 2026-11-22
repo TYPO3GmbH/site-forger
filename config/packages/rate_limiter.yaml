@@ -1,10 +1,17 @@
-# The state is in the cache, so all processes share it. Each API has its own bucket, keyed by its name.
+# The state is in the cache, so all processes share it.
 framework:
     rate_limiter:
+        # Gerrit, a bucket for each API by its name. A run of 200 requests a minute got no 429.
         api:
             policy: token_bucket
             limit: 10
             rate: { interval: '1 second', amount: 10 }
+        # Forge answers 429 after about 100 requests in a minute, see the waits in the log of the imports. 80 a
+        # minute leave room for the pages and the other jobs that ask Forge.
+        forge:
+            policy: token_bucket
+            limit: 8
+            rate: { interval: '3 seconds', amount: 4 }
         # The public API at /api/v1, a bucket for each client address, see ApiRateLimitSubscriber
         public_api:
             policy: token_bucket
