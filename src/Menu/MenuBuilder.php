@@ -53,6 +53,9 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
     {
         $menu = $this->factory->createItem('root');
         $menu->addChild('index', ['label' => 'Dashboard', 'route' => 'dashboard_index']);
+        $activity = $menu->addChild('activity', ['label' => 'Activity', 'route' => 'activity_index']);
+        $this->addLink($activity, 'activity_index', 'Stream', 'activity_index', 'actions-list');
+        $this->addLink($activity, 'statistics', 'Statistics', 'dashboard_statistics', 'actions-viewmode-tiles');
         // Where somebody new starts, before the lists the Core team works with
         $menu->addChild('get_involved', ['label' => 'Get involved', 'route' => 'get_involved']);
         if ($this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {

@@ -1,0 +1,22 @@
+{#
+ # The first issues and first changes of new people in the last 30 days, those who wait first: to welcome them and
+ # to help where they wait. The element loads them with the API, see assets/ts/activity/newcomers.ts. The page of
+ # statistics has all of them.
+ #}
+<section class="overview-list" aria-labelledby="overview-newcomers-title">
+    <header class="overview-list-header">
+        <h2
+            class="overview-list-title"
+            id="overview-newcomers-title"
+            title="Their first issue, change or merge in the last 30 days"
+        >New contributors</h2>
+        <a class="overview-list-all" href="{{ path('dashboard_statistics', {'range': '30d'}) }}">Show all</a>
+    </header>
+    <forger-activity-newcomers
+        api-url="{{ path('api_v1_activity_newcomers') }}"
+        stream-url="{{ path('activity_index') }}"
+        range="30d"
+        limit="{{ constant('App\\Controller\\DashboardController::NEWCOMERS') }}"
+        compact
+    ></forger-activity-newcomers>
+</section>

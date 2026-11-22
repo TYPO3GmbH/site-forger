@@ -10,7 +10,7 @@ import './css/app.scss';
 
 import './js/rst.js';
 import './js/sprint-wizard.js';
-import './js/chart-table.js';
+import './ts/activity/index.ts';
 import './js/header-search.js';
 import './js/command-runs.js';
 import './js/person-search.js';

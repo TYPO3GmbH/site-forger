@@ -1,0 +1,1968 @@
+// The activity stream: the list of events, its filter and its statistics, see templates/stream/ and
+// templates/dashboard/_activity.html.twig.
+
+@use "toggle";
+
+// The colors of the stream, in one place. The templates name them by key, see StreamSourceEnum::colorKey(),
+// StreamKindEnum::colorKey() and StreamHeatmap::level().
+:root {
+    // The channels: the colors of the issues and of the changes everywhere
+    --stream-forge: #eb6834;
+    --stream-gerrit: #2a78d6;
+    --stream-total: #2a78d6;
+
+    // The kinds, in the order of StreamKindEnum: in this order neighbours stay apart for color blind readers, too.
+    // Checked with the palette validator of the dataviz guide.
+    --stream-kind-created: #2a78d6;
+    --stream-kind-commented: #eb6834;
+    --stream-kind-changed: #1baf7a;
+    --stream-kind-uploaded: #eda100;
+    --stream-kind-voted: #e87ba4;
+    --stream-kind-merged: #008300;
+    --stream-kind-resolved: #0088a8;
+    --stream-kind-closed: #6250d6;
+
+    // The years of "Closed per year", the current one first: one blue from dark to light, see
+    // assets/ts/activity/closed-years.ts
+    --stream-year-0: #184f95;
+    --stream-year-1: #3987e5;
+    --stream-year-2: #86b6ef;
+
+    // The heatmap: an hour without events, then one blue from few to many
+    --stream-heat-0: #f3f4f6;
+    --stream-heat-1: #cde2fb;
+    --stream-heat-2: #9ec5f4;
+    --stream-heat-3: #6da7ec;
+    --stream-heat-4: #3987e5;
+    --stream-heat-5: #256abf;
+    --stream-heat-6: #184f95;
+    --stream-heat-7: #0d366b;
+
+    // The change of a key figure: better, worse, or neither
+    --stream-better: #137333;
+    --stream-worse: #c5221f;
+    --stream-neutral: #4b5563;
+
+    // A new event the list got by asking, and one since the last visit
+    --stream-new: #fff7e6;
+    --stream-unseen: #2a78d6;
+}
+
+$phone: 575.98px;
+
+// The tick of a picked kind in the menu of the filter
+$check-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E"
+    + "%3Cpath fill='none' stroke='%23fff' stroke-width='2' d='M4 8.5l2.5 2.5L12 5'/%3E%3C/svg%3E");
+
+// The filter: the channel, the kinds and the branch on the left, the time window on the right, see
+// assets/ts/activity/filter.ts
+
+.stream-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem 1rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+
+    // On the statistics: the time window, and beside it the days it covers
+    &.is-statistics {
+        align-items: center;
+        justify-content: flex-start;
+    }
+}
+
+.stream-window {
+    margin: 0;
+    color: var(--overview-muted);
+    font-size: .875rem;
+
+    strong {
+        color: #374151;
+        font-weight: 600;
+    }
+}
+
+// A switch: a gray pill, the choice white on it, like chart or table in the head of a card, see _toggle.scss. On
+// the gray page the pill is a step darker than in a white card, and a bit larger.
+.stream-segmented {
+    @include toggle.group;
+
+    flex-wrap: wrap;
+    border-radius: 1.25rem;
+    background: #e4e6ea;
+}
+
+.stream-segment {
+    @include toggle.item;
+
+    display: inline-flex;
+    gap: .35rem;
+    align-items: center;
+    padding: .3rem .8rem;
+    font-size: .8125rem;
+    white-space: nowrap;
+
+    .icon {
+        width: .875rem;
+        height: .875rem;
+    }
+}
+
+// The button of a menu, see assets/ts/activity/menu.ts: a pill like a switch, as high as one. Dark while the menu
+// has a choice other than its default.
+.stream-menu-button {
+    @include toggle.group;
+
+    gap: .35rem;
+    align-items: center;
+    padding: .5rem .9rem;
+    background: #e4e6ea;
+    color: #374151;
+    font-size: .8125rem;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color .15s, color .15s;
+
+    &:hover {
+        background: #d8dbe0;
+        color: #0b0b0b;
+    }
+
+    &.is-active {
+        background: #111827;
+        color: #fff;
+
+        &:hover {
+            background: #374151;
+        }
+    }
+
+    &:focus-visible {
+        outline: 2px solid #2a78d6;
+        outline-offset: 1px;
+    }
+
+    .icon {
+        width: .875rem;
+        height: .875rem;
+    }
+}
+
+// A switch in the head of a chart looks like chart or table beside it
+.stream-chart .stream-segmented {
+    background: #eef0f2;
+}
+
+.stream-chart .stream-segment {
+    padding: .2rem .7rem;
+    font-size: .75rem;
+}
+
+// In the head of a chart: lighter and smaller, like the switch beside it
+.stream-chart .stream-menu-button {
+    padding: .4rem .8rem;
+    background: #eef0f2;
+    color: #0b0b0b;
+    font-size: .75rem;
+
+    &:hover {
+        background: #e4e6ea;
+    }
+
+    .icon {
+        width: .75rem;
+        height: .75rem;
+    }
+}
+
+// The element of a menu has no box: its <details> stands in the line
+forger-activity-menu {
+    display: contents;
+}
+
+.stream-filterbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+}
+
+.stream-person {
+    cursor: default;
+
+    &.is-active:hover {
+        background: #111827;
+    }
+
+    a {
+        display: inline-flex;
+        border-radius: 50%;
+        color: inherit;
+        opacity: .7;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+
+    .avatar {
+        border-radius: 50%;
+    }
+}
+
+.stream-reset {
+    margin-left: .25rem;
+    color: var(--overview-muted);
+    font-size: .8125rem;
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+        color: #0b0b0b;
+        text-decoration: underline;
+    }
+}
+
+.stream-menu {
+    position: relative;
+
+    > summary {
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+    }
+}
+
+.stream-menu-panel {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + .35rem);
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 14rem;
+    // All kinds without scrolling, where the window has the room
+    max-height: min(34rem, 80vh);
+    padding: .4rem;
+    overflow-y: auto;
+    border: 1px solid #e6e8eb;
+    border-radius: .5rem;
+    background: #fff;
+    box-shadow: 0 8px 24px rgb(17 24 39 / 12%);
+
+    .stream-menu-end & {
+        right: 0;
+        left: auto;
+    }
+}
+
+.stream-menu-item {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    padding: .4rem .5rem;
+    border-radius: .375rem;
+    color: #374151;
+    font-size: .875rem;
+    text-decoration: none;
+
+    &:hover {
+        background: #f3f4f6;
+        color: #111827;
+        text-decoration: none;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #2a78d6;
+        outline-offset: -2px;
+    }
+
+    &.is-active {
+        color: #111827;
+        font-weight: 600;
+    }
+}
+
+// The icon of a kind: plain, so only the check box looks like a control
+.stream-menu-icon {
+    display: inline-flex;
+    flex: none;
+    color: #6b7280;
+
+    .icon {
+        width: 1rem;
+        height: 1rem;
+    }
+}
+
+// A choice with a line that explains it
+.stream-menu-text {
+    display: flex;
+    flex-direction: column;
+
+    small {
+        color: var(--overview-muted);
+        font-size: .75rem;
+        font-weight: 400;
+    }
+}
+
+.stream-menu-check {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    border: 1px solid #c9ced4;
+    border-radius: .25rem;
+
+    .is-active > & {
+        border-color: #111827;
+        background: #111827 $check-mark center / 100% no-repeat;
+    }
+}
+
+.stream-menu-count {
+    margin-left: auto;
+    color: var(--overview-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.stream-menu-divider {
+    width: 100%;
+    margin: .25rem 0;
+    border: 0;
+    border-top: 1px solid #f0f1f3;
+    opacity: 1;
+}
+
+.stream-menu-label {
+    display: block;
+    margin-bottom: .2rem;
+    padding: 0 .5rem;
+    color: var(--overview-muted);
+    font-size: .75rem;
+    font-weight: 600;
+}
+
+// The calendar of a window of one's own, see assets/ts/activity/days.ts: a month, seven days a row. The two ends
+// of the window are dark, the days between them gray.
+.stream-daypicker-panel {
+    max-height: none;
+    padding: .75rem;
+}
+
+.stream-daypicker {
+    --day: 2.125rem;
+
+    width: calc(7 * var(--day));
+}
+
+// The two ends of the window: the active one is the one a day clicked sets
+.stream-daypicker-ends {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+    margin-bottom: .6rem;
+}
+
+.stream-daypicker-end {
+    position: relative;
+    border: 1px solid #c9ced4;
+    border-radius: .5rem;
+    background: #fff;
+
+    &:hover {
+        border-color: #6b7280;
+    }
+
+    &.is-active {
+        border-color: #111827;
+        box-shadow: inset 0 0 0 1px #111827;
+    }
+
+    > button:first-child {
+        width: 100%;
+        padding: .35rem .6rem;
+        border: 0;
+        border-radius: inherit;
+        background: transparent;
+        color: #111827;
+        font-size: .8125rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        text-align: left;
+        white-space: nowrap;
+        cursor: pointer;
+
+        &:focus-visible {
+            outline: 2px solid #2a78d6;
+            outline-offset: 1px;
+        }
+    }
+
+    span {
+        display: block;
+        color: var(--overview-muted);
+        font-size: .6875rem;
+    }
+
+    // An end left open
+    em {
+        color: var(--overview-muted);
+        font-style: normal;
+        font-weight: 400;
+    }
+}
+
+// The cross that empties an end, in its upper corner
+.stream-daypicker-clear {
+    position: absolute;
+    top: .2rem;
+    right: .2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+
+    &:hover {
+        background: #f3f4f6;
+        color: #111827;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #2a78d6;
+    }
+
+    .icon {
+        width: .75rem;
+        height: .75rem;
+    }
+}
+
+// Below the calendar: today as the active end, and the button that shows the window
+.stream-daypicker-foot {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    gap: .35rem;
+    margin-top: .6rem;
+}
+
+.stream-daypicker-quick,
+.stream-daypicker-submit {
+    padding: .45rem .6rem;
+    border: 1px solid #111827;
+    border-radius: .5rem;
+    font-size: .8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid #2a78d6;
+        outline-offset: 2px;
+    }
+}
+
+.stream-daypicker-quick {
+    border-color: #c9ced4;
+    background: #fff;
+    color: #111827;
+
+    &:hover:not(:disabled) {
+        border-color: #6b7280;
+    }
+
+    &:disabled {
+        color: #9ca3af;
+        cursor: default;
+    }
+}
+
+.stream-daypicker-submit {
+    background: #111827;
+    color: #fff;
+
+    &:hover {
+        border-color: #374151;
+        background: #374151;
+    }
+}
+
+.stream-daypicker-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .5rem;
+
+    button {
+        display: inline-flex;
+        gap: .25rem;
+        align-items: center;
+        justify-content: center;
+        height: var(--day);
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: #374151;
+        cursor: pointer;
+
+        &:hover:not(:disabled) {
+            background: #f3f4f6;
+        }
+
+        &:disabled {
+            cursor: default;
+        }
+
+        &:focus-visible {
+            outline: 2px solid #2a78d6;
+        }
+    }
+
+    .icon {
+        width: 1rem;
+        height: 1rem;
+    }
+}
+
+.stream-daypicker-turn {
+    width: var(--day);
+
+    &:disabled {
+        opacity: .3;
+    }
+}
+
+// The month shown: it opens the months and the years
+.stream-daypicker-title {
+    padding: 0 .75rem;
+    color: #0b0b0b;
+    font-size: .875rem;
+    font-weight: 600;
+
+    .icon {
+        width: .75rem;
+        height: .75rem;
+    }
+}
+
+// The months of a year or the years to pick one, as high as the days: the calendar keeps its size
+.stream-daypicker-choices {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: 1fr;
+    gap: .25rem;
+    // As high as the weekdays and the six weeks of the days
+    height: calc(6 * var(--day) + 12px + 1.3rem);
+
+    &.is-years {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    button {
+        border: 0;
+        border-radius: .5rem;
+        background: transparent;
+        color: #111827;
+        font-size: .8125rem;
+        font-variant-numeric: tabular-nums;
+        cursor: pointer;
+
+        &:hover:not(:disabled) {
+            background: #f3f4f6;
+        }
+
+        // Also under the pointer: the gray of a hover would hide its white name
+        &.is-shown,
+        &.is-shown:hover {
+            background: #111827;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        &:disabled {
+            color: #d1d5db;
+            cursor: default;
+        }
+
+        &:focus-visible {
+            outline: 2px solid #2a78d6;
+            outline-offset: 1px;
+        }
+    }
+}
+
+.stream-daypicker-grid {
+    display: grid;
+    grid-template-columns: repeat(7, var(--day));
+    row-gap: 2px;
+}
+
+.stream-daypicker-weekday {
+    padding-bottom: .25rem;
+    color: var(--overview-muted);
+    font-size: .6875rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.stream-daypicker-day {
+    height: var(--day);
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #111827;
+    font-size: .8125rem;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+
+    &.is-outside {
+        color: #9ca3af;
+    }
+
+    &.is-today {
+        box-shadow: inset 0 0 0 1px #9ca3af;
+    }
+
+    &:hover:not(:disabled) {
+        background: #f3f4f6;
+    }
+
+    // A band through the row: no gap between the days of a window
+    &.is-between {
+        border-radius: 0;
+        background: #e4e6ea;
+        color: #111827;
+    }
+
+    &.is-end,
+    &.is-end:hover {
+        background: #111827;
+        box-shadow: none;
+        color: #fff;
+        font-weight: 600;
+    }
+
+    &:disabled {
+        color: #d1d5db;
+        cursor: default;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #2a78d6;
+        outline-offset: 1px;
+    }
+}
+
+// On the statistics the time window stands on the left: its menu opens to the right
+@media (min-width: 576px) {
+    .stream-toolbar.is-statistics .stream-menu-panel {
+        right: auto;
+        left: 0;
+    }
+}
+
+@media (max-width: $phone) {
+    .stream-menu .stream-menu-panel {
+        position: fixed;
+        top: auto;
+        right: .75rem;
+        bottom: .75rem;
+        left: .75rem;
+        min-width: 0;
+    }
+}
+
+// The list
+
+.stream-days {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+
+    // The section of the page keeps the distance to what follows
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.stream-day-title {
+    margin: 0 0 .5rem;
+    color: #374151;
+    font-size: .875rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+
+.stream-events {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--overview-border);
+    border-radius: .75rem;
+    background: #fff;
+    list-style: none;
+}
+
+// One line per event: the title and then the details are cut first, who did what and when stay whole
+.stream-event {
+    display: flex;
+    gap: .625rem;
+    align-items: center;
+    padding: .5rem 1rem;
+    font-size: .875rem;
+    white-space: nowrap;
+    transition: background-color 1.5s;
+
+    & + & {
+        border-top: 1px solid #f0f1f3;
+    }
+
+    &.is-new {
+        background: var(--stream-new);
+    }
+
+    &.is-unseen {
+        box-shadow: inset 3px 0 0 var(--stream-unseen);
+    }
+
+    &.is-bot {
+        color: #6b7280;
+    }
+}
+
+.stream-event-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: #4b5563;
+    color: #fff;
+
+    // In the color of the channel: where it happened shows first, the icon says what
+    &.is-forge {
+        background: var(--stream-forge);
+    }
+
+    &.is-gerrit {
+        background: var(--stream-gerrit);
+    }
+
+    // 14 pixels in 24: the same room on each side, no half pixel
+    .icon {
+        width: .875rem;
+        height: .875rem;
+    }
+}
+
+.stream-event-what {
+    display: inline-flex;
+    flex: none;
+    gap: .35rem;
+    align-items: center;
+}
+
+.stream-event-avatar {
+    display: inline-flex;
+
+    .avatar {
+        border-radius: 50%;
+    }
+}
+
+.stream-event-who {
+    font-weight: 600;
+}
+
+.stream-event-what a {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.stream-event-title {
+    flex: 1 1 auto;
+    min-width: 4rem;
+    overflow: hidden;
+    color: #111827;
+    text-decoration: none;
+    text-overflow: ellipsis;
+
+    // The line sits under the words only, not under the tags and the space after them
+    &:hover {
+        color: #111827;
+        text-decoration: none;
+
+        .stream-event-subject {
+            text-decoration: underline;
+        }
+    }
+
+    // The tags of the subject, like "BUGFIX"
+    .tag-label {
+        margin-right: .15rem;
+        font-size: .6875rem;
+    }
+}
+
+.stream-event-meta {
+    display: inline-flex;
+    flex: 0 1 auto;
+    gap: .35rem;
+    align-items: center;
+    max-width: 40%;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--overview-muted);
+    font-size: .8125rem;
+
+    .tag-label {
+        flex: none;
+    }
+}
+
+.stream-event-details {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stream-event-time {
+    flex: none;
+    color: var(--overview-muted);
+    font-size: .8125rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.stream-empty {
+    padding: 2rem 1rem;
+    border: 1px dashed var(--overview-border);
+    border-radius: .75rem;
+    color: var(--overview-muted);
+    text-align: center;
+}
+
+// Two lines on a phone: who did what and when, below it the title
+@media (max-width: $phone) {
+    .stream-event {
+        flex-wrap: wrap;
+        row-gap: .2rem;
+        padding: .625rem .75rem;
+    }
+
+    .stream-event-what {
+        display: block;
+        flex: 1 1 0;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .stream-event-avatar {
+        display: none;
+    }
+
+    .stream-event-title {
+        flex-basis: 100%;
+        order: 1;
+        padding-left: 2.125rem;
+    }
+
+    .stream-event-meta {
+        display: none;
+    }
+}
+
+// The statistics: one dashboard of widgets, see assets/ts/activity/statistics.ts. The grid has 2, 4 or 6 columns of
+// the same width, by the width of the page. With 6 a widget spans 1 (s), 2 (m), 3 (l), 4 (xl) or all columns (full).
+// With 4 the tiles take one column, the full ones all, the others half. With 2 the tiles take one, the others all.
+// The widgets keep their order, so what belongs together stays together.
+.stream-statistics {
+    container: dashboard / inline-size;
+}
+
+.stream-dashboard {
+    --dashboard-columns: 2;
+
+    display: grid;
+    grid-template-columns: repeat(var(--dashboard-columns), minmax(0, 1fr));
+    gap: 1rem;
+
+    @container dashboard (min-width: 51rem) {
+        --dashboard-columns: 4;
+    }
+
+    @container dashboard (min-width: 77rem) {
+        --dashboard-columns: 6;
+    }
+}
+
+.stream-widget {
+    grid-column: 1 / -1;
+    min-width: 0;
+
+    &.is-s {
+        grid-column: span 1;
+    }
+
+    // A card fills its cell: the cards of a row are as high as the highest
+    > .stream-chart,
+    &.stream-chart {
+        height: 100%;
+        margin-bottom: 0;
+    }
+
+    @container dashboard (min-width: 51rem) {
+        &.is-m,
+        &.is-l,
+        &.is-xl {
+            grid-column: span 2;
+        }
+    }
+
+    @container dashboard (min-width: 77rem) {
+        &.is-l {
+            grid-column: span 3;
+        }
+
+        &.is-xl {
+            grid-column: span 4;
+        }
+    }
+}
+
+// The tiles of the key figures in a grid of their own. Ten tiles: two columns, or five where a tile has the room
+// for its number and its change. So no row ends with a gap.
+.stream-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+
+    @container dashboard (min-width: 56rem) {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    // Five narrow tiles: less room around a smaller number, so "22,069" still stands beside its change
+    @container dashboard (min-width: 56rem) and (max-width: 63.99rem) {
+        gap: .75rem;
+
+        .stream-figure {
+            padding: .75rem;
+        }
+
+        .stream-figure-value {
+            font-size: 1.375rem;
+        }
+    }
+}
+
+// A tile of the key figures: label, number with its change, sparkline. Each in a row of its own height, so the
+// sparklines of a row of tiles line up
+.stream-figure {
+    display: grid;
+    grid-template-rows: auto auto 2rem;
+    gap: .5rem;
+    align-content: start;
+    padding: .9rem 1rem;
+    border: 1px solid var(--overview-border);
+    border-radius: .75rem;
+    background: #fff;
+    color: inherit;
+    text-decoration: none;
+
+    &:is(a):hover {
+        border-color: #c9ced4;
+        color: inherit;
+        text-decoration: none;
+    }
+}
+
+.stream-figure-label {
+    display: flex;
+    gap: .4rem;
+    align-items: center;
+    min-width: 0;
+    color: var(--overview-muted);
+    font-size: .8125rem;
+    font-weight: 600;
+
+    .stream-legend-swatch {
+        flex-shrink: 0;
+        width: .5rem;
+        height: .5rem;
+    }
+}
+
+.stream-figure-value {
+    color: #0b0b0b;
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
+
+    @container dashboard (max-width: 30rem) {
+        font-size: 1.375rem;
+    }
+}
+
+.stream-figure-line {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+}
+
+// The change to the time before: green when the figure got better, red when worse, see assets/ts/activity/figures.ts
+.stream-figure-delta {
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: .15rem;
+    align-items: center;
+    padding: .1rem .45rem;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+
+    .icon {
+        width: .75rem;
+        height: .75rem;
+    }
+
+    @each $tone in better, worse, neutral {
+        &.is-#{$tone} {
+            background: color-mix(in srgb, var(--stream-#{$tone}) 12%, #fff);
+            color: var(--stream-#{$tone});
+        }
+    }
+}
+
+.stream-sparkline {
+    width: 100%;
+    height: 1.75rem;
+    overflow: visible;
+
+    polyline {
+        fill: none;
+        stroke-width: 2;
+        stroke-linejoin: round;
+        stroke-linecap: round;
+        vector-effect: non-scaling-stroke;
+    }
+
+    // A light area below the line, in its color
+    polygon {
+        fill-opacity: .12;
+        stroke: none;
+    }
+
+    // The last bit of a window that ends now: its time is not over
+    .is-so-far {
+        stroke-dasharray: 2 4;
+    }
+}
+
+// A card of the statistics: a chart with its title
+.stream-chart {
+    margin-bottom: 1rem;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--overview-border);
+    border-radius: var(--overview-radius);
+    background: #fff;
+    box-shadow: var(--overview-shadow);
+}
+
+.stream-chart-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+
+    .chips {
+        flex-basis: auto;
+    }
+}
+
+.stream-chart-title {
+    margin: 0 0 .75rem;
+    color: #0b0b0b;
+    font-size: 1.125rem;
+    font-weight: 500;
+
+    .stream-chart-header & {
+        margin: 0;
+    }
+}
+
+// The menu of the year of "Over the year", see assets/ts/activity/patterns.ts: the last 12 months and the years,
+// four a row
+.stream-year-panel {
+    gap: .25rem;
+    max-height: none;
+    padding: .5rem;
+}
+
+.stream-year-choices {
+    display: grid;
+    grid-template-columns: repeat(4, 3.25rem);
+    gap: .25rem;
+}
+
+.stream-year-choice {
+    padding: .4rem .5rem;
+    border-radius: .5rem;
+    color: #111827;
+    font-size: .8125rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    text-decoration: none;
+
+    &:hover {
+        background: #f3f4f6;
+        color: #111827;
+        text-decoration: none;
+    }
+
+    &.is-active,
+    &.is-active:hover {
+        background: #111827;
+        color: #fff;
+        font-weight: 600;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #2a78d6;
+        outline-offset: 1px;
+    }
+}
+
+.stream-chart-note {
+    margin: .15rem 0 0;
+    color: var(--overview-muted);
+    font-size: .8125rem;
+}
+
+.stream-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem 1rem;
+    margin: 0 0 .75rem;
+    padding: 0;
+    color: #374151;
+    font-size: .8125rem;
+    list-style: none;
+
+    li {
+        display: inline-flex;
+        gap: .4rem;
+        align-items: center;
+    }
+}
+
+.stream-legend-swatch {
+    width: .75rem;
+    height: .75rem;
+    border-radius: 3px;
+}
+
+// The bars over time: a column per hour, day or week, the series stacked with a gap of the surface between them
+.stream-bars-frame {
+    position: relative;
+    padding-top: 1.25rem;
+}
+
+.stream-bars-max {
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: var(--overview-muted);
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.stream-bars {
+    display: flex;
+    gap: 2px;
+    align-items: flex-end;
+    height: 12rem;
+    padding-bottom: 1.5rem;
+    border-top: 1px dashed #e1e0d9;
+    border-bottom: 1px solid #c9ced4;
+}
+
+.stream-bar {
+    position: relative;
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 100%;
+    min-width: 0;
+
+}
+
+.stream-bar-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 0;
+    overflow: hidden;
+    border-radius: 4px 4px 0 0;
+
+    span {
+        min-height: 1px;
+    }
+}
+
+.stream-bar-tick {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    padding-top: .35rem;
+    color: var(--overview-muted);
+    font-size: .6875rem;
+    white-space: nowrap;
+}
+
+
+// Relative: it also holds the hidden labels of screen readers, which are absolute
+.stream-table-scroll {
+    position: relative;
+    max-height: 24rem;
+    margin-top: .5rem;
+    overflow: auto;
+}
+
+// The heatmap: weekdays down, hours across
+.stream-heatmap {
+    width: 100%;
+    min-width: 30rem;
+    border-collapse: separate;
+    border-spacing: 2px;
+    table-layout: fixed;
+    font-size: .75rem;
+
+    th {
+        color: var(--overview-muted);
+        font-weight: 600;
+        text-align: left;
+    }
+
+    thead th {
+        height: 1.25rem;
+    }
+
+    // The first row sets the widths of a fixed table: its empty cell is the column of the weekdays
+    thead td {
+        width: 2.75rem;
+    }
+
+    td {
+        position: relative;
+        height: 1.5rem;
+        border-radius: 3px;
+    }
+}
+
+// The calendar: a column per week that shares the width, Monday on top, a square per day
+.stream-calendar-summary {
+    margin: 0 0 .75rem;
+    color: #374151;
+    font-size: .875rem;
+}
+
+.stream-calendar-scroll {
+    position: relative;
+    overflow-x: auto;
+}
+
+.stream-calendar {
+    display: grid;
+    grid-template-columns: 2rem repeat(var(--weeks), minmax(.625rem, 1fr));
+    grid-template-rows: 1.1rem repeat(7, auto);
+    gap: 3px;
+    min-width: 36rem;
+    font-size: .6875rem;
+}
+
+.stream-calendar-month {
+    grid-row: 1;
+    color: var(--overview-muted);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.stream-calendar-weekday {
+    grid-column: 1;
+    align-self: center;
+    color: var(--overview-muted);
+    font-weight: 600;
+}
+
+.stream-calendar-day {
+    position: relative;
+    display: block;
+    aspect-ratio: 1;
+    border-radius: 3px;
+}
+
+.stream-calendar-foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-top: .75rem;
+
+    .stream-heatmap-legend {
+        margin: 0;
+    }
+}
+
+@for $level from 0 through 7 {
+    .stream-heat-#{$level} {
+        background: var(--stream-heat-#{$level});
+    }
+}
+
+.stream-heatmap-legend {
+    display: flex;
+    gap: .25rem;
+    align-items: center;
+    margin: .75rem 0 0;
+    color: var(--overview-muted);
+    font-size: .75rem;
+}
+
+.stream-heatmap-swatch {
+    display: inline-block;
+    width: .875rem;
+    height: .875rem;
+    border-radius: 2px;
+}
+
+@media (max-width: $phone) {
+    .stream-bars {
+        height: 9rem;
+    }
+
+
+    .stream-chart {
+        padding: 1rem;
+    }
+}
+
+// In and out, see assets/ts/activity/flow.ts: the sums, then the net change per bucket
+.stream-chart-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+}
+
+.stream-flow-totals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 2rem;
+    margin: 0 0 1rem;
+
+    dt {
+        display: flex;
+        gap: .35rem;
+        align-items: center;
+        color: var(--overview-muted);
+        font-size: .8125rem;
+        font-weight: 600;
+    }
+
+    dd {
+        margin: .15rem 0 0;
+        color: #0b0b0b;
+        font-size: 1.25rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .stream-figure-delta {
+        font-size: .875rem;
+    }
+}
+
+// The scale on the left, the bars on the right. Above and below the zero line each takes the share of its largest
+// value, see net() in assets/ts/activity/flow.ts
+.stream-net-frame {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: .5rem;
+}
+
+.stream-net-axis {
+    display: flex;
+    flex-direction: column;
+    height: 12rem;
+    color: var(--overview-muted);
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+
+    .stream-net-up {
+        justify-content: flex-start;
+        border-bottom: 0;
+    }
+
+    .stream-net-down {
+        justify-content: flex-end;
+    }
+}
+
+.stream-net-bars {
+    display: flex;
+    gap: 2px;
+    height: 12rem;
+    margin-bottom: 1.5rem;
+}
+
+.stream-net-bar {
+    position: relative;
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-width: 0;
+
+    &:hover span span {
+        filter: brightness(.88);
+    }
+}
+
+.stream-net-up,
+.stream-net-down {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.stream-net-up {
+    flex: var(--net-up) 1 0;
+}
+
+.stream-net-down {
+    flex: var(--net-down) 1 0;
+}
+
+.stream-net-up {
+    justify-content: flex-end;
+    border-bottom: 1px solid #c9ced4;
+
+    .is-worse {
+        border-radius: 4px 4px 0 0;
+        background: var(--stream-worse);
+    }
+}
+
+.stream-net-down .is-better {
+    border-radius: 0 0 4px 4px;
+    background: var(--stream-better);
+}
+
+// A row of two lines, see assets/ts/activity/row.ts: the icon of the channel, the avatar, who did what and below it
+// the title, on the right the time or the state. The new contributors and the stream of the dashboard share it.
+.stream-rows {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.stream-row {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    gap: .625rem;
+    align-items: center;
+    padding: .6rem 0;
+    font-size: .875rem;
+    transition: background-color 1.5s;
+
+    & + & {
+        border-top: 1px solid #f0f1f3;
+    }
+
+    &.is-new {
+        background: var(--stream-new);
+    }
+
+    @media (max-width: $phone) {
+        grid-template-columns: auto auto minmax(0, 1fr);
+
+        .stream-row-side {
+            flex-flow: row wrap;
+            grid-column: 3;
+            gap: .2rem .5rem;
+            align-items: center;
+            white-space: normal;
+        }
+    }
+}
+
+.stream-row-avatar {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+}
+
+.stream-row-main {
+    display: flex;
+    flex-direction: column;
+    gap: .1rem;
+    min-width: 0;
+}
+
+// Who did what: cut at the end, the name stays whole
+.stream-row-head {
+    overflow: hidden;
+    color: #374151;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    a {
+        color: inherit;
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+
+    .stream-event-who {
+        color: #0b0b0b;
+    }
+}
+
+.stream-row-title {
+    overflow: hidden;
+    color: #111827;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    // The line sits under the words only, not under the tags
+    &:hover {
+        color: #111827;
+        text-decoration: none;
+
+        .stream-event-subject {
+            text-decoration: underline;
+        }
+    }
+
+    .tag-label {
+        margin-right: .15rem;
+        font-size: .6875rem;
+    }
+}
+
+.stream-row-side {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+    align-items: flex-end;
+    color: var(--overview-muted);
+    font-size: .8125rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.stream-row-note {
+    font-size: .75rem;
+}
+
+// In a card of the dashboard: the room on the sides of its header
+.overview-list .stream-row {
+    padding: .7rem 1.5rem;
+}
+
+.overview-list .stream-empty {
+    margin: 1rem 1.5rem;
+}
+
+forger-activity-newcomers {
+    display: block;
+}
+
+// On the statistics board: a line above each row, also the first, below the totals
+.stream-widget .stream-row {
+    border-top: 1px solid #f0f1f3;
+}
+
+// A whole row of the statistics board: the list in two columns
+.stream-widget.is-full .stream-rows {
+    @container dashboard (min-width: 51rem) {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 2rem;
+    }
+}
+
+.stream-newcomers-more {
+    display: inline-flex;
+    gap: .35rem;
+    align-items: center;
+    margin-top: .5rem;
+    padding: .35rem 0;
+    border: 0;
+    background: none;
+    color: #0b0b0b;
+    font-size: .875rem;
+    font-weight: 600;
+
+    &[aria-expanded="true"] .icon {
+        transform: rotate(180deg);
+    }
+}
+
+// Who carries the review, see assets/ts/activity/figures.ts: the fewest people who did half of the work
+// One below the other: the card stands beside the hours of the week and is as high as they are
+.stream-crews {
+    display: grid;
+    gap: 1.75rem;
+    margin: 0;
+
+    dd {
+        margin: 0;
+    }
+}
+
+.stream-crew {
+    display: grid;
+    gap: .5rem;
+}
+
+.stream-crew-note {
+    color: var(--overview-muted);
+    font-size: .8125rem;
+}
+
+// The share of each carrier as a segment in the color of Gerrit on a track of the same hue. The line marks half of
+// the work, where the segments end.
+.stream-meter {
+    position: relative;
+    display: flex;
+    height: .5rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--stream-gerrit) 15%, #fff);
+
+    // A border, not a gap, parts the segments: a gap would push them past their share
+    span {
+        flex: none;
+        box-sizing: border-box;
+        height: 100%;
+        border-right: 2px solid #fff;
+        background: var(--stream-gerrit);
+
+        &:first-child {
+            border-radius: 999px 0 0 999px;
+        }
+    }
+
+    // Taller than the bar, so it shows on the segments too
+    &::after {
+        position: absolute;
+        top: -.25rem;
+        bottom: -.25rem;
+        left: 50%;
+        width: 2px;
+        border-radius: 1px;
+        background: #1f2937;
+        content: "";
+    }
+}
+
+// The open issues and changes, see open() in assets/ts/activity/figures.ts: the scale on the left from the lowest to
+// the highest value, the line over the whole width, a column per bar of time for its tooltip
+.stream-open-title {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+}
+
+.stream-open-change {
+    display: inline-flex;
+    gap: .5rem;
+    align-items: center;
+    color: var(--overview-muted);
+    font-size: .8125rem;
+}
+
+.stream-axis-frame {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: .5rem;
+    margin-top: 1rem;
+}
+
+.stream-axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: calc(10rem - 1.5rem);
+    color: var(--overview-muted);
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    text-align: right;
+}
+
+.stream-bars.stream-line-chart {
+    height: 10rem;
+    border-top-style: solid;
+}
+
+.stream-line {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 1.5rem;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 1.5rem);
+    overflow: visible;
+    pointer-events: none;
+
+    polyline {
+        fill: none;
+        stroke-width: 2;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+    }
+
+    polygon {
+        fill-opacity: .12;
+        stroke: none;
+    }
+}
+
+.stream-line-hit:hover {
+    background: rgb(0 0 0 / 4%);
+}
+
+// How long the waits took, see waitBands() in assets/ts/activity/figures.ts: a row per band, its label, its bar
+// split by the kinds that ended the waits, its count
+.stream-wait-legend {
+    margin: .75rem 0 0;
+}
+
+.stream-years-legend {
+    margin: 1rem 0 0;
+}
+
+// A series of a legend to switch on and off: its swatch is hollow while it is off
+.stream-legend-toggle {
+    display: inline-flex;
+    gap: .4rem;
+    align-items: center;
+    padding: .1rem .4rem .1rem .25rem;
+    border: 0;
+    border-radius: .375rem;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+
+    .stream-legend-swatch {
+        box-sizing: border-box;
+        border: 2px solid var(--swatch);
+        background: var(--swatch);
+    }
+
+    &:hover:not(:disabled) {
+        background: #f3f4f6;
+    }
+
+    &.is-off {
+        color: var(--overview-muted);
+
+        .stream-legend-swatch {
+            background: transparent;
+        }
+    }
+
+    &:disabled {
+        cursor: default;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #2a78d6;
+        outline-offset: 1px;
+    }
+}
+
+.stream-wait-bands {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: .4rem .75rem;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.stream-wait-band {
+    display: contents;
+
+    &:hover .stream-wait-band-bar {
+        filter: brightness(.88);
+    }
+}
+
+.stream-wait-band-label {
+    color: #374151;
+    font-size: .8125rem;
+    white-space: nowrap;
+}
+
+.stream-wait-band-track {
+    display: block;
+    height: .875rem;
+}
+
+.stream-wait-band-bar {
+    display: flex;
+    gap: 2px;
+    min-width: 2px;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 0 4px 4px 0;
+}
+
+.stream-wait-band-count {
+    color: #0b0b0b;
+    font-size: .8125rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+// The one tooltip of the charts, see assets/ts/activity/tooltip.ts: fixed, so no scrolling part cuts it off
+.stream-tooltip {
+    position: fixed;
+    z-index: 1080;
+    max-width: 20rem;
+    padding: .35rem .6rem;
+    border-radius: .375rem;
+    background: #0b0b0b;
+    color: #fff;
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+    // A line break of "data-tip" starts a new line, a long line wraps
+    white-space: pre-line;
+    pointer-events: none;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+// The median of a bar chart, see assets/ts/activity/scale.ts: a dashed line across the bars, its key above them
+// opposite the scale. The bars far above it stand out
+.stream-bars {
+    position: relative;
+}
+
+.stream-median {
+    position: absolute;
+    right: 0;
+    bottom: calc(1.5rem + (100% - 1.5rem) * var(--median));
+    left: 0;
+    z-index: 1;
+    border-top: 1px dashed #374151;
+    pointer-events: none;
+}
+
+.stream-median-key {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: inline-flex;
+    gap: .35rem;
+    align-items: center;
+    color: var(--overview-muted);
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+
+    &::before {
+        width: 1rem;
+        border-top: 1px dashed #374151;
+        content: "";
+    }
+}
+
+// The last bar of a window that ends now: its time is not over, see isSoFar() in assets/ts/activity/format.ts
+.stream-bar.is-so-far .stream-bar-stack,
+.stream-net-bar.is-so-far span span {
+    opacity: .45;
+}
+
+.stream-bar:hover .stream-bar-stack,
+.stream-heatmap td:hover,
+.stream-calendar-day:hover {
+    filter: brightness(.88);
+}
+
+// The elements render into themselves, see assets/ts/activity/light-element.ts
+forger-activity,
+forger-activity-filter,
+forger-activity-stream,
+forger-activity-statistics,
+forger-activity-timeline,
+forger-activity-flow,
+forger-activity-heatmap,
+forger-activity-year,
+forger-activity-hours {
+    display: block;
+}
+
+// Their tiles and cards are widgets of the dashboard grid around them
+forger-activity-figures,
+forger-activity-closed-years {
+    display: contents;
+}
+
+// While an element loads the view anew, the old one stays in sight
+.stream-days[aria-busy="true"],
+.stream-statistics[aria-busy="true"] {
+    opacity: .55;
+    transition: opacity .15s .1s;
+}
+
+.stream-more {
+    margin: 0;
+    text-align: center;
+}
+
+a.stream-bar {
+    color: inherit;
+    text-decoration: none;
+}
+

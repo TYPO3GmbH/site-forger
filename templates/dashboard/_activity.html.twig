@@ -1,0 +1,17 @@
+{#
+ # The latest events of the activity stream, without the bots, with a link to all of it. The element loads them with
+ # the API and asks for new ones every minute, see assets/ts/activity/stream.ts.
+ #}
+<section class="overview-list" aria-labelledby="overview-activity-title">
+    <header class="overview-list-header">
+        <h2 class="overview-list-title" id="overview-activity-title">Latest activity</h2>
+        <a class="overview-list-all" href="{{ path('activity_index') }}">Show all</a>
+    </header>
+    <forger-activity-stream
+        api-url="{{ path('api_v1_activity') }}"
+        stream-url="{{ path('activity_index') }}"
+        limit="{{ constant('App\\Controller\\StreamController::DASHBOARD_COUNT') }}"
+        compact
+        live
+    ></forger-activity-stream>
+</section>

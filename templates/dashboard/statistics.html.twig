@@ -1,109 +1,18 @@
 {% extends 'base.html.twig' %}
 {% block title %}Statistics{% endblock %}
 {#
- # The issues and changes over time, as charts: for a look now and then, the dashboard shows where work waits.
- # Expects: chartOptions, chartOptionsWithLegend, chartOptionsHorizontal (see App\Charts\ChartStyle)
+ # The statistics: the board of the activity in a time window, see templates/stream/_frame.html.twig. At its end,
+ # what was closed over the years. For a look now and then, the dashboard shows where work waits.
  #}
-{% block breadcrumb %}
-    {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
-    {{ breadcrumb.trail([{'label': 'Dashboard', 'url': path('dashboard_index')}, {'label': 'Statistics'}]) }}
-{% endblock %}
 {% block page_title %}Statistics{% endblock %}
 {% block page_summary %}
-    How many issues and changes were opened, closed and left open over time. Each chart switches to a table.
+    What is open, what got done on Forge and in Gerrit, and how long work waits. Days and hours count in your time
+    zone.
 {% endblock %}
 {% block body %}
     <div class="content-section content-section-small overview">
         <div class="container">
-            <div class="overview-charts">
-                {{ _self.chart(
-                    'Issues opened and closed',
-                    'Per week, the last 12 weeks',
-                    'bar',
-                    path('chart', {'chartName': 'opened_closed'}),
-                    chartOptionsWithLegend,
-                    'Week',
-                ) }}
-                {{ _self.chart(
-                    'Changes waiting for review',
-                    'Open changes by their last activity, without work in progress',
-                    'bar',
-                    path('chart', {'chartName': 'open_reviews'}),
-                    chartOptionsHorizontal,
-                    'Last activity',
-                ) }}
-                {{ _self.chart(
-                    'Open issues',
-                    'At the end of each month, the last 3 years',
-                    'line',
-                    path('chart', {'chartName': 'tickets_over_time'}),
-                    chartOptions,
-                    'Month',
-                ) }}
-                {{ _self.chart(
-                    'Open changes',
-                    'At the end of each month, the last 3 years, without work in progress',
-                    'line',
-                    path('chart', {'chartName': 'reviews_over_time'}),
-                    chartOptions,
-                    'Month',
-                ) }}
-                {{ _self.chart(
-                    'Closed issues per year',
-                    'Summed up month by month',
-                    'line',
-                    path('chart', {'chartName': 'ticket_progress'}),
-                    chartOptionsWithLegend,
-                    'Month',
-                ) }}
-                {{ _self.chart(
-                    'Closed changes per year',
-                    'Merged or abandoned, summed up month by month',
-                    'line',
-                    path('chart', {'chartName': 'review_progress'}),
-                    chartOptionsWithLegend,
-                    'Month',
-                ) }}
-            </div>
+            {% include 'stream/_frame.html.twig' with {'view': 'statistics'} only %}
         </div>
     </div>
 {% endblock %}
-
-{#
- # A chart card. The template bundle draws the canvas with Chart.js and the options given here.
- # The table shows the same data in the same place, for screen readers and the colors that are hard to tell apart.
- #}
-{% macro chart(title, subtitle, type, source, options, categoryLabel) %}
-    <figure class="overview-chart" data-chart-card>
-        <figcaption class="overview-chart-header">
-            <span>
-                <span class="overview-chart-title">{{ title }}</span>
-                <span class="overview-chart-subtitle">{{ subtitle }}</span>
-            </span>
-            <span class="overview-view-toggle" role="group" aria-label="View of {{ title }}">
-                <button type="button" class="is-active" aria-pressed="true" data-chart-view="chart">Chart</button>
-                <button type="button" aria-pressed="false" data-chart-view="table">Table</button>
-            </span>
-        </figcaption>
-        <div class="overview-chart-body">
-            <div class="overview-chart-canvas" data-chart-pane="chart">
-                <canvas
-                    class="js-chart"
-                    role="img"
-                    aria-label="{{ title }}, {{ subtitle }}"
-                    data-chart-type="{{ type }}"
-                    data-src="{{ source }}"
-                    data-options="{{ options|json_encode }}"
-                ></canvas>
-            </div>
-            <div
-                class="overview-chart-table"
-                data-chart-pane="table"
-                data-chart-table="{{ source }}"
-                data-category-label="{{ categoryLabel }}"
-                tabindex="0"
-                hidden
-            ></div>
-        </div>
-    </figure>
-{% endmacro %}

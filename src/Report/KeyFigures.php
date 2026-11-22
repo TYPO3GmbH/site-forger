@@ -39,8 +39,14 @@ final readonly class KeyFigures
      */
     public const int MERGED_SIZE = 6;
 
-    private const string LAST_30_DAYS = 'now-30d/d';
-
+    /**
+     * The states of an open change the dashboard tells apart, with their names.
+     */
+    public const array CHANGE_STATES = [
+        'ready' => 'Mergeable',
+        'conflict' => 'Merge conflict',
+        'wip' => 'Work in progress',
+    ];
     private const string FIRST_DAY = '2000-01-01';
 
     public function __construct(
@@ -52,21 +58,6 @@ final readonly class KeyFigures
     public function openIssues(): int
     {
         return $this->issues->count(self::filtered([], [self::closedStatus()]));
-    }
-
-    public function openedIssues(): int
-    {
-        return $this->issues->count(self::filtered([
-            ['range' => ['created_on' => ['gte' => self::LAST_30_DAYS]]],
-        ]));
-    }
-
-    public function closedIssues(): int
-    {
-        return $this->issues->count(self::filtered([
-            self::closedStatus(),
-            ['range' => ['updated_on' => ['gte' => self::LAST_30_DAYS]]],
-        ]));
     }
 
     /**
@@ -87,6 +78,35 @@ final readonly class KeyFigures
     public function readyForReview(): int
     {
         return $this->changes->count(self::filtered([(array) ReviewLists::query(ReviewLists::READY)]));
+    }
+
+    /**
+     * The open changes by state, see CHANGE_STATES. A change in progress counts as such, whether it can be merged
+     * or not.
+     *
+     * @return array{ready: int, conflict: int, wip: int}
+     */
+    public function openChanges(): array
+    {
+        $workInProgress = ['term' => ['work_in_progress' => true]];
+        $conflict = ['term' => ['mergeable' => 'no']];
+        $counts = $this->changes->search([
+            'query' => ['term' => ['reviewstatus' => ReviewStatusEnum::NEW->value]],
+            'size' => 0,
+            'aggregations' => [
+                'state' => ['filters' => ['filters' => [
+                    'ready' => ['bool' => ['must_not' => [$workInProgress, $conflict]]],
+                    'conflict' => ['bool' => ['filter' => [$conflict], 'must_not' => [$workInProgress]]],
+                    'wip' => $workInProgress,
+                ]]],
+            ],
+        ])->counts('state');
+
+        return [
+            'ready' => $counts['ready'] ?? 0,
+            'conflict' => $counts['conflict'] ?? 0,
+            'wip' => $counts['wip'] ?? 0,
+        ];
     }
 
     /**

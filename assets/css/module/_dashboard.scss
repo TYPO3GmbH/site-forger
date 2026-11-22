@@ -1,4 +1,6 @@
-// Dashboard, see templates/dashboard/index.html.twig and src/Charts/ChartStyle.php
+// Dashboard, see templates/dashboard/index.html.twig
+
+@use "toggle";
 
 .overview {
     --overview-border: #e6e8eb;
@@ -327,117 +329,16 @@
     border-radius: 3px;
 }
 
-// Charts
-.overview-charts {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
-
-    @media (max-width: 767.98px) {
-        grid-template-columns: minmax(0, 1fr);
-    }
-}
-
-.overview-chart {
-    display: flex;
-    flex-direction: column;
-    margin: 0;
-    padding: 1.25rem 1.5rem;
-    border: 1px solid var(--overview-border);
-    border-radius: var(--overview-radius);
-    background: #fff;
-    box-shadow: var(--overview-shadow);
-}
-
-.overview-chart-header {
-    display: flex;
-    gap: 1rem;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: .75rem;
-}
-
-.overview-chart-title {
-    display: block;
-    color: #0b0b0b;
-    // The size of the titles of all cards
-    font-size: 1.125rem;
-    font-weight: 500;
-    // Lines of about the same length, no single word left alone
-    text-wrap: balance;
-}
-
-.overview-chart-subtitle {
-    display: block;
-    margin-top: .15rem;
-    color: var(--overview-muted);
-    font-size: .8125rem;
-}
-
 // Segmented control: chart or table
 .overview-view-toggle {
-    display: inline-flex;
-    flex-shrink: 0;
-    padding: .2rem;
-    border-radius: 999px;
-    background: #eef0f2;
+    @include toggle.group;
 
     button {
-        padding: .2rem .7rem;
-        border: 0;
-        border-radius: 999px;
-        background: transparent;
-        color: var(--overview-muted);
-        font-size: .75rem;
-        font-weight: 600;
-        line-height: 1.4;
-        cursor: pointer;
-        transition: background-color .15s, color .15s;
-
-        &:hover {
-            color: #0b0b0b;
-        }
-
-        &:focus-visible {
-            outline: 2px solid #2a78d6;
-            outline-offset: 1px;
-        }
-
-        &.is-active {
-            background: #fff;
-            box-shadow: 0 1px 3px rgba(16, 24, 40, .12);
-            color: #0b0b0b;
-        }
+        @include toggle.item;
     }
 }
 
-// Chart and table take the same place, switching does not move the cards around
-.overview-chart-body {
-    height: 16rem;
-}
-
-.overview-chart-canvas {
-    position: relative;
-    height: 100%;
-
-    // The template bundle sizes charts for its own cards
-    .js-chart {
-        min-height: 0;
-        max-height: none;
-    }
-}
-
-// Without a frame, lines only between the rows
-.overview-chart-table {
-    height: 100%;
-    overflow: auto;
-
-    &:focus-visible {
-        outline: 2px solid #2a78d6;
-        outline-offset: 2px;
-    }
-}
-
+// The data of a chart as a table: without a frame, lines only between the rows
 .overview-data-table {
     width: 100%;
     border-collapse: separate;
@@ -490,22 +391,6 @@
     tbody tr:hover > * {
         background: #f7f8fa;
     }
-}
-
-.overview-data-swatch {
-    display: inline-block;
-    width: .6rem;
-    height: .6rem;
-    margin-right: .4rem;
-    border-radius: 2px;
-    vertical-align: baseline;
-}
-
-.overview-data-message {
-    margin: 0;
-    padding: 1rem;
-    color: var(--overview-muted);
-    font-size: .8125rem;
 }
 
 // Short lists below the charts, see templates/dashboard/_new_issues.html.twig and _ready_to_merge.html.twig

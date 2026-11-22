@@ -20,14 +20,16 @@
                     'Key figures',
                     'overview-figures-title',
                     null,
-                    {'url': path('dashboard_statistics'), 'label': 'Statistics over time'},
+                    {'url': path('dashboard_statistics', {'range': statisticsRange}), 'label': 'Statistics'},
                 ) }}
             </div>
             <div class="overview-stats">
                 <a class="overview-stat" href="{{ path('search_search') }}">
                     <span class="overview-stat-label">Open issues</span>
                     <span class="overview-stat-value overview-tone-issues">{{ openIssues }}</span>
-                    <span class="overview-stat-note">+{{ openedIssues }} opened, {{ closedIssues }} closed in 30 days</span>
+                    <span class="overview-stat-note">
+                        +{{ openedIssues }} opened, {{ resolvedIssues }} resolved in 30 days
+                    </span>
                 </a>
 
                 {# All open changes, work in progress too, as the search without search words shows them #}
@@ -66,6 +68,23 @@
             {% include 'dashboard/_recently_merged.html.twig' with {'changes': recentlyMerged} only %}
         </div>
     </div>
+
+    {# Who started to contribute, to welcome them and to help where they wait, beside the latest events #}
+    <div class="content-section content-section-small overview">
+        <div class="container">
+            {{ section.heading(
+                'Happening now',
+                'overview-now-title',
+                'New people, and the latest on Forge and in Gerrit.',
+            ) }}
+            <div class="overview-lists">
+                {% include 'dashboard/_newcomers.html.twig' %}
+                {% include 'dashboard/_activity.html.twig' %}
+            </div>
+        </div>
+    </div>
+    {# What the elements of the activity take from the server, once for the page #}
+    {% include 'stream/_definitions.html.twig' %}
 
     <div class="content-section content-section-small overview">
         <div class="container">

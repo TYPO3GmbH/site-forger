@@ -13,6 +13,11 @@ Encore
     .enableSingleRuntimeChunk()
     .cleanupOutputBeforeBuild()
     .enableSassLoader()
+    // The elements of the activity, see assets/ts/ and tsconfig.json. "npm run typecheck" checks the types, the
+    // build only strips them.
+    .enableTypeScriptLoader((options) => {
+        options.transpileOnly = true;
+    })
     .enableSourceMaps(!Encore.isProduction())
     .enableVersioning(Encore.isProduction())
     .configureBabel((config) => {
