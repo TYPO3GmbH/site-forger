@@ -22,6 +22,10 @@ author:
   properties:
     name:
       type: keyword
+      fields:
+        folded:
+          type: keyword
+          normalizer: folded
     username:
       type: keyword
     forge_id:
@@ -47,6 +51,9 @@ open_delta:
 # else 0: the statistics count the open changes in progress like the open ones, see open_delta
 wip_delta:
   type: byte
+# A vote on a change, with or without a comment: who carries the review counts them, see App\Enum\StreamCrewEnum
+voted:
+  type: boolean
 # Seconds since the issue or the change began, for an issue closed, a change merged and the first review of a
 # change: the statistics take the median, see App\Search\StreamInsightsQuery::durationRequest()
 duration:
@@ -60,6 +67,10 @@ owner:
   properties:
     name:
       type: keyword
+      fields:
+        folded:
+          type: keyword
+          normalizer: folded
     username:
       type: keyword
     gerrit_id:

@@ -181,6 +181,12 @@ export interface ActivityClosedYears {
     changes: ActivityClosedYear[];
 }
 
+export interface ActivityFlow {
+    source: Source;
+    incoming: number[];
+    outgoing: number[];
+}
+
 export interface ActivityStatistics {
     window: ActivityWindow;
     person: ActivityPerson | null;
@@ -192,6 +198,7 @@ export interface ActivityStatistics {
     openIssues: ActivityTrend;
     openChanges: ActivityTrend;
     openChangesInProgress: ActivityTrend;
+    flows: ActivityFlow[];
     durations: ActivityDuration[];
     reviewQueue: ActivityCount[];
     sources: ActivityCount[];

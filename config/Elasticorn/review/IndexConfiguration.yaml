@@ -1,2 +1,14 @@
 number_of_shards: 4
 number_of_replicas: 1
+analysis:
+  # Names in lower case and ASCII, for the search of a part of a name, see App\Search\NameSearch
+  normalizer:
+    folded:
+      type: custom
+      filter: [lowercase, asciifolding]
+  # Every text, like the subject and the commit message: "andre" finds "André"
+  analyzer:
+    default:
+      type: custom
+      tokenizer: standard
+      filter: [lowercase, asciifolding]

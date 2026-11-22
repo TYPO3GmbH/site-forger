@@ -15,7 +15,8 @@ use App\Api\PersonFilter;
 
 /**
  * The query of a person of the filters of the API, see PersonFilter: the number of the account, or all words in the
- * name, in any case. The name is the one an issue or a change shows, which is public.
+ * name, in any case and without accents, see NameSearch. The name is the one an issue or a change shows, which is
+ * public.
  */
 final class PersonQuery
 {
@@ -32,10 +33,7 @@ final class PersonQuery
         }
 
         return ['bool' => ['must' => array_map(
-            static fn (string $word): array => ['wildcard' => [$nameField => [
-                'value' => '*' . addcslashes($word, '\\*?') . '*',
-                'case_insensitive' => true,
-            ]]],
+            static fn (string $word): array => NameSearch::contains($nameField, $word),
             $person->words,
         )]];
     }

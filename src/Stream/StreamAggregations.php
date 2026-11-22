@@ -195,6 +195,34 @@ final class StreamAggregations
     }
 
     /**
+     * What came in and what went out per channel and bucket, see StreamFlow.
+     *
+     * @param array<string, mixed>|null $sources of StreamInsightsQuery::openRequest()
+     * @param list<string>              $keys
+     *
+     * @return array<string, StreamFlow> by channel
+     */
+    public static function flows(?array $sources, array $keys): array
+    {
+        $flows = [];
+        foreach ((array) ($sources['buckets'] ?? []) as $source) {
+            $incoming = [];
+            $outgoing = [];
+            foreach ((array) ($source[StreamInsightsQuery::OVER_TIME]['buckets'] ?? []) as $bucket) {
+                $key = (string) ($bucket['key_as_string'] ?? '');
+                $incoming[$key] = (int) ($bucket[StreamInsightsQuery::INCOMING]['doc_count'] ?? 0);
+                $outgoing[$key] = (int) ($bucket[StreamInsightsQuery::OUTGOING]['doc_count'] ?? 0);
+            }
+            $flows[(string) ($source['key'] ?? '')] = new StreamFlow(
+                TimeSeries::align($incoming, $keys),
+                TimeSeries::align($outgoing, $keys),
+            );
+        }
+
+        return $flows;
+    }
+
+    /**
      * The open ones at the end of each bucket, counted back from the open ones now: the later buckets and the time
      * after the window undone. Exact now, whatever history the index lacks before the window.
      *

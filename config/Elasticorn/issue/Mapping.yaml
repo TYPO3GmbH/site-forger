@@ -22,8 +22,27 @@ author:
   properties:
     name:
       type: keyword
+      fields:
+        folded:
+          type: keyword
+          normalizer: folded
+        # For the search words, see IssueSearch::SEARCHED_FIELDS
+        text:
+          type: text
     email:
       type: keyword
+# Mapped as Elasticsearch would map it by itself, with the folded name for the search
+assigned_to:
+  properties:
+    name:
+      type: text
+      fields:
+        keyword:
+          type: keyword
+          ignore_above: 256
+        folded:
+          type: keyword
+          normalizer: folded
 category:
   properties:
     name:

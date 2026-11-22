@@ -29,8 +29,7 @@ final class PeopleQueryTest extends TestCase
 
         self::assertIsArray($request);
         $should = $request['query']['bool']['should'];
-        self::assertSame('*ko\\*tt*', $should[0]['wildcard']['author.name']['value']);
-        self::assertTrue($should[0]['wildcard']['author.name']['case_insensitive']);
+        self::assertSame('*ko\\*tt*', $should[0]['wildcard']['author.name.folded']['value']);
         self::assertSame('ko*tt', $should[1]['prefix']['author.username']['value']);
         self::assertSame([['term' => ['bot' => false]]], $request['query']['bool']['filter']);
         self::assertSame(PeopleQuery::SIZE, $request['aggs'][PeopleQuery::PEOPLE]['terms']['size']);

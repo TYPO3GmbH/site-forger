@@ -38,6 +38,15 @@ final class SystemTemplateTest extends KernelTestCase
         self::assertStringContainsString('<code class="system-list-name">FORGE_ACCESS_TOKEN</code>', $html);
     }
 
+    public function testAnIndexTellsTheVersionsOfItsEvents(): void
+    {
+        $html = $this->render([self::pending('change', SystemCheckEnum::ATTENTION, 12)]);
+        $html = (string) preg_replace('/\s+/', ' ', $html);
+
+        self::assertStringContainsString('Events of version 7: 60, current', $html);
+        self::assertStringContainsString('Events of version 6: 40, the backfill writes their events again', $html);
+    }
+
     public function testTheCardOfTheUsersLeadsToTheAccountsWithoutAUsername(): void
     {
         $html = $this->render([], [
@@ -195,6 +204,10 @@ final class SystemTemplateTest extends KernelTestCase
             'versions' => [
                 ['version' => 3, 'documents' => 100 - $matches, 'state' => 'current'],
                 ['version' => 2, 'documents' => $matches, 'state' => 'backfill'],
+            ],
+            'streamVersions' => [
+                ['version' => 7, 'documents' => 60, 'state' => 'current'],
+                ['version' => 6, 'documents' => 40, 'state' => 'backfill'],
             ],
             'result' => $result,
         ];

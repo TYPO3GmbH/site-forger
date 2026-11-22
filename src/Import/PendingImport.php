@@ -14,6 +14,7 @@ namespace App\Import;
 use App\Elastic\Indices;
 use App\Enum\SystemCheckEnum;
 use App\Import\Backfill\SchemaBackfill;
+use App\Stream\StreamSchema;
 
 /**
  * The documents an older version of the import wrote, for the system page: they show without the data the import
@@ -68,6 +69,29 @@ final class PendingImport
                     $backfill->reaches($index, $version) => 'backfill',
                     default => 'import',
                 },
+            ];
+        }
+
+        return $versions;
+    }
+
+    /**
+     * The documents of an index by the version of StreamEvents that wrote their events, the newest first. The
+     * backfill writes the events of each older version again, see StreamSchema.
+     *
+     * @param array<int, int> $counts the documents by their version, 0 for none written
+     *
+     * @return list<array{version: int, documents: int, state: 'current'|'backfill'}>
+     */
+    public static function streamVersions(array $counts): array
+    {
+        krsort($counts);
+        $versions = [];
+        foreach ($counts as $version => $documents) {
+            $versions[] = [
+                'version' => $version,
+                'documents' => $documents,
+                'state' => StreamSchema::VERSION === $version ? 'current' : 'backfill',
             ];
         }
 

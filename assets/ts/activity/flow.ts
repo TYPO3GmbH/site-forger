@@ -77,11 +77,20 @@ export class ActivityFlow extends StatisticsCard {
         `;
     }
 
+    /**
+     * Of a person, what the person did. Else all that opened and closed, the tools and the issues opened again
+     * included, so the net is what the open ones changed by. What the figures do not count shows as a part of its own.
+     */
     private flow(): Flow {
-        const { buckets, figures } = this.data();
+        const { buckets, figures, flows, person } = this.data();
         const ofSource = figures.filter(figure => figure.source === this.source);
-        const incoming = ofSource.filter(figure => figure.openDelta === 1);
-        const outgoing = ofSource.filter(figure => figure.openDelta === -1);
+        let incoming = ofSource.filter(figure => figure.openDelta === 1);
+        let outgoing = ofSource.filter(figure => figure.openDelta === -1);
+        const stock = person === null ? flows.find(flow => flow.source === this.source) : undefined;
+        if (stock !== undefined) {
+            incoming = withRest(incoming, stock.incoming, 'Opened again or by tools');
+            outgoing = withRest(outgoing, stock.outgoing, 'Closed by tools');
+        }
 
         return {
             incoming,
@@ -215,6 +224,20 @@ export class ActivityFlow extends StatisticsCard {
     private dayUrl(key: string): string {
         return withQuery(this.streamUrl, pageParameters({ ...this.state, ...this.dayChange(key) }));
     }
+}
+
+/**
+ * The figures and, as a figure of its own, what the totals count beyond them.
+ */
+function withRest(figures: ActivityFigure[], totals: number[], label: string): ActivityFigure[] {
+    const first = figures[0];
+    const values = totals.map((total, bucket) => Math.max(0, total - sum(figures, bucket)));
+    const count = values.reduce((all, value) => all + value, 0);
+    if (first === undefined || count === 0) {
+        return figures;
+    }
+
+    return [...figures, { ...first, key: `${first.key}-rest`, label, description: label, count, values }];
 }
 
 function sum(figures: ActivityFigure[], bucket: number): number {

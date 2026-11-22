@@ -32,6 +32,7 @@ final readonly class StreamEvent
      * @param Person|null  $owner       the owner of the change, without the email: whose work the event is about
      * @param int          $wipDelta    1 when an open change becomes work in progress by it, -1 when it ends to be
      *                                  one, else 0
+     * @param bool         $voted       it gives a vote on a change, with or without a comment, not one taken back
      */
     public function __construct(
         public string $id,
@@ -50,6 +51,7 @@ final readonly class StreamEvent
         public bool $firstReview = false,
         public ?Person $owner = null,
         public int $wipDelta = 0,
+        public bool $voted = false,
     ) {
     }
 
@@ -75,6 +77,7 @@ final readonly class StreamEvent
             firstReview: true === ($document['first_review'] ?? false),
             owner: self::personOf($document['owner'] ?? null),
             wipDelta: (int) ($document['wip_delta'] ?? 0),
+            voted: true === ($document['voted'] ?? false),
         );
     }
 
@@ -130,6 +133,7 @@ final readonly class StreamEvent
             'first_review' => $this->firstReview,
             'owner' => self::documentOf($this->owner),
             'wip_delta' => $this->wipDelta,
+            'voted' => $this->voted,
         ];
     }
 

@@ -45,7 +45,19 @@ final readonly class ChangeActivity implements BackfillStep
      */
     public function fields(): array
     {
-        return ['id', 'subject', 'branch', 'created_on', 'owner', 'owner_id', 'owner_username', 'messages'];
+        return [
+            'id',
+            'subject',
+            'branch',
+            'reviewstatus',
+            'created_on',
+            'updated_on',
+            'closed_on',
+            'owner',
+            'owner_id',
+            'owner_username',
+            'messages',
+        ];
     }
 
     public function lift(array $documents): array

@@ -45,6 +45,13 @@ Rules for everyone who works on this repository, people and coding agents.
 - After a push, follow the "Deployment" job of the CI until it is green. A failed deployment can leave a release live without its last steps, like the restart of the worker.
 - Raise `ImportSchema::ISSUE` or `ImportSchema::REVIEW` when an import reads more data. The imports then load the older documents again, a share with each run.
 
+## Releases
+- Work goes to `develop` first. Check it on stage before it goes to `master`. Stage has the basic auth `foo:bar` and older data than live.
+- A release merges `develop` into `master` with a merge commit, never a fast-forward: `git merge --no-ff develop` on `master` gives "Merge branch 'develop'".
+- Tag the merge commit with the version, annotated and without a message: `git tag -a 7.4.0 -m ''`. Raise the minor version when the release has a `[FEATURE]`, the patch version when it has only fixes and tasks.
+- Push `master` and the tag. Then merge `master` back into `develop` ("Merge branch 'master' into develop") and push `develop`.
+- Ask before a release: a push to `master` goes live. The branch rules of GitHub ask for a pull request, but releases go as a direct push.
+
 ## Conventions
 - Enums: back an enum only when its value goes outside: a source system's id (Redmine id, Gerrit value), a URL parameter or a database column. Otherwise use a pure enum. `label()` returns the name, `severity()` the style key. Not every enum needs `severity()`. Each severity needs a rule in `assets/css/module/_status.scss`, and a test checks that.
 - Enums hold no Elasticsearch queries. Put those in `App\Search`.

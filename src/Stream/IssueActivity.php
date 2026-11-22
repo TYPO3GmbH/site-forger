@@ -45,7 +45,7 @@ final readonly class IssueActivity implements BackfillStep
      */
     public function fields(): array
     {
-        return ['id', 'subject', 'tracker', 'author', 'created_on', 'journals'];
+        return ['id', 'subject', 'tracker', 'status', 'author', 'created_on', 'updated_on', 'closed_on', 'journals'];
     }
 
     public function lift(array $documents): array

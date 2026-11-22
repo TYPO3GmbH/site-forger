@@ -222,6 +222,7 @@ final readonly class StreamStatistics
                 $opened[StreamSourceEnum::GERRIT->value] ?? [],
                 $keys,
             ),
+            flows: StreamAggregations::flows($openSources, $keys),
             openChangesInProgress: StreamAggregations::openOverTime(
                 $this->openChangesNow($filter->branch, inProgress: true),
                 $inProgress[StreamSourceEnum::GERRIT->value] ?? [],

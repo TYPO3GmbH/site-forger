@@ -35,15 +35,4 @@ enum StreamCrewEnum: string
             self::VOTING => 'Who voted on changes in Gerrit, without the tools',
         };
     }
-
-    /**
-     * The events of the work: a merge, a vote.
-     */
-    public function kind(): StreamKindEnum
-    {
-        return match ($this) {
-            self::MERGING => StreamKindEnum::MERGED,
-            self::VOTING => StreamKindEnum::VOTED,
-        };
-    }
 }

@@ -19,6 +19,7 @@ final readonly class ActivityStatistics
 {
     /**
      * @param list<ActivityFigure>   $figures
+     * @param list<ActivityFlow>     $flows
      * @param list<ActivityDuration> $durations
      * @param list<ActivityCount>    $reviewQueue
      * @param list<ActivityCrew>     $crews
@@ -74,6 +75,13 @@ final readonly class ActivityStatistics
             allOf: [new OA\Schema(ref: new Model(type: ActivityTrend::class))],
         )]
         public ActivityTrend $openChangesInProgress,
+        #[OA\Property(
+            description: 'What came in and what went out per channel, Forge first. Over the window the difference is '
+                . 'what the open ones changed by.',
+            type: 'array',
+            items: new OA\Items(ref: new Model(type: ActivityFlow::class)),
+        )]
+        public array $flows,
         #[OA\Property(
             description: 'How long work waited, in a fixed order. It does not depend on the kinds and the person.',
             type: 'array',

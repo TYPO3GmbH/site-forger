@@ -48,7 +48,7 @@ final class IssueSearch
         'complexity',
         'typo3_version',
         'php_version',
-        'author.name',
+        'author.name.text',
         'assigned_to.name',
         'custom_fields.name',
         'custom_fields.value',

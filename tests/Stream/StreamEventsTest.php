@@ -224,6 +224,93 @@ final class StreamEventsTest extends TestCase
         self::assertSame([1, -1, 0, 1, 0, -1, 1, -1], $deltas);
     }
 
+    public function testAClosedIssueWithoutAClosingJournalClosesOnItsDay(): void
+    {
+        $issue = Issue::fromDocument([
+            'id' => 30000,
+            'subject' => 'Old bug',
+            'status' => ['id' => 3, 'name' => 'Resolved'],
+            'created_on' => '2011/03/01 10:00:00',
+            'closed_on' => '2011-03-02T10:00:00Z',
+        ]);
+
+        $events = StreamEvents::ofIssue($issue);
+
+        self::assertSame(
+            [
+                [StreamKindEnum::CREATED, 1, '2011/03/01 10:00:00'],
+                [StreamKindEnum::RESOLVED, -1, '2011/03/02 10:00:00'],
+            ],
+            array_map(
+                static fn (StreamEvent $event): array => [$event->kind, $event->openDelta, $event->date],
+                $events,
+            ),
+        );
+        self::assertSame('forge-30000-closed', $events[1]->id);
+        self::assertSame(86400, $events[1]->duration);
+    }
+
+    public function testAnOpenIssueGetsNoClosing(): void
+    {
+        $issue = Issue::fromDocument([
+            'id' => 30001,
+            'subject' => 'Opened again',
+            'status' => ['id' => 1, 'name' => 'New'],
+            'created_on' => '2011/03/01 10:00:00',
+            'closed_on' => '2011-03-02T10:00:00Z',
+        ]);
+
+        self::assertCount(1, StreamEvents::ofIssue($issue));
+    }
+
+    public function testAClosedChangeWithoutAClosingMessageClosesOnItsDay(): void
+    {
+        $change = Change::fromDocument([
+            'id' => 946,
+            'subject' => '[BUGFIX] Old fix',
+            'reviewstatus' => 'MERGED',
+            'created_on' => '2011/03/01 10:00:00',
+            'closed_on' => '2011/03/01 12:00:00',
+            'messages' => [self::message('a1', 'Patch Set 1: Verified', 1, ['id' => 8, 'name' => 'John Roe'])],
+        ]);
+
+        $events = StreamEvents::ofChange($change);
+
+        self::assertSame(
+            [[StreamKindEnum::CREATED, 1], [StreamKindEnum::VOTED, 0], [StreamKindEnum::MERGED, -1]],
+            array_map(static fn (StreamEvent $event): array => [$event->kind, $event->openDelta], $events),
+        );
+        self::assertSame('2011/03/01 12:00:00', $events[2]->date);
+    }
+
+    public function testAVoteWithACommentIsStillAVote(): void
+    {
+        $author = ['id' => 8, 'name' => 'John Roe'];
+        $change = Change::fromDocument([
+            'id' => 97005,
+            'subject' => '[TASK] Clean up',
+            'messages' => [
+                self::message('a1', 'Uploaded patch set 1.', 1, ['id' => 7, 'name' => 'Jane Doe']),
+                self::message('a2', "Patch Set 1: Code-Review+2\n\nNice work.", 1, $author),
+                self::message('a3', "Patch Set 1:\n\nOne more thing.", 1, $author),
+                self::message('a4', 'Patch Set 1: -Code-Review', 1, $author),
+            ],
+        ]);
+
+        $events = StreamEvents::ofChange($change);
+
+        self::assertSame(
+            [
+                [StreamKindEnum::CREATED, false],
+                [StreamKindEnum::COMMENTED, true],
+                [StreamKindEnum::COMMENTED, false],
+                [StreamKindEnum::VOTED, false],
+            ],
+            array_map(static fn (StreamEvent $event): array => [$event->kind, $event->voted], $events),
+        );
+        self::assertTrue(StreamEvent::fromDocument($events[1]->toDocument())->voted);
+    }
+
     public function testAnAbandonEndsTheWaitLikeAMerge(): void
     {
         $change = Change::fromDocument([

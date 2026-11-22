@@ -36,8 +36,8 @@ final class PersonSuggestionTest extends TestCase
         self::assertSame(0, $request['size']);
         self::assertSame(self::LIST_QUERY, $request['query']['bool']['filter'][0]);
         self::assertSame(
-            ['value' => '*benni*', 'case_insensitive' => true],
-            $request['query']['bool']['filter'][1]['wildcard']['assigned_to.name.keyword']
+            ['value' => '*benni*'],
+            $request['query']['bool']['filter'][1]['wildcard']['assigned_to.name.folded']
         );
         self::assertSame([['term' => ['assigned_to.name.keyword' => 'Unknown']]], $request['query']['bool']['must_not']);
         // The same aggregation as the filter, with more people
@@ -49,7 +49,9 @@ final class PersonSuggestionTest extends TestCase
         $request = PersonSuggestion::request('a*b?c\\', self::LIST_QUERY, 'Owner');
         self::assertNotNull($request);
 
-        self::assertSame('*a\\*b\\?c\\\\*', $request['query']['bool']['filter'][1]['wildcard']['owner']['value']);
+        $wildcard = $request['query']['bool']['filter'][1]['wildcard'];
+
+        self::assertSame('*a\\*b\\?c\\\\*', $wildcard['owner.folded']['value']);
     }
 
     public function testReadsNamesCountsAndAvatarsOfTheUsers(): void
