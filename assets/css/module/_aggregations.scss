@@ -84,6 +84,29 @@ forger-path-filter {
     text-align: left;
 }
 
+// Whether a change touches all paths of the filter "File" or any of them
+.aggregation-match {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 1rem;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    .form-check-inline {
+        margin: 0;
+    }
+}
+
+.aggregation-match-legend {
+    float: none;
+    width: auto;
+    margin: 0;
+    font-size: .875rem;
+    font-weight: 600;
+}
+
 .aggregation-range-actions {
     display: flex;
     gap: .5rem;

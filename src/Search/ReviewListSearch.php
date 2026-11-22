@@ -34,6 +34,7 @@ final readonly class ReviewListSearch
      * @param array<string, mixed>|null $listQuery    the query of the list, see ReviewLists::query()
      * @param array<string, mixed>      $aggregations see ReviewLists::aggregations()
      * @param array<mixed>              $filters      the filters of the request
+     * @param list<int>                 $gerritIds    the accounts of the user logged in, for "Waiting for"
      *
      * @return ListPage<Change>
      */
@@ -43,6 +44,7 @@ final readonly class ReviewListSearch
         array $aggregations,
         array $filters,
         Pagination $page,
+        array $gerritIds = [],
     ): ListPage {
         $request = [
             'sort' => ReviewSortQuery::sort($sort),
@@ -52,7 +54,10 @@ final readonly class ReviewListSearch
         if (null !== $listQuery) {
             $request['query'] = $listQuery;
         }
-        $filterQuery = ReviewLists::filterQuery($filters, $this->users);
+        $filterQuery = ReviewLists::filterQuery($filters, $this->users, $gerritIds);
+        if (isset($aggregations[WaitingQuery::TITLE])) {
+            $aggregations[WaitingQuery::TITLE] = WaitingQuery::aggregation($gerritIds);
+        }
         // A BoolQuery without clauses cannot be turned into an array
         if ($filterQuery->count() > 0 && [] !== $filterQuery->toArray()) {
             $request['post_filter'] = $filterQuery;
@@ -70,6 +75,9 @@ final readonly class ReviewListSearch
         }
         if (isset($found['Activity'])) {
             $found['Activity'] = ActivityQuery::facet($found['Activity']);
+        }
+        if (isset($found[WaitingQuery::TITLE])) {
+            $found[WaitingQuery::TITLE] = WaitingQuery::facet($found[WaitingQuery::TITLE]);
         }
         if (isset($found['Size'])) {
             $found['Size'] = ReviewSizeQuery::facet($found['Size']);
