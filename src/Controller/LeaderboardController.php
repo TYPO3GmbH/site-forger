@@ -13,6 +13,7 @@ namespace App\Controller;
 
 use App\Enum\StreamFigureEnum;
 use App\Enum\StreamRangeEnum;
+use App\Enum\StreamSourceEnum;
 use App\People\UserDirectory;
 use App\Search\StreamWindow;
 use App\Stream\LeaderboardRow;
@@ -43,7 +44,8 @@ class LeaderboardController extends AbstractController
 
     /**
      * The window is a range like "30d", or the days from "from" to "to" (YYYY-MM-DD), both included. Without a
-     * valid one it is the last 7 days, as on the page of the statistics.
+     * valid one it is the last 7 days, as on the page of the statistics. "source" "forge" or "gerrit" counts only
+     * the events of the source, without it all of them.
      */
     #[Route(path: '/management/leaderboard', name: 'management_leaderboard', methods: ['GET'])]
     public function index(Request $request): Response
@@ -54,8 +56,10 @@ class LeaderboardController extends AbstractController
             ? StreamRangeEnum::tryFrom($request->query->getString('range')) ?? StreamRangeEnum::WEEK
             : null;
         $window ??= StreamWindow::ofRange($range ?? StreamRangeEnum::WEEK, $now);
-        $sort = LeaderboardSort::fromValue($request->query->getString('sort'));
-        $rows = $this->statistics->leaderboard($window, $sort);
+        $source = StreamSourceEnum::tryFrom($request->query->getString('source'));
+        $sort = LeaderboardSort::fromValue($request->query->getString('sort'))->forSource($source);
+        $rows = $this->statistics->leaderboard($window, $sort, $source);
+        $sourceParameters = null === $source ? [] : ['source' => $source->value];
 
         return $this->render('management/leaderboard.html.twig', [
             'rows' => $rows,
@@ -63,11 +67,16 @@ class LeaderboardController extends AbstractController
             'range' => $range,
             'ranges' => StreamRangeEnum::cases(),
             'window' => $window,
-            'windowParameters' => null === $range
+            'windowParameters' => $sourceParameters + (null === $range
                 ? ['from' => $window->from->format('Y-m-d'), 'to' => $window->last()->format('Y-m-d')]
-                : ['range' => $range->value],
+                : ['range' => $range->value]),
+            'source' => $source,
+            'sources' => StreamSourceEnum::cases(),
             'sort' => $sort->value(),
-            'figures' => StreamFigureEnum::cases(),
+            'figures' => array_values(array_filter(
+                StreamFigureEnum::cases(),
+                static fn (StreamFigureEnum $figure): bool => null === $source || $figure->source() === $source,
+            )),
         ]);
     }
 

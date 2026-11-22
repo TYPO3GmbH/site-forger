@@ -13,6 +13,7 @@ namespace App\Tests\Search;
 
 use App\Enum\StreamFigureEnum;
 use App\Enum\StreamRangeEnum;
+use App\Enum\StreamSourceEnum;
 use App\Search\LeaderboardQuery;
 use App\Search\StreamWindow;
 use PHPUnit\Framework\TestCase;
@@ -31,6 +32,17 @@ final class LeaderboardQueryTest extends TestCase
         foreach (StreamFigureEnum::cases() as $figure) {
             self::assertArrayHasKey($figure->value, $forge['aggs']);
         }
+    }
+
+    public function testASourceCountsOnlyItsEvents(): void
+    {
+        $filters = LeaderboardQuery::request(self::window(), StreamSourceEnum::GERRIT)['query']['bool']['filter'];
+
+        self::assertContains(['term' => ['source' => 'gerrit']], $filters);
+        self::assertNotContains(
+            ['term' => ['source' => 'gerrit']],
+            LeaderboardQuery::request(self::window())['query']['bool']['filter'],
+        );
     }
 
     public function testOnlyTheEventsWithoutAnAccountCountByName(): void

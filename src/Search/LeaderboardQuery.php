@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Search;
 
 use App\Enum\ReviewStatusEnum;
+use App\Enum\StreamSourceEnum;
 
 /**
  * The people with the most activity in a time window, for the leaderboard of the admins: all events, and the events
@@ -45,11 +46,11 @@ final class LeaderboardQuery
 
     /**
      * All events and the events of each figure in the window, per account on Forge, per account on Gerrit, and per
-     * name for the events without an account.
+     * name for the events without an account. With a source only its events count.
      *
      * @return array<string, mixed>
      */
-    public static function request(StreamWindow $window): array
+    public static function request(StreamWindow $window, ?StreamSourceEnum $source = null): array
     {
         $withoutAccount = ['bool' => ['must_not' => [
             ['exists' => ['field' => 'author.forge_id']],
@@ -59,7 +60,7 @@ final class LeaderboardQuery
         return [
             'size' => 0,
             'track_total_hits' => false,
-            'query' => StreamQuery::query(new StreamFilter(window: $window)),
+            'query' => StreamQuery::query(new StreamFilter(window: $window, source: $source)),
             'aggs' => [
                 self::FORGE => self::perPerson('author.forge_id'),
                 self::GERRIT => self::perPerson('author.gerrit_id'),

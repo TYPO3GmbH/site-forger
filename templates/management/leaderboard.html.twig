@@ -6,12 +6,14 @@
  # its figure, a name opens the activity of the person. The arrow says how the person moved since the window before.
  # "Lines" are those of the changes of the person merged in the window, of the review index: added, removed, and
  # changed, the two together. They do not make up for each other: 100 added and 100 removed are 200 changed.
- # The window is a range or days picked. A person is the TYPO3 account: its accounts on Forge and Gerrit count
- # together, see App\Stream\Leaderboards.
+ # The window is a range or days picked. "all" has no arrows: no window comes before it. A source counts only its
+ # events and shows only its figures. The lines are those of the changes, so only Gerrit shows them. A person is the
+ # TYPO3 account: its accounts on Forge and Gerrit count together, see App\Stream\Leaderboards.
  # No orange band: the title stands on the gray of the page, below the breadcrumb.
  # Expects: rows (list of App\Stream\LeaderboardRow), people (key, name, username and avatar per row), range (null
- #          for days picked), ranges, window, windowParameters, sort (the parameter "sort": the value of a figure,
- #          "added", "removed", "changed", null for all events, see App\Stream\LeaderboardSort), figures
+ #          for days picked), ranges, window, windowParameters (with the source), source (StreamSourceEnum or null
+ #          for all), sources, sort (the parameter "sort": the value of a figure, "added", "removed", "changed", null
+ #          for all events, see App\Stream\LeaderboardSort), figures (those of the source)
  #}
 
 {#
@@ -57,36 +59,55 @@
 {% block body %}
     {% import _self as board %}
     {% set sortParameters = sort is null ? {} : {'sort': sort} %}
+    {% set sourceParameters = source is null ? {} : {'source': source.value} %}
+    {% set timeParameters = windowParameters|filter((value, key) => key != 'source') %}
+    {% set showLines = source is null or source.value == 'gerrit' %}
+    {# All time has no window before to compare with #}
+    {% set compares = range is null or range.value != 'all' %}
     {% set first = window.from|date('M j, Y') %}
     {% set last = window.last|date('M j, Y') %}
     {% set channels = {
         'forge': {'label': 'Forge', 'figures': figures|filter(figure => figure.source.value == 'forge')},
         'gerrit': {'label': 'Gerrit', 'figures': figures|filter(figure => figure.source.value == 'gerrit')},
-    } %}
+    }|filter(channel => channel.figures is not empty) %}
     <div class="content-section content-section-small">
         <div class="container">
             <header class="page-intro">
                 <h1 class="page-intro-title">Leaderboard</h1>
                 <p class="page-intro-summary">
-                    The most activity from {{ first }} to {{ last }}, without the tools, counted as the statistics
-                    do. The lines added and removed are those of the changes merged. The arrows compare with the
-                    {{ window.wholeDays }} days before.
+                    The most activity {{ source ? 'on ' ~ source.label ~ ' ' }}from {{ first }} to {{ last }},
+                    without the tools, counted as the statistics do.
+                    {% if showLines %}The lines added and removed are those of the changes merged.{% endif %}
+                    {% if compares %}The arrows compare with the {{ window.wholeDays }} days before.{% endif %}
                 </p>
             </header>
 
             {# The time window of the statistics: a change loads the page, see assets/ts/activity/time-window.ts #}
             <div class="leaderboard-toolbar">
+                <nav class="stream-segmented" aria-label="Source">
+                    {% for item in [null]|merge(sources) %}
+                        {% set active = item == source %}
+                        {% set itemParameters = timeParameters
+                            |merge(item is null ? {} : {'source': item.value})
+                            |merge(sortParameters) %}
+                        <a class="stream-segment{{ active ? ' is-active' }}"
+                           href="{{ path('management_leaderboard', itemParameters) }}"
+                           {%- if active %} aria-current="true"{% endif %}>
+                            {{- item ? item.label : 'All' -}}
+                        </a>
+                    {% endfor %}
+                </nav>
                 <forger-time-window
                     page-url="{{ path('management_leaderboard') }}"
                     range="{{ range.value ?? '' }}"
                     from="{{ window.from|date('Y-m-d') }}"
                     to="{{ window.last|date('Y-m-d') }}"
-                    keep="{{ sortParameters|url_encode }}"
+                    keep="{{ sourceParameters|merge(sortParameters)|url_encode }}"
                 >
                     <noscript>
                         {% for item in ranges %}
-                            <a href="{{ path('management_leaderboard', {'range': item.value}|merge(sortParameters)) }}"
-                            >{{ item.label }}</a>
+                            {% set parameters = {'range': item.value}|merge(sourceParameters)|merge(sortParameters) %}
+                            <a href="{{ path('management_leaderboard', parameters) }}">{{ item.label }}</a>
                         {% endfor %}
                     </noscript>
                 </forger-time-window>
@@ -117,7 +138,9 @@
                                     <th scope="colgroup" colspan="{{ channel.figures|length }}"
                                         class="leaderboard-channel is-{{ key }}">{{ channel.label }}</th>
                                 {% endfor %}
-                                <th scope="colgroup" colspan="3" class="leaderboard-channel is-lines">Lines</th>
+                                {% if showLines %}
+                                    <th scope="colgroup" colspan="3" class="leaderboard-channel is-lines">Lines</th>
+                                {% endif %}
                             </tr>
                             <tr>
                                 {% for key, channel in channels %}
@@ -132,28 +155,30 @@
                                         ) }}
                                     {% endfor %}
                                 {% endfor %}
-                                {{ board.sortHeading(
-                                    'Added',
-                                    'Lines added by the changes merged',
-                                    'added',
-                                    sort,
-                                    windowParameters,
-                                    ' data-first',
-                                ) }}
-                                {{ board.sortHeading(
-                                    'Removed',
-                                    'Lines removed by the changes merged',
-                                    'removed',
-                                    sort,
-                                    windowParameters,
-                                ) }}
-                                {{ board.sortHeading(
-                                    'Changed',
-                                    'Lines added and removed by the changes merged, together',
-                                    'changed',
-                                    sort,
-                                    windowParameters,
-                                ) }}
+                                {% if showLines %}
+                                    {{ board.sortHeading(
+                                        'Added',
+                                        'Lines added by the changes merged',
+                                        'added',
+                                        sort,
+                                        windowParameters,
+                                        ' data-first',
+                                    ) }}
+                                    {{ board.sortHeading(
+                                        'Removed',
+                                        'Lines removed by the changes merged',
+                                        'removed',
+                                        sort,
+                                        windowParameters,
+                                    ) }}
+                                    {{ board.sortHeading(
+                                        'Changed',
+                                        'Lines added and removed by the changes merged, together',
+                                        'changed',
+                                        sort,
+                                        windowParameters,
+                                    ) }}
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -162,7 +187,7 @@
                                 <tr>
                                     <td class="is-count leaderboard-rank">
                                         <span class="leaderboard-place">{{ row.rank }}</span>
-                                        {{- board.moved(row) -}}
+                                        {% if compares %}{{- board.moved(row) -}}{% endif %}
                                     </td>
                                     <th scope="row">
                                         <a class="leaderboard-person"
@@ -189,16 +214,18 @@
                                             </td>
                                         {% endfor %}
                                     {% endfor %}
-                                    <td class="is-count leaderboard-added{{ sort == 'added' ? ' is-sorted' }}"
-                                        data-first>
-                                        {{- board.count(row.insertions) -}}
-                                    </td>
-                                    <td class="is-count leaderboard-removed{{ sort == 'removed' ? ' is-sorted' }}">
-                                        {{- board.count(row.deletions) -}}
-                                    </td>
-                                    <td class="is-count{{ sort == 'changed' ? ' is-sorted' }}">
-                                        {{- board.count(row.linesChanged) -}}
-                                    </td>
+                                    {% if showLines %}
+                                        <td class="is-count leaderboard-added{{ sort == 'added' ? ' is-sorted' }}"
+                                            data-first>
+                                            {{- board.count(row.insertions) -}}
+                                        </td>
+                                        <td class="is-count leaderboard-removed{{ sort == 'removed' ? ' is-sorted' }}">
+                                            {{- board.count(row.deletions) -}}
+                                        </td>
+                                        <td class="is-count{{ sort == 'changed' ? ' is-sorted' }}">
+                                            {{- board.count(row.linesChanged) -}}
+                                        </td>
+                                    {% endif %}
                                 </tr>
                             {% endfor %}
                         </tbody>

@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Stream;
 
 use App\Enum\StreamFigureEnum;
+use App\Enum\StreamSourceEnum;
 
 /**
  * What the leaderboard sorts by: all events, a key figure of the statistics, or the lines added, removed or
@@ -45,6 +46,21 @@ final readonly class LeaderboardSort
             self::CHANGED => new self(null, self::CHANGED),
             default => new self(StreamFigureEnum::tryFrom($value), null),
         };
+    }
+
+    /**
+     * The sort for the events of the source: all events for a figure of the other source, and for the lines with
+     * Forge. The lines are those of the changes on Gerrit.
+     */
+    public function forSource(?StreamSourceEnum $source): self
+    {
+        $fits = match (true) {
+            null === $source => true,
+            null !== $this->lines => StreamSourceEnum::GERRIT === $source,
+            default => null === $this->figure || $this->figure->source() === $source,
+        };
+
+        return $fits ? $this : new self(null, null);
     }
 
     /**
