@@ -45,6 +45,15 @@ final readonly class UserTwigExtension
     }
 
     /**
+     * The person as every page shows it, see UserDirectory::shown().
+     */
+    #[AsTwigFunction(name: 'user_shown')]
+    public function shown(?Person $person): ?Person
+    {
+        return $this->users->shown($person);
+    }
+
+    /**
      * The person of a value of a filter of people, see PeopleFacet, null for a filter of no people.
      */
     #[AsTwigFunction(name: 'facet_person')]

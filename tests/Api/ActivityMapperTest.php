@@ -23,19 +23,24 @@ final class ActivityMapperTest extends TestCase
     {
         $users = $this->createStub(UserDirectory::class);
         $users->method('keyOfPerson')->willReturn('jdoe');
-        $users->method('personOf')->willReturn(new Person('Jane Doe', forgeId: 7, gerritId: 9, username: 'jdoe'));
+        $users->method('shown')->willReturn(new Person('Jane Doe', forgeId: 7, gerritId: 9, username: 'jdoe'));
         $mapper = new ActivityMapper($this->createStub(UrlGeneratorInterface::class), $users);
 
-        // The event knows the account on Gerrit only, the index joined it with the one on Forge
-        $person = $mapper->person(new Person('Jane Doe', gerritId: 9));
+        // The event knows the account on Forge only, by a short name, the index joined it with the one on Gerrit
+        $person = $mapper->person(new Person('J. D.', forgeId: 7));
 
-        self::assertSame('jdoe', $person?->username);
+        self::assertSame(['Jane Doe', 'jdoe', 'jdoe', 9], [
+            $person?->name,
+            $person?->username,
+            $person?->key,
+            $person?->gerritId,
+        ]);
     }
 
     public function testWithoutAnAccountThePersonKeepsTheUsernameOfTheEvent(): void
     {
         $users = $this->createStub(UserDirectory::class);
-        $users->method('personOf')->willReturn(null);
+        $users->method('shown')->willReturnArgument(0);
         $mapper = new ActivityMapper($this->createStub(UrlGeneratorInterface::class), $users);
 
         self::assertSame('jroe', $mapper->person(new Person('John Roe', username: 'jroe'))?->username);

@@ -18,7 +18,10 @@ use App\Elastic\IndexSetup;
 use App\Http\ApiRequests;
 use App\Import\ForgeUserSync;
 use App\Import\GerritAccountLookup;
+use App\Import\GerritAccountRepair;
+use App\Import\GerritNames;
 use App\Import\ImportRun;
+use App\Import\UserForms;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -34,6 +37,9 @@ final class ImportUsersCommand extends ImportJobCommand
     public function __construct(
         private readonly ForgeUserSync $userSync,
         private readonly GerritAccountLookup $gerritLookup,
+        private readonly GerritNames $gerritNames,
+        private readonly UserForms $userForms,
+        private readonly GerritAccountRepair $gerritRepair,
         IndexSetup $indexSetup,
         CommandRunRecorder $recorder,
         ApiRequests $apiRequests,
@@ -72,10 +78,25 @@ final class ImportUsersCommand extends ImportJobCommand
             return;
         }
 
+        $this->recorder->progress(UserForms::STEP);
+        $lifted = $this->userForms->lift();
+        $this->recorder->progress(UserForms::STEP, $lifted, $lifted);
+        $run->writeln(sprintf('Wrote %d users in the current form', $lifted));
+
+        $this->recorder->progress(GerritAccountRepair::STEP);
+        $repaired = $this->gerritRepair->repair();
+        $this->recorder->progress(GerritAccountRepair::STEP, $repaired, $repaired);
+        $run->writeln(sprintf('Took an account on Gerrit of another username from %d users', $repaired));
+
         $this->recorder->progress(self::STEP_TAKE_OVER);
         $taken = $this->userSync->takeOverFromIssues();
         $this->recorder->progress(self::STEP_TAKE_OVER, $taken, $taken);
         $run->writeln(sprintf('Took %d users over from the issues', $taken));
+
+        $this->recorder->progress(GerritNames::STEP);
+        $named = $this->gerritNames->fill();
+        $this->recorder->progress(GerritNames::STEP, $named, $named);
+        $run->writeln(sprintf('Took the name of Gerrit of %d users over from the activity', $named));
 
         $limit = max(0, (int) $input->getOption('limit'));
         $this->recorder->progress(ForgeUserSync::STEP, 0, null);

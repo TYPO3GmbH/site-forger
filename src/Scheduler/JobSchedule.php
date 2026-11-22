@@ -18,7 +18,10 @@ use App\Import\DuplicateImport;
 use App\Import\ForgeImport;
 use App\Import\ForgeUserSync;
 use App\Import\GerritAccountLookup;
+use App\Import\GerritAccountRepair;
 use App\Import\GerritImport;
+use App\Import\GerritNames;
+use App\Import\UserForms;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
@@ -95,7 +98,14 @@ final readonly class JobSchedule implements ScheduleProviderInterface
             'every' => '5 minutes',
             'command' => ['app:import:users'],
             'lock' => ImportUsersCommand::LOCK,
-            'steps' => [ImportUsersCommand::STEP_TAKE_OVER, ForgeUserSync::STEP, GerritAccountLookup::STEP],
+            'steps' => [
+                UserForms::STEP,
+                GerritAccountRepair::STEP,
+                ImportUsersCommand::STEP_TAKE_OVER,
+                GerritNames::STEP,
+                ForgeUserSync::STEP,
+                GerritAccountLookup::STEP,
+            ],
         ],
         'backfill' => [
             'label' => 'Lift stored documents and write the activity stream',

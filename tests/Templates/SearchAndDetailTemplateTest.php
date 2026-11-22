@@ -34,6 +34,7 @@ use App\People\FollowedPerson;
 use App\People\InterestSelection;
 use App\People\PersonActivity;
 use App\People\SuggestedPerson;
+use App\People\UserDirectory;
 use App\Report\Backport\BackportRow;
 use App\Report\Backport\BackportVersion;
 use App\Report\CategoryOverview;
@@ -58,6 +59,8 @@ use Twig\Environment;
  */
 final class SearchAndDetailTemplateTest extends KernelTestCase
 {
+    use KnowsNoPeople;
+
     private const array CHANGE = [
         'id' => 81234,
         'reviewstatus' => 'NEW',
@@ -97,6 +100,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::bootKernel();
         $this->twig = self::getContainer()->get('twig');
         self::assertTrue($this->twig->isStrictVariables());
+        self::knowNoPeople();
     }
 
     /**
@@ -1191,12 +1195,14 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         ];
         // The author is "benni" to the index "user", see UserDirectory::keyOf()
         $cache = self::getContainer()->get('cache.app');
-        $cache->delete('user_people');
-        $cache->get('user_people', static fn (): array => ['keys' => ['forge:1' => 'benni'], 'people' => ['benni' => ['name' => 'Benni Mack', 'username' => 'benni', 'forge' => 1, 'gerrit' => null]]]);
+        $cache->delete(UserDirectory::PEOPLE_CACHE_KEY);
+        $cache->get(UserDirectory::PEOPLE_CACHE_KEY, static fn (): array => ['keys' => ['forge:1' => 'benni'], 'people' => [
+            'benni' => ['name' => 'Benni Mack', 'names' => ['Benni Mack'], 'username' => 'benni', 'forge' => 1, 'gerrit' => null, 'linked' => ['forge' => [], 'gerrit' => []]],
+        ], 'aliases' => []]);
         try {
             $html = $this->twig->load('issue/show.html.twig')->renderBlock('body', ['issue' => Issue::fromDocument($issue), 'changes' => [], 'unknownChanges' => []]);
         } finally {
-            $cache->delete('user_people');
+            $cache->delete(UserDirectory::PEOPLE_CACHE_KEY);
         }
 
         // As the checkboxes of the search write the filters, a space as "_"; a person by the username

@@ -75,7 +75,9 @@ class StreamController extends AbstractController
             return new JsonResponse([]);
         }
         $people = [];
-        foreach (StreamPeople::found($this->stream->search($search)->aggregation(PeopleQuery::PEOPLE)) as $person) {
+        foreach (StreamPeople::found($this->stream->search($search)->aggregation(PeopleQuery::PEOPLE)) as $found) {
+            // As every page shows the person, see UserDirectory::shown()
+            $person = $this->users->shown($found) ?? $found;
             $key = $this->keyOf($person);
             if (null !== $key) {
                 $people[$key] ??= [

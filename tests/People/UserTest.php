@@ -30,12 +30,12 @@ final class UserTest extends TestCase
 
         self::assertSame('nikitah', $user->username);
         self::assertSame('nikitah', $user->id());
-        self::assertSame('Nikita Hovratov', $user->name);
+        self::assertSame('Nikita Hovratov', $user->forgeName);
         self::assertSame([], $user->emails);
         // Gravatar finds the avatar by the email only: the pages show its placeholder
         self::assertNull($user->avatar());
         self::assertSame('https://www.gravatar.com/avatar/' . self::SHA256 . '?s=40&d=mp&r=g', User::avatarUrl(self::SHA256, 40));
-        self::assertSame('2026/11/20 18:00:00', $user->toDocument()['fetched_on']);
+        self::assertSame('2026/11/20 18:00:00', $user->toDocument()['forge']['fetched_on']);
     }
 
     public function testFromIssueHasNoUsernameAndTheAvatarOfTheEmail(): void
@@ -85,7 +85,7 @@ final class UserTest extends TestCase
 
         $merged = $forge->mergedWith($gerrit);
 
-        self::assertSame(['benni', 320, 7059, 'Benni Mack', ['benni@forge.example', 'benni@gerrit.example'], md5('benni@forge.example')], [$merged->id(), $merged->forgeId, $merged->gerritId, $merged->name, $merged->emails, $merged->avatar()]);
+        self::assertSame(['benni', 320, 7059, 'Benni Mack', ['benni@forge.example', 'benni@gerrit.example'], md5('benni@forge.example')], [$merged->id(), $merged->forgeId, $merged->gerritId, $merged->forgeName, $merged->emails, $merged->avatar()]);
         self::assertSame($forge->fetchedOn, $merged->fetchedOn);
         // The document merged into another keeps its own address first, which gives the avatar
         self::assertSame(md5('benni@gerrit.example'), $gerrit->mergedWith($forge)->avatar());
@@ -125,7 +125,10 @@ final class UserTest extends TestCase
         // The avatar the pages showed stays
         self::assertSame(md5('benni@example.org'), $loggedIn->avatar());
         self::assertSame($now, $loggedIn->typo3LoginOn);
-        self::assertSame('2026/11/20 18:00:00', $loggedIn->toDocument()['typo3_login_on']);
+        self::assertSame(
+            ['username' => 'benni', 'login_on' => '2026/11/20 18:00:00'],
+            $loggedIn->toDocument()['account'],
+        );
         // Without an address of its own the one of my.typo3.org gives the avatar
         self::assertSame(md5('benni@typo3.example'), (new User(1, 'Benni Mack'))->loggedIn('benni', 'benni@typo3.example', $now)->avatar());
 
@@ -136,5 +139,88 @@ final class UserTest extends TestCase
         self::assertSame($later, $loggedIn->mergedWith($loggedIn->loggedIn('benni', 'benni@typo3.example', $later))->typo3LoginOn);
         self::assertSame($later, $loggedIn->loggedIn('benni', 'benni@typo3.example', $later)->mergedWith($loggedIn)->typo3LoginOn);
         self::assertSame($now, (new User(null, 'Benni', 'benni', 7))->mergedWith($loggedIn)->typo3LoginOn);
+    }
+
+    public function testEachSourceKeepsItsNameAndTheLoginWins(): void
+    {
+        $now = new \DateTimeImmutable('2026-11-22 10:00:00');
+        $fromForge = new User(2793, 'Ge Rie', 'georg.r', fetchedOn: $now);
+        $fromGerrit = User::fromGerrit(['_account_id' => 7342, 'name' => 'Georg Ringer', 'username' => 'georg.r']);
+        self::assertNotNull($fromGerrit);
+
+        $joined = $fromForge->mergedWith($fromGerrit);
+        self::assertSame('Georg Ringer', $joined->displayName());
+        self::assertSame('Ge Rie', $joined->forgeName);
+
+        // Forge tells its name again: the name of Gerrit stays the one shown
+        $updated = $joined->updatedBy(new User(2793, 'Ge Rie', 'georg.r', fetchedOn: $now));
+        self::assertSame('Georg Ringer', $updated->displayName());
+
+        // The name the TYPO3 account sends at a login wins, and a login without a name keeps it
+        $loggedIn = $updated->loggedIn('georg.r', 'georg@typo3.example', $now, 'Georg Ringer (TYPO3)');
+        self::assertSame('Georg Ringer (TYPO3)', $loggedIn->displayName());
+        $again = $loggedIn->loggedIn('georg.r', 'georg@typo3.example', $now);
+        self::assertSame('Georg Ringer (TYPO3)', $again->displayName());
+        self::assertEquals($loggedIn, User::fromDocument($loggedIn->toDocument()));
+    }
+
+    public function testWithoutANameOfGerritItShowsTheOneOfForge(): void
+    {
+        self::assertSame('Benni Mack', (new User(1, 'Benni Mack'))->withGerritName('')->displayName());
+    }
+
+    public function testTheDocumentKeepsEachSourceApart(): void
+    {
+        $now = new \DateTimeImmutable('2026-11-20 18:00:00', new \DateTimeZone('UTC'));
+        $user = (new User(2793, 'Ge Rie', 'georg.r', 7342, ['georg@example.org'], $now, gerritName: 'Georg Ringer'))
+            ->loggedIn('georg.r', 'georg@example.org', $now, 'Georg Ringer');
+
+        self::assertSame([
+            'schema' => User::SCHEMA,
+            'name' => 'Georg Ringer',
+            'email' => ['georg@example.org'],
+            'forge' => ['id' => 2793, 'name' => 'Ge Rie', 'fetched_on' => '2026/11/20 18:00:00'],
+            'gerrit' => ['id' => 7342, 'name' => 'Georg Ringer'],
+            'account' => ['username' => 'georg.r', 'name' => 'Georg Ringer', 'login_on' => '2026/11/20 18:00:00'],
+        ], $user->toDocument());
+        self::assertEquals($user, User::fromDocument($user->toDocument()));
+    }
+
+    public function testADocumentOfTheFirstFormReadsIntoTheParts(): void
+    {
+        $forgeAndGerrit = User::fromDocument([
+            'username' => 'georg.r',
+            'forge_id' => 2793,
+            'gerrit_id' => 7342,
+            'name' => 'Ge Rie',
+            'gerrit_name' => 'Georg Ringer',
+            'email' => ['georg@example.org'],
+            'fetched_on' => '2026/11/20 18:00:00',
+            'gone' => false,
+        ]);
+        // A person of Gerrit only had the name of Gerrit as its name
+        $gerritOnly = User::fromDocument(['username' => 'jdoe', 'gerrit_id' => 9, 'name' => 'Jane Doe']);
+
+        self::assertSame(['Ge Rie', 'Georg Ringer', 'georg.r'], [
+            $forgeAndGerrit->forgeName,
+            $forgeAndGerrit->gerritName,
+            $forgeAndGerrit->username,
+        ]);
+        self::assertSame(['', 'Jane Doe'], [$gerritOnly->forgeName, $gerritOnly->gerritName]);
+        self::assertNull($gerritOnly->toDocument()['forge']);
+    }
+
+    public function testGerritFindsAnAccountOfTheSameUsernameOnly(): void
+    {
+        $now = new \DateTimeImmutable('2026-11-22 10:00:00');
+        $user = new User(2793, 'Ge Rie', 'georg.r', fetchedOn: $now);
+        // Gerrit answers "/accounts/georg.r" with the account of another username, found by its email
+        $other = User::fromGerrit(['_account_id' => 7342, 'name' => 'Georg Ringer', 'username' => 'just2b']);
+        $own = User::fromGerrit(['_account_id' => 9, 'name' => 'Georg R.', 'username' => 'Georg.R']);
+
+        $notOwn = $user->lookedUpInGerrit($now, $other);
+        self::assertNull($notOwn->gerritId);
+        self::assertSame($now, $notOwn->gerritLookedUpOn);
+        self::assertSame(9, $user->lookedUpInGerrit($now, $own)->gerritId);
     }
 }

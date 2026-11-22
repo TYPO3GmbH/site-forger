@@ -144,7 +144,7 @@ final readonly class ForgeLogin
                 'Forge hides the user #%d (%s) from the account (404), but it showed the user on %s.'
                 . ' The role of the account in the project must see all active users.',
                 $user->forgeId,
-                $user->name,
+                $user->forgeName,
                 $user->fetchedOn?->format('Y-m-d') ?? 'an earlier run',
             );
         }

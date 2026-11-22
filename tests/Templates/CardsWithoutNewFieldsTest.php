@@ -22,6 +22,8 @@ use Twig\Environment;
  */
 final class CardsWithoutNewFieldsTest extends KernelTestCase
 {
+    use KnowsNoPeople;
+
     /**
      * A change as the import stored it before "ownerEmail" and the tag "!!!".
      */
@@ -76,6 +78,7 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         self::assertTrue($this->twig->isStrictVariables());
         // The avatars of the issues come from the index "user", here from its cache
         $this->avatars([]);
+        self::knowNoPeople();
     }
 
     protected function tearDown(): void

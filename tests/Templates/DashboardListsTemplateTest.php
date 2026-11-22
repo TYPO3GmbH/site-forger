@@ -22,6 +22,8 @@ use Twig\Environment;
  */
 final class DashboardListsTemplateTest extends KernelTestCase
 {
+    use KnowsNoPeople;
+
     /**
      * An issue without the optional fields: no category, nobody assigned.
      */
@@ -53,6 +55,7 @@ final class DashboardListsTemplateTest extends KernelTestCase
         self::bootKernel();
         $this->twig = self::getContainer()->get('twig');
         self::assertTrue($this->twig->isStrictVariables());
+        self::knowNoPeople();
     }
 
     public function testNewIssues(): void

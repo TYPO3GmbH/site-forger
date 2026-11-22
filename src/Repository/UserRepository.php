@@ -94,8 +94,8 @@ class UserRepository
         }
         $results = $this->indices->users()->search([
             'query' => ['bool' => [
-                'filter' => [['prefix' => ['username' => $term]]],
-                'must_not' => [['term' => ['gone' => true]]],
+                'filter' => [['prefix' => ['account.username' => $term]]],
+                'must_not' => [['term' => ['forge.gone' => true]]],
             ]],
             'size' => $size,
         ])->getResults();
@@ -104,6 +104,69 @@ class UserRepository
             static fn (Result $result): User => User::fromDocument($result->getSource()),
             $results,
         ));
+    }
+
+    /**
+     * The document of a key: "forge:<number>" and "gerrit:<number>" by the account, else by the id. Null when the
+     * index has none.
+     */
+    public function byKey(string $key): ?User
+    {
+        $key = mb_strtolower(trim($key));
+        if (1 !== preg_match('/^(forge|gerrit):(\d{1,9})$/', $key, $matches)) {
+            return '' === $key ? null : ($this->byIds([$key])[$key] ?? null);
+        }
+        $hit = $this->indices->users()->search([
+            'size' => 1,
+            'query' => ['term' => [$matches[1] . '.id' => (int) $matches[2]]],
+        ])->getResults()[0] ?? null;
+
+        return null === $hit ? null : User::fromDocument($hit->getSource());
+    }
+
+    /**
+     * The people whose TYPO3 username starts with the prefix, like "old_", also those Forge does not know.
+     *
+     * @return list<User>
+     */
+    public function withUsernamePrefix(string $prefix, int $size): array
+    {
+        $results = $this->indices->users()->search([
+            'query' => ['prefix' => ['account.username' => mb_strtolower($prefix)]],
+            'size' => $size,
+        ])->getResults();
+
+        return array_values(array_map(
+            static fn (Result $result): User => User::fromDocument($result->getSource()),
+            $results,
+        ));
+    }
+
+    /**
+     * The people whose name another document has, too, by the name: one person in several documents, or several
+     * people of one name. A name has at most five here.
+     *
+     * @return array<string, list<User>>
+     */
+    public function sharingNames(int $size): array
+    {
+        $result = $this->indices->users()->search([
+            'size' => 0,
+            'aggs' => ['names' => [
+                'terms' => ['field' => 'name', 'min_doc_count' => 2, 'size' => $size],
+                'aggs' => ['documents' => ['top_hits' => ['size' => 5]]],
+            ]],
+        ]);
+        $names = [];
+        foreach ((array) ($result->getAggregations()['names']['buckets'] ?? []) as $bucket) {
+            $hits = (array) ($bucket['documents']['hits']['hits'] ?? []);
+            $names[(string) $bucket['key']] = array_values(array_map(
+                static fn (array $hit): User => User::fromDocument((array) $hit['_source']),
+                $hits,
+            ));
+        }
+
+        return $names;
     }
 
     /**
@@ -149,12 +212,13 @@ class UserRepository
 
     /**
      * Notes a login with the TYPO3 account, see Typo3LoginSubscriber.
-     * The person gets the email of my.typo3.org, the time, and the username as the id of its document. Writes
-     * nothing for a person the index does not know: the index holds the people of Forge and Gerrit only.
+     * The person gets the email of my.typo3.org, the time, the name of the account, which the pages show from then
+     * on, and the username as the id of its document. Writes nothing for a person the index does not know: the
+     * index holds the people of Forge and Gerrit only.
      *
      * @return User|null the person written
      */
-    public function recordLogin(string $username, string $email, \DateTimeImmutable $now): ?User
+    public function recordLogin(string $username, string $email, \DateTimeImmutable $now, string $name = ''): ?User
     {
         $username = mb_strtolower(trim($username));
         $email = mb_strtolower(trim($email));
@@ -162,7 +226,7 @@ class UserRepository
         if (null === $user) {
             return null;
         }
-        $loggedIn = $user->loggedIn($username, $email, $now);
+        $loggedIn = $user->loggedIn($username, $email, $now, $name);
         $this->write([$loggedIn], [$user->id()]);
 
         return $loggedIn;
@@ -202,7 +266,7 @@ class UserRepository
         $missing = [];
         foreach ($users as $user) {
             if (null !== $user->forgeId && !isset($known['forge:' . $user->forgeId])) {
-                $missing[$user->forgeId] = new User($user->forgeId, $user->name);
+                $missing[$user->forgeId] = new User($user->forgeId, $user->forgeName);
             }
         }
         $this->write(array_values($missing));
@@ -247,11 +311,75 @@ class UserRepository
     public function all(): array
     {
         $users = [];
-        foreach (self::documents($this->indices->users(), ['exists' => ['field' => 'forge_id']]) as $user) {
+        foreach (self::documents($this->indices->users(), ['exists' => ['field' => 'forge.id']]) as $user) {
             $users[(int) $user->forgeId] = $user;
         }
 
         return $users;
+    }
+
+    /**
+     * The users with an account on Gerrit whose name of Gerrit was not looked for, see App\Import\GerritNames.
+     *
+     * @return list<User>
+     */
+    public function withoutGerritName(int $size): array
+    {
+        $result = $this->indices->users()->search([
+            'size' => $size,
+            'query' => ['bool' => [
+                'filter' => [['exists' => ['field' => 'gerrit.id']]],
+                'must_not' => [['exists' => ['field' => 'gerrit.name']]],
+            ]],
+        ]);
+
+        return array_values(array_map(
+            static fn (Result $hit): User => User::fromDocument($hit->getSource()),
+            $result->getResults(),
+        ));
+    }
+
+    /**
+     * The users that have an account on Gerrit another user has, too, see App\Import\GerritAccountRepair.
+     *
+     * @return list<User>
+     */
+    public function sharingGerrit(): array
+    {
+        $result = $this->indices->users()->search([
+            'size' => 0,
+            'aggs' => ['shared' => ['terms' => ['field' => 'gerrit.id', 'min_doc_count' => 2, 'size' => 1000]]],
+        ]);
+        $shared = array_map(
+            static fn (Bucket $bucket): int => (int) $bucket->key,
+            Bucket::listOf($result->getAggregations()['shared'] ?? null)->getValues(),
+        );
+        if ([] === $shared) {
+            return [];
+        }
+
+        return iterator_to_array(
+            self::documents($this->indices->users(), ['terms' => ['gerrit.id' => $shared]]),
+            false,
+        );
+    }
+
+    /**
+     * The users whose document has an older form than User::SCHEMA, see App\Import\UserForms.
+     *
+     * @return list<User>
+     */
+    public function inOlderForm(int $size): array
+    {
+        $result = $this->indices->users()->search([
+            'size' => $size,
+            'query' => ['bool' => ['must_not' => [['term' => ['schema' => User::SCHEMA]]]]],
+        ]);
+
+        return array_values(array_map(
+            static fn (Result $hit): User => User::fromDocument($hit->getSource()),
+            $result->getResults(),
+        ));
     }
 
     /**
@@ -263,10 +391,10 @@ class UserRepository
         $result = $this->indices->users()->search([
             'size' => 1,
             'query' => ['bool' => [
-                'filter' => [['exists' => ['field' => 'forge_id']], ['exists' => ['field' => 'fetched_on']]],
-                'must_not' => [['term' => ['gone' => true]]],
+                'filter' => [['exists' => ['field' => 'forge.id']], ['exists' => ['field' => 'forge.fetched_on']]],
+                'must_not' => [['term' => ['forge.gone' => true]]],
             ]],
-            'sort' => [['fetched_on' => 'desc']],
+            'sort' => [['forge.fetched_on' => 'desc']],
         ]);
         $hit = $result->getResults()[0] ?? null;
 
@@ -285,13 +413,13 @@ class UserRepository
             // The most Elasticsearch returns at once, many more than the index has people without an email
             'size' => 10000,
             'query' => ['bool' => [
-                'filter' => [['exists' => ['field' => 'forge_id']], ['exists' => ['field' => 'fetched_on']]],
+                'filter' => [['exists' => ['field' => 'forge.id']], ['exists' => ['field' => 'forge.fetched_on']]],
                 'must_not' => [['exists' => ['field' => 'email']]],
             ]],
             'sort' => [
-                ['gone' => 'desc'],
-                ['gone_status' => ['order' => 'asc', 'missing' => '_first']],
-                ['name' => 'asc'],
+                ['forge.gone' => ['order' => 'desc', 'missing' => '_last']],
+                ['forge.gone_status' => ['order' => 'asc', 'missing' => '_first']],
+                ['forge.name' => ['order' => 'asc', 'missing' => '_last']],
             ],
         ]);
 
@@ -307,28 +435,28 @@ class UserRepository
      */
     public function statistics(): UserStatistics
     {
-        $notAsked = ['bool' => ['must_not' => [['exists' => ['field' => 'fetched_on']]]]];
-        $gone = ['term' => ['gone' => true]];
+        $notAsked = ['bool' => ['must_not' => [['exists' => ['field' => 'forge.fetched_on']]]]];
+        $gone = ['term' => ['forge.gone' => true]];
         $result = $this->indices->users()->search([
             'size' => 0,
             'track_total_hits' => true,
-            'query' => ['exists' => ['field' => 'forge_id']],
+            'query' => ['exists' => ['field' => 'forge.id']],
             'aggs' => [
-                'withLogin' => ['filter' => ['exists' => ['field' => 'username']]],
+                'withLogin' => ['filter' => ['exists' => ['field' => 'account.username']]],
                 'withEmail' => ['filter' => ['exists' => ['field' => 'email']]],
                 'notAskedYet' => ['filter' => $notAsked],
                 'unknownToForge' => ['filter' => ['bool' => [
                     'filter' => [$gone],
-                    'must_not' => [['exists' => ['field' => 'username']]],
+                    'must_not' => [['exists' => ['field' => 'account.username']]],
                 ]], 'aggs' => [
-                    'status' => ['terms' => ['field' => 'gone_status', 'missing' => 0, 'size' => 10]],
+                    'status' => ['terms' => ['field' => 'forge.gone_status', 'missing' => 0, 'size' => 10]],
                 ]],
                 'withoutEmail' => ['filter' => ['bool' => [
-                    'filter' => [['exists' => ['field' => 'fetched_on']]],
+                    'filter' => [['exists' => ['field' => 'forge.fetched_on']]],
                     'must_not' => [$gone, ['exists' => ['field' => 'email']]],
                 ]]],
                 'gone' => ['filter' => $gone],
-                'lastFetched' => ['max' => ['field' => 'fetched_on']],
+                'lastFetched' => ['max' => ['field' => 'forge.fetched_on']],
             ],
         ]);
         $aggregations = $result->getAggregations();

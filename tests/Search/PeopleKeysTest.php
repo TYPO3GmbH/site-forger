@@ -32,17 +32,18 @@ final class PeopleKeysTest extends TestCase
     protected function setUp(): void
     {
         $cache = new ArrayAdapter();
-        $cache->get('user_people', static fn (): array => [
+        $cache->get(UserDirectory::PEOPLE_CACHE_KEY, static fn (): array => [
             'keys' => ['forge:320' => 'benni', 'gerrit:7059' => 'benni', 'forge:41' => 'forge:41', 'gerrit:9' => 'gerrit:9', 'forge:5' => 'alex_schnitzler', 'gerrit:21249' => 'benjaminkott', 'forge:38237' => 'forge:38237'],
             'people' => [
-                'benni' => ['name' => 'Benni Mack', 'username' => 'benni', 'forge' => 320, 'gerrit' => 7059],
-                'forge:41' => ['name' => 'Not asked for yet', 'username' => null, 'forge' => 41, 'gerrit' => null],
-                'gerrit:9' => ['name' => 'Without username', 'username' => null, 'forge' => null, 'gerrit' => 9],
-                'alex_schnitzler' => ['name' => 'Alexander Schnitzler', 'username' => 'alex_schnitzler', 'forge' => 5, 'gerrit' => null],
+                'benni' => ['name' => 'Benni Mack', 'names' => ['Benni Mack'], 'username' => 'benni', 'forge' => 320, 'gerrit' => 7059, 'linked' => ['forge' => [], 'gerrit' => []]],
+                'forge:41' => ['name' => 'Not asked for yet', 'names' => ['Not asked for yet'], 'username' => null, 'forge' => 41, 'gerrit' => null, 'linked' => ['forge' => [], 'gerrit' => []]],
+                'gerrit:9' => ['name' => 'Without username', 'names' => ['Without username'], 'username' => null, 'forge' => null, 'gerrit' => 9, 'linked' => ['forge' => [], 'gerrit' => []]],
+                'alex_schnitzler' => ['name' => 'Alexander Schnitzler', 'names' => ['Alexander Schnitzler'], 'username' => 'alex_schnitzler', 'forge' => 5, 'gerrit' => null, 'linked' => ['forge' => [], 'gerrit' => []]],
                 // One person in two documents, until Forge is asked for the one of the issues
-                'benjaminkott' => ['name' => 'Benjamin Kott', 'username' => 'benjaminkott', 'forge' => null, 'gerrit' => 21249],
-                'forge:38237' => ['name' => 'Benjamin Kott', 'username' => null, 'forge' => 38237, 'gerrit' => null],
+                'benjaminkott' => ['name' => 'Benjamin Kott', 'names' => ['Benjamin Kott'], 'username' => 'benjaminkott', 'forge' => null, 'gerrit' => 21249, 'linked' => ['forge' => [], 'gerrit' => []]],
+                'forge:38237' => ['name' => 'Benjamin Kott', 'names' => ['Benjamin Kott'], 'username' => null, 'forge' => 38237, 'gerrit' => null, 'linked' => ['forge' => [], 'gerrit' => []]],
             ],
+            'aliases' => [],
         ]);
         $this->users = new UserDirectory(new Indices(new Client()), $cache, new NullLogger());
     }

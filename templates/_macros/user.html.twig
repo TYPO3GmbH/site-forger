@@ -1,6 +1,7 @@
 {#
  # People, of Forge and of Gerrit alike: avatar and name, everywhere the same.
  # A user is a Person: an issue's author or assignedTo, a change's ownerPerson. Nothing without a person or a name.
+ # The name is the one of the TYPO3 account, as everywhere, see App\People\UserDirectory::shown().
  #}
 
 {#
@@ -12,6 +13,7 @@
  # On hover the name, with the role before it: the whole name also where the row cuts it.
  #}
 {% macro inline(user, size = 40, large = false, url = null, title = null, role = null) -%}
+    {%- set user = user_shown(user) -%}
     {%- if (user.name ?? '') is not empty -%}
     <span class="user{{ large ? ' user-large' }}" title="{{ role ? role ~ ': ' }}{{ user.name }}">
         {#- -#}<span class="user-avatar" aria-hidden="true">{{ user_avatar(user, size) }}</span>
@@ -23,6 +25,7 @@
 
 {# In the facts of a card, the label above the name; url and title as for inline() #}
 {% macro meta(user, label, class, url = null, title = null) %}
+    {% set user = user_shown(user) %}
     {% if (user.name ?? '') is not empty %}
         <div class="issue-meta-item {{ class }}">
             <span class="issue-meta-item-avatar">{{ user_avatar(user) }}</span>

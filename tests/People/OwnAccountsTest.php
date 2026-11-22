@@ -65,8 +65,8 @@ final class OwnAccountsTest extends TestCase
         });
         $accounts = $this->createStub(UserRepository::class);
         $accounts->method('accountsOf')->willReturn([
-            new User(forgeId: 7, name: 'Jane Doe'),
-            new User(forgeId: null, name: 'J. Doe', gerritId: 9),
+            new User(forgeId: 7, forgeName: 'Jane Doe'),
+            new User(forgeId: null, forgeName: '', gerritId: 9, gerritName: 'J. Doe'),
         ]);
 
         return new OwnAccounts($users, $accounts);

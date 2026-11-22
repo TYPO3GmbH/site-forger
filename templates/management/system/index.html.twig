@@ -370,7 +370,7 @@
                                                         </tr>
                                                         {% for user in group.users %}
                                                             <tr>
-                                                                <td class="system-unmapped-name">{{ user.name ?: '–' }}</td>
+                                                                <td class="system-unmapped-name">{{ user.forgeName ?: '–' }}</td>
                                                                 <td class="system-unmapped-forge">
                                                                     {%- if user.forgeId is not null -%}
                                                                         <a href="{{ forge_user_url(user.forgeId) }}" target="_blank" rel="noopener">

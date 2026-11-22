@@ -409,40 +409,24 @@ final readonly class ActivityMapper
     }
 
     /**
-     * The person without the email: the API never shows one, see AGENTS.md. The username comes from the index of
-     * the users.
+     * The person without the email: the API never shows one, see AGENTS.md. As every page shows the person: the
+     * name, the username and the key of the TYPO3 account, see UserDirectory::shown().
      */
     public function person(?Person $person): ?ActivityPerson
     {
-        if (null === $person || '' === $person->name) {
+        $shown = $this->users->shown($person);
+        if (null === $shown || '' === $shown->name) {
             return null;
         }
-        $key = match (true) {
-            null !== $person->forgeId => 'forge:' . $person->forgeId,
-            null !== $person->gerritId => 'gerrit:' . $person->gerritId,
-            default => $person->name,
-        };
 
         return new ActivityPerson(
-            $person->name,
-            $person->forgeId,
-            $person->gerritId,
-            $key,
-            $this->avatar($person),
-            $this->usernameOf($person),
+            $shown->name,
+            $shown->forgeId,
+            $shown->gerritId,
+            $this->users->keyOfPerson($shown),
+            $this->avatar($shown),
+            $shown->username,
         );
-    }
-
-    /**
-     * The username as the index of the users has it, where Forger joins the accounts: an event may not know it.
-     */
-    private function usernameOf(Person $person): ?string
-    {
-        if (null === $person->forgeId && null === $person->gerritId) {
-            return $person->username;
-        }
-
-        return $this->users->personOf($this->users->keyOfPerson($person))->username ?? $person->username;
     }
 
     private function personOfKey(?string $key): ?ActivityPerson

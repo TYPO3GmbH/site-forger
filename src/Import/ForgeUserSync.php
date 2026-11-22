@@ -192,7 +192,7 @@ final readonly class ForgeUserSync
                     'Forge answered %d for user #%d (%s): marked as gone',
                     (int) $user->goneStatus,
                     (int) $user->forgeId,
-                    '' === $user->name ? 'no name' : $user->name,
+                    '' === $user->forgeName ? 'no name' : $user->forgeName,
                 ));
             }
             $written = [...$written, ...$gone];

@@ -70,7 +70,7 @@ final readonly class Following
             );
             $suggestions[$key] = new SuggestedPerson(
                 $key,
-                $person->name,
+                $this->users->shown($person)->name ?? $person->name,
                 $this->avatarOf($person),
                 $newcomer->milestone->label(),
                 false === $date ? null : $date,
