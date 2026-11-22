@@ -311,6 +311,28 @@ final class StreamEventsTest extends TestCase
         self::assertTrue(StreamEvent::fromDocument($events[1]->toDocument())->voted);
     }
 
+    public function testASecondCloseWithoutAnOpenBetweenClosesNothing(): void
+    {
+        $author = ['id' => 7, 'name' => 'Jane Doe'];
+        $change = Change::fromDocument([
+            'id' => 5632,
+            'subject' => '[BUGFIX] Old fix',
+            'reviewstatus' => 'MERGED',
+            'messages' => [
+                self::message('a1', 'Uploaded patch set 1.', 1, $author),
+                self::message('a2', 'Patch Set 1: Abandoned', 1, $author),
+                self::message('a3', 'Change has been successfully cherry-picked as eaf1c62', 1, $author),
+            ],
+        ]);
+
+        $events = StreamEvents::ofChange($change);
+
+        self::assertSame(
+            [[StreamKindEnum::CREATED, 1], [StreamKindEnum::CLOSED, -1], [StreamKindEnum::MERGED, 0]],
+            array_map(static fn (StreamEvent $event): array => [$event->kind, $event->openDelta], $events),
+        );
+    }
+
     public function testAnAbandonEndsTheWaitLikeAMerge(): void
     {
         $change = Change::fromDocument([
