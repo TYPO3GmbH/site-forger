@@ -96,6 +96,14 @@
                     'Look up the account of the username ' ~ document.username ~ ' on Gerrit again',
                     csrf_token(csrfTokenId),
                 ) }}
+            {% elseif document.gerritId %}
+                {{ _self.ask(
+                    document,
+                    'gerrit',
+                    'Ask Gerrit again',
+                    'Ask Gerrit for the username of gerrit:' ~ document.gerritId,
+                    csrf_token(csrfTokenId),
+                ) }}
             {% endif %}
         </dd>
     </div>

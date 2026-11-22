@@ -11,17 +11,6 @@
     <span class="status-pill status-pill-{{ result.severity }}">{{ result.label }}</span>
 {% endmacro %}
 
-{# The answer of Forge for a person it does not know, see UserHealth::answers(); the login for the others #}
-{% macro unmappedDetail(user) %}
-    {%- if not user.gone -%}
-        {{ user.username ? 'Login: ' ~ user.username : 'No login known' }}
-    {%- elseif user.goneStatus is null -%}
-        No answer stored
-    {%- else -%}
-        {{ user.goneStatus == 403 ? 'Refused' : 'Not found' }} ({{ user.goneStatus }})
-    {%- endif -%}
-{% endmacro %}
-
 {#
  # A tile of the top row: the label, the result, the key figure and a note. With an anchor the tile links to its
  # section. A share from 0 to 1 adds a meter below the figure; the note says the same in words.
@@ -336,60 +325,15 @@
                                 </div>
                                 {{ system.result(users.result) }}
                             </div>
-                            {% set unmapped = unmappedUsers|length %}
-                            {% if unmapped > 0 %}
-                                <details class="system-unmapped">
-                                    <summary>
-                                        <span class="system-unmapped-title">
-                                            {{- unmapped|number_format(0, '.', ',') }} {{ unmapped == 1 ? 'person' : 'people' -}}
-                                            {{ ' ' }}without an email address
-                                        </span>
-                                        <span class="system-unmapped-icon">{{ icon('actions-chevron-down') }}</span>
-                                    </summary>
-                                    <div class="system-unmapped-list">
-                                        <table class="system-unmapped-table">
-                                            <thead>
-                                                <tr>
-                                                    <th scope="col">Name</th>
-                                                    <th scope="col">On Forge</th>
-                                                    <th scope="col">Detail</th>
-                                                    <th scope="col">Asked on</th>
-                                                </tr>
-                                            </thead>
-                                            {% for group in [
-                                                {'label': 'Unknown to Forge', 'users': unmappedUsers|filter(user => user.gone)},
-                                                {'label': 'No email on Forge', 'users': unmappedUsers|filter(user => not user.gone)},
-                                            ] %}
-                                                {% set count = group.users|length %}
-                                                {% if count > 0 %}
-                                                    <tbody>
-                                                        <tr class="system-unmapped-group">
-                                                            <th scope="rowgroup" colspan="4">
-                                                                {{ group.label }} <span>{{ count|number_format(0, '.', ',') }}</span>
-                                                            </th>
-                                                        </tr>
-                                                        {% for user in group.users %}
-                                                            <tr>
-                                                                <td class="system-unmapped-name">{{ user.forgeName ?: '–' }}</td>
-                                                                <td class="system-unmapped-forge">
-                                                                    {%- if user.forgeId is not null -%}
-                                                                        <a href="{{ forge_user_url(user.forgeId) }}" target="_blank" rel="noopener">
-                                                                            {{- '#' ~ user.forgeId -}}
-                                                                        </a>
-                                                                    {%- endif -%}
-                                                                </td>
-                                                                <td class="system-unmapped-detail">{{ _self.unmappedDetail(user) }}</td>
-                                                                <td class="system-unmapped-date">
-                                                                    {{- user.fetchedOn ? user.fetchedOn|date('j M Y, H:i', 'UTC') ~ ' UTC' -}}
-                                                                </td>
-                                                            </tr>
-                                                        {% endfor %}
-                                                    </tbody>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </table>
-                                    </div>
-                                </details>
+                            {% if withoutUsernameCount > 0 %}
+                                <div class="system-list-item">
+                                    <a class="system-list-title"
+                                       href="{{ path('management_people', {'view': 'no-username'}) }}">
+                                        {{- withoutUsernameCount|number_format(0, '.', ',') }}
+                                        {{ withoutUsernameCount == 1 ? 'account' : 'accounts' }} of Forge and Gerrit
+                                        without a username: ask their source or link them under People
+                                    </a>
+                                </div>
                             {% endif %}
                         </div>
                     </section>

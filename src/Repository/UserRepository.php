@@ -402,31 +402,43 @@ class UserRepository
     }
 
     /**
-     * All users Forge was asked for that have no email: first those unknown to Forge by its answer, then those Forge
-     * does not show the email of, each by name.
+     * All accounts of Forge and of Gerrit without a TYPO3 username: first those unknown to Forge, then those Forge
+     * was not asked for yet, then those of Gerrit only, each by name. Forge tells the username of every user it
+     * knows.
      *
      * @return list<User>
      */
-    public function unmapped(): array
+    public function withoutUsername(): array
     {
         $result = $this->indices->users()->search([
-            // The most Elasticsearch returns at once, many more than the index has people without an email
+            // The most Elasticsearch returns at once, many more than the index has accounts without a username
             'size' => 10000,
-            'query' => ['bool' => [
-                'filter' => [['exists' => ['field' => 'forge.id']], ['exists' => ['field' => 'forge.fetched_on']]],
-                'must_not' => [['exists' => ['field' => 'email']]],
-            ]],
-            'sort' => [
-                ['forge.gone' => ['order' => 'desc', 'missing' => '_last']],
-                ['forge.gone_status' => ['order' => 'asc', 'missing' => '_first']],
-                ['forge.name' => ['order' => 'asc', 'missing' => '_last']],
-            ],
+            'query' => ['bool' => ['must_not' => [['exists' => ['field' => 'account.username']]]]],
         ]);
-
-        return array_values(array_map(
+        $users = array_map(
             static fn (Result $hit): User => User::fromDocument($hit->getSource()),
             $result->getResults(),
-        ));
+        );
+        usort(
+            $users,
+            static fn (User $a, User $b): int => self::withoutUsernameOrder($a) <=> self::withoutUsernameOrder($b),
+        );
+
+        return $users;
+    }
+
+    /**
+     * @return array{int, string} what withoutUsername() sorts by
+     */
+    private static function withoutUsernameOrder(User $user): array
+    {
+        $group = match (true) {
+            $user->gone => 0,
+            null !== $user->forgeId => 1,
+            default => 2,
+        };
+
+        return [$group, mb_strtolower($user->displayName())];
     }
 
     /**

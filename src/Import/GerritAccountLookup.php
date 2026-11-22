@@ -96,6 +96,62 @@ final readonly class GerritAccountLookup
     }
 
     /**
+     * Asks Gerrit for an account of Gerrit only by its number, for its username. With a username the account joins
+     * the person of the username and its document "gerrit:<number>" goes. It does not join a person that has
+     * another account on Gerrit: a Gerrit account belongs only to its username. Writes the account.
+     *
+     * @return array{user: User, known: bool}|null the account as written, and whether Gerrit knows it; null when
+     *                                             Gerrit fails
+     */
+    public function lookUpNumber(User $user, \DateTimeImmutable $now): ?array
+    {
+        if (null === $user->gerritId) {
+            return ['user' => $user, 'known' => false];
+        }
+        try {
+            $account = User::fromGerrit($this->gerrit->object(
+                '/accounts/' . $user->gerritId,
+                [],
+                'the account',
+            ));
+        } catch (ApiFailure $e) {
+            if (!$e->isNotFound()) {
+                $this->recorder->warning(sprintf('Gerrit failed for gerrit:%d: %s', $user->gerritId, $e->getMessage()));
+
+                return null;
+            }
+            $account = null;
+        }
+        // Gerrit finds an account by more than its number, like an email or a name
+        $own = null !== $account && $account->gerritId === $user->gerritId;
+        $person = $own ? $this->personOf($account) : null;
+        $written = null === $person ? $user->lookedUpInGerrit($now, null) : $person->lookedUpInGerrit($now, null);
+        $this->users->write([$written], null === $person ? [] : [$user->id()]);
+
+        return ['user' => $written, 'known' => $own];
+    }
+
+    /**
+     * The person an account of Gerrit with a username joins: the document of the username with the account, or the
+     * account alone. Null without a username, and for a person with another account on Gerrit.
+     */
+    private function personOf(User $account): ?User
+    {
+        if (null === $account->username) {
+            return null;
+        }
+        $existing = $this->users->byIds([$account->username])[$account->username] ?? null;
+        if (null === $existing) {
+            return $account;
+        }
+        if (null !== $existing->gerritId && $existing->gerritId !== $account->gerritId) {
+            return null;
+        }
+
+        return $existing->mergedWith($account);
+    }
+
+    /**
      * The users Forge told a username but no email of and Gerrit was not asked for, or asked for longer than
      * ForgeUserSync::REFRESH_AFTER_DAYS ago: a person may sign up to Gerrit later.
      *

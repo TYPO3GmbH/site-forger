@@ -6,14 +6,20 @@
  # and activity, and whether the names match. Each link and each "no" is confirmed on its own, one click per
  # suggestion: an account renamed to "old_…" may belong to someone else. A suggestion turned down does not come
  # again.
+ # The tab "No username" lists the accounts of Forge and Gerrit without a TYPO3 username that no link maps, by
+ # group: unknown to Forge, Forge not asked yet, Gerrit. Each can be asked, or all of a group at once through the
+ # job "Update users", and linked to its person from its own page.
  # The tab "Linked" lists the accounts linked already, the latest first, to check and to unlink. A link the sources
  # contradict carries a warning: Forge or Gerrit give the account to another username. The links the sources joined
  # go by themselves, see App\People\PersonLinkCleanup.
- # Expects: view ("suggestions" or "linked"), links (list of link: App\Entity\PersonLink, account and person:
- #          App\People\User or null, contradicted: the username of the sources or null), linkedCount, suggestions
- #          (list of App\People\LinkSuggestion), total, reason (LinkReasonEnum), reasons, counts (by the value of
- #          the reason), limit, more, activity (App\People\AccountActivity by account key), csrfTokenId
- #}
+ # Expects: view ("suggestions", "linked" or "no-username"), links (list of link: App\Entity\PersonLink, account
+ #          and person: App\People\User or null, contradicted: the username of the sources or null), linkedCount,
+ #          withoutUsername (list of App\People\User), withoutUsernameCount, groups (the group of each by its key,
+ #          see PeopleController::groupOf()), requested (the accounts that wait for their source),
+ #          requestedPerRun, suggestions (list of App\People\LinkSuggestion), total, reason
+ #          (LinkReasonEnum), reasons, counts (by the value of the reason), limit, more, activity
+ #          (App\People\AccountActivity by account key), csrfTokenId
+#}
 
 {% macro did(document, activity) %}
     {% set forge = document.forgeId ? activity['forge:' ~ document.forgeId] ?? null : null %}
@@ -44,6 +50,57 @@
             {{- label -}}
         </button>
     </form>
+{% endmacro %}
+
+{# What the source answered for an account without a username, see UserHealth::answers() #}
+{% macro answer(user) %}
+    {%- if user.forgeId is null -%}
+        {{ user.gerritLookedUpOn ? 'No username on Gerrit' : 'Not asked yet' }}
+    {%- elseif not user.gone -%}
+        {{ user.fetchedOn ? 'No username on Forge' : 'Not asked yet' }}
+    {%- elseif user.goneStatus is null -%}
+        No answer stored
+    {%- else -%}
+        {{ user.goneStatus == 403 ? 'Refused' : 'Not found' }} ({{ user.goneStatus }})
+    {%- endif -%}
+{% endmacro %}
+
+{#
+ # One account without a username: what its source answered and when, "Ask" for the source again and "Link" to
+ # its person. Both open the account, or its person once the source told the username. "source" is "Forge" or
+ # "Gerrit".
+ #}
+{% macro withoutUsername(user, source, requested, activity, token) %}
+    {% set key = source == 'Forge' ? 'forge:' ~ user.forgeId : 'gerrit:' ~ user.gerritId %}
+    {% set askedOn = source == 'Forge' ? user.fetchedOn : user.gerritLookedUpOn %}
+    <tr>
+        <td>{{ _self.who(user, _self.did(user, activity)) }}</td>
+        <td class="people-forge">
+            <a class="people-source-link" target="_blank" rel="noopener" title="The account on {{ source }}"
+               href="{{ source == 'Forge' ? forge_user_url(user.forgeId) : gerrit_user_url(user.gerritId) }}">
+                {{- key }} {{ icon('actions-window-open') -}}
+            </a>
+            <span class="people-did">{{ _self.answer(user) }}</span>
+            {% if requested[user.id] is defined %}
+                <span class="people-did">Waits for {{ source }}</span>
+            {% endif %}
+        </td>
+        <td class="people-asked">{{ askedOn ? askedOn|date('M j, Y, H:i', 'UTC') ~ ' UTC' }}</td>
+        <td class="people-actions">
+            <form class="people-decide" method="post"
+                  action="{{ path('management_people_refresh', {'key': user.id}) }}">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <input type="hidden" name="source" value="{{ source|lower }}">
+                <button type="submit" class="btn btn-sm btn-default" title="Ask {{ source }} for {{ key }} again">
+                    {{- icon('actions-refresh') }} Ask {{ source }}
+                </button>
+            </form>
+            <a class="btn btn-sm btn-link" title="Link {{ user.id }} to its person"
+               href="{{ path('management_people_show', {'key': user.id}) }}#people-link">
+                Link
+            </a>
+        </td>
+    </tr>
 {% endmacro %}
 
 {% macro who(document, extra = null) %}
@@ -91,6 +148,12 @@
                         {{ item.label }} <span class="chip-count">{{ counts[item.value] }}</span>
                     </a>
                 {% endfor %}
+                <a href="{{ path('management_people', {'view': 'no-username'}) }}"
+                   title="The Forge accounts without a username that no link maps"
+                   class="chip{{ view == 'no-username' ? ' is-active' }}"
+                   {%- if view == 'no-username' %} aria-current="true"{% endif %}>
+                    No username <span class="chip-count">{{ withoutUsernameCount }}</span>
+                </a>
                 <a href="{{ path('management_people', {'view': 'linked'}) }}" title="The accounts linked already"
                    class="chip{{ view == 'linked' ? ' is-active' }}"
                    {%- if view == 'linked' %} aria-current="true"{% endif %}>
@@ -100,6 +163,8 @@
 
             {% if view == 'linked' %}
                 {{ block('linked') }}
+            {% elseif view == 'no-username' %}
+                {{ block('without_username') }}
             {% else %}
             <p class="people-lead">{{ reason.description }}. Check the names and the activity before you link one.</p>
 
@@ -239,6 +304,81 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{#
+ # The accounts without a username, by group. "Ask" asks the source of one account and opens it. "Link" opens the
+ # account, to link it to its person there.
+ #}
+{% block without_username %}
+    {% import _self as people %}
+    <p class="people-lead">
+        The accounts of Forge and Gerrit without a TYPO3 username that no link maps: they count as people of their
+        own. Ask their source for the username, or link an account to its person.
+        {% if requested is not empty %}
+            {{ requested|length|number_format(0, '.', ',') }}
+            {{ requested|length == 1 ? 'account waits' : 'accounts wait' }}
+            for "Update users", {{ requestedPerRun }} per run.
+            <a href="{{ path('management_command_runs') }}">Command runs</a>
+        {% endif %}
+    </p>
+    {% if withoutUsername is empty %}
+        {% include '_partials/alert.html.twig' with {
+            'message': 'Every account has a username.',
+            'style': 'info',
+        } only %}
+    {% else %}
+        {% set token = csrf_token(csrfTokenId) %}
+        <div class="count-table-frame">
+            <table class="count-table people-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Account</th>
+                        <th scope="col">Source</th>
+                        <th scope="col">Asked on</th>
+                        <th scope="col"><span class="sr-only">Actions</span></th>
+                    </tr>
+                </thead>
+                {% for group in [
+                    {'key': 'gone', 'label': 'Forge: unknown', 'source': 'Forge'},
+                    {'key': 'not-asked', 'label': 'Forge: not asked yet', 'source': 'Forge'},
+                    {'key': 'gerrit', 'label': 'Gerrit', 'source': 'Gerrit'},
+                ] %}
+                    {% set users = withoutUsername|filter(user => groups[user.id] == group.key) %}
+                    {% if users is not empty %}
+                        <tbody>
+                            <tr class="people-group">
+                                <th scope="rowgroup" colspan="3">{{ group.label }}</th>
+                                <td class="people-actions">
+                                    <form class="people-decide" method="post"
+                                          action="{{ path('management_people_request_accounts') }}">
+                                        <input type="hidden" name="_token" value="{{ token }}">
+                                        <input type="hidden" name="group" value="{{ group.key }}">
+                                        {% set title = 'Let "Update users" ask ' ~ group.source
+                                            ~ ' for each account of the group' %}
+                                        <button type="submit" class="btn btn-sm btn-default" title="{{ title }}">
+                                            {{- icon('actions-refresh') }} Ask {{ group.source }} for all
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% for user in users %}
+                                {{ people.withoutUsername(user, group.source, requested, activity, token) }}
+                            {% endfor %}
+                        </tbody>
+                    {% endif %}
+                {% endfor %}
+            </table>
+        </div>
+        <div class="people-picked">
+            <span class="people-lead">{{ withoutUsername|length }} of {{ withoutUsernameCount }}</span>
+            {% if withoutUsernameCount > withoutUsername|length %}
+                <a href="{{ path('management_people', {'view': 'no-username', 'limit': limit + more}) }}">
+                    Show {{ min(more, withoutUsernameCount - withoutUsername|length) }} more
+                </a>
+            {% endif %}
         </div>
     {% endif %}
 {% endblock %}

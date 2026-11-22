@@ -103,16 +103,17 @@ final readonly class ForgeUserSync
     /**
      * Loads the users from Forge and writes them. A user that Forge does not know any more is marked as gone.
      *
-     * @param list<int> $forgeIds
+     * @param list<int>                  $forgeIds
+     * @param (\Closure(int): void)|null $afterUser gets the number of users done
      *
      * @return array{updated: int, gone: int, stopped: string|null} why it stopped early, if it did
      */
-    public function update(array $forgeIds, \DateTimeImmutable $now): array
+    public function update(array $forgeIds, \DateTimeImmutable $now, ?\Closure $afterUser = null): array
     {
         $known = $this->users->all();
         $users = array_map(static fn (int $forgeId): User => $known[$forgeId] ?? new User($forgeId, ''), $forgeIds);
 
-        return $this->updateUsers($users, $now);
+        return $this->updateUsers($users, $now, $afterUser);
     }
 
     /**

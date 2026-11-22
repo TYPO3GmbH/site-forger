@@ -247,3 +247,23 @@
         height: .8rem;
     }
 }
+
+// The tab "No email": what Forge answered and when, beside the account, not below an avatar
+.people-table {
+    .people-group th {
+        padding-top: .9rem;
+        background: #f9fafb;
+        font-size: .8125rem;
+    }
+
+    .people-forge .people-source-link,
+    .people-forge .people-did {
+        margin-left: 0;
+    }
+
+    .people-asked {
+        color: #6b7280;
+        font-size: .75rem;
+        white-space: nowrap;
+    }
+}
