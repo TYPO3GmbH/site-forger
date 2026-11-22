@@ -8,7 +8,8 @@ when@dev:
             main:
                 type: stream
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
-                level: debug
+                # The debug level logs every Elasticsearch request with its body, about 13 MB a minute in an import.
+                level: info
                 channels: ["!event"]
             console:
                 type: console
