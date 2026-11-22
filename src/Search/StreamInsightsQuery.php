@@ -35,6 +35,7 @@ final class StreamInsightsQuery
     public const string ACTIVE_DAYS = 'active_days';
     public const string FIGURES = 'figures';
     public const string OPENED = 'opened';
+    public const string IN_PROGRESS = 'in_progress';
     public const string AFTER = 'after';
     public const string DURATIONS = 'durations';
     public const string DAYS = 'days';
@@ -177,7 +178,8 @@ final class StreamInsightsQuery
      * What opened and closed issues and changes from the start of the window on, per channel: the sum of "open_delta"
      * per bucket of time, and after the window. Counted back from the open ones now, it gives the open ones at the
      * end of each bucket, see StreamStatistics. The events of tools count too: Gerrit closes issues on Forge. The
-     * branch counts for the changes only.
+     * branch counts for the changes only. The sum of "wip_delta" under IN_PROGRESS counts the open changes in
+     * progress the same way.
      *
      * @return array<string, mixed>
      */
@@ -187,7 +189,10 @@ final class StreamInsightsQuery
         $utc = new \DateTimeZone('UTC');
         $filters = [
             ['range' => ['date' => ['gte' => $window->from->setTimezone($utc)->format('Y/m/d H:i:s')]]],
-            ['bool' => ['must_not' => [['term' => ['open_delta' => 0]]]]],
+            ['bool' => ['should' => [
+                ['bool' => ['must_not' => [['term' => ['open_delta' => 0]]]]],
+                ['bool' => ['must_not' => [['term' => ['wip_delta' => 0]]]]],
+            ], 'minimum_should_match' => 1]],
         ];
         if (null !== $branch) {
             $filters[] = ['bool' => ['should' => [
@@ -195,9 +200,12 @@ final class StreamInsightsQuery
                 ['term' => ['branch' => $branch]],
             ], 'minimum_should_match' => 1]];
         }
-        $sum = ['sum' => ['field' => 'open_delta']];
+        $sums = [
+            self::OPENED => ['sum' => ['field' => 'open_delta']],
+            self::IN_PROGRESS => ['sum' => ['field' => 'wip_delta']],
+        ];
         $overTime = TimeSeries::histogram('date', $window->interval(), $window->from, $window->last(), $zone);
-        $overTime['aggs'] = [self::OPENED => $sum];
+        $overTime['aggs'] = $sums;
 
         return [
             'size' => 0,
@@ -211,7 +219,7 @@ final class StreamInsightsQuery
                         'filter' => ['range' => ['date' => [
                             'gte' => $window->until->setTimezone($utc)->format('Y/m/d H:i:s'),
                         ]]],
-                        'aggs' => [self::OPENED => $sum],
+                        'aggs' => $sums,
                     ],
                 ],
             ]],

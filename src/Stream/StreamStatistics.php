@@ -176,10 +176,10 @@ final readonly class StreamStatistics
         $previous = $this->stream->search(StreamInsightsQuery::countRequest($filter, $window->previous()));
         $keys = TimeSeries::keys($window->from, $window->last(), $window->interval());
         $overTime = $result->aggregation(StreamInsightsQuery::OVER_TIME);
-        $opened = StreamAggregations::opened(
-            $this->stream->search(StreamInsightsQuery::openRequest($window, $filter->branch))
-                ->aggregation(StreamInsightsQuery::SOURCES),
-        );
+        $openSources = $this->stream->search(StreamInsightsQuery::openRequest($window, $filter->branch))
+            ->aggregation(StreamInsightsQuery::SOURCES);
+        $opened = StreamAggregations::opened($openSources);
+        $inProgress = StreamAggregations::opened($openSources, StreamInsightsQuery::IN_PROGRESS);
 
         return new StreamInsights(
             events: $result->total,
@@ -220,6 +220,11 @@ final readonly class StreamStatistics
             openChanges: StreamAggregations::openOverTime(
                 $this->openChangesNow($filter->branch),
                 $opened[StreamSourceEnum::GERRIT->value] ?? [],
+                $keys,
+            ),
+            openChangesInProgress: StreamAggregations::openOverTime(
+                $this->openChangesNow($filter->branch, inProgress: true),
+                $inProgress[StreamSourceEnum::GERRIT->value] ?? [],
                 $keys,
             ),
             durations: $this->durations($window, $filter->branch),
@@ -312,10 +317,15 @@ final readonly class StreamStatistics
         return $this->issues->count(['query' => ['bool' => ['must_not' => [IssueSearch::closed()]]]]);
     }
 
-    private function openChangesNow(?string $branch): int
+    private function openChangesNow(?string $branch, bool $inProgress = false): int
     {
+        $filters = null === $branch ? [] : [['term' => ['branch' => $branch]]];
+        if ($inProgress) {
+            $filters[] = ['term' => ['work_in_progress' => true]];
+        }
+
         return $this->changes->count(['query' => ['bool' => [
-            'filter' => null === $branch ? [] : [['term' => ['branch' => $branch]]],
+            'filter' => $filters,
             'must_not' => [['terms' => ['reviewstatus' => ReviewStatusEnum::closedValues()]]],
         ]]]);
     }

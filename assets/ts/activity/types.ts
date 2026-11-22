@@ -191,6 +191,7 @@ export interface ActivityStatistics {
     crews: ActivityCrew[];
     openIssues: ActivityTrend;
     openChanges: ActivityTrend;
+    openChangesInProgress: ActivityTrend;
     durations: ActivityDuration[];
     reviewQueue: ActivityCount[];
     sources: ActivityCount[];

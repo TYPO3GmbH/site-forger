@@ -72,6 +72,24 @@ final class StreamAggregationsTest extends TestCase
         self::assertSame([], StreamAggregations::opened(null));
     }
 
+    public function testTheChangesInProgressAreReadFromTheirOwnSum(): void
+    {
+        $sums = static fn (float $opened, float $inProgress): array => [
+            StreamInsightsQuery::OPENED => ['value' => $opened],
+            StreamInsightsQuery::IN_PROGRESS => ['value' => $inProgress],
+        ];
+        $sources = ['buckets' => [[
+            'key' => 'gerrit',
+            StreamInsightsQuery::OVER_TIME => ['buckets' => [['key_as_string' => '2026-11-02', ...$sums(2.0, 1.0)]]],
+            StreamInsightsQuery::AFTER => $sums(-3.0, -1.0),
+        ]]];
+
+        self::assertSame(
+            ['gerrit' => ['2026-11-02' => 1, StreamInsightsQuery::AFTER => -1]],
+            StreamAggregations::opened($sources, StreamInsightsQuery::IN_PROGRESS),
+        );
+    }
+
     public function testAFigureHasItsCountTheOneBeforeAndItsValuesPerDay(): void
     {
         $figures = StreamAggregations::figures(

@@ -201,6 +201,7 @@ final class ApiDocumentationTest extends KernelTestCase
             [$figure],
             $trend,
             $trend,
+            $trend,
             [$duration],
             [$count],
             [$crew],

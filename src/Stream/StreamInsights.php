@@ -21,16 +21,17 @@ use App\Enum\StreamSourceEnum;
 final readonly class StreamInsights
 {
     /**
-     * @param array<string, int>   $sources     by the value of StreamSourceEnum
-     * @param array<string, int>   $kinds       by the value of StreamKindEnum
-     * @param list<StreamFigure>   $figures     in the order of StreamFigureEnum
-     * @param StreamTrend|null     $openIssues  the open issues at the end of the window and of each bucket, and at its
-     *                                          start as "previous"
-     * @param StreamTrend|null     $openChanges the same of the changes
-     * @param list<StreamDuration> $durations   in the order of StreamDurationEnum
-     * @param list<StreamCrew>     $crews       in the order of StreamCrewEnum
-     * @param array<string, int>   $reviewQueue the open changes that wait for a review, by the value of
-     *                                          StreamQueueAgeEnum
+     * @param array<string, int>   $sources               by the value of StreamSourceEnum
+     * @param array<string, int>   $kinds                 by the value of StreamKindEnum
+     * @param list<StreamFigure>   $figures               in the order of StreamFigureEnum
+     * @param StreamTrend|null     $openIssues            the open issues at the end of the window and of each
+     *                                                    bucket, and at its start as "previous"
+     * @param StreamTrend|null     $openChanges           the same of the changes
+     * @param list<StreamDuration> $durations             in the order of StreamDurationEnum
+     * @param list<StreamCrew>     $crews                 in the order of StreamCrewEnum
+     * @param array<string, int>   $reviewQueue           the open changes that wait for a review, by the value of
+     *                                                    StreamQueueAgeEnum
+     * @param StreamTrend|null     $openChangesInProgress the part of the open changes that is work in progress
      */
     public function __construct(
         public int $events,
@@ -45,6 +46,7 @@ final readonly class StreamInsights
         public array $durations = [],
         public array $crews = [],
         public array $reviewQueue = [],
+        public ?StreamTrend $openChangesInProgress = null,
     ) {
     }
 

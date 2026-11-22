@@ -54,9 +54,11 @@ export class ActivityFigures extends LightElement {
             return this.crews();
         }
         if (this.group === 'open') {
+            const { openIssues, openChanges, openChangesInProgress } = this.statistics;
+
             return html`
-                ${this.open('Open issues', this.statistics.openIssues, 'forge')}
-                ${this.open('Open changes', this.statistics.openChanges, 'gerrit')}
+                ${this.open('Open issues', openIssues, 'forge')}
+                ${this.open('Open changes', openChanges, 'gerrit', openChangesInProgress)}
             `;
         }
 
@@ -177,18 +179,23 @@ export class ActivityFigures extends LightElement {
 
     /**
      * A stock, like the open issues: how many are open now, the change since the start of the window, and how many
-     * were open at the end of each bar of time. The most important figure of the board: it goes on top.
+     * were open at the end of each bar of time. The most important figure of the board: it goes on top. A part, like
+     * the changes in progress, draws as a dashed line on the same scale.
      */
-    private open(label: string, trend: ActivityTrend, source: Source): TemplateResult {
+    private open(label: string, trend: ActivityTrend, source: Source, inProgress?: ActivityTrend): TemplateResult {
         const { buckets, window } = this.statistics;
         const difference = trend.count - trend.previous;
         const text = difference > 0 ? `+${formatNumber(difference)}` : formatNumber(difference);
         const since = `since ${startLabel(this.statistics)}`;
         const before = `${formatNumber(trend.previous)} open on ${startLabel(this.statistics)}`;
         const values = trend.values;
-        const lowest = Math.min(...values);
-        const highest = Math.max(...values);
+        const parts = inProgress?.values ?? [];
+        const lowest = Math.min(...values, ...parts);
+        const highest = Math.max(...values, ...parts);
         const step = Math.max(1, Math.ceil(buckets.length / OPEN_TICKS));
+        const tip = (bucket: number): string => inProgress === undefined
+            ? openCount(values[bucket])
+            : `${openCount(values[bucket])}, ${inProgressCount(parts[bucket])}`;
 
         return html`
             <section class="stream-chart stream-widget is-l" aria-label=${label}>
@@ -203,17 +210,23 @@ export class ActivityFigures extends LightElement {
                         ${badge(text, difference, trend.better, before)} ${since}
                     </span>
                 </span>
+                ${inProgress === undefined ? nothing : html`
+                    <p class="stream-open-part">
+                        <span class="stream-open-part-swatch" style="border-color: var(--stream-${source})"></span>
+                        ${inProgressCount(inProgress.count)}
+                    </p>
+                `}
                 <div class="stream-axis-frame">
                     <div class="stream-axis" aria-hidden="true">
                         <span>${formatNumber(highest)}</span>
                         <span>${formatNumber(lowest)}</span>
                     </div>
                     <div class="stream-bars stream-line-chart" aria-hidden="true">
-                        ${openLine(values, lowest, highest, source)}
+                        ${openLine(values, lowest, highest, source, parts)}
                         ${buckets.map((key, bucket) => html`
                             <span
                                 class="stream-bar stream-line-hit"
-                                data-tip=${`${bucketLabel(key, window.interval)}: ${openCount(values[bucket])}`}
+                                data-tip=${`${bucketLabel(key, window.interval)}: ${tip(bucket)}`}
                             >
                                 ${bucket % step === 0
                                     ? html`<span class="stream-bar-tick">${bucketTick(key, window.interval)}</span>`
@@ -379,18 +392,29 @@ function openCount(value: number | undefined): string {
     return `${formatNumber(value ?? 0)} open`;
 }
 
+function inProgressCount(value: number | undefined): string {
+    return `${formatNumber(value ?? 0)} of them work in progress`;
+}
+
 /**
  * The line of a stock from its lowest to its highest value, over the whole width: a point in the middle of each bar
  * of time, where the pointer finds its tooltip.
  */
-function openLine(values: number[], lowest: number, highest: number, colorKey: string): TemplateResult {
+function openLine(
+    values: number[],
+    lowest: number,
+    highest: number,
+    colorKey: string,
+    parts: number[] = [],
+): TemplateResult {
     const range = highest - lowest || 1;
-    const points = values.map((value, index) => {
-        const x = ((index + 0.5) / values.length) * 100;
+    const pointsOf = (series: number[]): string[] => series.map((value, index) => {
+        const x = ((index + 0.5) / series.length) * 100;
         const y = 100 - ((value - lowest) / range) * 100;
 
         return `${x.toFixed(2)},${y.toFixed(2)}`;
     });
+    const points = pointsOf(values);
     const first = points[0]?.split(',')[0] ?? '0';
     const last = points[points.length - 1]?.split(',')[0] ?? '100';
     const style = `var(--stream-${colorKey})`;
@@ -399,6 +423,9 @@ function openLine(values: number[], lowest: number, highest: number, colorKey: s
         <svg class="stream-line" viewBox="0 0 100 100" preserveAspectRatio="none">
             <polygon points="${first},100 ${points.join(' ')} ${last},100" style="fill: ${style}"></polygon>
             <polyline points=${points.join(' ')} style="stroke: ${style}"></polyline>
+            ${parts.length === 0 ? nothing : svg`
+                <polyline class="is-part" points=${pointsOf(parts).join(' ')} style="stroke: ${style}"></polyline>
+            `}
         </svg>
     `;
 }

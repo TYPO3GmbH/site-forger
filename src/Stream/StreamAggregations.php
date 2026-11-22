@@ -170,22 +170,23 @@ final class StreamAggregations
     }
 
     /**
-     * What opened and closed per channel: per bucket of the window, and after it under the key AFTER.
+     * What opened and closed per channel: per bucket of the window, and after it under the key AFTER. With
+     * StreamInsightsQuery::IN_PROGRESS as $sum: what the changes in progress gained and lost.
      *
      * @param array<string, mixed>|null $sources
      *
      * @return array<string, array<string, int>> by channel and the key of the bucket
      */
-    public static function opened(?array $sources): array
+    public static function opened(?array $sources, string $sum = StreamInsightsQuery::OPENED): array
     {
         $opened = [];
         foreach ((array) ($sources['buckets'] ?? []) as $source) {
             $deltas = [];
             foreach ((array) ($source[StreamInsightsQuery::OVER_TIME]['buckets'] ?? []) as $bucket) {
                 $key = (string) ($bucket['key_as_string'] ?? '');
-                $deltas[$key] = (int) ($bucket[StreamInsightsQuery::OPENED]['value'] ?? 0);
+                $deltas[$key] = (int) ($bucket[$sum]['value'] ?? 0);
             }
-            $after = $source[StreamInsightsQuery::AFTER][StreamInsightsQuery::OPENED]['value'] ?? 0;
+            $after = $source[StreamInsightsQuery::AFTER][$sum]['value'] ?? 0;
             $deltas[StreamInsightsQuery::AFTER] = (int) $after;
             $opened[(string) ($source['key'] ?? '')] = $deltas;
         }

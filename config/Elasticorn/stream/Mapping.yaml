@@ -43,6 +43,10 @@ branch:
 # over time back from the open ones now, see App\Search\StreamInsightsQuery::openRequest()
 open_delta:
   type: byte
+# 1 when an open change becomes work in progress by the event, -1 when it ends to be one (ready, merged, abandoned),
+# else 0: the statistics count the open changes in progress like the open ones, see open_delta
+wip_delta:
+  type: byte
 # Seconds since the issue or the change began, for an issue closed, a change merged and the first review of a
 # change: the statistics take the median, see App\Search\StreamInsightsQuery::durationRequest()
 duration:

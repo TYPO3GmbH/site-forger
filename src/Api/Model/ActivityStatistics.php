@@ -70,6 +70,11 @@ final readonly class ActivityStatistics
         )]
         public ActivityTrend $openChanges,
         #[OA\Property(
+            description: 'The part of "openChanges" that is work in progress, counted the same way.',
+            allOf: [new OA\Schema(ref: new Model(type: ActivityTrend::class))],
+        )]
+        public ActivityTrend $openChangesInProgress,
+        #[OA\Property(
             description: 'How long work waited, in a fixed order. It does not depend on the kinds and the person.',
             type: 'array',
             items: new OA\Items(ref: new Model(type: ActivityDuration::class)),

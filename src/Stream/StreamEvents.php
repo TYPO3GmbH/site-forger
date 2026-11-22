@@ -83,20 +83,43 @@ final class StreamEvents
     {
         $events = [];
         $reviewed = false;
+        $withoutFirst = null !== $change->createdOn && !self::hasFirstPatchSet($change);
+        // Whether the change is open and whether it is work in progress, message by message
+        $open = $withoutFirst;
+        $wip = false;
         foreach ($change->messages as $position => $message) {
             $firstReview = !$reviewed && self::isReview($change, $message);
             $reviewed = $reviewed || $firstReview;
-            $event = self::ofMessage($change, $message, $position, $firstReview);
+            $wasInProgress = $open && $wip;
+            $open = match (self::messageOpenDelta($message)) {
+                1 => true,
+                -1 => false,
+                default => $open,
+            };
+            $wip = $message->workInProgress ?? $wip;
+            $wipDelta = (int) ($open && $wip) - (int) $wasInProgress;
+            $event = self::ofMessage($change, $message, $position, $firstReview, $wipDelta);
             if (null !== $event) {
                 $events[] = $event;
             }
         }
-        $kinds = array_map(static fn (StreamEvent $event): StreamKindEnum => $event->kind, $events);
-        if (!in_array(StreamKindEnum::CREATED, $kinds, true) && null !== $change->createdOn) {
-            array_unshift($events, self::creationOf($change, $change->createdOn));
+        if ($withoutFirst) {
+            array_unshift($events, self::creationOf($change, (string) $change->createdOn));
         }
 
         return $events;
+    }
+
+    private static function hasFirstPatchSet(Change $change): bool
+    {
+        foreach ($change->messages as $message) {
+            $dated = null !== $message->date && '' !== $message->date;
+            if ($dated && ReviewEventEnum::UPLOADED === $message->event && 1 === $message->patchSet) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -229,6 +252,7 @@ final class StreamEvents
         ReviewMessage $message,
         int $position,
         bool $firstReview,
+        int $wipDelta,
     ): ?StreamEvent {
         if (null === $message->date || '' === $message->date) {
             return null;
@@ -254,6 +278,7 @@ final class StreamEvents
                 : null,
             firstReview: $firstReview,
             owner: self::owner($change),
+            wipDelta: $wipDelta,
         );
     }
 

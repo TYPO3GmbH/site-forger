@@ -197,6 +197,9 @@ final readonly class ActivityMapper
             ),
             openIssues: self::trend($insights->openIssues ?? new StreamTrend(0, 0, [], StreamBetterEnum::LESS)),
             openChanges: self::trend($insights->openChanges ?? new StreamTrend(0, 0, [], StreamBetterEnum::LESS)),
+            openChangesInProgress: self::trend(
+                $insights->openChangesInProgress ?? new StreamTrend(0, 0, [], StreamBetterEnum::LESS),
+            ),
             durations: array_map(
                 static fn (StreamDuration $duration): ActivityDuration => new ActivityDuration(
                     $duration->duration->value,
