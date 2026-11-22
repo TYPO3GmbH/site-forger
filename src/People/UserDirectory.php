@@ -136,6 +136,40 @@ class UserDirectory
     }
 
     /**
+     * The key to keep for a person, see keyOf(): given as "forge:<number>", "gerrit:<number>" or the username.
+     * Null when the value names no person, like the words of a name.
+     */
+    public function storedKeyOf(string $value): ?string
+    {
+        $value = mb_strtolower(trim($value));
+        if (1 === preg_match('/^(forge|gerrit):(\d{1,9})$/', $value, $matches)) {
+            return $this->keyOf($matches[1], (int) $matches[2]);
+        }
+
+        return null === $this->personOf($value) ? null : $value;
+    }
+
+    /**
+     * Every key of the person of a key: the key itself, "forge:<number>" and "gerrit:<number>". A link names a
+     * person by any of them.
+     *
+     * @return list<string>
+     */
+    public function keysOf(string $key): array
+    {
+        $person = $this->personOf($key);
+        $keys = [$key];
+        if (null !== $person?->forgeId) {
+            $keys[] = 'forge:' . $person->forgeId;
+        }
+        if (null !== $person?->gerritId) {
+            $keys[] = 'gerrit:' . $person->gerritId;
+        }
+
+        return array_values(array_unique($keys));
+    }
+
+    /**
      * The numbers on Forge or Gerrit of a key of the filters of people.
      * Without a number of the person, these are the numbers of the people of the same name. The index has them
      * until ForgeUserSync joins the person of Gerrit and the one of the issues. A key that is no person's is a

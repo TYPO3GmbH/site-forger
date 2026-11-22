@@ -360,7 +360,8 @@ final readonly class ActivityMapper
     }
 
     /**
-     * The person without the email: the API never shows one, see AGENTS.md.
+     * The person without the email: the API never shows one, see AGENTS.md. The username comes from the index of
+     * the users.
      */
     public function person(?Person $person): ?ActivityPerson
     {
@@ -373,7 +374,26 @@ final readonly class ActivityMapper
             default => $person->name,
         };
 
-        return new ActivityPerson($person->name, $person->forgeId, $person->gerritId, $key, $this->avatar($person));
+        return new ActivityPerson(
+            $person->name,
+            $person->forgeId,
+            $person->gerritId,
+            $key,
+            $this->avatar($person),
+            $this->usernameOf($person),
+        );
+    }
+
+    /**
+     * The username as the index of the users has it, where Forger joins the accounts: an event may not know it.
+     */
+    private function usernameOf(Person $person): ?string
+    {
+        if (null === $person->forgeId && null === $person->gerritId) {
+            return $person->username;
+        }
+
+        return $this->users->personOf($this->users->keyOfPerson($person))->username ?? $person->username;
     }
 
     private function personOfKey(?string $key): ?ActivityPerson
@@ -392,6 +412,7 @@ final readonly class ActivityMapper
             $person->gerritId,
             $key,
             $this->avatar($person),
+            $person->username,
         );
     }
 

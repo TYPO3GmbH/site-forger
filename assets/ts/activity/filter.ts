@@ -6,6 +6,8 @@ import type { PickedDays } from './days';
 import { icon, kinds, sources } from './definitions';
 import { dayKey, formatNumber } from './format';
 import { handledByPage, LightElement, sendChange } from './light-element';
+import './person-search';
+import type { FoundPerson } from './person-search';
 import { applyChange, pageParameters, withQuery, type ActivityChange, type ActivityState } from './state';
 import type { ActivityCount, ActivityPerson, Kind, Range } from './types';
 
@@ -15,6 +17,8 @@ const RANGES: { value: Range; label: string; title: string }[] = [
     { value: '6m', label: '6 m', title: 'The last 6 months' },
     { value: '1y', label: '1 y', title: 'The last year' },
 ];
+
+const RESET: ActivityChange = { source: null, kinds: [], branch: null, person: null, following: false, bots: false };
 
 const REVIEW_LOAD: ActivityChange = { kinds: ['voted', 'merged'], source: 'gerrit' };
 
@@ -31,6 +35,11 @@ export class ActivityFilter extends LightElement {
     @property({ attribute: false }) branches: ActivityCount[] = [];
     @property({ attribute: false }) person: ActivityPerson | null = null;
     @property({ attribute: 'page-url' }) pageUrl = '';
+    @property({ attribute: 'people-url' }) peopleUrl = '';
+    /**
+     * The people the logged-in user follows, null for a guest.
+     */
+    @property({ attribute: false }) followed: FoundPerson[] | null = null;
 
     protected override render(): TemplateResult {
         return this.section === 'time' ? this.renderTime() : this.renderFilters();
@@ -87,7 +96,7 @@ export class ActivityFilter extends LightElement {
     private renderFilters(): TemplateResult {
         const state = this.state;
         const filtered = state.source !== null || state.kinds.length > 0 || state.branch !== null
-            || state.person !== null;
+            || state.person !== null || state.following;
 
         return html`
             <div class="stream-filterbar">
@@ -148,33 +157,94 @@ export class ActivityFilter extends LightElement {
                     `,
                 )}
 
-                ${state.person === null ? nothing : html`
-                    <span class="stream-menu-button is-active stream-person">
-                        ${this.person === null ? nothing : html`
-                            <img class="avatar" src=${this.person.avatar} width="20" height="20" alt="">
-                        `}
-                        <span>${this.person?.name ?? state.person}</span>
-                        <a
-                            href=${this.href({ person: null })}
-                            title="Show the activity of everybody"
-                            @click=${(event: MouseEvent) => handledByPage(event, this, { person: null })}
-                        >${icon('actions-close')}<span class="sr-only">Show the activity of everybody</span></a>
-                    </span>
-                `}
+                ${this.renderPeople()}
 
                 ${filtered ? html`
                     <a
                         class="stream-reset"
-                        href=${this.href({ source: null, kinds: [], branch: null, person: null, bots: false })}
+                        href=${this.href(RESET)}
                         @click=${(event: MouseEvent) => handledByPage(
                             event,
                             this,
-                            { source: null, kinds: [], branch: null, person: null, bots: false },
+                            RESET,
                         )}
                     >Reset</a>
                 ` : nothing}
             </div>
         `;
+    }
+
+    /**
+     * The menu of people: a search, everybody, and for a logged-in user the people followed, all of them at once
+     * or one of them.
+     */
+    private renderPeople(): TemplateResult {
+        const state = this.state;
+        const followed = this.followed;
+        const isPicked = (person: FoundPerson): boolean => state.person !== null
+            && (person.key === state.person || (person.keys ?? []).includes(state.person));
+        const picked = state.person === null ? null : (followed?.find(isPicked) ?? {
+            key: state.person,
+            name: this.person?.name ?? state.person,
+            avatar: this.person?.avatar ?? null,
+        });
+
+        return menu(
+            {
+                label: picked !== null
+                    ? html`<span class="stream-menu-person">${avatar(picked.avatar, 18)}${picked.name}</span>`
+                    : (state.following ? 'People I follow' : 'All people'),
+                name: 'People',
+                icon: picked === null ? 'actions-users' : undefined,
+                active: picked !== null || state.following,
+                panel: 'stream-people-panel',
+                focus: 'forger-person-search input',
+            },
+            html`
+                <forger-person-search
+                    search-url=${this.peopleUrl}
+                    label="Search people"
+                    placeholder="Search by name"
+                    @person-picked=${(event: CustomEvent<FoundPerson>) => this.pickPerson(event)}
+                ></forger-person-search>
+                <hr class="stream-menu-divider">
+                ${this.choice(
+                    html`<span class="stream-menu-icon">${icon('actions-users')}</span>Everybody`,
+                    { person: null, following: false },
+                    picked === null && !state.following,
+                )}
+                ${followed === null || followed.length === 0 ? nothing : this.choice(
+                    html`
+                        <span class="stream-menu-icon">${icon('actions-eye')}</span>
+                        Everyone I follow
+                        <span class="stream-menu-count">${followed.length}</span>
+                    `,
+                    { following: true },
+                    state.following,
+                )}
+                ${picked === null || followed?.some(isPicked) ? nothing : html`
+                    <hr class="stream-menu-divider">
+                    <span class="stream-menu-label">Picked</span>
+                    ${this.choice(html`${avatar(picked.avatar, 20)}${picked.name}`, { person: picked.key }, true)}
+                `}
+                ${followed === null ? nothing : html`
+                    <hr class="stream-menu-divider">
+                    <span class="stream-menu-label">You follow</span>
+                    ${followed.length === 0
+                        ? html`<span class="stream-menu-note">Nobody yet. Pick a person and choose “Follow”.</span>`
+                        : followed.map(person => this.choice(
+                            html`${avatar(person.avatar, 20)}${person.name}`,
+                            { person: person.key },
+                            isPicked(person),
+                        ))}
+                `}
+            `,
+        );
+    }
+
+    private pickPerson(event: CustomEvent<FoundPerson>): void {
+        sendChange(this, { person: event.detail.key });
+        closeMenu(event.currentTarget as HTMLElement);
     }
 
     private segment(
@@ -240,6 +310,12 @@ export class ActivityFilter extends LightElement {
         return event => handledByPage(event, this, change);
     }
 
+}
+
+function avatar(url: string | null, size: number): TemplateResult | typeof nothing {
+    return url === null
+        ? nothing
+        : html`<img class="avatar" src=${url} width=${size} height=${size} alt="" loading="lazy">`;
 }
 
 function toggled(kinds: Kind[], kind: Kind): Kind[] {

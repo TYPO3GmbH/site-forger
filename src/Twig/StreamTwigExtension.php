@@ -38,7 +38,8 @@ final class StreamTwigExtension
      *     }>,
      *     newcomerStates: list<array{value: string, label: string, severity: string}>,
      *     reviewTypes: list<array{value: string, severity: string}>,
-     *     firstYear: int
+     *     firstYear: int,
+     *     profileUrl: string
      * }
      */
     #[AsTwigFunction(name: 'stream_definitions')]
@@ -79,6 +80,8 @@ final class StreamTwigExtension
                 ReviewTypeEnum::cases(),
             ),
             'firstYear' => ActivityFilters::FIRST_YEAR,
+            // "%s" stands for the username, see LinkTwigExtension::typo3ProfileUrl()
+            'profileUrl' => LinkTwigExtension::TYPO3_PROFILE,
         ];
     }
 }

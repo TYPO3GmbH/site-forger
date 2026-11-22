@@ -35,6 +35,12 @@ final readonly class ActivityPerson
             example: 'https://www.gravatar.com/avatar/d41d8cd98f00b204e9800998ecf8427e?s=48&d=mp',
         )]
         public string $avatar,
+        #[OA\Property(
+            description: 'The username of the TYPO3 account, the same on Forge, Gerrit and my.typo3.org, where '
+                . '"https://my.typo3.org/u/<username>" is the public profile. Null when not known.',
+            example: 'jdoe',
+        )]
+        public ?string $username = null,
     ) {
     }
 }

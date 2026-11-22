@@ -1,0 +1,56 @@
+{#
+ # The card of a person: the avatar, the name and the username, what the person did in the range as the statistics
+ # count it, and the events per week. The name links to the activity of the person in the same range, the username
+ # to the profile on my.typo3.org. Cards stand in a list "person-cards", see assets/css/module/_person-card.scss.
+ # Expects: person (key, name, avatar, username, like App\People\FollowedPerson), activity
+ #          (App\People\PersonActivity or null), range (App\Enum\StreamRangeEnum)
+ # Block "action": a control on the right of the name, like the button to stop following
+ #}
+{% set filter = {'person': person.key, 'range': range.value} %}
+<article class="person-card" aria-label="{{ person.name }}">
+    <header class="person-card-head">
+        <a class="person-card-avatar" href="{{ path('activity_index', filter) }}" tabindex="-1" aria-hidden="true">
+            {% if person.avatar %}
+                <img class="avatar" src="{{ person.avatar }}" width="40" height="40" alt="" loading="lazy">
+            {% endif %}
+        </a>
+        <div class="person-card-names">
+            <a class="person-card-name" href="{{ path('activity_index', filter) }}">{{ person.name }}</a>
+            {% if person.username %}
+                <a class="person-card-username" href="{{ typo3_profile_url(person.username) }}" target="_blank"
+                   rel="noopener" title="The profile of {{ person.name }} on my.typo3.org">
+                    {{- person.username }} {{ icon('actions-window-open') -}}
+                </a>
+            {% endif %}
+        </div>
+        {% block action %}{% endblock %}
+    </header>
+    {% if activity %}
+        <dl class="person-card-figures">
+            {% for figure in [
+                {'label': 'reviews', 'title': 'Votes and comments in Gerrit', 'value': activity.reviews},
+                {'label': 'patch sets', 'title': 'New changes and patch sets in Gerrit', 'value': activity.patches},
+                {'label': 'issues', 'title': 'Issues created on Forge', 'value': activity.issues},
+                {'label': 'comments', 'title': 'Comments on Forge issues', 'value': activity.comments},
+            ] %}
+                <div class="person-card-figure" title="{{ figure.title }}">
+                    <dt>{{ figure.label }}</dt>
+                    <dd>{{ figure.value|number_format }}</dd>
+                </div>
+            {% endfor %}
+        </dl>
+        {% if activity.events > 0 %}
+            {% set line = activity.sparkline %}
+            <svg class="stream-sparkline person-card-line" viewBox="0 0 100 30" preserveAspectRatio="none" role="img"
+                 aria-label="{{ activity.events }} events in the last {{ range.label }}, per week">
+                <polygon points="{{ line.area }}"></polygon>
+                <polyline points="{{ line.line }}"></polyline>
+            </svg>
+            <div class="person-card-axis" aria-hidden="true">
+                <span>{{ range.label }} ago</span><span>now</span>
+            </div>
+        {% else %}
+            <p class="person-card-quiet">No activity in the last {{ range.label }}.</p>
+        {% endif %}
+    {% endif %}
+</article>

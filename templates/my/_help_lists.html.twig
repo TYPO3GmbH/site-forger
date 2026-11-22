@@ -1,0 +1,36 @@
+{#
+ # The work of the people the user follows that needs help. "Show all" opens the search with the same filters, see
+ # OverviewQuery.
+ # Expects: help (owner, review and issues: SearchResults; ownerFilters, reviewFilters and issuesFilters: the
+ #          filters of the search; issueDays)
+ #}
+{% set list = '_partials/short_list.html.twig' %}
+<div class="overview-lists">
+    {% include list with {
+        'id': 'help-owner',
+        'title': 'Stuck',
+        'url': path('search_changes', {'filters': help.ownerFilters}),
+        'text': 'Their changes with a negative vote, a merge conflict or unresolved comments.',
+        'items': help.owner,
+        'kind': 'change',
+        'empty': 'None of their changes is stuck.',
+    } only %}
+    {% include list with {
+        'id': 'help-review',
+        'title': 'Without a review',
+        'url': path('search_changes', {'filters': help.reviewFilters}),
+        'text': 'Their changes that nobody reviewed yet. A first review helps most.',
+        'items': help.review,
+        'kind': 'change',
+        'empty': 'All of their changes have a review.',
+    } only %}
+    {% include list with {
+        'id': 'help-issues',
+        'title': 'Issues without an answer',
+        'url': path('search_search', {'filters': help.issuesFilters}),
+        'text': 'Their issues that are still new after ' ~ help.issueDays ~ ' days.',
+        'items': help.issues,
+        'kind': 'issue',
+        'empty': 'Somebody looked at all of their issues.',
+    } only %}
+</div>

@@ -1,0 +1,136 @@
+{#
+ # What waits in My Work of the user logged in: per part the number, the first rows to act on, and the link to all of
+ # it. A user without interests or without people followed finds the way to add them. A change or issue shows in
+ # one card only, see App\People\PersonalRows.
+ # Expects: personal (App\People\PersonalFigures)
+ #}
+{% import '_macros/section.html.twig' as section %}
+
+{#
+ # A number with its noun: "1 change", "2 changes".
+ #}
+{% macro count(number, one, many) -%}
+    {{ number|number_format }} {{ number == 1 ? one : many }}
+{%- endmacro %}
+
+{#
+ # A card: the title with the number and the link to all, a line on what the number counts, the first rows. The
+ # heads of the cards in a row are of the same height, and the rows are two lines high and never wrap.
+ # tone: the color of the number, see ".personal-card" in assets/css/module/_dashboard.scss
+ # facts: what the number counts, a list of short texts
+ # start: without anything set up, what to set up and the link to do so: text, url and label
+ # known: what all rows have in common, left out of them, see _partials/row/
+ # issueSize: the size of the rows of the issues, "s" shows the author
+ #}
+{% macro card(id, tone, title, count, url, facts, rows, empty, start = null, known = [], issueSize = 'xs') %}
+    <section class="overview-list personal-card is-{{ tone }}" aria-labelledby="{{ id }}">
+        <header class="personal-card-head">
+            <h3 class="overview-list-title" id="{{ id }}">
+                {{- title }}{% if start is null %} <span class="overview-list-count">{{ count }}</span>{% endif -%}
+            </h3>
+            {% if start is null %}
+                <a class="overview-list-all" href="{{ url }}">Show all</a>
+                <p class="personal-card-text">{{ facts|join(' · ') }}</p>
+            {% endif %}
+        </header>
+        {% if start is not null %}
+            <div class="personal-card-empty">
+                <p>{{ start.text }}</p>
+                <a class="btn btn-default btn-sm" href="{{ start.url }}">
+                    {{- icon('actions-plus') }} {{ start.label -}}
+                </a>
+            </div>
+        {% elseif rows is empty %}
+            <div class="personal-card-empty">
+                <p>{{ icon('actions-check') }} {{ empty }}</p>
+            </div>
+        {% else %}
+            <ul class="overview-list-items">
+                {% for row in rows %}
+                    <li>
+                        {% if row.kind == 'change' %}
+                            {% include '_partials/row/change.html.twig' with {
+                                'change': row.item,
+                                'size': 'xs',
+                                'known': known,
+                            } only %}
+                        {% else %}
+                            {% include '_partials/row/issue.html.twig' with {
+                                'issue': row.item,
+                                'size': issueSize,
+                            } only %}
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+{% endmacro %}
+
+{% import _self as forYou %}
+<div class="overview-personal">
+    {{ section.heading(
+        'For you',
+        'overview-personal-title',
+        'What you can do next.',
+        {'url': path('my_overview'), 'label': 'My Work'},
+    ) }}
+    <div class="overview-lists is-personal">
+        {# The changes are the own ones, so their rows do not name the owner #}
+        {{ forYou.card(
+            'overview-personal-waiting',
+            'waiting',
+            'Waiting for you',
+            personal.waiting,
+            path('my_overview'),
+            [
+                forYou.count(personal.waitingChanges, 'change needs', 'changes need') ~ ' a step',
+                forYou.count(personal.assignedIssues, 'issue', 'issues') ~ ' assigned',
+            ],
+            personal.waitingRows,
+            'Nothing waits for you.',
+            null,
+            ['owner'],
+        ) }}
+        {{ forYou.card(
+            'overview-personal-interests',
+            'interests',
+            'Your interests',
+            personal.reviewable + personal.newIssues,
+            path('my_interests'),
+            [
+                forYou.count(personal.reviewable, 'change', 'changes') ~ ' to review',
+                forYou.count(personal.newIssues, 'new issue', 'new issues'),
+            ],
+            personal.interestRows,
+            'Nothing of your interests waits for you. Thank you!',
+            personal.interests > 0 ? null : {
+                'text': 'Name the files and categories you care for, and see the changes and issues of them.',
+                'url': path('my_interests_new'),
+                'label': 'Add an interest',
+            },
+        ) }}
+        {# An issue names its author: the person followed #}
+        {{ forYou.card(
+            'overview-personal-following',
+            'following',
+            'People you follow',
+            personal.needingHelp,
+            path('my_following'),
+            [
+                personal.stuck|number_format ~ ' stuck',
+                personal.unreviewed|number_format ~ ' without a review',
+                personal.unanswered|number_format ~ ' without an answer',
+            ],
+            personal.helpRows,
+            'Nobody you follow needs help right now.',
+            personal.followed > 0 ? null : {
+                'text': 'Follow the people you mentor or work with, and see where they need help.',
+                'url': path('my_following_manage'),
+                'label': 'Follow people',
+            },
+            [],
+            's',
+        ) }}
+    </div>
+</div>

@@ -1,7 +1,7 @@
 {#
  # The frame of a page of the activity: <forger-activity> renders the filter and the view with the API, and keeps the
  # filter in the address, see assets/ts/activity/activity.ts. The stream is on /activity, the statistics are on
- # /statistics.
+ # /statistics. A logged-in user can follow the person of the filter, see App\Controller\FollowController.
  # Expects: view ('stream' or 'statistics')
  #}
 <forger-activity
@@ -14,6 +14,13 @@
     days-api-url="{{ path('api_v1_activity_days') }}"
     newcomers-api-url="{{ path('api_v1_activity_newcomers') }}"
     closed-years-api-url="{{ path('api_v1_activity_closed_years') }}"
+    people-url="{{ path('activity_people') }}"
+    {% if is_granted('ROLE_USER') %}
+        follow-url="{{ path('my_following_state') }}"
+        follow-token="{{ csrf_token(constant('App\\Controller\\FollowController::CSRF_TOKEN_ID')) }}"
+        followed-url="{{ path('my_following_people') }}"
+        manage-url="{{ path('my_following') }}"
+    {% endif %}
 >
     <noscript>
         <p class="stream-empty">

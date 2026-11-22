@@ -63,6 +63,15 @@
         </div>
     {% endframe %}
 
+    {# The own work of who is logged in, in a band of its own: white as the merges below it, a line between them #}
+    {% if personal is not null %}
+        {% frame with {'color': 'white', 'rulerAfter': true} %}
+            <div class="overview">
+                {% include 'dashboard/_for_you.html.twig' with {'personal': personal} only %}
+            </div>
+        {% endframe %}
+    {% endif %}
+
     {# The merges right below the figures, as thanks and as a spur: what the people of the Core got done, and the
        invitation to be next #}
     {% frame with {'color': 'white'} %}

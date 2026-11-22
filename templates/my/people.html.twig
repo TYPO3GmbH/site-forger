@@ -1,0 +1,140 @@
+{#
+ # The people the user follows, to add and to remove them, and the new contributors to follow. The search adds a
+ # person, as the button "Follow" of the activity does, see assets/ts/activity/person-search.ts and follow.ts.
+ # Expects: people (list of App\People\FollowedPerson, with their activity), range (StreamRangeEnum of it), newcomers
+ #          (list of App\People\SuggestedPerson), limit, csrfTokenId, searchUrl
+ #}
+{% extends 'base.html.twig' %}
+{% block title %}People you follow{% endblock %}
+
+{#
+ # A form that follows the person or stops following it.
+ #}
+{% macro followForm(person, csrfTokenId, follow) %}
+    <form method="post" action="{{ path('my_following_set') }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(csrfTokenId) }}">
+        <input type="hidden" name="person" value="{{ person.key }}">
+        <input type="hidden" name="following" value="{{ follow ? 1 : 0 }}">
+        {% if follow %}
+            <button type="submit" class="stream-follow" title="Follow {{ person.name }}">
+                {{ icon('actions-eye') }}<span class="stream-follow-label">Follow</span>
+            </button>
+        {% else %}
+            {% set stop = 'Stop following ' ~ person.name %}
+            <button type="submit" class="mywork-following-remove" title="{{ stop }}">
+                {{ icon('actions-close') }}<span class="sr-only">{{ stop }}</span>
+            </button>
+        {% endif %}
+    </form>
+{% endmacro %}
+
+{% block breadcrumb %}
+    {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+    {{ breadcrumb.trail([
+        {'label': 'My Work', 'url': path('my_overview')},
+        {'label': 'Following', 'url': path('my_following')},
+        {'label': 'People you follow'},
+    ]) }}
+{% endblock %}
+
+{% block body %}
+    {% import _self as people_page %}
+    {% import '_macros/section.html.twig' as section %}
+    <div class="content-section content-section-small mywork mywork-view-following">
+        <div class="container">
+            <header class="mywork-people-head">
+                <div>
+                    <h1 class="mywork-interest-title">People you follow</h1>
+                    <p class="mywork-people-lead">
+                        Following shows where they need help and what they did. Only you see whom you follow.
+                    </p>
+                </div>
+                {% if people|length < limit %}
+                    <form class="mywork-following-add" method="post" action="{{ path('my_following_set') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token(csrfTokenId) }}">
+                        <input type="hidden" name="following" value="1">
+                        <input type="hidden" name="person" value="">
+                        <forger-person-search
+                            search-url="{{ searchUrl }}"
+                            label="Add a person"
+                            placeholder="Add a person by name or username"
+                            submit
+                        ></forger-person-search>
+                    </form>
+                {% endif %}
+            </header>
+
+            {% for message in app.flashes('danger') %}
+                <p class="alert alert-danger" role="alert">{{ message }}</p>
+            {% endfor %}
+
+            <section class="mywork-section" aria-labelledby="people-title">
+                {{ section.heading(
+                    'You follow ' ~ people|length ~ ' of ' ~ limit,
+                    'people-title',
+                    'What they did in the last ' ~ range.label ~ '.',
+                    {'url': path('static_help') ~ '#person-cards', 'label': 'What the figures count'},
+                ) }}
+                {% if people is empty %}
+                    <p class="mywork-note">
+                        You follow nobody yet. Search a person above, pick one of the new contributors below, or open
+                        a person in the <a href="{{ path('activity_index') }}">activity</a> and choose “Follow”.
+                    </p>
+                {% else %}
+                    <ul class="person-cards">
+                        {% for person in people %}
+                            <li>
+                                {% embed '_partials/person_card.html.twig' with {
+                                    'person': person,
+                                    'activity': person.activity,
+                                    'range': range,
+                                    'csrfTokenId': csrfTokenId,
+                                } only %}
+                                    {% block action %}
+                                        {% import 'my/people.html.twig' as people_page %}
+                                        {{ people_page.followForm(person, csrfTokenId, false) }}
+                                    {% endblock %}
+                                {% endembed %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </section>
+
+            {% if newcomers is not empty %}
+                <section class="mywork-section" aria-labelledby="people-newcomers-title">
+                    {{ section.heading(
+                        'New contributors',
+                        'people-newcomers-title',
+                        'Their first steps in the last 30 days. A mentor helps them most now.',
+                    ) }}
+                    <ul class="mywork-suggestions is-grid is-quiet">
+                        {% for person in newcomers %}
+                            <li class="mywork-suggestion">
+                                {% set activityUrl = path('activity_index', {'person': person.key}) %}
+                                <a class="mywork-suggestion-person" href="{{ activityUrl }}">
+                                    {% if person.avatar %}
+                                        <img class="avatar" src="{{ person.avatar }}" width="32" height="32"
+                                             alt="" loading="lazy">
+                                    {% endif %}
+                                    <span class="mywork-following-text">
+                                        <span class="mywork-following-person-name">{{ person.name }}</span>
+                                        <span class="mywork-following-meta">
+                                            {{- person.step -}}
+                                            {%- if person.date is not null -%}
+                                                {{ ' · ' }}{{ relativetime(person.date) }}
+                                            {%- endif -%}
+                                        </span>
+                                    </span>
+                                </a>
+                                {{ people_page.followForm(person, csrfTokenId, true) }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endif %}
+        </div>
+    </div>
+    {# The icons of the search #}
+    {% include 'stream/_definitions.html.twig' %}
+{% endblock %}

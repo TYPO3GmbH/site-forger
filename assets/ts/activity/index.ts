@@ -4,3 +4,4 @@
  */
 import './activity';
 import './stream';
+import './person-search';

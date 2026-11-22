@@ -18,6 +18,8 @@ export interface ActivityPerson {
     gerritId: number | null;
     key: string;
     avatar: string;
+    /** The username of the TYPO3 account, null when not known */
+    username: string | null;
 }
 
 export interface ActivityEvent {

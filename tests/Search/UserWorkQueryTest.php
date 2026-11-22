@@ -15,10 +15,12 @@ use App\Enum\IssueSortEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
+use App\Enum\WaitingForEnum;
 use App\Search\IssueSearch;
 use App\Search\ReviewSearch;
 use App\Search\ReviewSortQuery;
 use App\Search\UserWorkQuery;
+use App\Search\WaitingQuery;
 use PHPUnit\Framework\TestCase;
 
 final class UserWorkQueryTest extends TestCase
@@ -151,5 +153,20 @@ final class UserWorkQueryTest extends TestCase
 
         self::assertArrayNotHasKey('should', $request['query']['bool']);
         self::assertEquals([['match_all' => new \stdClass()]], $request['query']['bool']['must_not']);
+    }
+
+    public function testTheOverviewListsTheOwnChangesThatWaitForTheOwnerAndTheIssuesAssigned(): void
+    {
+        $query = new UserWorkQuery('me@example.org', 'Me', gerritIds: [9], forgeIds: [7]);
+
+        $changes = $query->changesWaitingForOwner(5)['query']['bool']['filter'];
+        self::assertSame(5, $query->changesWaitingForOwner(5)['size']);
+        self::assertSame(['terms' => ['owner_id' => [9]]], $changes[0]['bool']['should'][0]);
+        self::assertSame(WaitingQuery::changes(WaitingForEnum::OWNER), $changes[1]);
+
+        $issues = $query->assignedIssues(5)['query']['bool'];
+        $identity = $issues['filter'][0]['bool']['should'];
+        self::assertSame(['terms' => ['assigned_to.id' => [7]]], $identity[0]);
+        self::assertCount(2, $identity);
     }
 }

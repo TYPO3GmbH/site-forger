@@ -1,9 +1,10 @@
 {#
- # The frame of the two views of My Work: the switch between the Gerrit changes and the issues, named as the
- # tabs of the search and the menu: "Reviews" and "Issues",
- # the search in it. Whether closed work is shown says the checkbox in the search, as in the search. Who the work is
- # found for only an empty list says, as the rows say how they belong to the person.
- # Expects: view ("changes" or "issues"), email, name, includeClosed, query, openChanges, openIssues
+ # The frame of the views of My Work: the overview, the switch between the Gerrit changes and the issues, named as
+ # the tabs of the search and the menu: "Reviews" and "Issues", the interests of the user, and the people the user
+ # follows, the search in it. Whether closed work is shown says the checkbox in the search, as in the search. Who
+ # the work is found for only an empty list says, as the rows say how they belong to the person.
+ # Expects: view ("overview", "changes", "issues", "interests" or "following"), email, name, includeClosed, query,
+ # openChanges, openIssues, followingCount
  #}
 {% extends 'base.html.twig' %}
 {% block title %}My Work{% endblock %}
@@ -39,10 +40,15 @@
     {% set queryParams = (query ?? '') is not empty ? {'query': query} : {} %}
     <div class="content-section content-section-small mywork mywork-view-{{ view }}">
         <div class="container">
-            {# No orange band, as on the search: the tabs say where the page is #}
+            {# No orange band, as on the search: the breadcrumb and the tabs say where the page is #}
             <h1 class="sr-only">My Work</h1>
 
             <nav class="view-tabs" aria-label="My Work">
+                <a href="{{ path('my_overview') }}" class="view-tab is-overview{{ view == 'overview' ? ' is-active' }}"
+                   {%- if view == 'overview' %} aria-current="page"{% endif %}>
+                    {{ icon('actions-viewmode-tiles') }}
+                    <span>Overview</span>
+                </a>
                 <a href="{{ path('my_changes', queryParams) }}" class="view-tab is-changes{{ view == 'changes' ? ' is-active' }}"{% if view == 'changes' %} aria-current="page"{% endif %}>
                     {{ icon('actions-code-pull-request') }}
                     <span>Reviews</span>
@@ -52,6 +58,17 @@
                     {{ icon('actions-list') }}
                     <span>Issues</span>
                     <span class="view-tab-count" title="{{ queryParams is empty ? 'Open issues' : 'Open issues found' }}">{{ openIssues }}</span>
+                </a>
+                <a href="{{ path('my_interests') }}" class="view-tab is-interests{{ view == 'interests' ? ' is-active' }}"
+                   {%- if view == 'interests' %} aria-current="page"{% endif %}>
+                    {{ icon('actions-filter') }}
+                    <span>Interests</span>
+                </a>
+                <a href="{{ path('my_following') }}" class="view-tab is-following{{ view == 'following' ? ' is-active' }}"
+                   {%- if view == 'following' %} aria-current="page"{% endif %}>
+                    {{ icon('actions-users') }}
+                    <span>Following</span>
+                    <span class="view-tab-count" title="People you follow">{{ followingCount }}</span>
                 </a>
             </nav>
 

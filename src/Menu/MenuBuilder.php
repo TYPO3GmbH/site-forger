@@ -60,9 +60,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         // The work first: the own one, then the lists. Get involved stands beside Help, see mainProfile().
         $menu->addChild(self::HOME, ['label' => 'Dashboard', 'route' => 'dashboard_index']);
         if ($this->authorizationChecker->isGranted('IS_AUTHENTICATED_FULLY')) {
-            $myWork = $menu->addChild('my_work', ['label' => 'My Work', 'route' => 'my_changes']);
-            $this->addLink($myWork, 'my_changes', 'My reviews', 'my_changes', 'actions-code-pull-request');
-            $this->addLink($myWork, 'my_issues', 'My issues', 'my_issues', 'actions-list');
+            $this->addMyWork($menu->addChild('my_work', ['label' => 'My Work', 'route' => 'my_overview']));
         }
 
         // A click on "Reviews" or "Issues" opens their search, all open ones without search words: the entry page,
@@ -147,6 +145,18 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
     }
 
     /**
+     * The views of My Work: in the main menu and in the menu of the account.
+     */
+    private function addMyWork(ItemInterface $parent): void
+    {
+        $this->addLink($parent, 'my_overview', 'Overview', 'my_overview', 'actions-viewmode-tiles');
+        $this->addLink($parent, 'my_changes', 'Reviews', 'my_changes', 'actions-code-pull-request');
+        $this->addLink($parent, 'my_issues', 'Issues', 'my_issues', 'actions-list');
+        $this->addLink($parent, 'my_interests', 'Interests', 'my_interests', 'actions-filter');
+        $this->addLink($parent, 'my_following', 'Following', 'my_following', 'actions-users');
+    }
+
+    /**
      * A heading of a group in a dropdown: an item without a link, rendered as label only.
      */
     private function addHeader(ItemInterface $parent, string $label): void
@@ -212,6 +222,11 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                     ],
                 ]
             );
+            // The own pages first, as on other sites the menu of the account
+            $this->addHeader($account, 'My Work');
+            $this->addMyWork($account);
+            $this->addHeader($account, 'Account');
+            $this->addLink($account, 'my_following_manage', 'People you follow', 'my_following_manage', 'actions-user');
             if ($this->isKeycloakSession()) {
                 $this->addAccountItems($account, 't3g_keycloak_logout');
             } else {

@@ -1,0 +1,53 @@
+{#
+ # The work of the people the user follows: where they need help, and what they did in the last 30 days. The
+ # element of the stream loads the events with the parameter "people" of the API. The page of the people adds and
+ # removes them, see FollowController::manage().
+ # Expects: help (see my/_help_lists.html.twig, null without people), followed (the keys of the people), and what
+ #          my/_layout.html.twig expects
+ #}
+{% extends 'my/_layout.html.twig' %}
+{% block title %}Following{% endblock %}
+
+{% block view %}
+    {% import '_macros/section.html.twig' as section %}
+    {% set manage = {'url': path('my_following_manage'), 'label': 'Manage people'} %}
+
+    {% if help is null %}
+        <section class="mywork-following-start" aria-labelledby="following-start-title">
+            <span class="mywork-following-start-icon" aria-hidden="true">{{ icon('actions-users') }}</span>
+            <h2 id="following-start-title" class="mywork-following-start-title">
+                Follow the people you mentor or work with
+            </h2>
+            <p class="mywork-following-start-text">
+                This page then shows where they are stuck or wait for others, and what they did. Only you see whom
+                you follow.
+            </p>
+            <a class="btn btn-primary" href="{{ manage.url }}">{{ icon('actions-plus') }} Find people to follow</a>
+        </section>
+    {% else %}
+        <div class="overview mywork-overview">
+            <section class="mywork-overview-section" aria-labelledby="following-help-title">
+                {{ section.heading(
+                    'Needs help',
+                    'following-help-title',
+                    'Where the people you follow are stuck or wait for others.',
+                    manage,
+                ) }}
+                {% include 'my/_help_lists.html.twig' %}
+            </section>
+
+            <section class="mywork-overview-section" aria-labelledby="following-activity-title">
+                {{ section.heading('Their activity', 'following-activity-title', 'The last 30 days.') }}
+                <forger-activity-stream
+                    api-url="{{ path('api_v1_activity') }}"
+                    stream-url="{{ path('activity_index') }}"
+                    people="{{ followed|join(',') }}"
+                    range="30d"
+                    limit="10"
+                    live
+                ></forger-activity-stream>
+            </section>
+        </div>
+        {% include 'stream/_definitions.html.twig' %}
+    {% endif %}
+{% endblock %}

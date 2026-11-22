@@ -35,6 +35,8 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
 
 function parameters(state: ActivityState): URLSearchParams {
     const parameters = filterParameters(state);
+    // The API knows no user: the page sends the people followed as "people", see ActivityStream
+    parameters.delete('following');
     parameters.set('timeZone', timeZone());
 
     return parameters;
@@ -46,10 +48,14 @@ export function fetchPage(
     limit: number,
     offset: number,
     signal?: AbortSignal,
+    people = '',
 ): Promise<ActivityPage> {
     const query = parameters(state);
     query.set('limit', String(limit));
     query.set('offset', String(offset));
+    if (people !== '') {
+        query.set('people', people);
+    }
 
     return getJson<ActivityPage>(withQuery(apiUrl, query), signal);
 }

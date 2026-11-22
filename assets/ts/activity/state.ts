@@ -13,6 +13,10 @@ export interface ActivityState {
     kinds: Kind[];
     branch: string | null;
     person: string | null;
+    /**
+     * The events of the people the logged-in user follows, in place of one person, see FollowController.
+     */
+    following: boolean;
     bots: boolean;
     split: Split;
     /**
@@ -58,6 +62,7 @@ export function defaultState(view: ActivityState['view'] = 'stream'): ActivitySt
         kinds: [],
         branch: null,
         person: null,
+        following: false,
         bots: false,
         split: 'total',
         timelineInterval: null,
@@ -83,6 +88,7 @@ export function stateFromParameters(parameters: URLSearchParams, view: ActivityS
         kinds: filtered ? Array.from(new Set(kinds)) : [],
         branch: filtered ? parameters.get('branch') || null : null,
         person: filtered ? parameters.get('person') || null : null,
+        following: filtered && parameters.get('person') === null && parameters.get('following') === '1',
         bots: filtered && ['1', 'true'].includes(parameters.get('bots') ?? ''),
         split: oneOf(parameters.get('split'), SPLITS) ?? 'total',
         timelineInterval: oneOf(parameters.get('timeline'), INTERVALS),
@@ -105,6 +111,13 @@ export function applyChange(state: ActivityState, change: ActivityChange): Activ
     if ('range' in change) {
         next.from = null;
         next.to = null;
+    }
+    // One person or the people followed, not both
+    if (change.person) {
+        next.following = false;
+    }
+    if (change.following) {
+        next.person = null;
     }
 
     return next;
@@ -137,6 +150,9 @@ export function filterParameters(state: ActivityState): URLSearchParams {
     }
     if (state.person !== null) {
         parameters.set('person', state.person);
+    }
+    if (state.following) {
+        parameters.set('following', '1');
     }
     if (state.bots) {
         parameters.set('bots', '1');

@@ -82,6 +82,31 @@ class UserRepository
     }
 
     /**
+     * The people whose username starts with the term, for the search of people. Without the people gone.
+     *
+     * @return list<User>
+     */
+    public function byUsernamePrefix(string $term, int $size): array
+    {
+        $term = mb_strtolower(trim($term));
+        if ('' === $term) {
+            return [];
+        }
+        $results = $this->indices->users()->search([
+            'query' => ['bool' => [
+                'filter' => [['prefix' => ['username' => $term]]],
+                'must_not' => [['term' => ['gone' => true]]],
+            ]],
+            'size' => $size,
+        ])->getResults();
+
+        return array_values(array_map(
+            static fn (Result $result): User => User::fromDocument($result->getSource()),
+            $results,
+        ));
+    }
+
+    /**
      * The people with the email among their addresses. Several accounts can share an address.
      *
      * @return list<User>
