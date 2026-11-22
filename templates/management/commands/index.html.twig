@@ -98,17 +98,17 @@
 {% endmacro %}
 
 {% macro logEntries(run, entries) %}
+    {% import '_macros/more.html.twig' as toggles %}
         <div class="runs-log">
             <ol class="runs-log-entries">
                 {% for entry in entries|slice(0, 12) %}{{ _self.logEntry(entry) }}{% endfor %}
             </ol>
             {% if entries|length > 12 %}
-                <details class="runs-log-more">
-                    <summary>{{ entries|length - 12 }} more {{ entries|length - 12 == 1 ? 'entry' : 'entries' }}</summary>
-                    <ol class="runs-log-entries">
-                        {% for entry in entries|slice(12) %}{{ _self.logEntry(entry) }}{% endfor %}
-                    </ol>
-                </details>
+                {% set more = entries|length - 12 %}
+                <ol class="runs-log-entries show-more-rows">
+                    {% for entry in entries|slice(12) %}{{ _self.logEntry(entry) }}{% endfor %}
+                </ol>
+                {{ toggles.toggle('Show ' ~ more ~ ' more ' ~ (more == 1 ? 'entry' : 'entries'), true) }}
             {% endif %}
             {% if run.warningsNotLogged > 0 %}
                 <p class="runs-log-truncated">and {{ run.warningsNotLogged|number_format(0, '.', ',') }} more warnings, not logged</p>

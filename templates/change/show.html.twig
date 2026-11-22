@@ -11,6 +11,7 @@
     {% import '_macros/user.html.twig' as user %}
     {% import '_macros/timeline.html.twig' as timeline %}
     {% import '_macros/copy.html.twig' as copy %}
+    {% import '_macros/more.html.twig' as toggles %}
     {% set tags = change.reviewTags ?? [] %}
     {# A closed change finds itself: the links to the search of the changes find the closed ones, too #}
     {% set closed = change.state.isClosed %}
@@ -90,13 +91,15 @@
                         <section class="detail-section" aria-labelledby="message-title">
                             <h2 id="message-title" class="detail-section-title">Commit message</h2>
                             {% if message is not empty %}
-                                {# A long text collapsed by the expander of the template bundle, the footer below it always #}
                                 {% set parts = commit_message_parts(message) %}
                                 {% set imported = issues|filter(item => item.issue is not null)|map(item => item.id) %}
                                 {% if parts.text is not empty %}
-                                    <div class="detail-message-text">
-                                        {% expand %}<pre class="detail-message">{{ parts.text|link_footer_issues(imported) }}</pre>{% endexpand %}
-                                    </div>
+                                    {# A long text collapsed, the footer below it always #}
+                                    {% set long = parts.text|split("\n")|length > 12 %}
+                                    <pre class="detail-message{{ long ? ' show-more-text' }}">{{ parts.text|link_footer_issues(imported) }}</pre>
+                                    {% if long %}
+                                        {{ toggles.toggle('Show more') }}
+                                    {% endif %}
                                 {% endif %}
                                 {% if parts.footer is not empty %}
                                     <pre class="detail-message detail-message-footer">{{ parts.footer|link_footer_issues(imported) }}</pre>
@@ -186,18 +189,24 @@
                         {% if change.mergeConflicts is not empty %}
                             <section class="detail-section" aria-labelledby="conflicts-title">
                                 <h2 id="conflicts-title" class="detail-section-title">Merge conflicts <span class="detail-count">{{ change.mergeConflicts|length }}</span></h2>
-                                <ul class="row-list detail-chain">
-                                    {% for number in change.mergeConflicts %}
-                                        {% set other = (mergeConflicts ?? {})[number] ?? null %}
-                                        <li>
-                                            {% if other is not null %}
-                                                {% include '_partials/row/change.html.twig' with {'change': other, 'relation': 'Conflicts with this change'} only %}
-                                            {% else %}
-                                                <p class="detail-chain-plain"><a href="{{ gerrit_change_url(number) }}" target="gerrit{{ number }}"><span class="detail-number">{{ number }}</span></a></p>
-                                            {% endif %}
-                                        </li>
-                                    {% endfor %}
-                                </ul>
+                                {# The first ones, the rest on a click: a change of many files conflicts with dozens #}
+                                {% set shown = 5 %}
+                                <div class="row-list">
+                                    <ul class="detail-chain">
+                                        {% for number in change.mergeConflicts|slice(0, shown) %}
+                                            <li>{{ _self.mergeConflict(number, (mergeConflicts ?? {})[number] ?? null) }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% if change.mergeConflicts|length > shown %}
+                                        {% set more = change.mergeConflicts|length - shown %}
+                                        <ul class="show-more-rows detail-chain">
+                                            {% for number in change.mergeConflicts|slice(shown) %}
+                                                <li>{{ _self.mergeConflict(number, (mergeConflicts ?? {})[number] ?? null) }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                        {{ toggles.toggle('Show ' ~ more ~ ' more ' ~ (more == 1 ? 'change' : 'changes'), true) }}
+                                    {% endif %}
+                                </div>
                             </section>
                         {% endif %}
 
@@ -232,21 +241,19 @@
                                     </ul>
                                     {% if files|length > shown %}
                                         {% set more = files|length - shown %}
-                                        <details class="detail-files-more">
-                                            <summary>Show {{ more }} more {{ more == 1 ? 'file' : 'files' }}</summary>
-                                            <ul>
-                                                {% for file in files|slice(shown) %}
-                                                    <li>{{ _self.file(
-                                                        file,
-                                                        closed,
-                                                        fileDetails[file] ?? null,
-                                                        change.hasConflict(file),
-                                                        change.commentCountOf(file),
-                                                        change,
-                                                    ) }}</li>
-                                                {% endfor %}
-                                            </ul>
-                                        </details>
+                                        <ul class="show-more-rows">
+                                            {% for file in files|slice(shown) %}
+                                                <li>{{ _self.file(
+                                                    file,
+                                                    closed,
+                                                    fileDetails[file] ?? null,
+                                                    change.hasConflict(file),
+                                                    change.commentCountOf(file),
+                                                    change,
+                                                ) }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                        {{ toggles.toggle('Show ' ~ more ~ ' more ' ~ (more == 1 ? 'file' : 'files'), true) }}
                                     {% endif %}
                                 </div>
                             {% else %}
@@ -428,6 +435,17 @@
             </li>
         {% endfor %}
     </ol>
+{% endmacro %}
+
+{# A change with a merge conflict: the row of the lists when Forger has it, else its number leading to Gerrit #}
+{% macro mergeConflict(number, indexed) %}
+    {% if indexed is not null %}
+        {% include '_partials/row/change.html.twig' with {'change': indexed} only %}
+    {% else %}
+        <p class="detail-chain-plain">
+            <a href="{{ gerrit_change_url(number) }}" target="gerrit{{ number }}"><span class="detail-number">{{ number }}</span></a>
+        </p>
+    {% endif %}
 {% endmacro %}
 
 {#

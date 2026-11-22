@@ -1287,21 +1287,6 @@ a.runs-job {
     }
 }
 
-.runs-log-more {
-    border-top: 1px solid #eef0f2;
-
-    > summary {
-        padding: .35rem .85rem;
-        color: #2a78d6;
-        font-size: .75rem;
-        cursor: pointer;
-    }
-
-    .runs-log-entries {
-        border-top: 1px solid #eef0f2;
-    }
-}
-
 .runs-log-truncated {
     margin: 0;
     padding: .35rem .85rem 0;

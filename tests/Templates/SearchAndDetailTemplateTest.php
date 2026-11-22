@@ -585,8 +585,9 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('href="/search/changes?query=caching"', $html);
         self::assertStringContainsString('>BUGFIX</a>', $html);
         // #12 is not imported: no link to a page Forger does not have
-        // The text in the expander of the template bundle, the footer below it, outside
-        self::assertMatchesRegularExpression('~<div class="expander-content-inner">\\s*<pre class="detail-message">The cache is cleared.</pre>~', $html);
+        // The text, the footer below it, apart. A short text has no toggle
+        self::assertStringContainsString('<pre class="detail-message">The cache is cleared.</pre>', $html);
+        self::assertStringNotContainsString('show-more', $html);
         self::assertStringContainsString("<pre class=\"detail-message detail-message-footer\">Resolves: <a href=\"/issue/91089\">#91089</a>\nRelated: #12</pre>", $html);
         self::assertStringNotContainsString('Resolves:', explode('detail-message-footer', $html)[0]);
         self::assertStringContainsString('<span class="overview-list-relation">Resolved by this change</span>', $html);
@@ -694,9 +695,9 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         $files = array_map(static fn (int $number): string => sprintf('Classes/File%02d.php', $number), range(1, 23));
         $html = $this->twig->load('change/show.html.twig')->renderBlock('body', ['change' => Change::fromDocument(self::CHANGE + ['files' => $files]), 'message' => '', 'issues' => []]);
 
-        [$shown, $collapsed] = explode('<details class="detail-files-more">', $html);
+        [$shown, $collapsed] = explode('<ul class="show-more-rows', $html);
         self::assertSame(20, substr_count($shown, ': the changes touching this file"'));
-        self::assertStringContainsString('<summary>Show 3 more files</summary>', $collapsed);
+        self::assertStringContainsString('<span class="show-more-closed">Show 3 more files</span>', $collapsed);
         self::assertSame(3, substr_count($collapsed, ': the changes touching this file"'));
         // The order of the tree goes on in the collapsed ones
         self::assertStringContainsString('Classes/File20.php', $shown);
@@ -706,7 +707,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('<span class="detail-file-folder">Classes/</span><span class="detail-file-name">File01.php</span>', $shown);
 
         $html = $this->twig->load('change/show.html.twig')->renderBlock('body', ['change' => Change::fromDocument(self::CHANGE + ['files' => array_slice($files, 0, 20)]), 'message' => '', 'issues' => []]);
-        self::assertStringNotContainsString('detail-files-more', $html);
+        self::assertStringNotContainsString('show-more', $html);
     }
 
     public function testAChangeShowsEachLabelWithItsVotesItsFilesWithTheirLinesAndItsReviewLog(): void
@@ -872,9 +873,43 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
 
         self::assertStringContainsString('Merge conflicts <span class="detail-count">2</span>', $html);
         self::assertStringContainsString('href="/change/95192"', $html);
-        self::assertStringContainsString('Conflicts with this change', $html);
+        // The title of the section says how they belong to the change, the rows do not repeat it
+        self::assertStringNotContainsString('overview-list-relation', $html);
         // Not in Forger: its number leads to Gerrit
         self::assertStringContainsString('target="gerrit94029"', $html);
+        self::assertStringNotContainsString('show-more', $html);
+    }
+
+    public function testALongCommitMessageIsCollapsed(): void
+    {
+        $html = $this->twig->load('change/show.html.twig')->renderBlock('body', [
+            'change' => Change::fromDocument(self::CHANGE),
+            'message' => implode("\n", array_fill(0, 13, 'A line of the text.')) . "\n\nResolves: #91089",
+            'issues' => [],
+        ]);
+
+        self::assertStringContainsString('<pre class="detail-message show-more-text">', $html);
+        self::assertStringContainsString('<span class="show-more-closed">Show more</span>', $html);
+        // The footer stays in sight, below the toggle
+        self::assertLessThan(strpos($html, 'detail-message-footer'), strpos($html, '<details class="show-more">'));
+    }
+
+    public function testTheMergeConflictsAfterTheFirstFiveAreCollapsed(): void
+    {
+        $html = $this->twig->load('change/show.html.twig')->renderBlock('body', [
+            'change' => Change::fromDocument(self::CHANGE + ['merge_conflicts' => range(95001, 95007)]),
+            'message' => '',
+            'issues' => [],
+        ]);
+
+        [$shown, $collapsed] = explode('<ul class="show-more-rows', $html);
+        self::assertSame(5, substr_count($shown, 'target="gerrit950'));
+        self::assertStringContainsString('<span class="show-more-closed">Show 2 more changes</span>', $collapsed);
+        self::assertSame(2, substr_count($collapsed, 'target="gerrit950'));
+        self::assertStringContainsString('target="gerrit95005"', $shown);
+        self::assertStringContainsString('target="gerrit95006"', $collapsed);
+        // The toggle stays below the rows and closes them again
+        self::assertStringContainsString('<span class="show-more-open">Show less</span>', $collapsed);
     }
 
     public function testAChangeOfAnOlderImportHasNoReviewLog(): void

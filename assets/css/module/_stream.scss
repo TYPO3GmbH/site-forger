@@ -1626,21 +1626,9 @@ forger-activity-newcomers {
     }
 }
 
+// The toggle of the rows, see _show-more.scss
 .stream-newcomers-more {
-    display: inline-flex;
-    gap: .35rem;
-    align-items: center;
     margin-top: .5rem;
-    padding: .35rem 0;
-    border: 0;
-    background: none;
-    color: #0b0b0b;
-    font-size: .875rem;
-    font-weight: 600;
-
-    &[aria-expanded="true"] .icon {
-        transform: rotate(180deg);
-    }
 }
 
 // Who carries the review, see assets/ts/activity/figures.ts: the fewest people who did half of the work
