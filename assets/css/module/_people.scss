@@ -1,0 +1,249 @@
+// The people for the admins, see templates/management/people/: the accounts of a person by source, the accounts
+// linked to it, and the suggestions to check.
+
+.people-search {
+    max-width: 32rem;
+    margin-bottom: 2rem;
+}
+
+.people-heading {
+    margin: 0 0 .5rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.people-lead {
+    margin: 0 0 1rem;
+    color: #4b5563;
+    font-size: .875rem;
+}
+
+.people-none {
+    color: #6b7280;
+    font-style: italic;
+}
+
+.people-person {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+
+    .avatar {
+        flex: none;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+    }
+}
+
+.people-card {
+    margin-bottom: 1.5rem;
+    padding: 1.25rem;
+    border: 1px solid #e6e8eb;
+    border-radius: .75rem;
+    background: #fff;
+    box-shadow: var(--card-shadow);
+
+    .people-search {
+        margin: 1.25rem 0 0;
+    }
+}
+
+// The sources of a document: a label, then what the source tells
+.people-accounts {
+    display: grid;
+    gap: .4rem;
+    margin: 0;
+    font-size: .875rem;
+
+    > div {
+        display: grid;
+        grid-template-columns: 8rem minmax(0, 1fr);
+        gap: .75rem;
+
+        @media (max-width: 575px) {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0;
+        }
+    }
+
+    dt {
+        color: #4b5563;
+        font-weight: 600;
+    }
+
+    dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+    }
+}
+
+.people-linked {
+    padding: 1rem 0;
+    border-top: 1px solid #f0f1f3;
+
+    &:first-of-type {
+        border-top: 0;
+    }
+}
+
+.people-linked-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 1rem;
+    align-items: baseline;
+    margin-bottom: .5rem;
+
+    form {
+        margin-left: auto;
+    }
+}
+
+.people-linked-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+// An account in its source: my.typo3.org, Forge or Gerrit, in a new window
+.people-source-link {
+    font-family: var(--bs-font-monospace, monospace);
+    white-space: nowrap;
+
+    .icon {
+        width: .75rem;
+        height: .75rem;
+    }
+}
+
+.people-reasons {
+    // The chips of _chips.scss
+    margin-bottom: .5rem;
+}
+
+.people-table {
+    td {
+        vertical-align: middle;
+    }
+
+    // The sign of the names: narrow
+    .people-match {
+        width: 1%;
+        text-align: center;
+    }
+
+    // A suggestion of another name needs a closer look
+    .is-other {
+        background: #fffbeb;
+    }
+}
+
+.people-match-same,
+.people-match-other {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    font-weight: 700;
+}
+
+.people-match-same {
+    background: #dcfce7;
+    color: #1a7f37;
+}
+
+.people-match-other {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+// A person in a suggestion: avatar, name, and the key below it
+.people-who {
+    display: inline-flex;
+    gap: .6rem;
+    align-items: center;
+    color: inherit;
+
+    .avatar {
+        flex: none;
+        border-radius: 50%;
+    }
+}
+
+.people-who-text {
+    display: grid;
+    line-height: 1.25;
+}
+
+.people-who-name {
+    font-weight: 600;
+}
+
+.people-who-key {
+    color: #6b7280;
+    font-size: .75rem;
+}
+
+.people-did {
+    display: block;
+    margin: .2rem 0 0 2.6rem;
+    color: #6b7280;
+    font-size: .75rem;
+}
+
+.people-table .people-source-link {
+    display: block;
+    margin: .2rem 0 0 2.6rem;
+    font-size: .75rem;
+}
+
+.people-actions {
+    white-space: nowrap;
+    text-align: right;
+}
+
+.people-decide {
+    display: inline;
+    margin: 0;
+}
+
+.people-picked {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1rem;
+    align-items: center;
+    margin-top: .75rem;
+
+    .people-lead {
+        margin: 0;
+    }
+}
+
+// "Ask Forge again" and "Ask Gerrit again" beside what the source told
+.people-ask {
+    display: inline;
+    margin: 0;
+
+    .btn {
+        padding: 0 .25rem;
+        font-size: .8125rem;
+        vertical-align: baseline;
+    }
+}
+
+// A link the sources contradict: an admin decides
+.people-contradicted {
+    display: flex;
+    gap: .3rem;
+    align-items: center;
+    margin: .3rem 0 0 2.6rem;
+    color: #b45309;
+    font-size: .75rem;
+
+    .icon {
+        width: .8rem;
+        height: .8rem;
+    }
+}

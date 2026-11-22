@@ -40,6 +40,11 @@ export class PersonSearch extends LightElement {
     @property() label = 'Search people';
     @property() placeholder = 'Name or username';
     @property({ type: Boolean }) submit = false;
+    /**
+     * Shows the key of each person beside the name: the username, or the number of an account without one. The
+     * admins tell the accounts of one name apart by it, see App\Controller\PeopleController.
+     */
+    @property({ type: Boolean, attribute: 'show-keys' }) showKeys = false;
 
     @state() private term = '';
     @state() private people: FoundPerson[] = [];
@@ -122,6 +127,7 @@ export class PersonSearch extends LightElement {
                             ? html`<span class="person-search-avatar">${initials(person.name)}</span>`
                             : html`<img class="person-search-avatar" src=${person.avatar} alt="" loading="lazy">`}
                         <span class="person-search-name">${highlighted(person.name, this.found)}</span>
+                        ${this.showKeys ? html`<span class="person-search-key">${person.key}</span>` : nothing}
                     </li>
                 `)}
             </ul>

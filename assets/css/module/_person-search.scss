@@ -165,3 +165,11 @@
         animation-duration: 2s;
     }
 }
+
+// The key beside the name, for the admins: tells the accounts of one name apart
+.person-search-key {
+    flex: none;
+    color: #6b7280;
+    font-family: var(--bs-font-monospace, monospace);
+    font-size: .75rem;
+}

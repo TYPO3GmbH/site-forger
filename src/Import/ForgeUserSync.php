@@ -116,6 +116,21 @@ final readonly class ForgeUserSync
     }
 
     /**
+     * Asks Forge again for one user, for an admin who misses something of it, see
+     * App\Controller\PeopleController::refresh(). The user joins its person as in a run.
+     *
+     * @return array{updated: int, gone: int, stopped: string|null}
+     */
+    public function refresh(User $user, \DateTimeImmutable $now): array
+    {
+        if (null === $user->forgeId) {
+            return ['updated' => 0, 'gone' => 0, 'stopped' => null];
+        }
+
+        return $this->updateUsers([$user], $now);
+    }
+
+    /**
      * @param list<int> $forgeIds
      *
      * @return int the number of removed users

@@ -22,6 +22,7 @@ use App\Import\GerritAccountRepair;
 use App\Import\GerritNames;
 use App\Import\ImportRun;
 use App\Import\UserForms;
+use App\People\PersonLinkCleanup;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -40,6 +41,7 @@ final class ImportUsersCommand extends ImportJobCommand
         private readonly GerritNames $gerritNames,
         private readonly UserForms $userForms,
         private readonly GerritAccountRepair $gerritRepair,
+        private readonly PersonLinkCleanup $linkCleanup,
         IndexSetup $indexSetup,
         CommandRunRecorder $recorder,
         ApiRequests $apiRequests,
@@ -109,6 +111,11 @@ final class ImportUsersCommand extends ImportJobCommand
             $lookedUp['asked'],
             $lookedUp['found'],
         ));
+
+        $this->recorder->progress(PersonLinkCleanup::STEP);
+        $removed = $this->linkCleanup->removeJoined();
+        $this->recorder->progress(PersonLinkCleanup::STEP, $removed, $removed);
+        $run->writeln(sprintf('Dropped %d %s the sources joined', $removed, 1 === $removed ? 'link' : 'links'));
     }
 
     /**

@@ -33,6 +33,7 @@ final readonly class LinkTwigExtension
     public const string TYPO3_PROFILE = 'https://my.typo3.org/u/%s';
     public const string GERRIT_CHANGE = 'https://review.typo3.org/c/Packages/TYPO3.CMS/+/%d/';
     public const string GERRIT_REPOSITORY = 'https://review.typo3.org/Packages/TYPO3.CMS';
+    public const string GERRIT_USER = 'https://review.typo3.org/dashboard/%d';
     public const string CONTRIBUTION_GUIDE = 'https://docs.typo3.org/m/typo3/guide-contributionworkflow/main/en-us/';
 
     public function __construct(
@@ -56,6 +57,15 @@ final readonly class LinkTwigExtension
     public function forgeUserUrl(int $id): string
     {
         return sprintf(self::FORGE_USER, $id);
+    }
+
+    /**
+     * The dashboard of an account on Gerrit: its changes and the ones it reviews.
+     */
+    #[AsTwigFunction(name: 'gerrit_user_url')]
+    public function gerritUserUrl(int $id): string
+    {
+        return sprintf(self::GERRIT_USER, $id);
     }
 
     /**

@@ -22,6 +22,7 @@ use App\Import\GerritAccountRepair;
 use App\Import\GerritImport;
 use App\Import\GerritNames;
 use App\Import\UserForms;
+use App\People\PersonLinkCleanup;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
@@ -105,6 +106,7 @@ final readonly class JobSchedule implements ScheduleProviderInterface
                 GerritNames::STEP,
                 ForgeUserSync::STEP,
                 GerritAccountLookup::STEP,
+                PersonLinkCleanup::STEP,
             ],
         ],
         'backfill' => [
