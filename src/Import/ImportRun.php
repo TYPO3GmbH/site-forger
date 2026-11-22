@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Import;
 
 use App\CommandRun\CommandRunRecorder;
+use Symfony\Component\Console\Helper\Helper;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -43,6 +44,13 @@ final readonly class ImportRun
         $output = $this->output instanceof ConsoleOutputInterface ? $this->output->section() : $this->output;
         $bar = new ProgressBar($output, $max);
         $bar->setFormat(self::BAR_FORMAT);
+        // A bar without a total has no estimate: the one of Symfony throws for it and ends the run
+        $bar->setPlaceholderFormatter(
+            'estimated',
+            static fn (ProgressBar $bar): string => $bar->getMaxSteps() > 0
+                ? Helper::formatTime($bar->getEstimated())
+                : '?',
+        );
 
         return $bar;
     }

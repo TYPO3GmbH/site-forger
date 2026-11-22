@@ -13,6 +13,7 @@ namespace App\Import;
 
 use App\Elastic\Indices;
 use App\Enum\SystemCheckEnum;
+use App\Import\Backfill\SchemaBackfill;
 
 /**
  * The documents an older version of the import wrote, for the system page: they show without the data the import
@@ -43,6 +44,34 @@ final class PendingImport
                 'query' => ImportSchema::outdated(Indices::REVIEW),
             ],
         ];
+    }
+
+    /**
+     * The documents of an index by the version of the import that wrote them, the newest first, and how each
+     * version gets current: the backfill lifts it from the stored data, or the import loads it again.
+     *
+     * @param 'issue'|'review' $index
+     * @param array<int, int>  $counts the documents by their version
+     *
+     * @return list<array{version: int, documents: int, state: 'current'|'backfill'|'import'}>
+     */
+    public static function versions(string $index, array $counts, SchemaBackfill $backfill): array
+    {
+        krsort($counts);
+        $versions = [];
+        foreach ($counts as $version => $documents) {
+            $versions[] = [
+                'version' => $version,
+                'documents' => $documents,
+                'state' => match (true) {
+                    ImportSchema::isCurrent($index, $version) => 'current',
+                    $backfill->reaches($index, $version) => 'backfill',
+                    default => 'import',
+                },
+            ];
+        }
+
+        return $versions;
     }
 
     /**

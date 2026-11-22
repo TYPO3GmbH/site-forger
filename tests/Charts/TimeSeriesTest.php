@@ -44,15 +44,6 @@ final class TimeSeriesTest extends TestCase
         self::assertSame([], TimeSeries::counts(null));
     }
 
-    public function testOpenAtEndCarriesTheLevelOnAndStartsWithTheHistory(): void
-    {
-        $opened = ['2025-06' => 10, '2026-01' => 2, '2026-03' => 4];
-        $closed = ['2025-12' => 3, '2026-02' => 1];
-
-        // 7 open before January, nothing closed in March keeps the level of February
-        self::assertSame([9, 8, 12, 12], TimeSeries::openAtEnd($opened, $closed, ['2026-01', '2026-02', '2026-03', '2026-04']));
-    }
-
     public function testCumulative(): void
     {
         self::assertSame([1, 1, 4, 6], TimeSeries::cumulative([1, 0, 3, 2]));

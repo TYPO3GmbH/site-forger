@@ -12,6 +12,8 @@ declare(strict_types=1);
 namespace App\Import;
 
 use App\Elastic\Indices;
+use App\Enum\StreamSourceEnum;
+use App\Repository\StreamRepository;
 use Elastica\Query;
 use Elastica\Query\MatchAll;
 use Elastica\Result;
@@ -27,6 +29,7 @@ final readonly class ProjectIssues
 {
     public function __construct(
         private Indices $indices,
+        private StreamRepository $stream,
         #[Autowire('%redmine_project_id%')]
         private int $projectId,
     ) {
@@ -77,21 +80,31 @@ final readonly class ProjectIssues
     }
 
     /**
-     * Deletes the issues of other projects from the index.
+     * Deletes the issues of other projects and the private ones from the index, and their events from the activity
+     * stream. They are looked up first: the stream finds their events by number.
      *
      * @return int the number of deleted issues
      */
     public function removeOtherProjects(): int
     {
-        $response = $this->indices->issues()->deleteByQuery(new Query(['query' => ['bool' => [
+        $query = ['bool' => [
             'should' => [
                 ['bool' => ['must_not' => [['term' => ['project.id' => $this->projectId]]]]],
                 ['term' => ['is_private' => true]],
             ],
             'minimum_should_match' => 1,
-        ]]]), ['refresh' => 'true', 'conflicts' => 'proceed'])->getData();
+        ]];
+        $search = $this->indices->issues()->createSearch(
+            new Query(['query' => $query, '_source' => false, 'size' => 1000]),
+        );
+        $ids = [];
+        foreach ($search->scroll('2m') as $resultSet) {
+            foreach ($resultSet as $result) {
+                $ids[] = (int) $result->getId();
+            }
+        }
 
-        return (int) ($response['deleted'] ?? 0);
+        return $this->remove($ids);
     }
 
     /**
@@ -151,6 +164,8 @@ final readonly class ProjectIssues
     }
 
     /**
+     * Removes issues from the index, and their events from the activity stream.
+     *
      * @param list<int|string> $ids
      *
      * @return int the number of deleted issues, ids not in the index are ignored
@@ -164,6 +179,7 @@ final readonly class ProjectIssues
             new Query(['query' => ['ids' => ['values' => array_map('strval', $ids)]]]),
             ['refresh' => 'true', 'conflicts' => 'proceed'],
         )->getData();
+        $this->stream->remove(StreamSourceEnum::FORGE, $ids);
 
         return (int) ($response['deleted'] ?? 0);
     }

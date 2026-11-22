@@ -34,12 +34,7 @@
 @use "module/user";
 @use "module/system";
 @use "module/duplicates";
-
-.js-chart {
-    height: 100%;
-    min-height: 300px;
-    max-height: 500px;
-}
+@use "module/stream";
 
 .label-info {
     background-color: #5bc0de

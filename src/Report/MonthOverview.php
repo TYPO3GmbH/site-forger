@@ -104,8 +104,9 @@ final class MonthOverview
     }
 
     /**
-     * The days of a filter of dates, like "Created", as the datepicker writes them into its one field: "yyyy-mm-dd to yyyy-mm-dd",
-     * or one day alone, which is the first and the last day then. Without a value, from and to as they are.
+     * The days of a filter of dates, like "Created". The calendar sends "from" and "to", one of them may be empty.
+     * A link shared before has them in "range": "yyyy-mm-dd to yyyy-mm-dd", or one day alone, which is the first
+     * and the last day then.
      *
      * @param array<string, mixed> $filter the parameters of the filter: range, or from and to
      *
@@ -123,7 +124,7 @@ final class MonthOverview
     }
 
     /**
-     * The range of a month in the filter "Created": its first and its last day, as the datepicker writes them.
+     * The range of a month in the filter "Created": its first and its last day, as the filter takes them in "range".
      */
     public static function monthFilter(string $year, string $month): string
     {
@@ -133,7 +134,7 @@ final class MonthOverview
     }
 
     /**
-     * The range of a year in the filter "Created": its first and its last day, as the datepicker writes them.
+     * The range of a year in the filter "Created": its first and its last day, as the filter takes them in "range".
      */
     public static function yearFilter(string $year): string
     {

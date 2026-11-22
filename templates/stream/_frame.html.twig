@@ -1,0 +1,25 @@
+{#
+ # The frame of a page of the activity: <forger-activity> renders the filter and the view with the API, and keeps the
+ # filter in the address, see assets/ts/activity/activity.ts. The stream is on /activity, the statistics are on
+ # /statistics.
+ # Expects: view ('stream' or 'statistics')
+ #}
+<forger-activity
+    view="{{ view }}"
+    stream-url="{{ path('activity_index') }}"
+    statistics-url="{{ path('dashboard_statistics') }}"
+    api-url="{{ path('api_v1_activity') }}"
+    statistics-api-url="{{ path('api_v1_activity_statistics') }}"
+    week-hours-api-url="{{ path('api_v1_activity_week_hours') }}"
+    days-api-url="{{ path('api_v1_activity_days') }}"
+    newcomers-api-url="{{ path('api_v1_activity_newcomers') }}"
+    closed-years-api-url="{{ path('api_v1_activity_closed_years') }}"
+>
+    <noscript>
+        <p class="stream-empty">
+            The activity needs JavaScript. The same data is in the
+            <a href="{{ path('app.api_doc') }}">API</a>.
+        </p>
+    </noscript>
+</forger-activity>
+{% include 'stream/_definitions.html.twig' %}

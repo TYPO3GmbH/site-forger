@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+{#
+ # The activity stream: what happens on Forge and in Gerrit, in the order of time. The statistics of the same events
+ # are on /statistics, see templates/dashboard/statistics.html.twig.
+ #}
+{% block title %}Activity{% endblock %}
+{% block page_title %}Activity{% endblock %}
+{% block page_summary %}
+    What happens on Forge and in Gerrit, in your time zone. New events come in every five minutes.
+{% endblock %}
+
+{% block body %}
+    <div class="content-section content-section-small overview">
+        <div class="container">
+            {% include 'stream/_frame.html.twig' with {'view': 'stream'} only %}
+        </div>
+    </div>
+{% endblock %}

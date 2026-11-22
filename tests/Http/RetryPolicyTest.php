@@ -23,7 +23,7 @@ final class RetryPolicyTest extends TestCase
         $policy = RetryPolicy::job();
         $failure = ApiFailure::status('Forge', 429);
 
-        self::assertSame([10, 20, 40, 80, 160, 300, null], array_map(static fn (int $retry): ?int => $policy->delay($failure, $retry), range(1, 7)));
+        self::assertSame([30, 60, 120, 240, 300, 300, null], array_map(static fn (int $retry): ?int => $policy->delay($failure, $retry), range(1, 7)));
     }
 
     public function testAPageWaitsSecondsOnly(): void

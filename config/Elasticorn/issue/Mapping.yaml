@@ -41,6 +41,9 @@ created_on:
 updated_on:
   type: date
   format: yyyy/MM/dd HH:mm:ss
+# Set by Forge in ISO 8601 when an issue first closes, see ClosedPerYearQuery::CLOSED_ON
+closed_on:
+  type: date
 complexity:
   type: keyword
 typo3_version:
@@ -84,4 +87,7 @@ duplicated_by:
   type: integer
 # The version of the import that wrote the document, see App\Import\ImportSchema
 import_schema:
+  type: integer
+# Which version of App\Stream\StreamEvents wrote the events of the document, see App\Stream\StreamSchema
+stream_schema:
   type: integer

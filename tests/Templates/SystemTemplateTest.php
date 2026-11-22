@@ -32,6 +32,9 @@ final class SystemTemplateTest extends KernelTestCase
         ]);
 
         self::assertStringContainsString('come from an import before version 3', $html);
+        // Where the documents stand, by the version of the import
+        self::assertMatchesRegularExpression('/Version 3:\s+88, current/', $html);
+        self::assertMatchesRegularExpression('/Version 2:\s+12, the backfill lifts them/', $html);
         self::assertStringContainsString('Look at: Setup, Outdated documents', $html);
         self::assertStringContainsString('<code class="system-list-name">FORGE_ACCESS_TOKEN</code>', $html);
     }
@@ -200,6 +203,10 @@ final class SystemTemplateTest extends KernelTestCase
             'description' => 'Loaded again by the next delta.',
             'matches' => $matches,
             'documents' => 100,
+            'versions' => [
+                ['version' => 3, 'documents' => 100 - $matches, 'state' => 'current'],
+                ['version' => 2, 'documents' => $matches, 'state' => 'backfill'],
+            ],
             'result' => $result,
         ];
     }

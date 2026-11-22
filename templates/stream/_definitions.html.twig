@@ -1,0 +1,25 @@
+{#
+ # What the activity elements take from the server, once per page: the icons of the template bundle they clone by
+ # name, and the channels and kinds of App\Enum, see assets/ts/activity/definitions.ts.
+ #}
+{% set definitions = stream_definitions() %}
+<template id="forger-activity-icons">
+    {%- for name in definitions.kinds|map(kind => kind.icon)|merge([
+        'actions-list',
+        'actions-viewmode-tiles',
+        'actions-arrow-right',
+        'actions-arrow-up',
+        'actions-arrow-down',
+        'actions-minus',
+        'actions-calendar',
+        'actions-chevron-down',
+        'actions-chevron-start',
+        'actions-chevron-end',
+        'actions-close',
+        'actions-filter',
+    ]) -%}
+        <span data-icon="{{ name }}">{{ icon(name) }}</span>
+    {%- endfor -%}
+</template>
+{% set flags = constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') %}
+<script type="application/json" id="forger-activity-definitions">{{ definitions|json_encode(flags)|raw }}</script>

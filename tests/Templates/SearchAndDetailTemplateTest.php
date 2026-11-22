@@ -22,6 +22,7 @@ use App\Duplicates\DuplicateGroups;
 use App\Duplicates\DuplicateHit;
 use App\Elastic\Bucket;
 use App\Elastic\SearchResult;
+use App\Enum\ActivityEnum;
 use App\Enum\IssueSortEnum;
 use App\Enum\ReviewSortEnum;
 use App\Enum\ReviewStateEnum;
@@ -427,10 +428,17 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         $html = $render(['range' => '2025-03-01 to 2025-03-31']);
         // After the other filters, two fields of months
         self::assertGreaterThan(strpos($html, 'facet-issues-tracker'), strpos($html, 'facet-issues-created'));
-        // One field with the datepicker of the template bundle: the first and the last day in one calendar
-        self::assertStringContainsString('name="filters[created][range]" value="2025-03-01 to 2025-03-31" placeholder="Pick the first and the last day" data-datepicker="{&quot;mode&quot;:&quot;range&quot;', $html);
-        // Links with from and to show in it, too
-        self::assertStringContainsString('value="2025-03 to 2025-06"', $render(['from' => '2025-03', 'to' => '2025-06']));
+        // The calendar of the activity takes the days of a range of a link shared before
+        self::assertMatchesRegularExpression(
+            '#<forger-days-filter\s+name="filters\[created\]"\s+from="2025-03-01"\s+to="2025-03-31"#',
+            $html,
+        );
+        // A day alone is the first and the last day
+        self::assertMatchesRegularExpression('#from="2025-03-01"\s+to="2025-03-01"#', $render(['range' => '2025-03-01']));
+        // From and to as the calendar sends them, an end left open
+        self::assertMatchesRegularExpression('#from="2025-03-01"\s+to=""#', $render(['from' => '2025-03-01']));
+        // The icons and the first year of the calendar
+        self::assertStringContainsString('id="forger-activity-definitions"', $html);
         // Open, and to be cleared, while a month is set
         self::assertStringContainsString('id="facet-issues-created" class="collapse show"', $html);
         self::assertStringContainsString('>Clear</button>', $html);
@@ -450,15 +458,33 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         ]);
 
         $html = $render(['path' => 'typo3/sysext/core']);
-        self::assertStringContainsString('<input type="text" id="facet-changes-file-value" class="form-control form-control-sm" name="filters[file][path]" value="typo3/sysext/core" placeholder="A path, or a folder">', $html);
+        self::assertStringContainsString(
+            '<forger-path-filter name="filters[file][path]" paths="typo3/sysext/core" input-id="facet-changes-file-value" placeholder="A path, or a folder">',
+            $html,
+        );
+        self::assertStringContainsString('<label class="sr-only" for="facet-changes-file-value">Add to File</label>', $html);
         self::assertStringContainsString('id="facet-changes-file" class="collapse show"', $html);
         // After the filters to tick, before the dates
         self::assertGreaterThan(strpos($html, 'facet-changes-size'), strpos($html, 'facet-changes-file'));
         self::assertLessThan(strpos($html, 'facet-changes-updated'), strpos($html, 'facet-changes-file'));
         self::assertStringContainsString('id="facet-changes-file" class="collapse"', $render([]));
+        self::assertStringContainsString('paths=""', $render([]));
     }
 
-    public function testEveryFilterOfDatesHasTheDatepicker(): void
+    public function testTheFilterFileHasEachPathOnce(): void
+    {
+        $html = $this->twig->render('_partials/aggregations.html.twig', [
+            'facetScope' => 'changes',
+            'textFilters' => ['file' => ['title' => 'File', 'value' => ['path' => ' /*.rst, typo3/sysext/core/*, *.rst']]],
+            'aggregations' => [],
+        ]);
+
+        self::assertStringContainsString('paths="*.rst, typo3/sysext/core/*"', $html);
+        // The icon of the chips, from the template bundle
+        self::assertMatchesRegularExpression('#<template>\s*<span class="icon[^"]*">.*actions-close#s', $html);
+    }
+
+    public function testEveryFilterOfDatesHasTheCalendar(): void
     {
         $html = $this->twig->render('_partials/aggregations.html.twig', [
             'facetScope' => 'changes',
@@ -467,8 +493,11 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         ]);
 
         self::assertStringContainsString('<span class="aggregation-title-text">Updated</span>', $html);
-        self::assertStringContainsString('<label class="sr-only" for="facet-changes-updated-days">Updated from and to</label>', $html);
-        self::assertStringContainsString('name="filters[updated][range]" value="2026-11-01 to 2026-11-20" placeholder="Pick the first and the last day" data-datepicker=', $html);
+        self::assertMatchesRegularExpression(
+            '#<forger-days-filter\s+name="filters\[updated\]"\s+from="2026-11-01"\s+to="2026-11-20"\s+'
+            . 'aria-label="Updated from and to"#',
+            $html,
+        );
         // Clear empties its own field only
         self::assertStringContainsString('[name^=&quot;filters[updated]&quot;]', $html);
         self::assertGreaterThan(strpos($html, 'facet-changes-size'), strpos($html, 'facet-changes-updated'));
@@ -916,6 +945,7 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
     public function testIssuePage(): void
     {
         $journal = [
+            'id' => 584271,
             'user' => ['name' => 'Gerrit Code Review'],
             'notes' => 'Pushed',
             'created_on' => '2026-11-02T10:00:00Z',
@@ -933,6 +963,23 @@ final class SearchAndDetailTemplateTest extends KernelTestCase
         self::assertStringContainsString('href="https://forge.typo3.org/issues/91089"', $html);
         self::assertStringContainsString('Change 81234</a>', $html);
         self::assertStringContainsString('Gerrit Code Review', $html);
+        // The time of an entry is the markup of relativetime(), not its escaped text
+        self::assertStringContainsString('<span data-processor="relativetime"', $html);
+        self::assertStringNotContainsString('&lt;span', $html);
+    }
+
+    public function testTheTooltipOfAnActivityPillIsPlainText(): void
+    {
+        $html = $this->twig->createTemplate(
+            "{% import '_macros/status.html.twig' as status %}{{ status.activityPill(stage, updatedOn, createdOn) }}",
+        )->render([
+            'stage' => ActivityEnum::STALE,
+            'updatedOn' => '2026/11/02 10:00:00',
+            'createdOn' => '2026/10/01 08:30:00',
+        ]);
+
+        self::assertMatchesRegularExpression('/ · updated 2026-11-02 \d\d:00 · created 2026-10-01 \d\d:30"/', $html);
+        self::assertStringNotContainsString('&lt;span', $html);
     }
 
     public function testIssuePageWithoutChanges(): void

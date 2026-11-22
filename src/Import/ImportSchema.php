@@ -22,6 +22,8 @@ use App\Elastic\Indices;
  * version are then loaded again over time: each delta of Forge and Gerrit takes a share of them (outdated()), and any import
  * that meets one loads it again too, see ImportWatermark::storedUpdates().
  * A change of the mapping alone needs no new version: app:elasticsearch:setup copies the documents over.
+ * When the index already has the data of a new version, add a SchemaStep: SchemaBackfill then lifts the stored
+ * documents without a request.
  *
  * Documents without the field were written before it existed, by version 1.
  */
@@ -49,8 +51,11 @@ final class ImportSchema
      *    the change it is a cherry-pick of, the comments and their counts, and the relation chain and the merge
      *    conflicts of an open change, see GerritChangeImporter::documents(); the negative votes of the CI count in
      *    the sums and the lowest and highest votes, see GerritChangeImporter::labels().
+     * 5: the day a change closed, "closed_on", and the day Gerrit submitted a merged one, "submitted", see
+     *    GerritChangeImporter::closedOn(). The stored review log tells the day too: ChangeClosedOn lifts a change
+     *    of version 4 without Gerrit. Such a change has no "submitted" until an import loads it again.
      */
-    public const int REVIEW = 4;
+    public const int REVIEW = 5;
 
     /**
      * @param 'issue'|'review' $index
@@ -71,6 +76,19 @@ final class ImportSchema
     {
         // A range on the field does not match documents without it, must_not of it does
         return ['bool' => ['must_not' => [['range' => [self::FIELD => ['gte' => self::current($index)]]]]]];
+    }
+
+    /**
+     * The documents an import of exactly this version wrote. Those without the field are of version 1.
+     *
+     * @return array<string, mixed>
+     */
+    public static function writtenBy(int $version): array
+    {
+        $ofVersion = ['term' => [self::FIELD => $version]];
+        $withoutVersion = ['bool' => ['must_not' => [['exists' => ['field' => self::FIELD]]]]];
+
+        return 1 === $version ? ['bool' => ['should' => [$ofVersion, $withoutVersion]]] : $ofVersion;
     }
 
     /**

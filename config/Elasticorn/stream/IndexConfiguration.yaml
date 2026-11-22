@@ -1,0 +1,3 @@
+# The events of the activity stream, see App\Repository\StreamRepository. Small documents, a few million of them.
+number_of_shards: 1
+number_of_replicas: 1

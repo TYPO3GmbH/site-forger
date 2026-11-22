@@ -46,6 +46,12 @@ created_on:
 updated_on:
   type: date
   format: yyyy/MM/dd HH:mm:ss
+submitted:
+  type: date
+  format: yyyy/MM/dd HH:mm:ss
+closed_on:
+  type: date
+  format: yyyy/MM/dd HH:mm:ss
 owner:
   type: keyword
 owner_id:
@@ -108,4 +114,7 @@ cherry_pick_of:
 comment_count:
   type: integer
 unresolved_comment_count:
+  type: integer
+# Which version of App\Stream\StreamEvents wrote the events of the document, see App\Stream\StreamSchema
+stream_schema:
   type: integer

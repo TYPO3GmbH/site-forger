@@ -11,13 +11,23 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
+use App\Search\ReviewLists;
 use Twig\Attribute\AsTwigFilter;
 
 /**
- * Sorts the files of a change as a file tree shows them.
+ * Sorts the files of a change as a file tree shows them, and splits the paths of the filter "File".
  */
 final class PathTwigExtension
 {
+    /**
+     * @return list<string>
+     */
+    #[AsTwigFilter(name: 'file_paths')]
+    public static function filePaths(string $paths): array
+    {
+        return ReviewLists::filePaths($paths);
+    }
+
     /**
      * On every level the folders first, then the files, each by name: case does not count, numbers count as
      * numbers. So the files of a folder stand together, and those in the root come last.

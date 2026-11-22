@@ -1,0 +1,52 @@
+# One document per event on Forge or Gerrit: a note of an issue, its creation, a message of the review log.
+# App\Stream\StreamEvents derives them from the issue and the review index. No text of comments, no email.
+# The id: "forge-<issue>-<journal>", "forge-<issue>-created" or "gerrit-<change>-<message>"
+id:
+  type: keyword
+# "forge" or "gerrit", see App\Enum\StreamSourceEnum
+source:
+  type: keyword
+# What happened, see App\Enum\StreamKindEnum
+kind:
+  type: keyword
+# The number of the issue or the change
+number:
+  type: integer
+title:
+  type: keyword
+  index: false
+date:
+  type: date
+  format: yyyy/MM/dd HH:mm:ss
+author:
+  properties:
+    name:
+      type: keyword
+    username:
+      type: keyword
+    forge_id:
+      type: integer
+    gerrit_id:
+      type: integer
+# Written by a tool, not by a person: the CI of Gerrit, the notes of Gerrit on Forge
+bot:
+  type: boolean
+# What changed in a few words, like "Status: New → Resolved" or "Code-Review +2"
+summary:
+  type: keyword
+  index: false
+patch_set:
+  type: integer
+branch:
+  type: keyword
+# 1 when the event opens the issue or the change, -1 when it closes it, else 0: the statistics count the open ones
+# over time back from the open ones now, see App\Search\StreamInsightsQuery::openRequest()
+open_delta:
+  type: byte
+# Seconds since the issue or the change began, for an issue closed, a change merged and the first review of a
+# change: the statistics take the median, see App\Search\StreamInsightsQuery::durationRequest()
+duration:
+  type: long
+# The first vote or comment on a change by somebody else than its owner, not by a tool
+first_review:
+  type: boolean

@@ -1,11 +1,12 @@
 import { fetchJson } from './request.js';
 import { sprintf } from 'sprintf-js';
-import ace from 'ace-builds/src-noconflict/ace.js';
-import 'ace-builds/src-noconflict/mode-rst.js';
-import 'ace-builds/src-noconflict/theme-github.js';
+import { loadEditor } from './editor.js';
 
 (function() {
     'use strict';
+
+    // Loaded with the form, see loadEditor()
+    let ace = null;
 
     const Selectors = {
         form: '.form-rst-helper',
@@ -612,7 +613,11 @@ import 'ace-builds/src-noconflict/theme-github.js';
         }
     };
 
-    window.addEventListener('DOMContentLoaded', function() {
+    window.addEventListener('DOMContentLoaded', async function() {
+        if (document.querySelector(Selectors.form) === null) {
+            return;
+        }
+        ace = await loadEditor('rst');
         Rst.initialize();
     });
 })();

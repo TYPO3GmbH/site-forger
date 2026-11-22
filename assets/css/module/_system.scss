@@ -218,6 +218,50 @@
     font-size: .8125rem;
 }
 
+// The documents of an index by the version of the import, see PendingImport::versions(): a segment per version,
+// as wide as its share. Green is current, blue lifts the backfill, amber waits for the import.
+.system-versions {
+    display: flex;
+    gap: 2px;
+    height: .5rem;
+    margin: .35rem 0 .15rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #eef0f2;
+}
+
+.system-version,
+.system-version-key {
+    background: #3f8f5b;
+
+    &.is-backfill {
+        background: #2a78d6;
+    }
+
+    &.is-import {
+        background: #e0a106;
+    }
+}
+
+// Even a few documents of a version stay visible
+.system-version {
+    flex: none;
+    min-width: 3px;
+}
+
+.system-version-row {
+    display: flex;
+    align-items: baseline;
+    gap: .4rem;
+}
+
+.system-version-key {
+    flex: none;
+    width: .5rem;
+    height: .5rem;
+    border-radius: 2px;
+}
+
 .system-list-detail {
     color: #374151;
     font-size: .8125rem;

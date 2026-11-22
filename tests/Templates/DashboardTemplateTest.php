@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Templates;
 
-use App\Charts\ChartStyle;
 use App\Document\Change;
 use App\Document\Issue;
 use App\Elastic\SearchResult;
@@ -60,7 +59,8 @@ final class DashboardTemplateTest extends KernelTestCase
         $html = $this->twig->load('dashboard/index.html.twig')->renderBlock('body', [
             'openIssues' => 1553,
             'openedIssues' => 324,
-            'closedIssues' => 824,
+            'resolvedIssues' => 453,
+            'statisticsRange' => '30d',
             'newIssues' => SearchResult::ofDocuments([$issue], 1),
             'readyToMerge' => SearchResult::ofDocuments([], 0),
             'regressions' => SearchResult::ofDocuments([$issue], 35),
@@ -73,6 +73,8 @@ final class DashboardTemplateTest extends KernelTestCase
         ]);
 
         self::assertStringContainsString('What needs attention', $html);
+        // The note of 30 days counts like the statistics it links to
+        self::assertStringContainsString('href="/statistics?range=30d"', $html);
         // The figure and the list count the same changes
         self::assertStringContainsString('Waiting over a month <span class="overview-list-count">80</span>', $html);
         self::assertMatchesRegularExpression('~overview-tone-warning">80</span>~', $html);
@@ -84,7 +86,6 @@ final class DashboardTemplateTest extends KernelTestCase
         self::assertSame(1, substr_count($html, 'Open regressions'));
         self::assertStringContainsString('Open regressions <span class="overview-list-count">35</span>', $html);
         self::assertStringContainsString('href="/get-involved"', $html);
-        self::assertStringContainsString('href="/statistics"', $html);
         self::assertStringNotContainsString('js-chart', $html);
     }
 
@@ -124,16 +125,12 @@ final class DashboardTemplateTest extends KernelTestCase
         self::assertStringNotContainsString('benni@example.org', $html);
     }
 
-    public function testTheStatisticsHaveTheCharts(): void
+    public function testTheStatisticsAreTheBoardOfTheActivity(): void
     {
-        $html = $this->twig->load('dashboard/statistics.html.twig')->renderBlock('body', [
-            'chartOptions' => ChartStyle::options(),
-            'chartOptionsWithLegend' => ChartStyle::options(legend: true),
-            'chartOptionsHorizontal' => ChartStyle::options(horizontal: true),
-        ]);
+        $html = $this->twig->load('dashboard/statistics.html.twig')->renderBlock('body');
 
-        self::assertSame(6, substr_count($html, 'class="js-chart"'));
-        self::assertStringContainsString('data-src="/chart/opened_closed"', $html);
-        self::assertStringContainsString('data-chart-table="/chart/review_progress"', $html);
+        self::assertStringContainsString('view="statistics"', $html);
+        self::assertStringContainsString('closed-years-api-url="/api/v1/activity/closed-years"', $html);
+        self::assertStringNotContainsString('js-chart', $html);
     }
 }

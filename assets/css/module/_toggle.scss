@@ -1,0 +1,43 @@
+// The switch of a card: a gray pill, the choice white on it. The same for chart or table, the length of a bar and
+// the view, see .overview-view-toggle in _dashboard.scss and .stream-chart .stream-segmented in _stream.scss.
+
+@mixin group {
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: 0;
+    padding: .2rem;
+    border: 0;
+    border-radius: 999px;
+    background: #eef0f2;
+}
+
+@mixin item {
+    padding: .2rem .7rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--overview-muted);
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color .15s, color .15s;
+
+    &:hover {
+        background: transparent;
+        color: #0b0b0b;
+        text-decoration: none;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #2a78d6;
+        outline-offset: 1px;
+    }
+
+    &.is-active {
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(16, 24, 40, .12);
+        color: #0b0b0b;
+    }
+}

@@ -15,5 +15,15 @@ framework:
         #app: cache.adapter.apcu
 
         # Namespaced pools use the above "app" backend by default
-        #pools:
-            #my.dedicated.cache: null
+        pools:
+            # The statistics of the activity, see App\Stream\StreamCache
+            cache.stream:
+                adapter: cache.app
+                default_lifetime: 60
+
+when@test:
+    framework:
+        cache:
+            pools:
+                cache.stream:
+                    adapter: cache.adapter.array

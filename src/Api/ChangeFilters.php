@@ -30,7 +30,8 @@ final readonly class ChangeFilters
 
     /**
      * @param string|null       $branch   the target branch, like "main" or "13.4"
-     * @param string|null       $path     a file or a folder of the repository the changes touch
+     * @param string|null       $path     the files or folders of the repository the changes touch, each of them,
+     *                                    by commas, "*" for any characters
      * @param PersonFilter|null $owner    who uploaded the changes
      * @param int|null          $maxLines the most lines a change adds and removes together
      */

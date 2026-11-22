@@ -34,11 +34,54 @@
     }
 }
 
-// A range instead of values to tick, like "Created" of the issues: the field of the datepicker, then the buttons
+// A range instead of values to tick, like "Created" of the issues: the calendar, then the button to clear it
 .aggregation-range {
     display: flex;
     flex-direction: column;
     gap: .625rem;
+}
+
+// The calendar of the activity in the column of the filters, see assets/ts/filter/days-filter.ts and
+// ".stream-daypicker" in _stream.scss. A day is a seventh of the column, at most as wide as in the activity.
+forger-days-filter {
+    --overview-muted: #6b7280;
+
+    display: block;
+    container-type: inline-size;
+
+    .stream-daypicker {
+        --day: min(2.125rem, calc(100cqw / 7));
+    }
+}
+
+// The paths of a filter typed in, each a chip that takes it away, see assets/ts/filter/path-filter.ts
+forger-path-filter {
+    display: flex;
+    flex-direction: column;
+    gap: .625rem;
+}
+
+.aggregation-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+}
+
+.aggregation-chip {
+    max-width: 100%;
+    font-family: inherit;
+    cursor: pointer;
+
+    .icon {
+        flex-shrink: 0;
+    }
+}
+
+// A long path breaks anywhere instead of making the filters wider than a phone
+.aggregation-chip-path {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: left;
 }
 
 .aggregation-range-actions {

@@ -101,10 +101,10 @@
     {% if stage %}
         {% set tooltip = [stage.description] %}
         {% if updatedOn is not null %}
-            {% set tooltip = tooltip|merge(['updated ' ~ relativetime(to_datetime(updatedOn))]) %}
+            {% set tooltip = tooltip|merge(['updated ' ~ to_datetime(updatedOn)|date('Y-m-d H:i')]) %}
         {% endif %}
         {% if createdOn is not null %}
-            {% set tooltip = tooltip|merge(['created ' ~ relativetime(to_datetime(createdOn))]) %}
+            {% set tooltip = tooltip|merge(['created ' ~ to_datetime(createdOn)|date('Y-m-d H:i')]) %}
         {% endif %}
         <span class="status-pill status-pill-icon status-pill-{{ stage.severity }}" title="{{ tooltip|join(' · ') }}">{{ icon(stage.icon) }}{{ stage.label }}</span>
     {% endif %}

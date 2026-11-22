@@ -18,6 +18,8 @@ use App\Enum\IssueRelationEnum;
 use App\Http\ApiFailure;
 use App\People\User;
 use App\Repository\UserRepository;
+use App\Stream\StreamSchema;
+use App\Stream\StreamWriter;
 use Elastica\Document;
 use Elastica\Exception\NotFoundException;
 use Elastica\Exception\ResponseException;
@@ -36,6 +38,7 @@ final class ForgeIssueImporter
         private readonly UserRepository $users,
         private readonly ProjectIssues $projectIssues,
         private readonly CommandRunRecorder $recorder,
+        private readonly StreamWriter $stream,
     ) {
     }
 
@@ -158,9 +161,11 @@ final class ForgeIssueImporter
 
         // The author and the assignee the index "user" lacks, empty: "Update users" fills them
         $this->users->ensure(array_values(array_filter([User::fromIssue($issue['author'] ?? []), User::fromIssue($issue['assigned_to'] ?? [])])));
-        $document = self::document($issue);
+        $document = StreamSchema::marked(self::document($issue));
+        // The document before its events, see GerritChangeImporter::writeAll()
         $index = $this->indices->issues();
         $index->addDocument(new Document((string) $document['id'], $document));
+        $this->stream->issues([$document]);
         if ($refresh) {
             $index->refresh();
         }

@@ -111,6 +111,30 @@ final class ReviewListsTest extends TestCase
         self::assertNull(ReviewLists::fileQuery(' / '));
     }
 
+    public function testTheFilterFileFindsTheFilesOfAPattern(): void
+    {
+        $query = static fn (string $pattern): array => ['wildcard' => ['files' => ['value' => $pattern]]];
+
+        self::assertSame($query('*.rst'), ReviewLists::fileQuery('*.rst'));
+        self::assertSame($query('typo3/sysext/core/*'), ReviewLists::fileQuery(' /typo3/sysext/core/* '));
+        // Only "*" is a wildcard, "?" and "\\" stand for themselves
+        self::assertSame($query('Build/a\\?b\\\\*'), ReviewLists::fileQuery('Build/a?b\\*'));
+    }
+
+    public function testTheFilterFileFindsTheChangesThatTouchEachPath(): void
+    {
+        $patterns = ReviewLists::fileQuery('*.rst, typo3/sysext/core/*,*.rst, ,');
+
+        self::assertSame(['bool' => [
+            'must' => [
+                ['wildcard' => ['files' => ['value' => '*.rst']]],
+                ['wildcard' => ['files' => ['value' => 'typo3/sysext/core/*']]],
+            ],
+        ]], $patterns);
+        self::assertNull(ReviewLists::fileQuery(' , / '));
+        self::assertSame(['*.rst', 'typo3/sysext/core'], ReviewLists::filePaths(' *.rst,/typo3/sysext/core/ ,, *.rst'));
+    }
+
     public function testUnknownListHasNoQuery(): void
     {
         self::assertNull(ReviewLists::query('issues_stale'));

@@ -12,6 +12,8 @@ declare(strict_types=1);
 namespace App\Import;
 
 use App\Elastic\Indices;
+use App\Enum\StreamSourceEnum;
+use App\Repository\StreamRepository;
 use Elastica\Query;
 use Elastica\Query\MatchAll;
 
@@ -26,6 +28,7 @@ readonly class ProjectChanges
 {
     public function __construct(
         private Indices $indices,
+        private StreamRepository $stream,
     ) {
     }
 
@@ -53,7 +56,7 @@ readonly class ProjectChanges
     }
 
     /**
-     * Removes changes from the index.
+     * Removes changes from the index, and their events from the activity stream.
      *
      * @param list<int> $numbers
      *
@@ -68,6 +71,7 @@ readonly class ProjectChanges
             new Query(['query' => ['ids' => ['values' => array_map('strval', $numbers)]]]),
             ['refresh' => 'true', 'conflicts' => 'proceed'],
         )->getData();
+        $this->stream->remove(StreamSourceEnum::GERRIT, $numbers);
 
         return (int) ($response['deleted'] ?? 0);
     }

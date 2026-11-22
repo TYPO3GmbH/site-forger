@@ -13,7 +13,6 @@ namespace App\Tests\Scheduler;
 
 use App\Command\ImportJobCommand;
 use App\Command\ImportReviewCommand;
-use App\Import\GerritImport;
 use App\Scheduler\JobLocks;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Lock\LockFactory;
@@ -44,13 +43,16 @@ final class LocksTest extends KernelTestCase
         $importLocks = new \ReflectionProperty(ImportJobCommand::class, 'lockFactory')->getValue($container->get(ImportReviewCommand::class));
         self::assertSame($container->get(LockFactory::class), $importLocks);
 
-        $held = $importLocks->createLock(GerritImport::LOCK);
+        // A lock of its own: the test and the jobs of this installation share var/lock, and a running import
+        // holds the lock of Gerrit
+        $name = 'forger-import-lock-test';
+        $held = $importLocks->createLock($name);
         self::assertTrue($held->acquire());
         try {
-            self::assertFalse($container->get(JobLocks::class)->isFree(GerritImport::LOCK));
+            self::assertFalse($container->get(JobLocks::class)->isFree($name));
         } finally {
             $held->release();
         }
-        self::assertTrue($container->get(JobLocks::class)->isFree(GerritImport::LOCK));
+        self::assertTrue($container->get(JobLocks::class)->isFree($name));
     }
 }
