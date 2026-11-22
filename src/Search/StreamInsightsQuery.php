@@ -120,7 +120,11 @@ final class StreamInsightsQuery
     {
         $filters = [];
         foreach (StreamCrewEnum::cases() as $crew) {
-            $filters[$crew->value] = ['term' => ['kind' => $crew->kind()->value]];
+            // A vote with a comment counts as a vote, though its kind is "commented"
+            $filters[$crew->value] = match ($crew) {
+                StreamCrewEnum::MERGING => ['term' => ['kind' => StreamKindEnum::MERGED->value]],
+                StreamCrewEnum::VOTING => ['term' => ['voted' => true]],
+            };
         }
 
         return [

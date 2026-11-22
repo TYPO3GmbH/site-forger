@@ -21,6 +21,7 @@ use App\Enum\IssueFieldEnum;
 use App\Enum\IssueStatusEnum;
 use App\Enum\ReviewEventEnum;
 use App\Enum\ReviewStateEnum;
+use App\Enum\ReviewVoteEnum;
 use App\Enum\StreamKindEnum;
 use App\Enum\StreamSourceEnum;
 use App\Import\ForgeIssueImporter;
@@ -335,7 +336,22 @@ final class StreamEvents
             firstReview: $firstReview,
             owner: self::owner($change),
             wipDelta: $wipDelta,
+            voted: self::votes($message),
         );
+    }
+
+    /**
+     * Whether the message gives a vote. Taking a vote back, like "-Code-Review", gives none.
+     */
+    private static function votes(ReviewMessage $message): bool
+    {
+        foreach ($message->votes as $vote) {
+            if (ReviewVoteEnum::NONE !== $vote['vote']) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

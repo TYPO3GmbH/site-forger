@@ -37,6 +37,20 @@ final readonly class ReviewMessage
     private const string READY_LINE = 'This change is ready for review.';
 
     /**
+     * The votes as Gerrit wrote them until about 2013, by their text, like "Verified; Looks good to me, approved".
+     */
+    private const array OLD_VOTES = [
+        'Looks good to me, approved' => ['Code-Review', 2],
+        'Looks good to me, but someone else must approve' => ['Code-Review', 1],
+        'No score' => ['Code-Review', 0],
+        "I would prefer that you didn't submit this" => ['Code-Review', -1],
+        'Do not submit' => ['Code-Review', -2],
+        'Verified by team member' => ['Verified', 2],
+        'Verified' => ['Verified', 1],
+        'Fails' => ['Verified', -1],
+    ];
+
+    /**
      * @param string|null                                               $tag            what Gerrit wrote it for
      * @param list<array{label: ReviewLabelEnum, vote: ReviewVoteEnum}> $votes          the votes it gives, NONE for a
      *                                                                                  removed one
@@ -182,13 +196,14 @@ final readonly class ReviewMessage
             return [ReviewEventEnum::OTHER, [], $line];
         }
 
-        $votes = [];
+        $votes = self::oldVotes($match['rest']);
+        $rest = [] === $votes ? $match['rest'] : '';
         $rest = (string) preg_replace_callback(self::VOTE, static function (array $vote) use (&$votes): string {
             $value = '' === $vote['removed'] ? (int) ($vote['value'] ?? 0) : 0;
             $votes[] = self::vote($vote['label'], $value);
 
             return '';
-        }, $match['rest']);
+        }, $rest);
         $event = self::patchSetEvent(trim($rest), [] === $votes ? ReviewEventEnum::COMMENTED : ReviewEventEnum::VOTED);
         // The note of these events is no comment
         $known = in_array($event, [
@@ -201,6 +216,26 @@ final readonly class ReviewMessage
         ], true);
 
         return [$event, $votes, $known ? '' : trim($rest)];
+    }
+
+    /**
+     * The votes of a line in the words Gerrit used until about 2013, see OLD_VOTES. None when a part of the line is
+     * no such vote.
+     *
+     * @return list<array{label: ReviewLabelEnum, vote: ReviewVoteEnum}>
+     */
+    private static function oldVotes(string $line): array
+    {
+        $votes = [];
+        foreach (explode(';', $line) as $part) {
+            $old = self::OLD_VOTES[trim($part)] ?? null;
+            if (null === $old) {
+                return [];
+            }
+            $votes[] = self::vote($old[0], $old[1]);
+        }
+
+        return $votes;
     }
 
     /**

@@ -283,6 +283,34 @@ final class StreamEventsTest extends TestCase
         self::assertSame('2011/03/01 12:00:00', $events[2]->date);
     }
 
+    public function testAVoteWithACommentIsStillAVote(): void
+    {
+        $author = ['id' => 8, 'name' => 'John Roe'];
+        $change = Change::fromDocument([
+            'id' => 97005,
+            'subject' => '[TASK] Clean up',
+            'messages' => [
+                self::message('a1', 'Uploaded patch set 1.', 1, ['id' => 7, 'name' => 'Jane Doe']),
+                self::message('a2', "Patch Set 1: Code-Review+2\n\nNice work.", 1, $author),
+                self::message('a3', "Patch Set 1:\n\nOne more thing.", 1, $author),
+                self::message('a4', 'Patch Set 1: -Code-Review', 1, $author),
+            ],
+        ]);
+
+        $events = StreamEvents::ofChange($change);
+
+        self::assertSame(
+            [
+                [StreamKindEnum::CREATED, false],
+                [StreamKindEnum::COMMENTED, true],
+                [StreamKindEnum::COMMENTED, false],
+                [StreamKindEnum::VOTED, false],
+            ],
+            array_map(static fn (StreamEvent $event): array => [$event->kind, $event->voted], $events),
+        );
+        self::assertTrue(StreamEvent::fromDocument($events[1]->toDocument())->voted);
+    }
+
     public function testAnAbandonEndsTheWaitLikeAMerge(): void
     {
         $change = Change::fromDocument([

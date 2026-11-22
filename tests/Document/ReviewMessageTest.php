@@ -83,6 +83,45 @@ final class ReviewMessageTest extends TestCase
         );
     }
 
+    /**
+     * @return iterable<string, array{string, list<array{ReviewLabelEnum, ReviewVoteEnum}>}>
+     */
+    public static function oldVotes(): iterable
+    {
+        yield 'approved and verified' => ['Verified; Looks good to me, approved', [
+            [ReviewLabelEnum::VERIFIED, ReviewVoteEnum::RECOMMENDED],
+            [ReviewLabelEnum::CODE_REVIEW, ReviewVoteEnum::APPROVED],
+        ]];
+        yield 'fails' => ["Fails; I would prefer that you didn't submit this", [
+            [ReviewLabelEnum::VERIFIED, ReviewVoteEnum::DISLIKED],
+            [ReviewLabelEnum::CODE_REVIEW, ReviewVoteEnum::DISLIKED],
+        ]];
+        yield 'by a team member' => ['Verified by team member', [
+            [ReviewLabelEnum::VERIFIED, ReviewVoteEnum::APPROVED],
+        ]];
+    }
+
+    /**
+     * @param list<array{ReviewLabelEnum, ReviewVoteEnum}> $votes
+     */
+    #[DataProvider('oldVotes')]
+    public function testReadsTheVotesGerritWroteUntil2013(string $line, array $votes): void
+    {
+        $message = self::message("Patch Set 1: {$line}");
+
+        self::assertSame(ReviewEventEnum::VOTED, $message->event);
+        self::assertSame($votes, self::pairs($message->votes));
+    }
+
+    public function testAnOldVoteWithACommentIsAComment(): void
+    {
+        $message = self::message("Patch Set 1: Looks good to me, approved\n\nNice work.");
+
+        self::assertSame(ReviewEventEnum::COMMENTED, $message->event);
+        self::assertSame('Nice work.', $message->comment);
+        self::assertSame([[ReviewLabelEnum::CODE_REVIEW, ReviewVoteEnum::APPROVED]], self::pairs($message->votes));
+    }
+
     public function testAVoteCanBeRemoved(): void
     {
         $votes = self::message('Patch Set 2: -Code-Review')->votes;
