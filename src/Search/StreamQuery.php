@@ -116,10 +116,7 @@ final class StreamQuery
         }
         if ([] !== $filter->nameWords) {
             $should[] = ['bool' => ['must' => array_map(
-                static fn (string $word): array => ['wildcard' => [$field . '.name' => [
-                    'value' => '*' . addcslashes($word, '\\*?') . '*',
-                    'case_insensitive' => true,
-                ]]],
+                static fn (string $word): array => NameSearch::contains($field . '.name', $word),
                 $filter->nameWords,
             )]];
         }

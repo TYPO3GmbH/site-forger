@@ -31,8 +31,8 @@ final class PersonQueryTest extends TestCase
 
         self::assertSame(
             ['bool' => ['must' => [
-                ['wildcard' => ['author.name' => ['value' => '*frank*', 'case_insensitive' => true]]],
-                ['wildcard' => ['author.name' => ['value' => '*näg\\*ler*', 'case_insensitive' => true]]],
+                ['wildcard' => ['author.name.folded' => ['value' => '*frank*']]],
+                ['wildcard' => ['author.name.folded' => ['value' => '*nag\\*ler*']]],
             ]]],
             $query,
         );

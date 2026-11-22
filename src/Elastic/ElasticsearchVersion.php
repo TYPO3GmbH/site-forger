@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace App\Elastic;
 
 use App\Enum\SystemCheckEnum;
-use App\Search\PersonSuggestion;
 
 /**
  * What Forger needs of the version of Elasticsearch.
@@ -20,7 +19,7 @@ use App\Search\PersonSuggestion;
 final class ElasticsearchVersion
 {
     /**
-     * "case_insensitive" of the wildcard query, for the search in the filters of people, see PersonSuggestion.
+     * The oldest version the queries were written and checked for.
      */
     public const string MINIMUM = '7.10.0';
 

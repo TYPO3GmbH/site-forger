@@ -36,7 +36,7 @@ final class ReviewSearch
             // one that only names them in a trailer, like a reviewer
             ['query_string' => ['query' => IssueSearch::escape($searchTerms), 'fields' => ['subject^3', 'commit_text^2', 'commit_message'], 'default_operator' => 'AND']],
             ['term' => ['topic' => $searchTerms]],
-            ['wildcard' => ['owner' => ['value' => '*' . addcslashes($searchTerms, '\\*?') . '*', 'case_insensitive' => true]]],
+            NameSearch::contains('owner', $searchTerms),
         ];
         if (1 === preg_match('/^#?\d{1,9}$/', $searchTerms)) {
             $searchTerms = ltrim($searchTerms, '#');

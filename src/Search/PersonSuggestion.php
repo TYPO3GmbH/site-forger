@@ -65,14 +65,7 @@ final class PersonSuggestion
                 'bool' => [
                     'filter' => [
                         $listQuery,
-                        [
-                            'wildcard' => [
-                                $nameField => [
-                                    'value' => '*' . addcslashes($term, '\\*?') . '*',
-                                    'case_insensitive' => true,
-                                ],
-                            ],
-                        ],
+                        NameSearch::contains($nameField, $term),
                     ],
                     'must_not' => [
                         ['term' => [$nameField => self::UNKNOWN]],

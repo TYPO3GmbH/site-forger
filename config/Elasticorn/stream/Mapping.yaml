@@ -22,6 +22,10 @@ author:
   properties:
     name:
       type: keyword
+      fields:
+        folded:
+          type: keyword
+          normalizer: folded
     username:
       type: keyword
     forge_id:
@@ -63,6 +67,10 @@ owner:
   properties:
     name:
       type: keyword
+      fields:
+        folded:
+          type: keyword
+          normalizer: folded
     username:
       type: keyword
     gerrit_id:

@@ -4,6 +4,11 @@
 number_of_shards: 1
 number_of_replicas: 1
 analysis:
+  # Names in lower case and ASCII, for the search of a part of a name, see App\Search\NameSearch
+  normalizer:
+    folded:
+      type: custom
+      filter: [lowercase, asciifolding]
   char_filter:
     # Forge descriptions are Textile: headings and paragraphs like "h3. ", "@code@", "*bold*", <pre> blocks
     textile:
@@ -30,4 +35,9 @@ analysis:
       type: custom
       tokenizer: standard
       char_filter: [html_strip, textile]
-      filter: [english_possessive_stemmer, lowercase, english_stop, english_stemmer, no_single_letters]
+      filter: [english_possessive_stemmer, lowercase, asciifolding, english_stop, english_stemmer, no_single_letters]
+    # Every other text, like the comments and the names: "andre" finds "André"
+    default:
+      type: custom
+      tokenizer: standard
+      filter: [lowercase, asciifolding]

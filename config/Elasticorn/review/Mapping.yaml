@@ -54,6 +54,10 @@ closed_on:
   format: yyyy/MM/dd HH:mm:ss
 owner:
   type: keyword
+  fields:
+    folded:
+      type: keyword
+      normalizer: folded
 owner_id:
   type: integer
 owner_username:

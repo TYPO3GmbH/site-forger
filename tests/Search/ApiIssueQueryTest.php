@@ -85,7 +85,7 @@ final class ApiIssueQueryTest extends TestCase
             [
                 ['term' => ['author.id' => 1]],
                 ['bool' => ['must' => [
-                    ['wildcard' => ['assigned_to.name' => ['value' => '*nägler*', 'case_insensitive' => true]]],
+                    ['wildcard' => ['assigned_to.name.folded' => ['value' => '*nagler*']]],
                 ]]],
                 ['bool' => [
                     'should' => [['term' => ['author.id' => 3]], ['term' => ['assigned_to.id' => 3]]],

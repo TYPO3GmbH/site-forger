@@ -65,10 +65,7 @@ final class PeopleQuery
             'query' => ['bool' => [
                 'filter' => [['term' => ['bot' => false]]],
                 'should' => [
-                    ['wildcard' => ['author.name' => [
-                        'value' => '*' . addcslashes($term, '\\*?') . '*',
-                        'case_insensitive' => true,
-                    ]]],
+                    NameSearch::contains('author.name', $term),
                     ['prefix' => ['author.username' => ['value' => $term]]],
                     ...([] === $forgeIds ? [] : [['terms' => ['author.forge_id' => $forgeIds]]]),
                     ...([] === $gerritIds ? [] : [['terms' => ['author.gerrit_id' => $gerritIds]]]),

@@ -1,3 +1,9 @@
 # The events of the activity stream, see App\Repository\StreamRepository. Small documents, a few million of them.
 number_of_shards: 1
 number_of_replicas: 1
+analysis:
+  # Names in lower case and ASCII, for the search of a part of a name, see App\Search\NameSearch
+  normalizer:
+    folded:
+      type: custom
+      filter: [lowercase, asciifolding]
