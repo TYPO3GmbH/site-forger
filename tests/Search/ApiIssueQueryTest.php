@@ -62,6 +62,17 @@ final class ApiIssueQueryTest extends TestCase
         );
     }
 
+    public function testFiltersByATagInAnyCase(): void
+    {
+        $filters = new IssueFilters(IssueStateFilterEnum::ALL, tag: 'Accessibility');
+
+        self::assertSame(
+            [['term' => ['tags' => 'accessibility']]],
+            self::request($filters)['query']['bool']['filter'],
+        );
+        self::assertSame('a11y', IssueFilters::fromRequest(new Request(['tag' => ' a11y ']))->tag);
+    }
+
     public function testFindsTheIssuesWithoutACategory(): void
     {
         $filters = new IssueFilters(IssueStateFilterEnum::ALL, category: ApiIssueQuery::NONE);
@@ -148,7 +159,7 @@ final class ApiIssueQueryTest extends TestCase
         $request = ApiIssueQuery::request(new ListParameters(), new IssueFilters(), IssueSortEnum::UPDATED, true);
 
         self::assertSame(
-            ['status', 'tracker', 'category', 'createdYear', 'updatedYear'],
+            ['status', 'tracker', 'category', 'tag', 'createdYear', 'updatedYear'],
             array_keys($request['aggregations']),
         );
         self::assertSame(ApiIssueQuery::NONE, $request['aggregations']['category']['terms']['missing']);

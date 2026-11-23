@@ -25,6 +25,7 @@ final readonly class IssueFilters
     /**
      * @param string|null       $tracker   the name of a tracker, like "Bug"
      * @param string|null       $category  the name of a category, like "Backend User Interface"
+     * @param string|null       $tag       a tag, in any case, like "accessibility"
      * @param PersonFilter|null $author    who reported the issues
      * @param PersonFilter|null $assignee  who the issues are assigned to
      * @param PersonFilter|null $involving who is on either side
@@ -33,6 +34,7 @@ final readonly class IssueFilters
         public IssueStateFilterEnum $state = IssueStateFilterEnum::OPEN,
         public ?string $tracker = null,
         public ?string $category = null,
+        public ?string $tag = null,
         public ?PersonFilter $author = null,
         public ?PersonFilter $assignee = null,
         public ?PersonFilter $involving = null,
@@ -60,6 +62,7 @@ final readonly class IssueFilters
             state: ListParameters::choice($request, 'status', IssueStateFilterEnum::class, $state),
             tracker: ListParameters::optional($request, 'tracker'),
             category: ListParameters::optional($request, 'category'),
+            tag: ListParameters::optional($request, 'tag'),
             author: ListParameters::person($request, 'author'),
             assignee: ListParameters::person($request, 'assignee'),
             involving: ListParameters::person($request, 'involving'),

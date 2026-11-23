@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Api\Model;
 
+use App\Search\ApiIssueQuery;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
 
@@ -24,6 +25,7 @@ final readonly class IssueBreakdown
      * @param list<Bucket> $status
      * @param list<Bucket> $tracker
      * @param list<Bucket> $category
+     * @param list<Bucket> $tag
      * @param list<Bucket> $createdYear
      * @param list<Bucket> $updatedYear
      */
@@ -46,6 +48,13 @@ final readonly class IssueBreakdown
             items: new OA\Items(ref: new Model(type: Bucket::class)),
         )]
         public array $category,
+        #[OA\Property(
+            description: 'By tag, in lower case. An issue with several tags counts for each. Only the '
+                . ApiIssueQuery::TAGS . ' tags used most. Many issues have none.',
+            type: 'array',
+            items: new OA\Items(ref: new Model(type: Bucket::class)),
+        )]
+        public array $tag,
         #[OA\Property(
             description: 'By the year the issues were reported, the earliest first.',
             type: 'array',

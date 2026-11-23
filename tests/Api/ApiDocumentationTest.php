@@ -95,7 +95,7 @@ final class ApiDocumentationTest extends KernelTestCase
     public function testDescribesEveryFieldOfTheBreakdown(): void
     {
         $bucket = new Bucket('New', 3);
-        $breakdown = new IssueBreakdown([$bucket], [$bucket], [$bucket], [$bucket], [$bucket]);
+        $breakdown = new IssueBreakdown([$bucket], [$bucket], [$bucket], [$bucket], [$bucket], [$bucket]);
         $summary = new IssueMapper(ApiFixtures::urls())->summary(ApiFixtures::issue());
         $page = new IssuePage(1, 0, 25, [$summary], $breakdown);
 
