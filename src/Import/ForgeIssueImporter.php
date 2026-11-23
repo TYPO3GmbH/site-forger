@@ -159,8 +159,8 @@ final class ForgeIssueImporter
         }
         $issue = $this->projectIssues->withoutPrivateNotes($issue);
 
-        // The author and the assignee the index "user" lacks, empty: "Update users" fills them
-        $this->users->ensure(array_values(array_filter([User::fromIssue($issue['author'] ?? []), User::fromIssue($issue['assigned_to'] ?? [])])));
+        // The people the index "user" lacks, empty: "Update users" fills them
+        $this->users->ensure(self::people($issue));
         $document = StreamSchema::marked(self::document($issue));
         // The document before its events, see GerritChangeImporter::writeAll()
         $index = $this->indices->issues();
@@ -170,6 +170,28 @@ final class ForgeIssueImporter
             $index->refresh();
         }
         $this->recorder->document();
+    }
+
+    /**
+     * The people the pages of the issue link: the author, the assignee, the authors of the journals and of the files.
+     *
+     * @param array<string, mixed> $issue
+     *
+     * @return list<User>
+     */
+    public static function people(array $issue): array
+    {
+        $people = [$issue['author'] ?? null, $issue['assigned_to'] ?? null];
+        foreach (['journals' => 'user', 'attachments' => 'author'] as $list => $field) {
+            foreach (is_array($issue[$list] ?? null) ? $issue[$list] : [] as $entry) {
+                $people[] = $entry[$field] ?? null;
+            }
+        }
+
+        return array_values(array_filter(array_map(
+            static fn (mixed $person): ?User => is_array($person) ? User::fromIssue($person) : null,
+            $people,
+        )));
     }
 
     /**
