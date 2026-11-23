@@ -9,6 +9,10 @@ analysis:
     folded:
       type: custom
       filter: [lowercase, asciifolding]
+    # The tags of Forge in lower case: "Accessibility" and "accessibility" are one tag
+    lowercase:
+      type: custom
+      filter: [lowercase]
   char_filter:
     # Forge descriptions are Textile: headings and paragraphs like "h3. ", "@code@", "*bold*", <pre> blocks
     textile:
