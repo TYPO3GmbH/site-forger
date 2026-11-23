@@ -72,10 +72,8 @@ class SprintBoardQueryType extends AbstractType
         });
 
         $builder->addModelTransformer(new CallbackTransformer(
-            static function (?string $yaml): BoardFilter {
-                return BoardFilter::fromYaml($yaml)
-                    ?? throw new TransformationFailedException('The query of this board was written by hand.');
-            },
+            // Never fails: the form of a board has to open, whatever its query is
+            static fn (?string $yaml): BoardFilter => BoardFilter::fromYaml($yaml) ?? BoardFilter::closestTo($yaml),
             static function (?BoardFilter $filter) use ($options): string {
                 if (true === $options['allow_empty'] && (null === $filter || !$filter->hasFilter())) {
                     return '';

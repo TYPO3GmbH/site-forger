@@ -211,6 +211,21 @@ final class BoardFilter
     }
 
     /**
+     * The filters a query that fromYaml() cannot read comes closest to, see approximate(). No filters for YAML
+     * that is no query, and for a query none of the filters knows, like one for the id of a category.
+     */
+    public static function closestTo(?string $yaml): self
+    {
+        try {
+            $query = Yaml::parse((string) $yaml);
+        } catch (ParseException) {
+            $query = null;
+        }
+
+        return is_array($query) ? self::approximate($query)['filter'] : new self();
+    }
+
+    /**
      * @param list<string> $dropped
      */
     private function collect(mixed $clause, bool $negated, array &$dropped): void

@@ -297,4 +297,19 @@ final class BoardFilterTest extends TestCase
         self::assertEquals(new BoardFilter(), $filter);
         self::assertFalse($filter?->hasFilter());
     }
+
+    public function testAQueryNoFilterKnowsStillGivesFiltersToEdit(): void
+    {
+        // The filters of a query for the id of a category: none, with the closed issues left out
+        $yaml = "bool:\n  must:\n    - term: { category.id: 1107 }\n"
+            . "  must_not:\n    - terms: { status.name: [Closed, Rejected, Resolved] }\n";
+        $closest = BoardFilter::closestTo($yaml);
+
+        self::assertFalse($closest->hasFilter());
+        self::assertSame(0, $closest->closedVisibleDays);
+        // What the form of the board gets: the query of these filters, which fromYaml() does not take as its own
+        self::assertNull(BoardFilter::fromYaml($closest->toYaml()));
+        self::assertEquals($closest, BoardFilter::closestTo($closest->toYaml()));
+        self::assertEquals(new BoardFilter(), BoardFilter::closestTo('no: [query'));
+    }
 }
