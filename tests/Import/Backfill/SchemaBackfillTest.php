@@ -15,6 +15,7 @@ use App\Elastic\Indices;
 use App\Import\Backfill\BackfillStep;
 use App\Import\Backfill\ChangeClosedOn;
 use App\Import\Backfill\ChangeVoters;
+use App\Import\Backfill\IssueTags;
 use App\Import\Backfill\SchemaBackfill;
 use App\Import\Backfill\SchemaStep;
 use App\Import\ImportSchema;
@@ -46,7 +47,7 @@ final class SchemaBackfillTest extends KernelTestCase
 
         // By index, the steps of the import before the stream: the events come from the lifted document
         self::assertSame(
-            [IssueActivity::class, ChangeClosedOn::class, ChangeVoters::class, ChangeActivity::class],
+            [IssueTags::class, IssueActivity::class, ChangeClosedOn::class, ChangeVoters::class, ChangeActivity::class],
             $steps,
         );
     }
@@ -67,7 +68,8 @@ final class SchemaBackfillTest extends KernelTestCase
         self::assertTrue($backfill->reaches(Indices::REVIEW, 4));
         // Version 3 has no review log: only Gerrit lifts it
         self::assertFalse($backfill->reaches(Indices::REVIEW, 3));
-        self::assertFalse($backfill->reaches(Indices::ISSUE, ImportSchema::ISSUE - 1));
+        self::assertTrue($backfill->reaches(Indices::ISSUE, ImportSchema::ISSUE - 1));
+        self::assertFalse($backfill->reaches(Indices::ISSUE, ImportSchema::ISSUE - 2));
     }
 
     public function testTheStatusTellsWhatLiftsEachVersion(): void
@@ -108,6 +110,15 @@ final class SchemaBackfillTest extends KernelTestCase
 
         self::assertSame(['voters' => [7, 9]], new ChangeVoters()->derive(['votes' => $votes]));
         self::assertSame(['voters' => []], new ChangeVoters()->derive([]));
+    }
+
+    public function testTheStoredTagsAreSplitAtSpaces(): void
+    {
+        self::assertSame(
+            ['tags' => ['accessibility', 'a11y', 'backend']],
+            new IssueTags()->derive(['tags' => ['accessibility a11y', 'backend', 'a11y']]),
+        );
+        self::assertSame(['tags' => []], new IssueTags()->derive([]));
     }
 
     public function testDocumentsWithoutAVersionAreOfTheFirst(): void

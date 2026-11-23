@@ -135,6 +135,14 @@ class ApiV1Controller extends AbstractController
         schema: new OA\Schema(type: 'string'),
     )]
     #[OA\Parameter(
+        name: 'tag',
+        description: 'Only issues with this tag, by its exact name in any case, like "accessibility". The search '
+            . 'words find tags with stems and typos, this filter does not. "breakdown" lists the tags.',
+        in: 'query',
+        schema: new OA\Schema(type: 'string'),
+        example: 'accessibility',
+    )]
+    #[OA\Parameter(
         name: 'author',
         description: 'Only issues this person reported. ' . self::PERSON,
         in: 'query',
@@ -194,8 +202,8 @@ class ApiV1Controller extends AbstractController
     )]
     #[OA\Parameter(
         name: 'breakdown',
-        description: 'Also count how all issues of the search spread by status, tracker, category and year, not '
-            . 'only those of the page.',
+        description: 'Also count how all issues of the search spread by status, tracker, category, tag and year, '
+            . 'not only those of the page.',
         in: 'query',
         schema: new OA\Schema(type: 'boolean', default: false),
     )]

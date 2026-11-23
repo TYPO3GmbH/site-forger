@@ -67,7 +67,7 @@ final class ImportSchemaTest extends TestCase
 
         // Version 4 has the same fields as version 3, but reads the journals of every issue
         self::assertSame(
-            [5, [
+            [6, [
                 'attachments', 'complexity', 'created_on', 'custom_fields', 'duplicated_by', 'duplicates', 'focus',
                 'id', ImportSchema::FIELD, 'isregression', 'issue_relations', 'php_version', 'tags',
                 'typo3_version', 'updated_on',

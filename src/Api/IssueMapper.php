@@ -90,7 +90,7 @@ final readonly class IssueMapper
             description: $issue->description,
             typo3Version: $issue->typo3Version,
             phpVersion: $issue->phpVersion,
-            tags: $issue->tags,
+            tags: self::tags($issue->tags),
             parent: null !== $issue->parent && $public($issue->parent) ? $issue->parent : null,
             subtasks: array_values($subtasks->map(static fn (Issue $subtask): int => $subtask->id)->toArray()),
             relations: array_values(array_map(
@@ -189,9 +189,25 @@ final readonly class IssueMapper
             $buckets('status'),
             $buckets('tracker'),
             $buckets('category'),
+            $buckets('tag'),
             $buckets('createdYear'),
             $buckets('updatedYear'),
         );
+    }
+
+    /**
+     * The tags in lower case, as the index and the filter "tag" have them: "Accessibility" and "accessibility" are
+     * one tag.
+     *
+     * @param list<string> $tags
+     *
+     * @return list<string>
+     */
+    private static function tags(array $tags): array
+    {
+        $tags = array_filter(array_map(static fn (string $tag): string => mb_strtolower(trim($tag)), $tags));
+
+        return array_values(array_unique($tags));
     }
 
     /**

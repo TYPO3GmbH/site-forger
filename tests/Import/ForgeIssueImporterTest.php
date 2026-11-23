@@ -63,6 +63,15 @@ final class ForgeIssueImporterTest extends TestCase
         self::assertArrayNotHasKey('due_date', $document);
     }
 
+    public function testCommasAndSpacesSeparateTheTags(): void
+    {
+        self::assertSame(
+            ['accessibility', 'a11y', 'page', 'tree'],
+            ForgeIssueImporter::tags(' accessibility a11y,a11y , page  tree,'),
+        );
+        self::assertSame([], ForgeIssueImporter::tags(' , '));
+    }
+
     public function testDocumentWithoutCustomFields(): void
     {
         $document = ForgeIssueImporter::document(['id' => 1, 'created_on' => '2026-11-01T10:00:00Z', 'updated_on' => '2026-11-01T10:00:00Z']);

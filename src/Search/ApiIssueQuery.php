@@ -34,6 +34,11 @@ final class ApiIssueQuery
     private const int BUCKETS = 200;
 
     /**
+     * The tags the breakdown counts at most, the ones used most. Forge has many tags, most of them on a few issues.
+     */
+    public const int TAGS = 500;
+
+    /**
      * @param bool $breakdown whether the request counts how all issues of the search spread, see breakdown()
      *
      * @return array<string, mixed>
@@ -89,6 +94,7 @@ final class ApiIssueQuery
                 'size' => self::BUCKETS,
                 'missing' => self::NONE,
             ]],
+            'tag' => ['terms' => ['field' => 'tags', 'size' => self::TAGS]],
             'createdYear' => $year('created_on'),
             'updatedYear' => $year('updated_on'),
         ];
@@ -108,6 +114,8 @@ final class ApiIssueQuery
             IssueStateFilterEnum::CLOSED === $filters->state ? IssueSearch::closed() : null,
             null === $filters->tracker ? null : ['term' => ['tracker.name' => $filters->tracker]],
             null === $filters->category ? null : self::category($filters->category),
+            // The index keeps the tags in lower case, see config/Elasticorn/issue/Mapping.yaml
+            null === $filters->tag ? null : ['term' => ['tags' => mb_strtolower($filters->tag)]],
             null === $filters->author ? null : self::author($filters->author),
             null === $filters->assignee ? null : self::assignee($filters->assignee),
             null === $filters->involving ? null : ['bool' => [

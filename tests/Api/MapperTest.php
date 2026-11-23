@@ -79,6 +79,19 @@ final class MapperTest extends TestCase
         );
     }
 
+    public function testAnIssueHasItsTagsInLowerCase(): void
+    {
+        $issue = Issue::fromDocument([
+            'id' => 105000,
+            'subject' => 'Tagged',
+            'tags' => ['Accessibility', 'accessibility', ' Backend ', ''],
+        ]);
+
+        $detail = new IssueMapper(ApiFixtures::urls())->detail($issue, new ArrayCollection(), new ArrayCollection(), []);
+
+        self::assertSame(['accessibility', 'backend'], $detail->tags);
+    }
+
     public function testLeavesOutTheRelatedIssuesForgerDoesNotHave(): void
     {
         // The token of the import sees private issues in the relations, the index has none of them
@@ -221,6 +234,7 @@ final class MapperTest extends TestCase
         $found = SearchResult::ofDocuments([], 0, [
             'status' => ['buckets' => [['key' => 'New', 'doc_count' => 3]]],
             'category' => ['buckets' => [['key' => 'none', 'doc_count' => 2]]],
+            'tag' => ['buckets' => [['key' => 'accessibility', 'doc_count' => 4]]],
             'createdYear' => ['buckets' => [['key' => 1356998400000, 'key_as_string' => '2013', 'doc_count' => 1]]],
         ]);
 
@@ -228,6 +242,7 @@ final class MapperTest extends TestCase
 
         self::assertSame([['name' => 'New', 'count' => 3]], self::decoded($breakdown)['status']);
         self::assertSame([['name' => 'none', 'count' => 2]], self::decoded($breakdown)['category']);
+        self::assertSame([['name' => 'accessibility', 'count' => 4]], self::decoded($breakdown)['tag']);
         self::assertSame([['name' => '2013', 'count' => 1]], self::decoded($breakdown)['createdYear']);
         self::assertSame([], $breakdown->tracker);
     }

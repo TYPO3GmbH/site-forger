@@ -43,7 +43,7 @@ final readonly class IssueDetail extends IssueSummary
         #[OA\Property(description: 'The PHP version the report is about.', example: '8.3')]
         public ?string $phpVersion,
         #[OA\Property(
-            description: 'The tags of the issue.',
+            description: 'The tags of the issue, in lower case. Tags that differ only in case are one.',
             type: 'array',
             items: new OA\Items(type: 'string'),
             example: ['image', 'crop'],
