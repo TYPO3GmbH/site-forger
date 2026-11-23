@@ -1,0 +1,84 @@
+{#
+ # The filters of a sprint board of reviews, in its form, see ReviewBoardFilterType: which open changes of Gerrit
+ # the board shows, in which order, and the filters of the issues they name. The owners are a list with their names; the search of people adds them, see
+ # assets/ts/sprint/board-members.ts. Without JavaScript the field of the usernames shows.
+ # Expects: form (the form of the board), owners (list of {key, person}, see BoardMembers::shown()), searchUrl
+ #}
+{% import '_macros/user.html.twig' as user %}
+{% set filter = form.reviewFilter %}
+<section class="board-form-section" aria-labelledby="board-form-reviews">
+    <h2 class="board-form-section-title" id="board-form-reviews">Changes</h2>
+    <p class="board-form-hint">
+        An open change is on the board if it matches every filter you set. Within a filter, any value is enough.
+    </p>
+    {{ form_errors(filter) }}
+    {{ form_row(filter.paths) }}
+    <div class="board-form-chips">{{ form_row(filter.tags) }}</div>
+    <div class="board-form-chips">{{ form_row(filter.branches) }}</div>
+    <div class="board-form-chips">{{ form_row(filter.releases) }}</div>
+    <div class="board-form-chips">{{ form_row(filter.sizes) }}</div>
+    <div class="board-form-chips">{{ form_row(filter.activities) }}</div>
+    <div class="board-form-chips">{{ form_row(filter.mergeable) }}</div>
+    <div class="board-form-grid">
+        {{ form_row(filter.topics) }}
+        <div class="form-group board-owners" data-board-members>
+            <label class="form-label" for="{{ filter.owners.vars.id }}">Owners</label>
+            {{ form_errors(filter.owners) }}
+            <ul class="board-members-list" data-board-members-list>
+                {% for owner in owners %}
+                    <li class="board-members-item" data-key="{{ owner.key }}">
+                        {% if owner.person %}
+                            {{ user.inline(owner.person, 24) }}
+                        {% else %}
+                            <span class="user">{{ owner.key }}</span>
+                        {% endif %}
+                        <button type="button" class="board-members-remove" data-board-members-remove title="Remove">
+                            {{- icon('actions-close') }}<span class="sr-only">Remove</span>
+                        </button>
+                    </li>
+                {% endfor %}
+            </ul>
+            {# The field the form sends; the list above replaces it, see board-members.ts #}
+            {{ form_widget(filter.owners, {'attr': {'class': 'form-control', 'data-board-members-value': ''}}) }}
+            {{ form_help(filter.owners) }}
+            <template data-board-members-remove-template>
+                <button type="button" class="board-members-remove" data-board-members-remove title="Remove">
+                    {{- icon('actions-close') }}<span class="sr-only">Remove</span>
+                </button>
+            </template>
+            <forger-person-search
+                search-url="{{ searchUrl }}"
+                label="Add an owner"
+                placeholder="Add an owner by name or username"
+                hidden
+                data-board-members-search
+            ></forger-person-search>
+        </div>
+        {% do filter.owners.setRendered() %}
+    </div>
+    <div class="board-form-grid">
+        {{ form_row(filter.workInProgress) }}
+        {{ form_row(form.reviewSort) }}
+    </div>
+</section>
+
+{# The issues the changes name: a second set of filters, the one of a board of issues #}
+<section class="board-form-section" aria-labelledby="board-form-issues">
+    <h2 class="board-form-section-title" id="board-form-issues">Issues of the changes</h2>
+    <p class="board-form-hint">
+        Optional. With a filter here, the board shows only the changes that name a matching issue in "Resolves:" or
+        "Related:".
+    </p>
+    {{ form_errors(filter.issueQuery) }}
+    {% include 'sprint/_board_form_issue_filters.html.twig' with {
+        'query': filter.issueQuery,
+        'closed': false,
+    } only %}
+    {# An open change may belong to a closed issue: closed issues count however long ago they closed #}
+    <input
+        type="hidden"
+        name="{{ filter.issueQuery.closedVisibleDays.vars.full_name }}"
+        value="{{ constant('App\\Sprint\\BoardFilter::CLOSED_ALWAYS_VISIBLE') }}"
+    >
+    {% do filter.issueQuery.closedVisibleDays.setRendered() %}
+</section>

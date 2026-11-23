@@ -1,33 +1,73 @@
 {% extends 'base.html.twig' %}
-{% block title %}Sprint Categories{% endblock %}
-{% block page_title %}Sprint Categories{% endblock %}
+{% block title %}{{ edit ? 'Edit category' : 'New category' }}{% endblock %}
+{% block page_title %}{{ edit ? form.vars.value.name : 'New category' }}{% endblock %}
+{% block page_summary %}A category groups boards on the overview and in the menu.{% endblock %}
+{% block page_actions %}
+    {% import '_macros/buttons.html.twig' as buttons %}
+    {{ buttons.back(path('sprint_overview'), 'Back to the overview') }}
+{% endblock %}
 {% block breadcrumb %}
     {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
-    {{ breadcrumb.trail([{'label': 'Sprints', 'url': path('sprint_overview')}, {'label': 'Categories', 'url': path('sprintcategory_index')}, {'label': edit is defined ? 'Edit category' : 'New category'}]) }}
+    {{ breadcrumb.trail([
+        {'label': 'Boards', 'url': path('sprint_overview')},
+        {'label': edit ? 'Edit category' : 'New category'},
+    ]) }}
 {% endblock %}
+{#
+ # A category of the sprint boards, see SprintCategoryController. Its icon is picked from the icons of the template
+ # bundle as radio buttons, so the form works without JavaScript. assets/ts/sprint/icon-picker.ts filters them by
+ # the words typed and shows the picked one.
+ # Expects: form (SprintBoardCategoryType), edit, icons (list of identifiers, see IconCatalog)
+ #}
 {% block body %}
-
-    <div class="content-section">
+    {% set field = form.icon %}
+    {% set current = field.vars.value %}
+    <div class="content-section content-section-small">
         <div class="container">
-            <h2>
-                {% if edit is defined %}
-                    Edit a Sprint Category
-                {% else %}
-                    Add a Sprint Category
-                {% endif %}
-            </h2>
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-body">
-                            {{ form_start(form) }}
-                            {{ form_widget(form) }}
-                            {{ form_end(form) }}
-                        </div>
+            <div class="info-card sprint-category-form">
+                {{ form_start(form) }}
+                {{ form_row(form.name) }}
+                {{ form_row(form.identifier) }}
+                <fieldset class="icon-picker" data-icon-picker>
+                    <legend class="form-label">Icon</legend>
+                    <div class="icon-picker-head">
+                        <span class="icon-picker-preview" aria-live="polite">
+                            <span class="icon-picker-preview-icon" data-icon-picker-preview>
+                                {{- current is not empty ? icon(current) -}}
+                            </span>
+                            <span data-icon-picker-name>{{ current is not empty ? current : 'No icon yet' }}</span>
+                        </span>
+                        <input
+                            type="search"
+                            class="form-control icon-picker-search"
+                            placeholder="Search {{ icons|length }} icons, like “rocket” or “brand”"
+                            aria-label="Search the icons"
+                            data-icon-picker-search
+                            hidden
+                        >
                     </div>
-                </div>
+                    {{ form_errors(field) }}
+                    <div class="icon-picker-grid" role="radiogroup" aria-label="Icons">
+                        {% for identifier in icons %}
+                            {% set name = identifier|slice(8) %}
+                            <label class="icon-picker-option" title="{{ name }}" data-icon-picker-option="{{ name }}">
+                                <input
+                                    type="radio"
+                                    name="{{ field.vars.full_name }}"
+                                    value="{{ identifier }}"
+                                    {{- identifier == current ? ' checked' }}
+                                    required
+                                >
+                                {{ icon(identifier) }}
+                                <span class="sr-only">{{ name }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                    <p class="icon-picker-empty" data-icon-picker-empty hidden>No icon matches.</p>
+                </fieldset>
+                {% do field.setRendered() %}
+                {{ form_end(form) }}
             </div>
         </div>
     </div>
-
 {% endblock %}

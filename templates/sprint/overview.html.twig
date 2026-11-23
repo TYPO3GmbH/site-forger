@@ -1,38 +1,109 @@
 {% extends 'base.html.twig' %}
-{% block title %}Sprints{% endblock %}
-{% block page_title %}Sprints{% endblock %}
+{% block title %}Boards{% endblock %}
+{% block page_title %}Boards{% endblock %}
+{# Managers add the categories here, and the boards at the end of the line of each category below #}
+{% block page_actions %}
+    {% if is_granted('ROLE_FORGER_MANAGEMENT') %}
+        <a class="btn btn-sm btn-default" href="{{ path('sprintcategory_create') }}">
+            {{- icon('actions-plus') }} New category
+        </a>
+    {% endif %}
+{% endblock %}
 {% block description %}
-    The sprint boards of the TYPO3 Core: how far the issues of each sprint and initiative have got.
+    The boards of the TYPO3 Core: how far the issues and the reviews of each sprint and initiative have got.
 {% endblock %}
 {#
  # All sprint boards by category, each as a card with its progress, see SprintController::overview(). A category
  # has the id "sprints-<identifier>": its page leads here, see SprintController::index().
- # Expects: categories, a list of {category, boards: list of {board, count}}
+ # Expects: categories, a list of {category, boards: list of {board, count, changes}}, see
+ #          SprintController::countsOf()
  #}
 {% block body %}
     {% set manager = is_granted('ROLE_FORGER_MANAGEMENT') %}
+    {% set categoryToken = constant('App\\Controller\\SprintCategoryController::CSRF_TOKEN_ID') %}
     <div class="content-section content-section-small overview">
         <div class="container">
             {% for item in categories %}
                 {% set category = item.category %}
                 <section class="sprint-overview-category" id="sprints-{{ category.identifier }}">
-                    <header class="section-heading{{ manager ? ' has-action' }}">
-                        <div>
+                    <header class="section-heading">
+                        <div class="sprint-overview-category-head">
                             <h2 class="section-title sprint-overview-category-title">
                                 {{ icon(category.icon) }} {{ category.name }}
                             </h2>
-                            <p class="section-lead">
-                                {{- item.boards|length }} {{ item.boards|length == 1 ? 'board' : 'boards' -}}
-                            </p>
+                            {% if manager %}
+                                {# Beside its name, as they change the category. It goes only without boards,
+                                   which would go with it #}
+                                <div class="sprint-overview-manage">
+                                    {# Its place among the categories: one up or one down #}
+                                    {% set ends = {'up': loop.first, 'down': loop.last} %}
+                                    {% for direction in ['up', 'down']|filter(direction => not ends[direction]) %}
+                                        <form
+                                            action="{{ path('sprintcategory_move', {
+                                                'categoryId': category.id,
+                                                'direction': direction,
+                                            }) }}"
+                                            method="post"
+                                        >
+                                            <input
+                                                type="hidden"
+                                                name="_token"
+                                                value="{{ csrf_token(categoryToken) }}"
+                                            >
+                                            <button
+                                                type="submit"
+                                                class="sprint-board-tool"
+                                                title="Move the category {{ category.name }} {{ direction }}"
+                                            >
+                                                {{- icon('actions-arrow-' ~ direction) -}}
+                                                <span class="sr-only">Move the category {{ direction }}</span>
+                                            </button>
+                                        </form>
+                                    {% endfor %}
+                                    <a
+                                        class="sprint-board-tool"
+                                        href="{{ path('sprintcategory_edit', {'categoryId': category.id}) }}"
+                                        title="Edit the category {{ category.name }}"
+                                    >
+                                        {{- icon('actions-open') }}<span class="sr-only">Edit the category</span>
+                                    </a>
+                                    {% if item.boards is empty %}
+                                        <form
+                                            action="{{ path('sprintcategory_delete', {'categoryId': category.id}) }}"
+                                            method="post"
+                                            data-confirm-title="Delete the category {{ category.name }}?"
+                                            data-confirm="It has no boards. You can add it again later."
+                                            data-confirm-button="Delete the category"
+                                        >
+                                            <input
+                                                type="hidden"
+                                                name="_token"
+                                                value="{{ csrf_token(categoryToken) }}"
+                                            >
+                                            <button
+                                                type="submit"
+                                                class="sprint-board-tool sprint-board-delete"
+                                                title="Delete the category {{ category.name }}"
+                                            >
+                                                {{- icon('actions-delete') -}}
+                                                <span class="sr-only">Delete the category</span>
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                                {# At the end of the line: a new board in this category #}
+                                <a
+                                    class="btn btn-sm btn-default sprint-overview-add"
+                                    href="{{ path('sprint_create', {'category': category.identifier}) }}"
+                                    title="New board in {{ category.name }}"
+                                >
+                                    {{- icon('actions-plus') }} Add board
+                                </a>
+                            {% endif %}
                         </div>
-                        {% if manager %}
-                            <a
-                                class="section-action"
-                                href="{{ path('sprint_create', {'category': category.identifier}) }}"
-                            >
-                                {{- icon('actions-plus') }} New board
-                            </a>
-                        {% endif %}
+                        <p class="section-lead">
+                            {{- item.boards|length }} {{ item.boards|length == 1 ? 'board' : 'boards' -}}
+                        </p>
                     </header>
                     {% if item.boards is not empty %}
                         <div class="sprint-overview-cards">
@@ -40,16 +111,24 @@
                                 {% include 'sprint/_overview_board.html.twig' with {
                                     'board': entry.board,
                                     'count': entry.count,
+                                    'changes': entry.changes,
                                 } only %}
                             {% endfor %}
                         </div>
                     {% else %}
-                        <p class="sprint-overview-empty">This category has no sprint boards yet.</p>
+                        <p class="sprint-overview-empty">
+                            This category has no boards yet.
+                            {% if manager %}
+                                <a href="{{ path('sprint_create', {'category': category.identifier}) }}">
+                                    Add the first board
+                                </a>
+                            {% endif %}
+                        </p>
                     {% endif %}
                 </section>
             {% else %}
                 {% include '_partials/alert.html.twig' with {
-                    'message': 'There are no sprint boards yet. If you think there should be, tell us on Slack.',
+                    'message': 'There are no boards yet. If you think there should be, tell us on Slack.',
                     'style': 'info',
                 } only %}
             {% endfor %}

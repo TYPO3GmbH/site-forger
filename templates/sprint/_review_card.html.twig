@@ -1,0 +1,31 @@
+{#
+ # An open change on the review board: its tags, number and branch, the subject without its tags, then its size, how
+ # long it lies still and its votes, and its owner with the last update. A change for a branch other than main is a
+ # backport and says so.
+ # Expects: change (App\Document\Change)
+ #}
+{% import '_macros/status.html.twig' as status %}
+{% import '_macros/user.html.twig' as user %}
+<article class="sprint-board-card">
+    <p class="sprint-board-card-head">
+        {{ status.reviewTags(change) }}
+        <span class="sprint-board-card-id">{{ change.id }}</span>
+        {% if (change.branch ?? 'main') != 'main' %}
+            <span class="tag-label is-backport" title="Branch">{{ change.branch }}</span>
+        {% endif %}
+    </p>
+    <h4 class="sprint-board-card-title">
+        <a href="{{ change_path(change.id) }}" title="{{ change.subject }}">{{ change.title }}</a>
+    </h4>
+    <p class="sprint-board-card-meta">
+        {{ status.size(change) }}
+        {{ status.activity(change) }}
+        {{ status.votes(change) }}
+    </p>
+    <p class="sprint-board-card-foot">
+        {{ user.inline(change.ownerPerson, 20, role: 'Owner') }}
+        <time datetime="{{ to_datetime(change.updatedOn)|date('c') }}" title="Updated {{ change.updatedOn }}">
+            {{- relativetime(to_datetime(change.updatedOn)) -}}
+        </time>
+    </p>
+</article>

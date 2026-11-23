@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Menu;
 
-use App\Repository\SprintBoardCategoryRepository;
+use App\Sprint\VisibleBoards;
 use Knp\Menu\FactoryInterface;
 use Knp\Menu\ItemInterface;
 use Knp\Menu\Matcher\MatcherInterface;
@@ -41,7 +41,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         AuthorizationCheckerInterface $authorizationChecker,
         TokenStorageInterface $tokenStorage,
         TranslatorInterface $translator,
-        private readonly SprintBoardCategoryRepository $categoryRepository,
+        private readonly VisibleBoards $visibleBoards,
         private readonly RequestStack $requestStack,
     ) {
         parent::__construct($parameters, $factory, $matcher, $authorizationChecker, $tokenStorage, $translator);
@@ -89,9 +89,10 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         $this->addLink($activity, 'statistics', 'Statistics', 'dashboard_statistics', 'actions-viewmode-tiles');
         $this->addLink($activity, 'activity_index', 'Stream', 'activity_index', 'actions-list');
 
-        $sprints = $menu->addChild('sprint', ['label' => 'Sprints', 'route' => 'sprint_overview']);
+        $sprints = $menu->addChild('sprint', ['label' => 'Boards', 'route' => 'sprint_overview']);
         $this->addLink($sprints, 'sprint_overview', 'Overview', 'sprint_overview', 'actions-viewmode-layout');
-        foreach ($this->categoryRepository->findAll() as $category) {
+        // The categories with a board the user sees, see VisibleBoards
+        foreach (array_column($this->visibleBoards->byCategory(), 'category') as $category) {
             $identifier = $category->getIdentifier();
             if (null === $identifier) {
                 continue;
@@ -104,12 +105,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
                 $category->getIcon(),
                 ['category' => $identifier],
             );
-        }
-        $this->addLink($sprints, 'sprint_reviews', 'Review board', 'sprint_reviews', 'actions-line-columns');
-        if ($this->authorizationChecker->isGranted('ROLE_FORGER_MANAGEMENT')) {
-            $this->addHeader($sprints, 'Manage');
-            $this->addLink($sprints, 'sprint_list', 'Sprint boards', 'sprint_list', 'actions-viewmode-tiles');
-            $this->addLink($sprints, 'sprintcategory_index', 'Categories', 'sprintcategory_index', 'actions-category');
         }
 
         // A click on "Tools" opens their overview, its tiles are the items below with their description

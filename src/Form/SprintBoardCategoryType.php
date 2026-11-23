@@ -12,17 +12,24 @@ declare(strict_types=1);
 namespace App\Form;
 
 use App\Entity\SprintBoardCategory;
+use App\Service\IconCatalog;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\Choice;
 
 /**
  * @extends AbstractType<SprintBoardCategory>
  */
 class SprintBoardCategoryType extends AbstractType
 {
+    public function __construct(
+        private readonly IconCatalog $icons,
+    ) {
+    }
+
     /**
      * @template T
      *
@@ -38,18 +45,20 @@ class SprintBoardCategoryType extends AbstractType
                 TextType::class,
                 [
                     'required' => true,
-                    'label' => 'Identifier (only allowed lodwer case and -)',
+                    'label' => 'Identifier (only allowed lower case and -)',
                     'attr' => ['pattern' => '^[a-z0-9]+(?:-[a-z0-9]+)*$'],
                 ]
             )
+            // Shown as a picker of the icons, see templates/sprintcategory/form.html.twig
             ->add(
                 'icon',
                 TextType::class,
                 [
                     'required' => true,
-                    'label' => 'Icon identifier',
-                    'help' => 'Please use an <code>action-*</code> identifier from the <a href="https://typo3.github.io/TYPO3.Icons/icons/actions.html" target="_blank">TYPO3 Icons</a> set.',
-                    'help_html' => true,
+                    'label' => 'Icon',
+                    'constraints' => [
+                        new Choice(choices: $this->icons->identifiers(), message: 'Pick one of the icons.'),
+                    ],
                 ]
             )
             ->add(

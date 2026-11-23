@@ -1,22 +1,65 @@
 {#
- # A sprint board on the overview, as a card that leads to it: its name, how much is done, and its issues by state
- # as a bar and as figures. The states come in the order and the colors of the columns of the board, see
- # _board_parts.html.twig.
- # Expects: board (SprintBoard), count (BoardCount, null if the query of the board cannot be read)
+ # A sprint board on the overview, as a card that leads to it: its name and how far it has got, as a bar and as
+ # figures. A board of issues shows how much is done and its issues by state, in the order and the colors of the
+ # columns of the board, see _board_parts.html.twig. A board of reviews shows its open changes by the votes they
+ # still need, see _review_parts.html.twig.
+ # Expects: board (SprintBoard), count (BoardCount, null for a board of reviews or if the query of the board cannot
+ #          be read), changes (change count by group, see ReviewBoards::counts(), null for a board of issues)
  #}
 {% set states = {'blocked': 'Blocked', 'open': 'Open', 'review': 'Review', 'closed': 'Done'} %}
 {% set colors = {'blocked': 'blocked', 'open': 'open', 'review': 'review', 'closed': 'done'} %}
 <a
     class="sprint-overview-card"
-    href="{{ path('sprint', {'category': board.category.identifier, 'sprintId': board.id}) }}"
+    href="{{ path('sprint', {'category': board.category.identifier, 'board': board.identifier}) }}"
 >
     <span class="sprint-overview-card-head">
-        <span class="sprint-overview-card-name">{{ board.name }}</span>
+        <span class="sprint-overview-card-name">
+            {# A board of reviews says so: its figures are changes, not issues #}
+            {% if changes is not null %}{{ icon('actions-code-pull-request') }} {% endif %}
+            {{- board.name -}}
+
+        </span>
         {% if count is not null and count.total > 0 %}
             <span class="sprint-overview-card-percent">{{ count.percentage }}%</span>
         {% endif %}
     </span>
-    {% if count is null %}
+    {% if changes is not null %}
+        {% set groups = {
+            'missesBoth': 'Unchecked',
+            'missesCodeReview': 'Code review',
+            'missesTesting': 'Testing',
+            'hasPlusOne': 'Has votes',
+            'mergeConflict': 'Conflict',
+            'blocked': 'Blocked',
+        } %}
+        {% set total = changes|reduce((sum, group) => sum + group, 0) %}
+        <span class="sprint-overview-card-note">
+            {{- total == 0
+                ? 'No open change matches this board.'
+                : total ~ ' open ' ~ (total == 1 ? 'change' : 'changes') -}}
+        </span>
+        {% if total > 0 %}
+            <span class="overview-segments" aria-hidden="true">
+                {% for group in groups|keys|filter(group => (changes[group] ?? 0) > 0) %}
+                    <span
+                        class="overview-segment review-board-state-{{ group }}"
+                        style="flex-grow: {{ changes[group] }}"
+                    ></span>
+                {% endfor %}
+            </span>
+            <span class="sprint-overview-card-legend">
+                {% for group, label in groups %}
+                    <span class="sprint-overview-card-state{{ (changes[group] ?? 0) == 0 ? ' is-empty' }}">
+                        <strong>
+                            <span class="overview-legend-swatch review-board-state-{{ group }}"></span>
+                            {{- changes[group] ?? 0 -}}
+                        </strong>
+                        {{ label }}
+                    </span>
+                {% endfor %}
+            </span>
+        {% endif %}
+    {% elseif count is null %}
         <span class="sprint-overview-card-note">The query of this board cannot be read.</span>
     {% elseif count.total == 0 %}
         <span class="sprint-overview-card-note">No issues match this board.</span>
@@ -40,6 +83,13 @@
                     {{ label }}
                 </span>
             {% endfor %}
+        </span>
+    {% endif %}
+    {% if board.restricted %}
+        {% set members = board.members|length %}
+        <span class="restricted-notice is-compact">
+            {{ icon('actions-lock') }}
+            <span>Restricted · shared with {{ members }} {{ members == 1 ? 'person' : 'people' }}</span>
         </span>
     {% endif %}
 </a>

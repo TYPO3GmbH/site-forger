@@ -14,6 +14,7 @@ namespace App\Repository;
 use App\Entity\SprintBoard;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\String\Slugger\AsciiSlugger;
 
 /**
  * @extends ServiceEntityRepository<SprintBoard>
@@ -29,5 +30,29 @@ class SprintBoardRepository extends ServiceEntityRepository
     public function findAll(): array
     {
         return $this->findBy([], ['sorting' => 'ASC', 'name' => 'ASC']);
+    }
+
+    /**
+     * The identifier of a board with the name: the name in lower case letters, digits and "-", like
+     * "contribution-night-2026". With "-2", "-3" and so on while another board has it. The board of the id may
+     * keep its own.
+     */
+    public function identifierFor(string $name, ?int $id = null): string
+    {
+        $base = (new AsciiSlugger())->slug($name)->lower()->toString();
+        $base = '' === $base ? 'board' : $base;
+        $identifier = $base;
+        for ($number = 2; $this->isTaken($identifier, $id); ++$number) {
+            $identifier = $base . '-' . $number;
+        }
+
+        return $identifier;
+    }
+
+    private function isTaken(string $identifier, ?int $id): bool
+    {
+        $board = $this->findOneBy(['identifier' => $identifier]);
+
+        return null !== $board && $board->getId() !== $id;
     }
 }

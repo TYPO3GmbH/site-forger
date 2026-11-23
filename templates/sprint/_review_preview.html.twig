@@ -1,0 +1,71 @@
+{#
+ # The changes the filters of the form of a board of reviews find right now, see SprintController::previewSprint().
+ # Expects: hasFilter, and with a filter cards (the changes by group, see ReviewBoards::cards())
+ #}
+{% set titles = {
+    'missesBoth': 'Unchecked',
+    'missesCodeReview': 'Needs code review',
+    'missesTesting': 'Needs testing',
+    'hasPlusOne': 'Has votes',
+    'mergeConflict': 'Merge conflict',
+    'blocked': 'Blocked',
+} %}
+{% set total = hasFilter ? cards|reduce((sum, group) => sum + group|length, 0) : 0 %}
+{% if not hasFilter %}
+    {% include '_partials/alert.html.twig' with {
+        'message': constant('App\\Form\\ReviewBoardFilterType::NO_FILTER'),
+        'style': 'warning',
+    } only %}
+{% elseif total == 0 %}
+    {% include '_partials/alert.html.twig' with {
+        'message': 'No open change matches these filters right now. Choose other values,'
+            ~ ' or save the board if matching changes are still to come.',
+        'style': 'warning',
+    } only %}
+{% else %}
+    {# Like a card of the overview: how many, by column of the board in its colors, then some changes #}
+    <p class="board-preview-total"><strong>{{ total }}</strong> open {{ total == 1 ? 'change' : 'changes' }}</p>
+    <span class="overview-segments" aria-hidden="true">
+        {% for group, changes in cards|filter(changes => changes|length > 0) %}
+            <span
+                class="overview-segment review-board-state-{{ group }}"
+                style="flex-grow: {{ changes|length }}"
+            ></span>
+        {% endfor %}
+    </span>
+    <ul class="board-preview-columns">
+        {% for group, changes in cards %}
+            <li class="{{ changes|length == 0 ? 'is-empty' }}">
+                <span class="overview-legend-swatch review-board-state-{{ group }}"></span>
+                {{ titles[group] ?? group }}
+                <strong>{{ changes|length }}</strong>
+            </li>
+        {% endfor %}
+    </ul>
+    {# The first of each column, in the order of the board, until there are a few #}
+    {% set shown = [] %}
+    {% for group, changes in cards %}
+        {% for change in changes|slice(0, 2) %}
+            {% if shown|length < 6 %}{% set shown = shown|merge([{'change': change, 'group': group}]) %}{% endif %}
+        {% endfor %}
+    {% endfor %}
+    <h3 class="board-preview-title">Some of them</h3>
+    <ul class="board-preview-issues">
+        {% for row in shown %}
+            <li>
+                {# A new tab, the form keeps its settings #}
+                <a href="{{ change_path(row.change.id) }}" target="change{{ row.change.id }}">
+                    <span class="board-preview-issue-id">{{ row.change.id }}</span>
+                    {{ row.change.subject }}
+                </a>
+                <span class="board-preview-issue-meta">
+                    {{- [row.change.branch, titles[row.group] ?? row.group]
+                        |filter(part => part is not empty)|join(' · ') -}}
+                </span>
+            </li>
+        {% endfor %}
+    </ul>
+    {% if total > shown|length %}
+        <p class="board-preview-more">And {{ total - shown|length }} more.</p>
+    {% endif %}
+{% endif %}

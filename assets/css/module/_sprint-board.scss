@@ -1,3 +1,5 @@
+@use "toggle";
+
 // A sprint board, see templates/sprint/index.html.twig: the head with the progress, then the columns side by
 // side. The bar and the swatches are those of the dashboard, see _dashboard.scss.
 
@@ -7,6 +9,63 @@
 .sprint-board-state-wip { background: #8b5cf6; }
 .sprint-board-state-review { background: #fab219; }
 .sprint-board-state-done { background: #15803d; }
+
+// The groups of the review board, see ReviewBoards::group(): from nothing yet to ready, then what holds a change back
+.review-board-state-missesBoth { background: #9ca3af; }
+.review-board-state-missesCodeReview { background: #2a78d6; }
+.review-board-state-missesTesting { background: #8b5cf6; }
+.review-board-state-hasPlusOne { background: #15803d; }
+.review-board-state-mergeConflict { background: #ea580c; }
+.review-board-state-blocked { background: #d03b3b; }
+
+// The order of the cards, as high and as quiet as the switch and the tools beside it
+.sprint-board-sort .form-select {
+    width: auto;
+    height: 2.375rem;
+    padding: 0 2rem 0 .75rem;
+    border-color: var(--overview-border, #e6e8eb);
+    border-radius: .625rem;
+    color: #374151;
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+// The question before a board goes, see templates/sprint/delete_confirm.html.twig
+.sprint-delete {
+    max-width: 36rem;
+}
+
+.sprint-delete-actions {
+    display: flex;
+    gap: .5rem;
+    margin: .5rem 0 0;
+}
+
+// The types of the review board as one switch
+.review-board-types {
+    @include toggle.group;
+
+    // A link of it without an address, hidden until its script shows it
+    &[hidden] {
+        display: none;
+    }
+}
+
+.review-board-type {
+    @include toggle.item;
+
+    display: inline-flex;
+    gap: .375rem;
+    align-items: center;
+    font-size: .8125rem;
+}
+
+.review-board-type-count {
+    color: inherit;
+    font-size: .8125rem;
+    font-weight: 400;
+    opacity: .75;
+}
 
 // The whole board on white: the head, the bar and the columns, which are a light gray
 .sprint-board-page {
@@ -53,7 +112,8 @@
 
 .sprint-board-actions {
     display: flex;
-    gap: .75rem;
+    flex-wrap: wrap;
+    gap: .5rem .75rem;
     align-items: center;
 }
 
@@ -294,21 +354,39 @@
     }
 }
 
+.sprint-board-card-foot {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+    color: #6b7280;
+    font-size: .8125rem;
+
+    // The owner as a face, the name in its title: the columns are narrow
+    .user-name {
+        display: none;
+    }
+}
+
+// The change of an issue, as the foot of its card: what it still needs and its votes, below them its number
 .sprint-board-card-change {
     display: flex;
-    gap: .375rem;
+    flex-wrap: wrap;
+    gap: .25rem .375rem;
     align-items: center;
     margin: .125rem -.875rem -.75rem;
     padding: .5rem .875rem;
-    border-top: 1px solid #f0f1f3;
+    border-top: 1px solid var(--overview-border, #e6e8eb);
     border-radius: 0 0 .625rem .625rem;
+    background: #f7f8fa;
     color: #374151;
     font-size: .8125rem;
     text-decoration: none;
 
     &:hover,
     &:focus-visible {
-        background: #f7f8fa;
+        background: #eef0f3;
         color: #0b0b0b;
     }
 
@@ -317,6 +395,787 @@
     }
 }
 
+.sprint-board-card-change-state {
+    display: inline-flex;
+    gap: .375rem;
+    align-items: center;
+    color: #0b0b0b;
+    font-weight: 700;
+}
+
 .sprint-board-card-change-id {
+    flex-basis: 100%;
+    color: #6b7280;
+}
+
+// A restricted board, in amber wherever it shows: the label beside its name on its page and the line who sees it
+// on the overview, see _board_header.html.twig and _overview_board.html.twig
+.restricted-label {
+    display: inline-flex;
+    gap: .3rem;
+    align-items: center;
+    margin-left: .625rem;
+    padding: .1875rem .625rem;
+    border: 1px solid #fcd34d;
+    border-radius: 999px;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: .875rem;
+    font-weight: 700;
+    text-decoration: none;
+    vertical-align: middle;
+}
+
+a.restricted-label:hover,
+a.restricted-label:focus-visible {
+    border-color: #f59e0b;
+    color: #78350f;
+}
+
+.restricted-notice {
+    display: flex;
+    gap: .5rem;
+    align-items: flex-start;
+    margin: 0;
+    padding: .625rem .875rem;
+    border: 1px solid #fcd34d;
+    border-radius: .75rem;
+    background: #fffbeb;
+    color: #92400e;
+    font-size: .9375rem;
+
+    .icon {
+        flex: none;
+        margin-top: .125rem;
+    }
+
+    a {
+        margin-left: .25rem;
+        color: inherit;
+        font-weight: 600;
+    }
+
+    // In a card of the overview: one line at its end
+    &.is-compact {
+        padding: .375rem .625rem;
+        border-radius: .5rem;
+        font-size: .8125rem;
+        font-weight: 600;
+    }
+}
+
+// The form of a sprint board in one view, see templates/sprint/wizard.html.twig and form.html.twig: its sections as
+// cards, the filters of the issues beside the issues they find
+// The settings on the left, the preview and the button to save in a column on the right that stays in view. Below
+// a laptop the column follows the settings.
+.board-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    gap: 1.25rem;
+    align-items: start;
+
+    > .alert,
+    > .invalid-feedback {
+        grid-column: 1 / -1;
+    }
+
+    @media (max-width: 991.98px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    // Quieter fields than the large ones of the template bundle
+    .form-control,
+    .form-select {
+        min-height: 2.5rem;
+        padding-top: .375rem;
+        padding-bottom: .375rem;
+        font-size: .9375rem;
+    }
+
+    .form-label,
+    legend.col-form-label {
+        margin-bottom: .375rem;
+        padding: 0;
+        font-size: .875rem;
+        font-weight: 600;
+    }
+
+    .form-text {
+        font-size: .8125rem;
+        line-height: 1.4;
+    }
+}
+
+.board-form-main {
+    display: grid;
+    gap: 1.25rem;
+    min-width: 0;
+}
+
+.board-form-side {
+    position: sticky;
+    top: 1rem;
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+
+    @media (max-width: 991.98px) {
+        position: static;
+    }
+}
+
+// The preview: how many issues, by column like on the board, then a few of them. Nothing in it scrolls.
+.board-form-preview {
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+.board-preview-total {
+    margin: 0 0 .625rem;
+    color: #4b5563;
+
+    strong {
+        color: #0b0b0b;
+        font-size: 2rem;
+        line-height: 1;
+    }
+}
+
+.board-preview-columns {
+    margin: .75rem 0 0;
+    padding: 0;
+    color: #374151;
+    font-size: .875rem;
+    list-style: none;
+
+    li {
+        display: flex;
+        gap: .5rem;
+        align-items: center;
+        padding: .25rem 0;
+    }
+
+    strong {
+        margin-left: auto;
+        color: #0b0b0b;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .is-empty {
+        opacity: .5;
+    }
+}
+
+.board-preview-title {
+    margin: 1rem 0 .5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f0f1f3;
+    color: #6b7280;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.board-preview-issues {
+    display: grid;
+    gap: .625rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    a {
+        display: block;
+        color: #0b0b0b;
+        font-size: .875rem;
+        font-weight: 600;
+        line-height: 1.35;
+        text-decoration: none;
+
+        &:hover,
+        &:focus-visible {
+            text-decoration: underline;
+        }
+    }
+}
+
+.board-preview-issue-id {
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.board-preview-issue-meta {
+    display: block;
+    color: #6b7280;
+    font-size: .8125rem;
+}
+
+.board-preview-more {
+    margin: .75rem 0 0;
+    color: #6b7280;
+    font-size: .8125rem;
+}
+
+// The owners a board of reviews filters for: the list of people of the access, always shown
+.board-owners .person-search {
+    margin: 0;
+}
+
+// How the board opens, below the filters
+.board-form-order {
+    margin-top: 1rem;
+}
+
+
+
+.board-form-section {
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--overview-border, #e6e8eb);
+    border-radius: var(--overview-radius, 1rem);
+    background: #fff;
+    box-shadow: var(--card-shadow);
+}
+
+.board-form-section-title {
+    margin: 0 0 1rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+// The fields are optional unless they say otherwise: no " - Optional" of the template bundle at each one
+.board-form .form-group > label:not(.required)::after,
+.board-form .form-group > legend.col-form-label:not(.required)::after {
+    content: none;
+}
+
+// A group of filters, like those that include and those that leave out
+.board-form-group-title {
+    margin: 1.25rem 0 .75rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f0f1f3;
+    color: #6b7280;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+
+    &:first-child {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: 0;
+    }
+}
+
+// The lists of values side by side, each as high as its chips
+.board-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 1.25rem;
+
+    @media (max-width: 575.98px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.board-form-closed .form-select {
+    width: auto;
+    min-width: 16rem;
+    height: 2.5rem;
+    font-size: .9375rem;
+}
+
+// A short list of values as chips in a row, picked by a click: the trackers and the statuses
+.board-form-chips {
+    .form-group > div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .375rem;
+    }
+
+    .form-check {
+        margin: 0;
+        padding: 0;
+    }
+
+    // The box stays for the keyboard and the form, out of sight
+    .form-check-input {
+        position: absolute;
+        opacity: 0;
+    }
+
+    .form-check-label {
+        display: inline-flex;
+        padding: .25rem .75rem;
+        border: 1px solid var(--overview-border, #e6e8eb);
+        border-radius: 999px;
+        background: #fff;
+        color: #374151;
+        font-size: .875rem;
+        cursor: pointer;
+        user-select: none;
+
+        &:hover {
+            border-color: #c4c9d0;
+        }
+    }
+
+    // The same weight as before, so a chip keeps its width and the ones beside it stay where they are
+    .form-check-input:checked + .form-check-label {
+        border-color: var(--bs-primary, #ff8700);
+        background: #fff1e6;
+        box-shadow: 0 0 0 1px var(--bs-primary, #ff8700);
+        color: #0b0b0b;
+    }
+
+    .form-check-input:focus-visible + .form-check-label {
+        outline: 2px solid var(--bs-primary, #ff8700);
+        outline-offset: 1px;
+    }
+}
+
+// Many values to pick several of, see assets/ts/sprint/chip-select.ts: the chips, the field, its suggestions
+.chip-select {
+    position: relative;
+    padding: .25rem;
+    border: 1px solid #ced4da;
+    border-radius: .5rem;
+    background: #fff;
+
+    &:focus-within {
+        border-color: var(--bs-primary, #ff8700);
+    }
+
+    .chip-select-field {
+        height: 2rem;
+        min-height: 0;
+        padding: .25rem .5rem;
+        border: 0;
+        box-shadow: none;
+
+        &:focus {
+            box-shadow: none;
+        }
+    }
+}
+
+.chip-select-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    &:not(:empty) {
+        margin-bottom: .25rem;
+    }
+}
+
+.chip-select-chip {
+    display: inline-flex;
+    gap: .125rem;
+    align-items: center;
+    padding: .125rem .125rem .125rem .5rem;
+    border-radius: 999px;
+    background: #fff1e6;
+    color: #0b0b0b;
+    font-size: .8125rem;
     font-weight: 600;
+}
+
+.chip-select-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: #6b7280;
+    font-size: .75rem;
+
+    &:hover,
+    &:focus-visible {
+        background: #fde2cc;
+        color: #0b0b0b;
+    }
+}
+
+.chip-select-menu {
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + .25rem);
+    right: 0;
+    left: 0;
+    max-height: 16rem;
+    margin: 0;
+    padding: .25rem;
+    overflow-y: auto;
+    border: 1px solid var(--overview-border, #e6e8eb);
+    border-radius: .5rem;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(16, 24, 40, .12);
+    list-style: none;
+}
+
+.chip-select-option {
+    padding: .375rem .5rem;
+    border-radius: .375rem;
+    font-size: .875rem;
+    cursor: pointer;
+
+    &.is-active,
+    &:hover {
+        background: #f3f4f6;
+    }
+}
+
+.board-form-hint {
+    margin: -.5rem 0 1rem;
+    color: #6b7280;
+    font-size: .875rem;
+}
+
+.board-form-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: .5rem;
+}
+
+// Who sees the board: two cards to choose from, then for a restricted board the people
+.board-access-choices {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem;
+
+    @media (max-width: 767.98px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.board-access-choice {
+    position: relative;
+    display: flex;
+    gap: .75rem;
+    align-items: center;
+    margin: 0;
+    padding: .875rem 1rem;
+    border: 1px solid var(--overview-border, #e6e8eb);
+    border-radius: .75rem;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color .15s, background-color .15s;
+
+    &:hover {
+        border-color: #c4c9d0;
+    }
+
+    // The radio stays for the keyboard and the form, out of sight
+    input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    &:has(input:focus-visible) {
+        outline: 2px solid var(--bs-primary, #ff8700);
+        outline-offset: 2px;
+    }
+
+    // "is-active": the type of a new board, a link instead of a radio button
+    &:has(input:checked),
+    &.is-active {
+        border-color: var(--bs-primary, #ff8700);
+        background: #fffaf5;
+        box-shadow: 0 0 0 1px var(--bs-primary, #ff8700);
+    }
+}
+
+a.board-access-choice {
+    color: inherit;
+    text-decoration: none;
+}
+
+.board-type-choices {
+    margin-bottom: 1.25rem;
+
+    // The type of a board there is already: shown, not chosen
+    .is-fixed {
+        cursor: default;
+    }
+}
+
+.board-type-fixed {
+    align-self: center;
+    margin: 0;
+}
+
+.board-access-tile {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: .625rem;
+    background: #f3f4f6;
+    color: #374151;
+    font-size: 1.125rem;
+
+    :checked ~ &,
+    .is-active > & {
+        background: #fff1e6;
+        color: #0b0b0b;
+    }
+}
+
+.board-access-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.35;
+
+    small {
+        color: #6b7280;
+        font-size: .8125rem;
+    }
+}
+
+// A check in a circle on the card that is chosen
+.board-access-check {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 50%;
+    color: transparent;
+    font-size: .75rem;
+
+    :checked ~ &,
+    .is-active > & {
+        border-color: var(--bs-primary, #ff8700);
+        background: var(--bs-primary, #ff8700);
+        color: #fff;
+    }
+}
+
+// The people, only for a restricted board: a panel below the cards
+.board-members {
+    display: none;
+    margin-top: .75rem;
+    padding: 1rem;
+    border-radius: .75rem;
+    background: #f7f8fa;
+
+    .board-access:has([data-board-access-restricted]:checked) & {
+        display: block;
+    }
+
+    .person-search {
+        margin: 0;
+    }
+
+    .person-search-input {
+        padding-left: 2.25rem;
+        background: #fff;
+    }
+
+    // Hidden fields and messages of the form leave no gap
+    > .invalid-feedback:empty,
+    > [hidden] {
+        display: none;
+    }
+}
+
+.board-members-title {
+    display: block;
+    margin: 0 0 .5rem;
+    font-size: .875rem;
+    font-weight: 700;
+}
+
+.board-members-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin: 0 0 .625rem;
+    padding: 0;
+    list-style: none;
+
+    &:empty {
+        display: none;
+    }
+}
+
+// A person as a chip: the face, the name and the button that removes it
+.board-members-item {
+    display: inline-flex;
+    gap: .375rem;
+    align-items: center;
+    padding: .25rem .25rem .25rem .375rem;
+    border: 1px solid var(--overview-border, #e6e8eb);
+    border-radius: 999px;
+    background: #fff;
+    font-size: .875rem;
+}
+
+.board-members-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: #6b7280;
+
+    &:hover,
+    &:focus-visible {
+        background: #fef2f2;
+        color: #b42318;
+    }
+}
+
+.board-members-empty,
+.board-members-hint {
+    margin: 0 0 .625rem;
+    color: #6b7280;
+    font-size: .8125rem;
+}
+
+.board-members-hint {
+    margin: .5rem 0 0;
+}
+
+// The name of a board, edited in place by managers, see assets/ts/sprint/inline-rename.ts
+.sprint-board-name {
+    margin: 0 .25rem 0 -.375rem;
+    padding: 0 .375rem;
+    border-radius: .375rem;
+    cursor: text;
+
+    &:hover,
+    &:focus-visible {
+        background: #f3f4f6;
+    }
+
+    &.is-failed {
+        box-shadow: inset 0 -2px 0 #d03b3b;
+    }
+}
+
+.sprint-board-name-field {
+    width: min(100%, 32rem);
+    margin: 0 -.375rem;
+    padding: 0 .375rem;
+    border: 0;
+    border-radius: .375rem;
+    outline: 2px solid var(--bs-primary, #ff8700);
+    background: #fff;
+    font: inherit;
+}
+
+// The name of a board as a title with a pen beside it, on its page and in its form
+.title-field {
+    display: inline-flex;
+    gap: .5rem;
+    align-items: center;
+    max-width: 100%;
+}
+
+.title-field-edit {
+    flex: none;
+    color: #6b7280;
+    font-size: 1rem;
+    vertical-align: middle;
+}
+
+// Its field, as large as the title
+.board-form-name {
+    width: min(100%, 36rem);
+    padding: .125rem .5rem;
+    border: 1px solid var(--bs-primary, #ff8700);
+    border-radius: .5rem;
+    background: #fff;
+    box-shadow: 0 0 0 1px var(--bs-primary, #ff8700);
+    color: inherit;
+    font: inherit;
+
+    &:focus {
+        outline: 0;
+    }
+
+    &[hidden] {
+        display: none;
+    }
+
+    &::placeholder {
+        color: #9ca3af;
+    }
+}
+
+// A filter that picks values or leaves them out, like the trackers and the statuses of a board: the label with the
+// switch "Show only" / "Hide", one row of chips
+.board-form-trackers {
+    margin-bottom: 1rem;
+
+    .form-group {
+        margin: 0;
+    }
+
+    // With the switch the row needs no label of its own
+    &.has-switch .form-group > legend {
+        display: none;
+    }
+
+    .board-form-hint {
+        margin: .5rem 0 0;
+    }
+}
+
+.board-form-trackers-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem .75rem;
+    align-items: center;
+    margin-bottom: .5rem;
+}
+
+.board-form-label {
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+// What the chips of the trackers mean together
+.board-form-trackers-summary {
+    margin: .5rem 0 0;
+    color: #374151;
+    font-size: .875rem;
+
+    &:empty {
+        display: none;
+    }
+}
+
+// A tracker that is hidden: red and struck through, unlike one that is shown
+.board-form-trackers[data-chip-mode="except"] .form-check-input:checked + .form-check-label {
+    border-color: #d03b3b;
+    background: #fef2f2;
+    box-shadow: 0 0 0 1px #d03b3b;
+    color: #b42318;
+    text-decoration: line-through;
+}
+
+// The preview while it loads again: what it showed stays, a little paler, so the column does not jump
+[data-wizard-preview][aria-busy="true"] {
+    opacity: .55;
+    transition: opacity .15s .2s;
 }

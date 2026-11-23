@@ -93,12 +93,11 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     {
         $change = self::OLD_CHANGE;
 
-        $card = $this->twig->render('_partials/review_card.html.twig', ['card' => Change::fromDocument($change)]);
+        $card = $this->reviewCard($change);
         $full = $this->twig->render('_partials/row/change.html.twig', ['change' => Change::fromDocument($change), 'size' => 'l']);
 
         foreach ([$card, $full] as $html) {
             self::assertStringContainsString('Benni Mack', $html);
-            self::assertStringNotContainsString('review-breaking', $html);
         }
         // The placeholder of Gravatar without an address, every person alike
         self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('') . '?s=20&amp;d=mp', $card);
@@ -143,11 +142,19 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     {
         $change = self::OLD_CHANGE + ['reviewtags' => ['!!!', 'FEATURE'], 'ownerEmail' => 'benni@example.org'];
 
-        $html = $this->twig->render('_partials/review_card.html.twig', ['card' => Change::fromDocument($change)]);
+        $html = $this->reviewCard($change);
 
-        self::assertStringContainsString('review-type-feature', $html);
-        self::assertStringContainsString('review-breaking', $html);
+        self::assertStringContainsString('tag-label-feature', $html);
+        self::assertStringContainsString('>!!!</span>', $html);
         self::assertStringContainsString('class="avatar"', $html);
+    }
+
+    public function testAReviewCardNamesABackport(): void
+    {
+        $html = $this->reviewCard(['branch' => '13.4'] + self::OLD_CHANGE);
+
+        self::assertStringContainsString('<span class="tag-label is-backport" title="Branch">13.4</span>', $html);
+        self::assertStringNotContainsString('is-backport', $this->reviewCard(['branch' => 'main'] + self::OLD_CHANGE));
     }
 
     /**
@@ -197,6 +204,16 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
 
         // Only the index "user" gives the avatars, the email stays in the document
         self::assertStringNotContainsString(md5('benjamin@example.org'), $html);
+    }
+
+    /**
+     * A change as a card of the review board, see templates/sprint/_review_card.html.twig.
+     *
+     * @param array<string, mixed> $change
+     */
+    private function reviewCard(array $change): string
+    {
+        return $this->twig->render('sprint/_review_card.html.twig', ['change' => Change::fromDocument($change)]);
     }
 
     /**

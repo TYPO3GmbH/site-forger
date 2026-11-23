@@ -1,72 +1,78 @@
 {% extends 'base.html.twig' %}
 {# Over the whole width, as its content: the title too, see base.html.twig #}
 {% set wide = true %}
-{% block title %}{{ boardInfo is not empty ? boardInfo : categoryName }} - Sprints{% endblock %}
+{% block title %}{{ boardInfo is not empty ? boardInfo : categoryName }} - Boards{% endblock %}
 {# The board below its category, as the menu has the category only #}
 {% block breadcrumb %}
     {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
     {# The category leads to its boards on the overview #}
     {% set categoryItem = {'label': categoryName, 'url': path('sprint_overview') ~ '#sprints-' ~ category} %}
     {{ breadcrumb.trail(
-        [{'label': 'Sprints', 'url': path('sprint_overview')}, categoryItem]
+        [{'label': 'Boards', 'url': path('sprint_overview')}, categoryItem]
             |merge(boardInfo is not empty ? [{'label': boardInfo}] : [])
     ) }}
 {% endblock %}
 {#
- # A sprint board: its name with its progress, then its issues in columns by their state, see
- # SprintBoards::cards(). The bar and its colors are those of the overview, see _overview_board.html.twig.
- # Expects: cards (list<BoardColumn>), boardInfo, progress, category, categoryName, sprintId
+ # A sprint board: its name, then its cards in columns. A board of issues has its progress and the columns of the
+ # states, see SprintBoards::cards(). The bar and its colors are those of the overview, see
+ # _overview_board.html.twig. A board of reviews has the columns of the votes its changes still need, see
+ # ReviewBoards::cards(). A board of issues also has the view "Reviews": the open changes that name its issues, in
+ # the columns of a board of reviews, like the board of an interest, see my/interest_board.html.twig. It opens with
+ # the view it sets, see SprintBoard::$firstView.
+ # Expects: cards, boardInfo, category, categoryName, uuid, board (its identifier), restricted,
+ #          members (how many), type (BoardTypeEnum), shows ("issues" or "changes"), sort and sortOptions,
+ #          for issues progress
  #}
 {% block body %}
-    {% set parts = 'sprint/_board_parts.html.twig' %}
+    {% set issueBoard = type.value == 'issues' %}
+    {% set issues = shows == 'issues' %}
+    {# Named in every address of a board of issues: it may open with either view #}
+    {% set view = issueBoard ? (issues ? 'issues' : 'reviews') : null %}
+    {% set parts = issues ? 'sprint/_board_parts.html.twig' : 'sprint/_review_parts.html.twig' %}
+    {% set here = {'category': category, 'board': board} %}
+    {% set manage = is_granted('ROLE_FORGER_MANAGEMENT') ? [
+        {'url': path('sprint_edit', {'uuid': uuid}), 'title': 'Edit the board', 'icon': 'actions-open'},
+        {
+            'url': path('sprint_delete_confirm', {'uuid': uuid}),
+            'title': 'Delete the board',
+            'icon': 'actions-delete',
+            'class': 'sprint-board-delete',
+            'confirm': {
+                'title': 'Delete the board ' ~ boardInfo ~ '?',
+                'text': (issueBoard ? 'Its issues stay in Forge' : 'Its changes stay in Gerrit')
+                    ~ ', only the board goes. This cannot be undone.',
+                'button': 'Delete the board',
+                'post': path('sprint_delete', {'uuid': uuid}),
+                'token': csrf_token(constant('App\\Controller\\SprintController::DELETE_TOKEN_ID')),
+            },
+        },
+    ] : [] %}
     {# The head and the columns on one white ground, below the gray band of the breadcrumb. The parts that change
-       with the issues load again every minute, see assets/ts/sprint/live-board.ts #}
+       with the cards load again every minute, see assets/ts/sprint/live-board.ts #}
     <div
         class="sprint-board-page"
         id="sprint-board-page"
-        data-board-refresh="{{ path('sprint_columns', {'category': category, 'sprintId': sprintId}) }}"
+        data-board-refresh="{{ path('sprint_columns', here|merge({'view': view, 'sort': sort.value})) }}"
     >
-        <header class="sprint-board-header">
-            <div>
-                <h1 class="sprint-board-title">{{ boardInfo }}</h1>
-                {{ block('summary', parts) }}
-            </div>
-            <div class="sprint-board-actions">
-                {# Shown by assets/ts/sprint/live-board.ts once it loads the board again every minute #}
-                <span class="sprint-board-live" data-board-updated hidden></span>
-                {# Buttons with an icon only: their name is in their title and, for screen readers, in a hidden
-                   text #}
-                <div class="sprint-board-tools">
-                    {# Shown by assets/ts/fullscreen/fullscreen.ts if the browser can #}
-                    <button
-                        type="button"
-                        class="sprint-board-tool"
-                        data-fullscreen="#sprint-board-page"
-                        title="Full screen"
-                        hidden
-                    >
-                        {{- icon('actions-fullscreen') }}<span class="sr-only" data-fullscreen-label>Full screen</span>
-                    </button>
-                    {% if sprintId > 0 and is_granted('ROLE_FORGER_MANAGEMENT') %}
-                        <a
-                            class="sprint-board-tool sprint-board-manage"
-                            href="{{ path('sprint_edit', {'sprintId': sprintId}) }}"
-                            title="Edit the board"
-                        >
-                            {{- icon('actions-open') }}<span class="sr-only">Edit the board</span>
-                        </a>
-                        <a
-                            class="sprint-board-tool sprint-board-manage sprint-board-delete"
-                            href="{{ path('sprint_delete_confirm', {'sprintId': sprintId}) }}"
-                            title="Delete the board"
-                        >
-                            {{- icon('actions-delete') }}<span class="sr-only">Delete the board</span>
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
-        </header>
-        {{ block('progress', parts) }}
+        {% include 'sprint/_board_header.html.twig' with {
+            'title': boardInfo,
+            'rename': is_granted('ROLE_FORGER_MANAGEMENT') ? {
+                'url': path('sprint_rename', {'uuid': uuid}),
+                'token': csrf_token(constant('App\\Controller\\SprintController::RENAME_TOKEN_ID')),
+            } : null,
+            'restricted': restricted,
+            'members': members,
+            'access': is_granted('ROLE_FORGER_MANAGEMENT')
+                ? path('sprint_edit', {'uuid': uuid}) ~ '#access'
+                : null,
+            'views': issueBoard ? [
+                {'label': 'Issues', 'url': path('sprint', here|merge({'view': 'issues'})), 'active': issues},
+                {'label': 'Reviews', 'url': path('sprint', here|merge({'view': 'reviews'})), 'active': not issues},
+            ] : [],
+            'sort': {'options': sortOptions, 'current': sort, 'action': path('sprint', here), 'view': view},
+            'tools': manage,
+        } %}
+        {% if issues %}{{ block('progress', parts) }}{% endif %}
         {{ block('columns', parts) }}
     </div>
 {% endblock %}

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Templates;
 
+use App\Document\Change;
 use App\Document\Issue;
 use App\Sprint\BoardColumn;
 use App\Sprint\BoardColumnEnum;
@@ -21,7 +22,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Twig\Environment;
 
 /**
- * The parts of a sprint board that the board loads again every minute, see SprintController::columns().
+ * The parts of a sprint board and of the review board that load again every minute, see
+ * SprintController::columns() and SprintController::reviewColumns().
  */
 final class SprintBoardTemplateTest extends KernelTestCase
 {
@@ -54,6 +56,31 @@ final class SprintBoardTemplateTest extends KernelTestCase
 
         self::assertSame(1, substr_count($html, 'class="sprint-board-cards show-more-rows"'));
         self::assertStringContainsString('Show all 30', $html);
+        self::assertStringContainsString('Nothing here.', $html);
+    }
+
+    public function testABoardOfReviewsHasTheSamePartsWithItsOwnColumns(): void
+    {
+        $change = Change::fromDocument([
+            'id' => 81234,
+            'subject' => '[BUGFIX] Clear the cache',
+            'reviewtags' => ['BUGFIX'],
+            'reviewstatus' => 'NEW',
+            'updated_on' => '2026/11/02 10:00:00',
+        ]);
+        $html = $this->twig->render('sprint/_review_parts.html.twig', [
+            'cards' => [
+                'missesBoth' => new ArrayCollection([$change, $change]),
+                'blocked' => new ArrayCollection(),
+            ],
+        ]);
+
+        self::assertSame(1, substr_count($html, 'data-board-part="summary"'));
+        self::assertSame(1, substr_count($html, 'data-board-part="columns"'));
+        self::assertMatchesRegularExpression('/<strong>2<\/strong>\s+open changes, by the votes they still need/', $html);
+        self::assertStringContainsString('Unchecked', $html);
+        // The subject without its tag, which stands as a label above it
+        self::assertStringContainsString('>Clear the cache</a>', $html);
         self::assertStringContainsString('Nothing here.', $html);
     }
 

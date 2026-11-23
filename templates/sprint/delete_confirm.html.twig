@@ -1,33 +1,41 @@
 {% extends 'base.html.twig' %}
-{% block title %}Delete Sprint Boards{% endblock %}
-{% block page_title %}Sprint Boards{% endblock %}
+{% block title %}Delete {{ sprint.name }}{% endblock %}
+{% block page_title %}Delete the board{% endblock %}
 {% block breadcrumb %}
     {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
-    {{ breadcrumb.trail([{'label': 'Sprints', 'url': path('sprint_overview')}, {'label': 'Sprint boards', 'url': path('sprint_list')}, {'label': 'Delete ' ~ sprint.name}]) }}
+    {{ breadcrumb.trail([
+        {'label': 'Boards', 'url': path('sprint_overview')},
+        {
+            'label': sprint.name,
+            'url': path('sprint', {'category': sprint.category.identifier, 'board': sprint.identifier}),
+        },
+        {'label': 'Delete'},
+    ]) }}
 {% endblock %}
+{#
+ # Asks before a sprint board goes. The deletion is a POST with a token, see SprintController::deleteSprint().
+ # Expects: sprint (App\Entity\SprintBoard)
+ #}
 {% block body %}
-
-    <div class="content-section">
+    {% set board = path('sprint', {'category': sprint.category.identifier, 'board': sprint.identifier}) %}
+    {% set token = csrf_token(constant('App\\Controller\\SprintController::DELETE_TOKEN_ID')) %}
+    <div class="content-section content-section-small">
         <div class="container">
-            <h2>
-                Delete a Sprint Board
-            </h2>
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-body">
-                            Are you sure you want to delete sprint: {{ sprint.name }}?<br><br>
-                            <a href="{{ path('sprint', {'category': sprint.category.identifier,'sprint': sprint.id}) }}">
-                                <button class="btn btn-success">No, take me back</button>
-                            </a>
-                            <a href="{{ path('sprint_delete', {'sprintId': sprint.id}) }}">
-                                <button class="btn btn-danger">Yes, I want to delete this sprint</button>
-                            </a>
-                        </div>
-                    </div>
-                </div>
+            <div class="info-card sprint-delete">
+                <p class="info-card-text">
+                    Do you want to delete the board <strong>{{ sprint.name }}</strong>? Its issues stay in
+                    Forge, only the board goes.
+                </p>
+                <form
+                    class="sprint-delete-actions"
+                    action="{{ path('sprint_delete', {'uuid': sprint.uuid}) }}"
+                    method="post"
+                >
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <button type="submit" class="btn btn-danger">{{ icon('actions-delete') }} Delete the board</button>
+                    <a class="btn btn-default" href="{{ board }}">Keep it</a>
+                </form>
             </div>
         </div>
     </div>
-
 {% endblock %}

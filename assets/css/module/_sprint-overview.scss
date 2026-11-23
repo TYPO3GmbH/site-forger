@@ -6,6 +6,34 @@
     margin-top: 2.5rem;
 }
 
+// The name of a category with its tools beside it, for managers
+.sprint-overview-category-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem .75rem;
+    align-items: center;
+}
+
+.sprint-overview-manage {
+    display: inline-flex;
+    gap: .125rem;
+    align-items: center;
+
+    form {
+        margin: 0;
+    }
+}
+
+// The heading of a category spans the cards below it, so its button stands above the last one
+.sprint-overview-category > .section-heading {
+    max-width: none;
+}
+
+// A new board of the category, at the end of the line of its name
+.sprint-overview-add {
+    margin-left: auto;
+}
+
 .sprint-overview-category-title {
     display: flex;
     gap: .5rem;
@@ -47,8 +75,18 @@
         color: inherit;
     }
 
+    // Nothing shrinks when a card is taller than its content, like the bar beside a card with more lines
+    > * {
+        flex-shrink: 0;
+    }
+
     .overview-segments {
         margin: .125rem 0;
+    }
+
+    // The line of a restricted board stands at the end of the card
+    .restricted-notice {
+        margin-top: auto;
     }
 }
 
@@ -92,6 +130,11 @@
     font-size: .75rem;
 }
 
+// The review board counts its changes by type: three columns
+.sprint-overview-card-legend.is-types {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 // A state as a figure with its swatch, its name below
 .sprint-overview-card-state {
     display: flex;
@@ -119,4 +162,114 @@
     border-radius: var(--overview-radius, 1rem);
     color: #6b7280;
     text-align: center;
+}
+
+// The form of a category, see templates/sprintcategory/form.html.twig
+.sprint-category-form {
+    max-width: 48rem;
+    height: auto;
+}
+
+// The picker of its icon: the picked one with a search above a grid of all of them
+.icon-picker {
+    margin: 0 0 1.25rem;
+    padding: 0;
+    border: 0;
+
+    // As large as the labels of the other fields
+    legend {
+        float: none;
+        margin-bottom: .5rem;
+        font-size: inherit;
+    }
+}
+
+.icon-picker-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    align-items: center;
+    margin-bottom: .75rem;
+
+    .icon-picker-search {
+        flex: 1 1 14rem;
+        width: auto;
+    }
+}
+
+.icon-picker-preview {
+    display: inline-flex;
+    gap: .5rem;
+    align-items: center;
+    min-width: 12rem;
+    color: #374151;
+    font-family: var(--bs-font-monospace, monospace);
+    font-size: .875rem;
+}
+
+.icon-picker-preview-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: .625rem;
+    background: #fff1e6;
+    font-size: 1.25rem;
+}
+
+.icon-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(2.75rem, 1fr));
+    gap: .375rem;
+    max-height: 18rem;
+    padding: .5rem;
+    overflow-y: auto;
+    border: 1px solid var(--overview-border, #e6e8eb);
+    border-radius: .75rem;
+    background: #fff;
+}
+
+.icon-picker-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.75rem;
+    border: 1px solid transparent;
+    border-radius: .5rem;
+    color: #374151;
+    font-size: 1.125rem;
+    cursor: pointer;
+
+    &[hidden] {
+        display: none;
+    }
+
+    // The radio stays for the keyboard and the form, out of sight
+    input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    &:hover {
+        background: #f3f4f6;
+    }
+
+    &:has(input:focus-visible) {
+        outline: 2px solid var(--bs-primary, #ff8700);
+        outline-offset: 1px;
+    }
+
+    &:has(input:checked) {
+        border-color: var(--bs-primary, #ff8700);
+        background: #fff1e6;
+        color: #0b0b0b;
+    }
+}
+
+.icon-picker-empty {
+    margin: .5rem 0 0;
+    color: #6b7280;
 }
