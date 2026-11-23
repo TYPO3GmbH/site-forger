@@ -43,8 +43,7 @@ log in as one of the fixed users without a password, or with Keycloak (requires 
 | User | Roles |
 |---|---|
 | `dev-admin` | `ROLE_ADMIN` |
-| `dev-framework` | `ROLE_CORE_FRAMEWORK` |
-| `dev-component` | `ROLE_CORE_COMPONENT` |
+| `dev-management` | `ROLE_FORGER_MANAGEMENT` |
 | `dev-user` | `ROLE_USER` |
 
 The users are configured in `config/packages/security.yaml` (`when@dev`, parameter
@@ -436,6 +435,10 @@ Authentication is done via Keycloak (`t3g/symfony-keycloak-bundle`).
 Following user groups are taken into consideration:
 
 * typo3.com-gmbh -> ROLE_ADMIN
-* typo3.org.team.core.component -> ROLE_CORE_COMPONENT
-* typo3.org.team.core.framework -> ROLE_CORE_FRAMEWORK
+* typo3.org.ecosystem.forger.management -> ROLE_FORGER_MANAGEMENT
+* typo3.org.team.core.component -> ROLE_FORGER_MANAGEMENT
+* typo3.org.team.core.framework -> ROLE_FORGER_MANAGEMENT
+
+The groups of the core mergers are being phased out. They keep their access until the management group
+replaces them. Then remove their two lines from `config/packages/t3g_keycloak.yaml`.
 

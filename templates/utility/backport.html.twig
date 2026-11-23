@@ -44,7 +44,7 @@
                                         <a class="status-pill status-pill-{{ version.state.severity }}" href="{{ change_path(version.change.id) }}" title="{{ version.change.id }} on {{ version.change.branch ?? version.version }}: {{ version.state.label }}">{{ version.version }} {{ version.state.label|lower }}</a>
                                     {% endif %}
                                 {% endfor %}
-                                {% if is_granted('ROLE_CORE_COMPONENT') %}
+                                {% if is_granted('ROLE_FORGER_MANAGEMENT') %}
                                     <a class="btn btn-sm btn-default backport-exclude" href="{{ path('utilities_backport_create', {'changeId': row.changeId}) }}" title="Leave this change out of the backports, with a reason">{{ icon('actions-ban') }} Exclude</a>
                                 {% endif %}
                             </div>

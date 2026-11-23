@@ -55,7 +55,7 @@ class UtilityController extends AbstractController
     }
 
     #[Route(path: '/backport/create', name: 'backport_create')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function createBackportBlacklistEntry(
         Request $request,
         EntityManagerInterface $entityManager
@@ -86,7 +86,7 @@ class UtilityController extends AbstractController
     }
 
     #[Route(path: '/backport/quickcreate/{changeId}', name: 'backport_quickcreate')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function quickCreateBackportBlacklistEntry(
         string $changeId,
         EntityManagerInterface $entityManager
@@ -102,7 +102,7 @@ class UtilityController extends AbstractController
     }
 
     #[Route(path: '/backport/edit/{entryId}', name: 'backport_edit')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function editBackportBlacklistEntry(
         Request $request,
         int $entryId,
@@ -135,7 +135,7 @@ class UtilityController extends AbstractController
     }
 
     #[Route(path: '/backport/delete/{changeId}', name: 'backport_delete')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function deleteBackportBlacklistEntry(
         string $changeId,
         EntityManagerInterface $entityManager
@@ -152,7 +152,7 @@ class UtilityController extends AbstractController
     }
 
     #[Route(path: '/backport/list', name: 'backport_index')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function blacklistIndex(): Response
     {
         $entries = $this->backportBlacklistEntryRepository->findAll();

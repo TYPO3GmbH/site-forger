@@ -28,7 +28,7 @@ class SprintCategoryController extends AbstractController
     }
 
     #[Route(path: '/sprintcategory', name: 'sprintcategory_index')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function index(): Response
     {
         return $this->render(
@@ -40,7 +40,7 @@ class SprintCategoryController extends AbstractController
     }
 
     #[Route(path: '/sprintcategory/create', name: 'sprintcategory_create')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function create(Request $request): Response
     {
         $category = new SprintBoardCategory();
@@ -60,7 +60,7 @@ class SprintCategoryController extends AbstractController
     }
 
     #[Route(path: '/sprintcategory/edit/{categoryId}', name: 'sprintcategory_edit')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function edit(Request $request, int $categoryId): Response
     {
         $category = $this->sprintBoardCategoryRepository->find($categoryId);
@@ -83,7 +83,7 @@ class SprintCategoryController extends AbstractController
     }
 
     #[Route(path: '/sprintcategory/delete/{categoryId}', name: 'sprintcategory_delete')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function delete(int $categoryId): Response
     {
         $category = $this->sprintBoardCategoryRepository->find($categoryId);

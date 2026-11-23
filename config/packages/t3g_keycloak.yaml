@@ -4,8 +4,10 @@ t3g_keycloak:
     # Key/value array of ldap role against the role it will represent in your app
     role_mapping:
       typo3.com-gmbh: ROLE_ADMIN
-      typo3.org.team.core.component: ROLE_CORE_COMPONENT
-      typo3.org.team.core.framework: ROLE_CORE_FRAMEWORK
+      typo3.org.ecosystem.forger.management: ROLE_FORGER_MANAGEMENT
+      # The groups of the core mergers keep their access until the management group replaces them.
+      typo3.org.team.core.component: ROLE_FORGER_MANAGEMENT
+      typo3.org.team.core.framework: ROLE_FORGER_MANAGEMENT
     # The default roles every user gets
     default_roles: ['ROLE_USER']
 
