@@ -30,7 +30,7 @@
         {% frame with {'size': 'small', 'innerWidth': 'full'} %}
             <div class="header">
                 <h2 class="header-headline">{{ boardInfo }} ({{ progress.total }})</h2>
-                {% if sprintId is defined and sprintId > 0 and is_granted('ROLE_CORE_COMPONENT') %}
+                {% if sprintId is defined and sprintId > 0 and is_granted('ROLE_FORGER_MANAGEMENT') %}
                     <div class="header-actions">
                         {{ buttons.link(
                             path('sprint_edit', {'sprintId': sprintId}),

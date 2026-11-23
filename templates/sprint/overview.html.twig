@@ -10,7 +10,7 @@
                         <h2 class="sprint-overview-category-headline">
                             <a href="{{ path('sprint', {'category': item.category.identifier}) }}">{{ icon(item.category.icon) }} {{ item.category.name }}</a>
                         </h2>
-                        {% if is_granted('ROLE_CORE_COMPONENT') %}
+                        {% if is_granted('ROLE_FORGER_MANAGEMENT') %}
                             <a class="sprint-overview-add" href="{{ path('sprint_create', {'category': item.category.identifier}) }}" title="New sprint board in {{ item.category.name }}">
                                 {{ icon('actions-plus') }}<span class="visually-hidden">New sprint board in {{ item.category.name }}</span>
                             </a>

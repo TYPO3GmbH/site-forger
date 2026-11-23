@@ -53,8 +53,7 @@ final class RefreshTest extends KernelTestCase
     {
         yield 'not logged in' => [null, false];
         yield 'a user' => [['ROLE_USER'], false];
-        yield 'a component merger' => [['ROLE_CORE_COMPONENT'], false];
-        yield 'a framework merger' => [['ROLE_CORE_FRAMEWORK'], false];
+        yield 'the Forger management' => [['ROLE_FORGER_MANAGEMENT'], false];
         yield 'an admin' => [['ROLE_ADMIN'], true];
     }
 

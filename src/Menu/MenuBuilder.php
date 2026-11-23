@@ -106,7 +106,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
             );
         }
         $this->addLink($sprints, 'sprint_reviews', 'Review board', 'sprint_reviews', 'actions-line-columns');
-        if ($this->authorizationChecker->isGranted('ROLE_CORE_COMPONENT')) {
+        if ($this->authorizationChecker->isGranted('ROLE_FORGER_MANAGEMENT')) {
             $this->addHeader($sprints, 'Manage');
             $this->addLink($sprints, 'sprint_list', 'Sprint boards', 'sprint_list', 'actions-viewmode-tiles');
             $this->addLink($sprints, 'sprintcategory_index', 'Categories', 'sprintcategory_index', 'actions-category');
@@ -115,7 +115,7 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         // A click on "Tools" opens their overview, its tiles are the items below with their description
         $tools = $menu->addChild('utility', ['label' => 'Tools', 'route' => 'utilities_index']);
         $this->addLink($tools, 'utility_backports', 'Backports', 'utilities_backport', 'actions-code-compare', description: 'Merged into main within a year, with a version in "Releases:" that has no backport yet.');
-        if ($this->authorizationChecker->isGranted('ROLE_CORE_COMPONENT')) {
+        if ($this->authorizationChecker->isGranted('ROLE_FORGER_MANAGEMENT')) {
             $this->addLink($tools, 'utility_backport_list', 'Backport exclusions', 'utilities_backport_index', 'actions-ban', description: 'The changes the backports leave out, and why.');
         }
         $this->addLink($tools, 'utility_rst', 'ReST helper', 'utilities_rst', 'actions-file-text', description: 'Writes the changelog file of a breaking change, deprecation or feature.');

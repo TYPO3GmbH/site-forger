@@ -40,7 +40,7 @@ class SprintController extends AbstractController
     }
 
     #[Route(path: '/sprint/list', name: 'sprint_list')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function list(): Response
     {
         return $this->render('management/sprint/index.html.twig', [
@@ -83,14 +83,14 @@ class SprintController extends AbstractController
     }
 
     #[Route(path: '/sprint/create', name: 'sprint_create')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function createSprint(Request $request): Response
     {
         return $this->handleBoardForm($request, $this->newBoard($request), SprintBoardWizard::class);
     }
 
     #[Route(path: '/sprint/create/yaml', name: 'sprint_create_yaml')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function createSprintAsYaml(Request $request): Response
     {
         return $this->handleBoardForm($request, $this->newBoard($request), \App\Form\SprintBoard::class);
@@ -111,7 +111,7 @@ class SprintController extends AbstractController
     }
 
     #[Route(path: '/sprint/edit/{sprintId}', name: 'sprint_edit')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function editSprint(Request $request, int $sprintId): Response
     {
         $sprint = $this->sprintBoardRepository->find($sprintId);
@@ -138,7 +138,7 @@ class SprintController extends AbstractController
     }
 
     #[Route(path: '/sprint/edit/{sprintId}/yaml', name: 'sprint_edit_yaml')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function editSprintAsYaml(Request $request, int $sprintId): Response
     {
         $sprint = $this->sprintBoardRepository->find($sprintId);
@@ -153,7 +153,7 @@ class SprintController extends AbstractController
      * The issues the filters of the wizard currently select, grouped like on the board.
      */
     #[Route(path: '/sprint/wizard/preview', name: 'sprint_wizard_preview', methods: ['POST'])]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function previewSprint(Request $request): Response
     {
         $form = $this->createForm(SprintBoardWizard::class, new SprintBoard());
@@ -231,7 +231,7 @@ class SprintController extends AbstractController
     }
 
     #[Route(path: '/sprint/delete/{sprintId}', name: 'sprint_delete')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function deleteSprint(int $sprintId): Response
     {
         $sprint = $this->sprintBoardRepository->find($sprintId);
@@ -245,7 +245,7 @@ class SprintController extends AbstractController
     }
 
     #[Route(path: '/sprint/delete/{sprintId}/confirm', name: 'sprint_delete_confirm')]
-    #[IsGranted('ROLE_CORE_COMPONENT')]
+    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function deleteSprintConfirm(int $sprintId): Response
     {
         $sprint = $this->sprintBoardRepository->find($sprintId);
