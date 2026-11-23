@@ -45,8 +45,14 @@ final class OverviewBoardTemplateTest extends KernelTestCase
         self::assertStringContainsString('/sprint/core/7', $html);
         self::assertStringContainsString('50%', $html);
         self::assertStringContainsString('5 of 10 issues done', $html);
-        self::assertStringContainsString('sprint-overview-segment-review" style="flex-grow: 2"', $html);
-        self::assertStringNotContainsString('sprint-overview-segment-blocked" style', $html);
+        self::assertMatchesRegularExpression('/sprint-board-state-review"\s+style="flex-grow: 2"/', $html);
+        self::assertDoesNotMatchRegularExpression('/sprint-board-state-blocked"\s+style/', $html);
+        // The states in the order of the columns of the board, an empty one dimmed
+        self::assertMatchesRegularExpression(
+            '/is-empty">\s*<strong>\s*<span[^>]*blocked[^>]*><\/span>0<\/strong>\s*Blocked/',
+            $html,
+        );
+        self::assertMatchesRegularExpression('/Blocked.*Open.*Review.*Done/s', (string) strstr($html, 'card-legend'));
     }
 
     public function testBoardWithoutIssues(): void

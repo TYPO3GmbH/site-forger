@@ -1,0 +1,38 @@
+{#
+ # An issue on a sprint board: its tracker and number, the subject, then its status, marks and assignee. An issue
+ # in review shows its change below, with the votes.
+ # The subject links to the issue, the change to its page: two links, so the card itself is no link.
+ # Expects: card (App\Sprint\Card)
+ #}
+{% import '_macros/status.html.twig' as status %}
+{% import '_macros/user.html.twig' as user %}
+{% set issue = card.issue %}
+{% set tracker = issue_tracker(issue.tracker.name ?? null) %}
+<article class="sprint-board-card">
+    <p class="sprint-board-card-head">
+        <span class="tag-label tag-label-{{ tracker.severity ?? 'default' }}">
+            {{- tracker.label ?? issue.tracker.name ?? 'Issue' -}}
+        </span>
+        <span class="sprint-board-card-id">#{{ issue.id }}</span>
+        {% if issue.category.name is defined %}
+            <span class="sprint-board-card-category" title="Category">{{ issue.category.name }}</span>
+        {% endif %}
+    </p>
+    <h4 class="sprint-board-card-title">
+        <a href="{{ issue_path(issue.id) }}" title="{{ issue.subject }}">{{ issue.subject }}</a>
+    </h4>
+    <p class="sprint-board-card-meta">
+        {{ status.issue(issue.status.name ?? null) }}
+        {{ status.issueMarks(issue, [], true) }}
+        {% if issue.assignedTo is not null %}
+            <span class="sprint-board-card-assignee">{{ user.inline(issue.assignedTo, 24, role: 'Assigned to') }}</span>
+        {% endif %}
+    </p>
+    {% if card.change is not null %}
+        <a class="sprint-board-card-change" href="{{ change_path(card.change.id) }}" title="{{ card.change.subject }}">
+            {{ icon('actions-code-pull-request') }}
+            <span class="sprint-board-card-change-id">{{ card.change.id }}</span>
+            {{ status.votes(card.change) }}
+        </a>
+    {% endif %}
+</article>

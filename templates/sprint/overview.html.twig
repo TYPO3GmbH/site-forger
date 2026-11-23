@@ -1,33 +1,57 @@
 {% extends 'base.html.twig' %}
 {% block title %}Sprints{% endblock %}
 {% block page_title %}Sprints{% endblock %}
+{% block description %}
+    The sprint boards of the TYPO3 Core: how far the issues of each sprint and initiative have got.
+{% endblock %}
+{#
+ # All sprint boards by category, each as a card with its progress, see SprintController::overview(). A category
+ # has the id "sprints-<identifier>": its page leads here, see SprintController::index().
+ # Expects: categories, a list of {category, boards: list of {board, count}}
+ #}
 {% block body %}
+    {% set manager = is_granted('ROLE_FORGER_MANAGEMENT') %}
     <div class="content-section content-section-small overview">
         <div class="container">
             {% for item in categories %}
-                <section class="sprint-overview-category">
-                    <div class="sprint-overview-category-header">
-                        <h2 class="sprint-overview-category-headline">
-                            <a href="{{ path('sprint', {'category': item.category.identifier}) }}">{{ icon(item.category.icon) }} {{ item.category.name }}</a>
-                        </h2>
-                        {% if is_granted('ROLE_FORGER_MANAGEMENT') %}
-                            <a class="sprint-overview-add" href="{{ path('sprint_create', {'category': item.category.identifier}) }}" title="New sprint board in {{ item.category.name }}">
-                                {{ icon('actions-plus') }}<span class="visually-hidden">New sprint board in {{ item.category.name }}</span>
+                {% set category = item.category %}
+                <section class="sprint-overview-category" id="sprints-{{ category.identifier }}">
+                    <header class="section-heading{{ manager ? ' has-action' }}">
+                        <div>
+                            <h2 class="section-title sprint-overview-category-title">
+                                {{ icon(category.icon) }} {{ category.name }}
+                            </h2>
+                            <p class="section-lead">
+                                {{- item.boards|length }} {{ item.boards|length == 1 ? 'board' : 'boards' -}}
+                            </p>
+                        </div>
+                        {% if manager %}
+                            <a
+                                class="section-action"
+                                href="{{ path('sprint_create', {'category': category.identifier}) }}"
+                            >
+                                {{- icon('actions-plus') }} New board
                             </a>
                         {% endif %}
-                    </div>
+                    </header>
                     {% if item.boards is not empty %}
-                        <div class="overview-stats">
+                        <div class="sprint-overview-cards">
                             {% for entry in item.boards %}
-                                {% include 'sprint/_overview_board.html.twig' with {'board': entry.board, 'count': entry.count} only %}
+                                {% include 'sprint/_overview_board.html.twig' with {
+                                    'board': entry.board,
+                                    'count': entry.count,
+                                } only %}
                             {% endfor %}
                         </div>
                     {% else %}
-                        <p class="overview-stat-note">This category has no sprint boards yet.</p>
+                        <p class="sprint-overview-empty">This category has no sprint boards yet.</p>
                     {% endif %}
                 </section>
             {% else %}
-                {% include '_partials/alert.html.twig' with {'message': 'No sprint boards have been defined yet. If you think there should be something here, get in touch with us on Slack.', 'style': 'info'} %}
+                {% include '_partials/alert.html.twig' with {
+                    'message': 'There are no sprint boards yet. If you think there should be, tell us on Slack.',
+                    'style': 'info',
+                } only %}
             {% endfor %}
         </div>
     </div>

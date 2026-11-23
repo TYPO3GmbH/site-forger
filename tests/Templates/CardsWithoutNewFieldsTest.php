@@ -13,6 +13,8 @@ namespace App\Tests\Templates;
 
 use App\Document\Change;
 use App\Document\Issue;
+use App\Sprint\BoardColumnEnum;
+use App\Sprint\Card;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Twig\Environment;
 
@@ -165,26 +167,24 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('oldIssues')]
     public function testIssueWithoutNewFields(array $issue): void
     {
-        $card = $this->twig->render('_partials/issue_card.html.twig', ['card' => Issue::fromDocument($issue)]);
+        $card = $this->boardCard($issue);
         $listed = $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument($issue), 'size' => 'l']);
 
-        foreach ([$card, $listed] as $html) {
-            self::assertStringContainsString('Benni Mack', $html);
-            self::assertSame(isset($issue['assigned_to']), str_contains($html, 'Benjamin Kott'));
-        }
+        // The card of a sprint board shows the assignee, the row the author
+        self::assertSame(isset($issue['assigned_to']), str_contains($card, 'Benjamin Kott'));
+        self::assertStringContainsString('Benni Mack', $listed);
     }
 
     public function testIssueShowsTheAvatarsOfTheUserIndex(): void
     {
         $this->avatars(['forge:2' => md5('benjamin@example.org')]);
 
-        $card = $this->twig->render('_partials/issue_card.html.twig', ['card' => Issue::fromDocument(self::OLD_ISSUE)]);
+        $card = $this->boardCard(self::OLD_ISSUE);
         $listed = $this->twig->render('_partials/row/issue.html.twig', ['issue' => Issue::fromDocument(self::OLD_ISSUE), 'size' => 'l']);
 
         // The assignee has one, the author none: the placeholder
-        self::assertSame(2, substr_count($card, 'class="avatar"'));
-        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('') . '?s=36&amp;d=mp', $card);
-        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('benjamin@example.org') . '?s=36&amp;d=mp&amp;r=g', $card);
+        self::assertSame(1, substr_count($card, 'class="avatar"'));
+        self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('benjamin@example.org'), $card);
         self::assertStringContainsString('https://www.gravatar.com/avatar/' . md5('') . '?s=40&amp;d=mp', $listed);
     }
 
@@ -193,10 +193,22 @@ final class CardsWithoutNewFieldsTest extends KernelTestCase
         $issue = self::OLD_ISSUE;
         $issue['assigned_to']['email'] = 'benjamin@example.org';
 
-        $html = $this->twig->render('_partials/issue_card.html.twig', ['card' => Issue::fromDocument($issue)]);
+        $html = $this->boardCard($issue);
 
         // Only the index "user" gives the avatars, the email stays in the document
         self::assertStringNotContainsString(md5('benjamin@example.org'), $html);
+    }
+
+    /**
+     * An issue as a card of a sprint board, see templates/sprint/_board_card.html.twig.
+     *
+     * @param array<string, mixed> $issue
+     */
+    private function boardCard(array $issue): string
+    {
+        return $this->twig->render('sprint/_board_card.html.twig', [
+            'card' => new Card(Issue::fromDocument($issue), BoardColumnEnum::OPEN),
+        ]);
     }
 
     /**

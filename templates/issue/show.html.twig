@@ -1,5 +1,12 @@
 {% extends 'base.html.twig' %}
 {% block title %}#{{ issue.id }} {{ issue.subject }}{% endblock %}
+{# What the head of the page shows, and the beginning of the description #}
+{% block description %}
+    {% set facts = [issue.tracker.name ?? null, issue.status.name ?? null, issue.category.name ?? null] %}
+    {% set facts = facts|filter(fact => fact is not empty and fact != '-') %}
+    {% if facts is not empty %}{{ facts|join(' · ') }}.{% endif %}
+    {{ (issue.description ?? null)|forgeTeaser(200) }}
+{% endblock %}
 {% block breadcrumb %}
     {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
     {{ breadcrumb.trail([{'label': 'Issues', 'url': path('search_search')}, {'label': '#' ~ issue.id}]) }}

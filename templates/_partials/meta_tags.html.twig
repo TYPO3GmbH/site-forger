@@ -1,0 +1,18 @@
+{#
+ # The tags in the head that describe the page to search engines and to the previews of shared links, like those of
+ # Slack, Mastodon or Teams. base.html.twig fills them in, see its block "metatags".
+ # Only what the page shows itself may go in here: no private notes and no email addresses.
+ # Expects: title, description, url (the page without its query, absolute), image (absolute)
+ #}
+<meta name="description" content="{{ description }}">
+<link rel="canonical" href="{{ url }}">
+<meta property="og:site_name" content="Forger">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ title }}">
+<meta property="og:description" content="{{ description }}">
+<meta property="og:url" content="{{ url }}">
+<meta property="og:image" content="{{ image }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Forger: the issues and reviews of the TYPO3 Core">
+<meta name="twitter:card" content="summary_large_image">

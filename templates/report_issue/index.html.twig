@@ -1,5 +1,9 @@
 {% extends 'base.html.twig' %}
 {% block title %}Report an issue{% endblock %}
+{% block description %}
+    Report a bug or an idea for the TYPO3 Core. Forger first shows the known issues that match your words, then opens
+    the form of Forge for a new one.
+{% endblock %}
 {% block breadcrumb %}
     {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
     {{ breadcrumb.trail([{'label': 'Report an issue'}]) }}

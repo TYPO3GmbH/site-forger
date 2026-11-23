@@ -1,89 +1,72 @@
 {% extends 'base.html.twig' %}
 {# Over the whole width, as its content: the title too, see base.html.twig #}
 {% set wide = true %}
-{% import '_macros/buttons.html.twig' as buttons %}
-{% block title %}Sprints{% endblock %}
+{% block title %}{{ boardInfo is not empty ? boardInfo : categoryName }} - Sprints{% endblock %}
 {# The board below its category, as the menu has the category only #}
 {% block breadcrumb %}
     {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
-    {% set categoryItem = {'label': categoryName, 'url': path('sprint', {'category': category})} %}
-    {{ breadcrumb.trail([{'label': 'Sprints', 'url': path('sprint_overview')}, categoryItem]|merge(boardInfo is not empty ? [{'label': boardInfo}] : [])) }}
+    {# The category leads to its boards on the overview #}
+    {% set categoryItem = {'label': categoryName, 'url': path('sprint_overview') ~ '#sprints-' ~ category} %}
+    {{ breadcrumb.trail(
+        [{'label': 'Sprints', 'url': path('sprint_overview')}, categoryItem]
+            |merge(boardInfo is not empty ? [{'label': boardInfo}] : [])
+    ) }}
 {% endblock %}
+{#
+ # A sprint board: its name with its progress, then its issues in columns by their state, see
+ # SprintBoards::cards(). The bar and its colors are those of the overview, see _overview_board.html.twig.
+ # Expects: cards (list<BoardColumn>), boardInfo, progress, category, categoryName, sprintId
+ #}
 {% block body %}
-
-    {# The boards to choose from, over the whole width as the board #}
-    {% frame with {'color': 'lighter', 'size': 'small', 'innerWidth': 'full', 'center': true} %}
-        {% if menu|length > 0 %}
-            <div class="btn-group">
-                {% for boardNav in menu %}
-                    <a href="{{ path("sprint", {"category":category, "sprintId":boardNav.id}) }}" class="btn btn-default {{ (boardNav.active) ? 'active' : '' }}" title="{{boardNav.count.open}} open, {{boardNav.count.closed}} closed, {{boardNav.count.total}} total">
-                        {{ boardNav.title }} ({{ (boardNav.count.percentage is not null) ? boardNav.count.percentage ~ '%' : '/'}})
-                    </a>
-                {% endfor %}
+    {% set parts = 'sprint/_board_parts.html.twig' %}
+    {# The head and the columns on one white ground, below the gray band of the breadcrumb. The parts that change
+       with the issues load again every minute, see assets/ts/sprint/live-board.ts #}
+    <div
+        class="sprint-board-page"
+        id="sprint-board-page"
+        data-board-refresh="{{ path('sprint_columns', {'category': category, 'sprintId': sprintId}) }}"
+    >
+        <header class="sprint-board-header">
+            <div>
+                <h1 class="sprint-board-title">{{ boardInfo }}</h1>
+                {{ block('summary', parts) }}
             </div>
-        {% else %}
-            <div class="alert alert-info">No boards have been defined for this category, yet. If you think there should be something here, get in touch with us on Slack</div>
-        {% endif %}
-    {% endframe %}
-
-    {% if boardInfo is not empty %}
-        {% frame with {'size': 'small', 'innerWidth': 'full'} %}
-            <div class="header">
-                <h2 class="header-headline">{{ boardInfo }} ({{ progress.total }})</h2>
-                {% if sprintId is defined and sprintId > 0 and is_granted('ROLE_FORGER_MANAGEMENT') %}
-                    <div class="header-actions">
-                        {{ buttons.link(
-                            path('sprint_edit', {'sprintId': sprintId}),
-                            'Edit Sprint',
-                            'secondary',
-                            'actions-open'
-                        ) }}
-                        {{ buttons.link(
-                            path('sprint_delete_confirm', {'sprintId': sprintId}),
-                            'Delete Sprint',
-                            'danger',
-                            'actions-delete'
-                        ) }}
-                    </div>
-                {% endif %}
+            <div class="sprint-board-actions">
+                {# Shown by assets/ts/sprint/live-board.ts once it loads the board again every minute #}
+                <span class="sprint-board-live" data-board-updated hidden></span>
+                {# Buttons with an icon only: their name is in their title and, for screen readers, in a hidden
+                   text #}
+                <div class="sprint-board-tools">
+                    {# Shown by assets/ts/fullscreen/fullscreen.ts if the browser can #}
+                    <button
+                        type="button"
+                        class="sprint-board-tool"
+                        data-fullscreen="#sprint-board-page"
+                        title="Full screen"
+                        hidden
+                    >
+                        {{- icon('actions-fullscreen') }}<span class="sr-only" data-fullscreen-label>Full screen</span>
+                    </button>
+                    {% if sprintId > 0 and is_granted('ROLE_FORGER_MANAGEMENT') %}
+                        <a
+                            class="sprint-board-tool sprint-board-manage"
+                            href="{{ path('sprint_edit', {'sprintId': sprintId}) }}"
+                            title="Edit the board"
+                        >
+                            {{- icon('actions-open') }}<span class="sr-only">Edit the board</span>
+                        </a>
+                        <a
+                            class="sprint-board-tool sprint-board-manage sprint-board-delete"
+                            href="{{ path('sprint_delete_confirm', {'sprintId': sprintId}) }}"
+                            title="Delete the board"
+                        >
+                            {{- icon('actions-delete') }}<span class="sr-only">Delete the board</span>
+                        </a>
+                    {% endif %}
+                </div>
             </div>
-            <div class="progress mt-2">
-                {% for bar in progress.sections %}
-                    <div
-                            class="progress-bar progress-type-{{ bar.classes }}"
-                            role="progressbar"
-                            aria-valuenow="60"
-                            aria-valuemin="0"
-                            aria-valuemax="100"
-                            style="width: {{ bar.value }}%;">
-                        {{ bar.label }}
-                    </div>
-                {% endfor %}
-            </div>
-        {% endframe %}
-    {% endif %}
-
-    {% if cards|length > 0 %}
-        <div class="board">
-            <div class="board-container">
-                {% for boardColumn in cards %}
-                    <div class="board-column">
-                        <div class="board-column-header">
-                            <h3 class="board-colum-header-headline status-{{ boardColumn.column.label }}"><strong>{{ boardColumn.count }}</strong> {{ boardColumn.column.label }}</h3>
-                        </div>
-                        <div class="board-column-content">
-                            {% for card in boardColumn.cards %}
-                                {% if card.change %}
-                                    {% include '_partials/review_card.html.twig' with {'card': card.change} only %}
-                                {% else %}
-                                    {% include '_partials/issue_card.html.twig' with {'card': card.issue} only %}
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-    {% endif %}
-
+        </header>
+        {{ block('progress', parts) }}
+        {{ block('columns', parts) }}
+    </div>
 {% endblock %}

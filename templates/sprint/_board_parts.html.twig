@@ -1,0 +1,74 @@
+{#
+ # The parts of a sprint board that change with its issues: the summary, the bar and the columns. The page renders
+ # each block in its place, see index.html.twig. SprintController::columns() renders the whole template, and
+ # assets/ts/sprint/live-board.ts puts each part in place of the one with the same "data-board-part".
+ # Expects: cards (list<BoardColumn>), progress
+ #}
+{% block summary %}
+    {% set done = (cards|filter(column => column.column.name == 'DONE')|first).count ?? 0 %}
+    <p class="sprint-board-summary" data-board-part="summary">
+        {% if progress.total > 0 %}
+            <strong>{{ (done * 100 / progress.total)|round }}%</strong> done
+            · {{ done }} of {{ progress.total }} issues
+        {% else %}
+            No issues match this board.
+        {% endif %}
+    </p>
+{% endblock %}
+
+{% block progress %}
+    <div class="sprint-board-progress" data-board-part="progress">
+        {% if progress.total > 0 %}
+            <span class="overview-segments" aria-hidden="true">
+                {% for column in cards|filter(column => column.count > 0) %}
+                    <span
+                        class="overview-segment sprint-board-state-{{ column.column.name|lower }}"
+                        style="flex-grow: {{ column.count }}"
+                    ></span>
+                {% endfor %}
+            </span>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block columns %}
+    {% set titles = {
+        'BLOCKED': 'Blocked',
+        'OPEN': 'Open',
+        'WIP': 'In progress',
+        'REVIEW': 'In review',
+        'DONE': 'Done',
+    } %}
+    {# A long column shows its first cards, the rest on a click #}
+    {% set shown = 12 %}
+    {% import '_macros/more.html.twig' as more %}
+    <div class="sprint-board" data-board-part="columns">
+        {% for boardColumn in cards %}
+            {% set state = boardColumn.column.name|lower %}
+            <section class="sprint-board-column" aria-labelledby="sprint-board-column-{{ state }}">
+                <h2 class="sprint-board-column-title" id="sprint-board-column-{{ state }}">
+                    <span class="overview-legend-swatch sprint-board-state-{{ state }}" aria-hidden="true"></span>
+                    {{ titles[boardColumn.column.name] }}
+                    <span class="sprint-board-column-count">{{ boardColumn.count }}</span>
+                </h2>
+                {% if boardColumn.cards is empty %}
+                    <p class="sprint-board-column-empty">Nothing here.</p>
+                {% else %}
+                    <ul class="sprint-board-cards">
+                        {% for card in boardColumn.cards|slice(0, shown) %}
+                            <li>{% include 'sprint/_board_card.html.twig' with {'card': card} only %}</li>
+                        {% endfor %}
+                    </ul>
+                    {% if boardColumn.cards|length > shown %}
+                        <ul class="sprint-board-cards show-more-rows">
+                            {% for card in boardColumn.cards|slice(shown) %}
+                                <li>{% include 'sprint/_board_card.html.twig' with {'card': card} only %}</li>
+                            {% endfor %}
+                        </ul>
+                        {{ more.toggle('Show all ' ~ boardColumn.cards|length) }}
+                    {% endif %}
+                {% endif %}
+            </section>
+        {% endfor %}
+    </div>
+{% endblock %}
