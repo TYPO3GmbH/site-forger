@@ -253,7 +253,9 @@ final readonly class IssueListSearch
         foreach ($fields as $title => $field) {
             $query->addAggregation($this->terms($title, $field));
         }
-        $this->addTopTerms($query, 'Tags', 'tags', self::TAGS_SHOWN, FacetSelection::selected($filters, 'tags'));
+        // The index keeps the tags in lower case, see config/Elasticorn/issue/Mapping.yaml
+        $tags = array_map(mb_strtolower(...), FacetSelection::selected($filters, 'tags'));
+        $this->addTopTerms($query, 'Tags', 'tags', self::TAGS_SHOWN, $tags);
 
         // Selected people show in their filter, also when they are not among those with the most issues
         $selection = [];

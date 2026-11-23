@@ -75,6 +75,7 @@ isregression:
   type: boolean
 tags:
   type: keyword
+  normalizer: lowercase
 # The text the duplicates page compares. IndexSetup replaces the analyzer by the one named like the language,
 # IndexConfiguration.yaml defines it: English stop words and stems, without the Textile markup of Forge.
 subject:

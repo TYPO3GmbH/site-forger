@@ -199,7 +199,7 @@
                             {% if (issue.tags ?? []) is not empty %}
                                 <div class="detail-fact">
                                     <dt>Tags</dt>
-                                    <dd class="detail-tags">{% for tag in issue.tags %}<a class="tag-label" href="{{ detail.issueSearch('tags', tag) }}" title="Issues with this tag">{{ tag }}</a>{% endfor %}</dd>
+                                    <dd class="detail-tags">{% for tag in issue.tags %}<a class="tag-label" href="{{ detail.issueSearch('tags', tag|lower) }}" title="Issues with this tag">{{ tag }}</a>{% endfor %}</dd>
                                 </div>
                             {% endif %}
                         </dl>
