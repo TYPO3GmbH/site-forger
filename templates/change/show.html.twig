@@ -1,5 +1,9 @@
 {% extends 'base.html.twig' %}
 {% block title %}{{ change.id }} {{ change.subject }}{% endblock %}
+{% block description %}
+    {{ change.state.label }}, a change of the TYPO3 Core on {{ change.branch ?? 'main' }}
+    {%- if change.ownerPerson is not null %} by {{ change.ownerPerson.name }}{% endif %}.
+{% endblock %}
 {% block breadcrumb %}
     {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
     {{ breadcrumb.trail([{'label': 'Reviews', 'url': path('search_changes')}, {'label': 'Change ' ~ change.id}]) }}

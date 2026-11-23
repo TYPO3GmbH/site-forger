@@ -166,6 +166,18 @@ class ForgerTwigExtension
     }
 
     /**
+     * Rendered HTML as one line of plain text, like a block of a page for the tags in its head: without tags and
+     * entities, the whitespace in one line. The tags escape it again.
+     */
+    #[AsTwigFilter(name: 'metaText')]
+    public function metaText(string|\Stringable $html): string
+    {
+        $text = html_entity_decode(strip_tags((string) $html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return trim((string) preg_replace('/\s+/u', ' ', $text));
+    }
+
+    /**
      * A value as the search expects it in "filters[<name>][<value>]", like the filter checkboxes write it.
      */
     #[AsTwigFilter(name: 'filterKey')]

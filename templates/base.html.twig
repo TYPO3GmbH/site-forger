@@ -1,5 +1,22 @@
 {% extends '@Template/layout.html.twig' %}
 
+{#
+ # The description of a page for search engines and the previews of shared links: the block "description" of a
+ # page, else what Forger is. The link leaves out the query, so a search or a list with filters names its page.
+ #}
+{% block metatags %}
+    {% set request = app.request %}
+    {% include '_partials/meta_tags.html.twig' with {
+        'title': (block('title') is defined ? block('title')|metaText ~ ' - ' : '') ~ 'Forger',
+        'description': block('description') is defined
+            ? block('description')|metaText
+            : 'Forger shows the issues of Forge and the reviews of Gerrit for the TYPO3 Core in one place:'
+                ~ ' what waits for a review, what is new, and where you can help.',
+        'url': request.schemeAndHttpHost ~ request.baseUrl ~ request.pathInfo,
+        'image': request.schemeAndHttpHost ~ request.baseUrl ~ '/images/forger-share.png',
+    } only %}
+{% endblock %}
+
 {# The layout of the template bundle has no block in the menu bar, the search dialog goes here #}
 {% block subnavigation %}
     {% include '_partials/header_search.html.twig' %}
