@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+{# Over the whole width, as its content: the title too, see base.html.twig #}
+{% set wide = true %}
+{% block title %}{{ interest.name }} - My interests{% endblock %}
+{% block breadcrumb %}
+    {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+    {{ breadcrumb.trail([
+        {'label': 'My Work', 'url': path('my_overview')},
+        {'label': 'Interests', 'url': path('my_interests')},
+        {'label': interest.name, 'url': path('my_interests', {'interest': interest.id})},
+        {'label': 'Board'},
+    ]) }}
+{% endblock %}
+{#
+ # An interest of the user as a private board, see InterestBoardController: its issues as on a sprint board, or the
+ # changes that touch its paths as on the review board. It looks and works like them, see sprint/index.html.twig.
+ # Expects: interest (App\Entity\Interest), view ("issues" or "reviews"), cards, sort, sortOptions, and for
+ #          issues progress
+ #}
+{% block body %}
+    {% set issues = view == 'issues' %}
+    {% set parts = issues ? 'sprint/_board_parts.html.twig' : 'sprint/_review_parts.html.twig' %}
+    {% set empty = issues ? interest.categories is empty : interest.paths is empty %}
+    <div
+        class="sprint-board-page"
+        id="sprint-board-page"
+        data-board-refresh="{{ path('my_interest_board_columns', {
+            'id': interest.id,
+            'view': view,
+            'sort': sort.value,
+        }) }}"
+    >
+        {% include 'sprint/_board_header.html.twig' with {
+            'title': interest.name,
+            'views': [
+                {
+                    'label': 'Issues',
+                    'url': path('my_interest_board', {'id': interest.id, 'view': 'issues'}),
+                    'active': issues,
+                },
+                {
+                    'label': 'Reviews',
+                    'url': path('my_interest_board', {'id': interest.id, 'view': 'reviews'}),
+                    'active': not issues,
+                },
+            ],
+            'sort': {
+                'options': sortOptions,
+                'current': sort,
+                'action': path('my_interest_board', {'id': interest.id, 'view': view}),
+            },
+            'tools': [{
+                'url': path('my_interests_edit', {'id': interest.id}),
+                'title': 'Edit the interest',
+                'icon': 'actions-cog',
+            }],
+        } %}
+        {% if empty %}
+            <p class="sprint-board-column-empty">
+                {{ issues
+                    ? 'This interest has no categories of Forge, so it has no issues.'
+                    : 'This interest has no paths, so it has no changes.' }}
+                <a href="{{ path('my_interests_edit', {'id': interest.id}) }}">Add some</a>
+            </p>
+        {% else %}
+            {% if issues %}{{ block('progress', parts) }}{% endif %}
+            {{ block('columns', parts) }}
+        {% endif %}
+    </div>
+{% endblock %}

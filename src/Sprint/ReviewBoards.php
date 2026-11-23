@@ -12,42 +12,59 @@ declare(strict_types=1);
 namespace App\Sprint;
 
 use App\Document\Change;
+use App\Document\Issue;
 use App\Enum\ReviewLabelEnum;
-use App\Enum\ReviewStatusEnum;
+use App\Enum\ReviewSortEnum;
 use App\Repository\ChangeRepository;
+use App\Repository\IssueRepository;
+use App\Search\ReviewSortQuery;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\ReadableCollection;
+use Symfony\Component\Yaml\Exception\ParseException;
+use Symfony\Component\Yaml\Yaml;
 
 /**
- * The open changes of a type ("[BUGFIX]", "[TASK]", "[FEATURE]"), grouped by the votes they still need.
+ * The open changes of a sprint board of reviews, see ReviewBoardFilter, grouped by the votes they still need.
  */
 final readonly class ReviewBoards
 {
-    public const array TYPES = ['bugfix' => 'Bugfixes', 'task' => 'Tasks', 'feature' => 'Features'];
+    /**
+     * The columns of a board of reviews, in their order.
+     */
+    public const array GROUPS = [
+        'missesBoth',
+        'missesCodeReview',
+        'missesTesting',
+        'hasPlusOne',
+        'mergeConflict',
+        'blocked',
+    ];
 
-    private const array GROUPS = ['missesBoth', 'missesCodeReview', 'missesTesting', 'hasPlusOne', 'mergeConflict', 'blocked'];
     private const int MAX_CHANGES = 500;
+
+    private const int MAX_CHANGES_READ = 5000;
 
     public function __construct(
         private ChangeRepository $changes,
+        private IssueRepository $issues,
     ) {
     }
 
     /**
-     * @return array<string, ReadableCollection<int, Change>> by group, empty for an unknown type
+     * @return array<string, ReadableCollection<int, Change>> by group, each in the order of the sort
      */
-    public function cards(string $type): array
+    public function cards(ReviewBoardFilter $filter, ReviewSortEnum $sort = ReviewSortEnum::LEAST_UPDATED): array
     {
-        if (!isset(self::TYPES[$type])) {
-            return [];
-        }
-        $cards = array_fill_keys(self::GROUPS, []);
         $found = $this->changes->search([
-            'query' => self::query($type),
-            'size' => self::MAX_CHANGES,
-            'sort' => [['updated_on' => ['order' => 'asc']]],
+            'query' => $filter->toQuery(),
+            // With a filter of the issues, more changes are read than shown: some of them go
+            'size' => $filter->filtersIssues() ? self::MAX_CHANGES_READ : self::MAX_CHANGES,
+            'sort' => ReviewSortQuery::sort($sort),
         ]);
-        foreach ($found as $change) {
+        $changes = $this->withMatchingIssue($found->toArray(), $filter);
+
+        $cards = array_fill_keys(self::GROUPS, []);
+        foreach (array_slice($changes, 0, self::MAX_CHANGES) as $change) {
             $cards[self::group($change)][] = $change;
         }
 
@@ -55,31 +72,59 @@ final readonly class ReviewBoards
     }
 
     /**
-     * @return list<array{id: string, count: int, name: string, active: bool}>
+     * @return array<string, int> how many changes each group has, as many as cards() shows
      */
-    public function menu(string $active): array
+    public function counts(ReviewBoardFilter $filter): array
     {
-        $menu = [];
-        foreach (self::TYPES as $type => $name) {
-            $count = $this->changes->count(['query' => self::query($type)]);
-            $menu[] = ['id' => $type, 'count' => $count, 'name' => $name, 'active' => $type === $active];
-        }
-
-        return $menu;
+        return array_map(
+            static fn (ReadableCollection $group): int => $group->count(),
+            $this->cards($filter),
+        );
     }
 
     /**
-     * @return array<string, mixed>
+     * The changes that name an issue the filter of the issues finds, in "Resolves:" or "Related:". All of them
+     * without such a filter, none if its query cannot be read.
+     *
+     * It asks the issue index only for the issues the changes name: the filter alone can find more issues than a
+     * query takes.
+     *
+     * @param array<array-key, Change> $changes
+     *
+     * @return list<Change> in the order they came
      */
-    private static function query(string $type): array
+    private function withMatchingIssue(array $changes, ReviewBoardFilter $filter): array
     {
-        return ['bool' => [
-            'must' => [
-                ['terms' => ['reviewtags' => [strtoupper($type)]]],
-                ['query_string' => ['default_field' => 'reviewstatus', 'query' => ReviewStatusEnum::NEW->value]],
-            ],
-            'must_not' => [['term' => ['work_in_progress' => true]]],
-        ]];
+        if (!$filter->filtersIssues()) {
+            return array_values($changes);
+        }
+        $named = [];
+        foreach ($changes as $change) {
+            array_push($named, ...$change->resolves, ...$change->related);
+        }
+        $named = array_values(array_unique($named));
+        try {
+            $query = Yaml::parse((string) $filter->issueQuery);
+        } catch (ParseException) {
+            $query = null;
+        }
+        if (!is_array($query) || [] === $named) {
+            return [];
+        }
+        $found = $this->issues->search([
+            'query' => ['bool' => ['filter' => [$query, ['terms' => ['id' => $named]]]]],
+            'size' => count($named),
+            '_source' => ['id'],
+        ]);
+        $matching = array_fill_keys($found->map(static fn (Issue $issue): int => $issue->id)->toArray(), true);
+
+        return array_values(array_filter(
+            $changes,
+            static fn (Change $change): bool => [] !== array_intersect_key(
+                array_fill_keys([...$change->resolves, ...$change->related], true),
+                $matching,
+            ),
+        ));
     }
 
     public static function group(Change $change): string

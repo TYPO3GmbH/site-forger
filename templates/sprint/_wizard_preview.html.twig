@@ -1,37 +1,78 @@
+{#
+ # The issues the filters of the form of a board find right now, and the open changes of its view "Reviews", see
+ # SprintController::previewSprint().
+ # Expects: hasFilter, with a filter columns, total and issues. Optional: changes (how many, null without paths)
+ #}
+{% set titles = {
+    'BLOCKED': 'Blocked',
+    'OPEN': 'Open',
+    'WIP': 'In progress',
+    'REVIEW': 'In review',
+    'DONE': 'Done',
+} %}
 {% if not hasFilter %}
-    {% include '_partials/alert.html.twig' with {'message': 'Choose at least one tracker, category, version, focus or tag in the step "Issues", otherwise the board shows every issue.', 'style': 'warning'} only %}
+    {% include '_partials/alert.html.twig' with {
+        'message': 'Choose at least one tracker, category, version, focus or tag,'
+            ~ ' otherwise the board shows every issue.',
+        'style': 'warning',
+    } only %}
 {% elseif total == 0 %}
-    {% include '_partials/alert.html.twig' with {'message': 'No issue matches these filters right now. Go back and choose other values, or save the board if matching issues are still to come.', 'style': 'warning'} only %}
+    {% include '_partials/alert.html.twig' with {
+        'message': 'No issue matches these filters right now. Choose other values,'
+            ~ ' or save the board if matching issues are still to come.',
+        'style': 'warning',
+    } only %}
 {% else %}
-    <h3><strong>{{ total }}</strong> {{ total == 1 ? 'issue' : 'issues' }} on the board</h3>
-    <ul class="sprint-wizard-columns">
+    {# Like a card of the overview: how many, by column of the board in its colors, then the issues #}
+    <p class="board-preview-total"><strong>{{ total }}</strong> {{ total == 1 ? 'issue' : 'issues' }}</p>
+    <span class="overview-segments" aria-hidden="true">
+        {% for boardColumn in columns|filter(column => column.count > 0) %}
+            <span
+                class="overview-segment sprint-board-state-{{ boardColumn.column.name|lower }}"
+                style="flex-grow: {{ boardColumn.count }}"
+            ></span>
+        {% endfor %}
+    </span>
+    <ul class="board-preview-columns">
         {% for boardColumn in columns %}
-            <li class="sprint-wizard-column status-{{ boardColumn.column.label }}"><strong>{{ boardColumn.count }}</strong> {{ boardColumn.column.label }}</li>
+            <li class="{{ boardColumn.count == 0 ? 'is-empty' }}">
+                <span class="overview-legend-swatch sprint-board-state-{{ boardColumn.column.name|lower }}"></span>
+                {{ titles[boardColumn.column.name] }}
+                <strong>{{ boardColumn.count }}</strong>
+            </li>
         {% endfor %}
     </ul>
-    <table class="table table-sm">
-        <thead>
-        <tr>
-            <th scope="col">Issue</th>
-            <th scope="col">Tracker</th>
-            <th scope="col">Status</th>
-            <th scope="col">Column</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for row in issues %}
+    {# A few of them, as an example: the whole text of each subject, so nothing scrolls sideways #}
+    {% set shown = issues|slice(0, 6) %}
+    <h3 class="board-preview-title">Updated last</h3>
+    <ul class="board-preview-issues">
+        {% for row in shown %}
             {% set issue = row.issue %}
-            <tr>
-                <td>{# A new tab, the wizard keeps its settings #}
-                <a href="{{ issue_path(issue.id) }}" target="issue{{ issue.id }}">#{{ issue.id }} {{ issue.subject|default('') }}</a></td>
-                <td>{{ issue.tracker.name|default('') }}</td>
-                <td>{{ issue.status.name|default('') }}</td>
-                <td>{{ row.column.label }}</td>
-            </tr>
+            <li>
+                {# A new tab, the form keeps its settings #}
+                <a href="{{ issue_path(issue.id) }}" target="issue{{ issue.id }}">
+                    <span class="board-preview-issue-id">#{{ issue.id }}</span>
+                    {{ issue.subject }}
+                </a>
+                <span class="board-preview-issue-meta">
+                    {{- [issue.tracker.name ?? 'Issue', issue.status.name ?? null, titles[row.column.name]]
+                        |filter(part => part is not empty)|join(' · ') -}}
+                </span>
+            </li>
         {% endfor %}
-        </tbody>
-    </table>
-    {% if total > issues|length %}
-        <p class="text-muted">The {{ issues|length }} issues updated last are shown, {{ total - issues|length }} more are on the board.</p>
+    </ul>
+    {% if total > shown|length %}
+        <p class="board-preview-more">And {{ total - shown|length }} more.</p>
     {% endif %}
+{% endif %}
+{% if changes|default(null) is not null %}
+    <h3 class="board-preview-title">View "Reviews"</h3>
+    <p class="board-preview-reviews">
+        {% if changes == 0 %}
+            No open change touches these folders and files right now.
+        {% else %}
+            <strong>{{ changes }}</strong> open {{ changes == 1 ? 'change touches' : 'changes touch' }} these
+            folders and files.
+        {% endif %}
+    </p>
 {% endif %}

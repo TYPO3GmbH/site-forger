@@ -125,13 +125,6 @@ final class BoardFilterTest extends TestCase
               must:
                 - terms: {tracker.name: [Bug], category.name: [Backend]}
             YAML];
-        yield 'other closed states' => [<<<'YAML'
-            bool:
-              must:
-                - terms: {tracker.name: [Bug]}
-              must_not:
-                - terms: {status.name: [Closed]}
-            YAML];
         yield 'additional option' => [<<<'YAML'
             bool:
               must:
@@ -158,6 +151,57 @@ final class BoardFilterTest extends TestCase
         self::assertNull(BoardFilter::fromYaml($yaml));
     }
 
+    public function testTheOnlyStatusesOfABoardAreReadBack(): void
+    {
+        $filter = new BoardFilter();
+        $filter->statuses = ['New', 'Accepted'];
+        $filter->closedVisibleDays = BoardFilter::CLOSED_ALWAYS_VISIBLE;
+
+        self::assertTrue($filter->hasFilter());
+        self::assertSame(
+            ['bool' => ['must' => [['terms' => ['status.name' => ['Accepted', 'New']]]]]],
+            $filter->toQuery(),
+        );
+        self::assertEquals(['Accepted', 'New'], BoardFilter::fromYaml($filter->toYaml())?->statuses);
+    }
+
+    public function testStatusesLeftOutAreReadBack(): void
+    {
+        $filter = BoardFilter::fromYaml(<<<'YAML'
+            bool:
+              must:
+                - terms: {tracker.name: [Bug]}
+              must_not:
+                - terms: {status.name: [Closed]}
+            YAML);
+
+        self::assertNotNull($filter);
+        self::assertSame(['Closed'], $filter->excludedStatuses);
+        self::assertSame(BoardFilter::CLOSED_ALWAYS_VISIBLE, $filter->closedVisibleDays);
+    }
+
+    public function testSomeClosedStatesLeftOutKeepTheOthers(): void
+    {
+        // As the board of the contribution night had it: "Resolved" stays, "Closed" and "Rejected" go
+        $import = BoardFilter::approximate(Yaml::parse(<<<'YAML'
+            bool:
+              must:
+                bool:
+                  must:
+                    - term: {focus.name: On Location Sprint}
+              must_not:
+                bool:
+                  should:
+                    - term: {status.name: Closed}
+                    - term: {status.name: Rejected}
+            YAML));
+
+        self::assertSame(['Closed', 'Rejected'], $import['filter']->excludedStatuses);
+        self::assertSame(BoardFilter::CLOSED_ALWAYS_VISIBLE, $import['filter']->closedVisibleDays);
+        self::assertSame([], $import['dropped']);
+        self::assertEquals($import['filter'], BoardFilter::fromQuery($import['filter']->toQuery()));
+    }
+
     public function testQueriesWrittenByHandAreTakenOverAsFarAsTheWizardKnowsThem(): void
     {
         $import = BoardFilter::approximate(Yaml::parse(<<<'YAML'
@@ -177,6 +221,7 @@ final class BoardFilterTest extends TestCase
                   should:
                     - term: {status.name: Closed}
                     - term: {status.name: Rejected}
+                    - term: {status.name: Resolved}
             YAML));
 
         $expected = new BoardFilter();
@@ -199,12 +244,32 @@ final class BoardFilterTest extends TestCase
                     should:
                       - term: {status.name: Closed}
                       - term: {status.name: Resolved}
+                      - term: {status.name: Rejected}
             YAML));
 
         self::assertSame(['Bug'], $import['filter']->trackers);
         self::assertSame(['Epic'], $import['filter']->excludedTrackers);
         self::assertSame(0, $import['filter']->closedVisibleDays);
         self::assertSame([], $import['dropped']);
+    }
+
+    public function testSomeClosedStatesForSomeDaysAreReported(): void
+    {
+        // The filter keeps closed issues for some days only all together: the days of some of them are left out
+        $import = BoardFilter::approximate(Yaml::parse(<<<'YAML'
+            bool:
+              must:
+                - term: {tracker.name: Bug}
+              must_not:
+                bool:
+                  must:
+                    - range: {updated_on: {lte: now-30d}}
+                  should:
+                    - term: {status.name: Closed}
+            YAML));
+
+        self::assertSame(['Closed'], $import['filter']->excludedStatuses);
+        self::assertSame(['{ range: { updated_on: { lte: now-30d } } }'], $import['dropped']);
     }
 
     public function testNegatedFiltersOnOtherFieldsAreLeftOut(): void
@@ -220,8 +285,9 @@ final class BoardFilterTest extends TestCase
 
         self::assertSame(['14.0'], $import['filter']->fixedVersions);
         self::assertSame([], $import['filter']->categories);
+        self::assertSame(['On Hold'], $import['filter']->excludedStatuses);
         self::assertSame(BoardFilter::CLOSED_ALWAYS_VISIBLE, $import['filter']->closedVisibleDays);
-        self::assertCount(2, $import['dropped']);
+        self::assertSame(['{ term: { category.name: Documentation } }'], $import['dropped']);
     }
 
     public function testAnEmptyQueryStartsAFilterWithoutValues(): void

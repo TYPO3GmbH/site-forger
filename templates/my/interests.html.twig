@@ -40,6 +40,9 @@
                 </nav>
                 <div class="mywork-interests-actions">
                     {% if picked %}
+                        <a class="mywork-interests-action" href="{{ path('my_interest_board', {'id': picked.id}) }}">
+                            {{- icon('actions-viewmode-tiles') }} Show as board
+                        </a>
                         <a class="mywork-interests-action" href="{{ path('my_interests_edit', {'id': picked.id}) }}">
                             {{- icon('actions-cog') }} Edit “{{ picked.name }}”
                         </a>

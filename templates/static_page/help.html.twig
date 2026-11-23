@@ -21,7 +21,7 @@
         {id: 'reviews', icon: 'actions-code-pull-request', title: 'Reviews'},
         {id: 'issues', icon: 'actions-list', title: 'Issues'},
         {id: 'activity', icon: 'actions-clock', title: 'Activity'},
-        {id: 'sprints', icon: 'actions-line-columns', title: 'Sprints'},
+        {id: 'boards', icon: 'actions-line-columns', title: 'Boards'},
         {id: 'tools', icon: 'actions-briefcase', title: 'Tools'},
         {id: 'get-involved', icon: 'actions-heart', title: 'Get involved'},
         {id: 'filters', icon: 'actions-filter', title: 'Filters and search'},
@@ -253,21 +253,27 @@
                     </div>
                 </section>
 
-                {# Sprints #}
-                <section id="sprints" class="help-section">
+                {# Boards #}
+                <section id="boards" class="help-section">
                     <header class="help-section-header">
                         <span class="help-section-icon">{{ icon('actions-line-columns') }}</span>
-                        <h2>Sprints</h2>
+                        <h2>Boards</h2>
                     </header>
                     <div class="link-tiles">
                         <div class="link-tile link-tile-static">
                             <span class="link-tile-icon">{{ icon('actions-viewmode-tiles') }}</span>
                             <span class="link-tile-body">
-                                <span class="link-tile-title">Sprint boards</span>
+                                <span class="link-tile-title">Issue boards</span>
                                 <span class="link-tile-text">Selected issues in the columns Blocked, Open, WIP, Review and Done. The Core team creates them.</span>
                             </span>
                         </div>
-                        {{ help.tile('sprint_reviews', 'actions-line-columns', 'Review board', 'Open bugfixes, features or tasks, grouped by what they lack.') }}
+                        <div class="link-tile link-tile-static">
+                            <span class="link-tile-icon">{{ icon('actions-line-columns') }}</span>
+                            <span class="link-tile-body">
+                                <span class="link-tile-title">Review boards</span>
+                                <span class="link-tile-text">Open changes, like the bugfixes, features or tasks, grouped by the votes they lack.</span>
+                            </span>
+                        </div>
                     </div>
                 </section>
 

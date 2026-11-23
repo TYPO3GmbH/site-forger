@@ -1,0 +1,55 @@
+{#
+ # The parts of a board of reviews that change with the reviews: the summary and the columns. The page renders each
+ # block in its place, see index.html.twig. SprintController::columns() renders the whole template, and
+ # assets/ts/sprint/live-board.ts puts each part in place of the one with the same "data-board-part".
+ # Expects: cards (the changes by group, see ReviewBoards::cards())
+ #}
+{% block summary %}
+    {% set total = cards|reduce((sum, group) => sum + group|length, 0) %}
+    <p class="sprint-board-summary" data-board-part="summary">
+        <strong>{{ total }}</strong>
+        {{ total == 1 ? 'open change, by the votes it still needs' : 'open changes, by the votes they still need' }}
+    </p>
+{% endblock %}
+
+{% block columns %}
+    {% set titles = {
+        'missesBoth': 'Unchecked',
+        'missesCodeReview': 'Needs code review',
+        'missesTesting': 'Needs testing',
+        'hasPlusOne': 'Has votes',
+        'mergeConflict': 'Merge conflict',
+        'blocked': 'Blocked',
+    } %}
+    {# A long column shows its first cards, the rest on a click #}
+    {% set shown = 12 %}
+    {% import '_macros/more.html.twig' as more %}
+    <div class="sprint-board" data-board-part="columns">
+        {% for group, changes in cards %}
+            <section class="sprint-board-column" aria-labelledby="review-board-column-{{ group }}">
+                <h2 class="sprint-board-column-title" id="review-board-column-{{ group }}">
+                    <span class="overview-legend-swatch review-board-state-{{ group }}" aria-hidden="true"></span>
+                    {{ titles[group] ?? group }}
+                    <span class="sprint-board-column-count">{{ changes|length }}</span>
+                </h2>
+                {% if changes is empty %}
+                    <p class="sprint-board-column-empty">Nothing here.</p>
+                {% else %}
+                    <ul class="sprint-board-cards">
+                        {% for change in changes|slice(0, shown) %}
+                            <li>{% include 'sprint/_review_card.html.twig' with {'change': change} only %}</li>
+                        {% endfor %}
+                    </ul>
+                    {% if changes|length > shown %}
+                        <ul class="sprint-board-cards show-more-rows">
+                            {% for change in changes|slice(shown) %}
+                                <li>{% include 'sprint/_review_card.html.twig' with {'change': change} only %}</li>
+                            {% endfor %}
+                        </ul>
+                        {{ more.toggle('Show all ' ~ changes|length) }}
+                    {% endif %}
+                {% endif %}
+            </section>
+        {% endfor %}
+    </div>
+{% endblock %}

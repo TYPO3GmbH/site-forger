@@ -42,7 +42,8 @@ final class OverviewBoardTemplateTest extends KernelTestCase
         $html = $this->render(new BoardCount(open: 3, closed: 5, blocked: 0, review: 2));
 
         self::assertStringContainsString('Sprint 42', $html);
-        self::assertStringContainsString('/sprint/core/7', $html);
+        // By its identifier, not its number
+        self::assertStringContainsString('href="/boards/core/sprint-42"', $html);
         self::assertStringContainsString('50%', $html);
         self::assertStringContainsString('5 of 10 issues done', $html);
         self::assertMatchesRegularExpression('/sprint-board-state-review"\s+style="flex-grow: 2"/', $html);
@@ -68,8 +69,33 @@ final class OverviewBoardTemplateTest extends KernelTestCase
         self::assertStringContainsString('cannot be read', $this->render(null));
     }
 
-    private function render(?BoardCount $count): string
+    public function testABoardOfReviewsShowsItsChangesByTheVotesTheyNeed(): void
     {
-        return $this->twig->render('sprint/_overview_board.html.twig', ['board' => $this->board, 'count' => $count]);
+        $html = $this->render(null, ['missesBoth' => 3, 'missesTesting' => 1, 'blocked' => 0]);
+
+        self::assertStringContainsString('4 open changes', $html);
+        self::assertMatchesRegularExpression('/review-board-state-missesBoth"\s+style="flex-grow: 3"/', $html);
+        self::assertDoesNotMatchRegularExpression('/review-board-state-blocked"\s+style/', $html);
+        self::assertStringNotContainsString('issues', $html);
+    }
+
+    public function testABoardOfReviewsWithoutChangesSaysSo(): void
+    {
+        $html = $this->render(null, []);
+
+        self::assertStringContainsString('No open change matches this board.', $html);
+        self::assertStringNotContainsString('overview-segments', $html);
+    }
+
+    /**
+     * @param array<string, int>|null $changes
+     */
+    private function render(?BoardCount $count, ?array $changes = null): string
+    {
+        return $this->twig->render('sprint/_overview_board.html.twig', [
+            'board' => $this->board,
+            'count' => $count,
+            'changes' => $changes,
+        ]);
     }
 }

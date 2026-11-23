@@ -1,0 +1,65 @@
+{#
+ # The filters of issues in the form of a sprint board, see SprintBoardQueryType: the trackers and the statuses as
+ # chips to show or to hide, then the lists to search. A board of issues filters its issues with them, a board of
+ # reviews the issues its changes name.
+ # Expects: query (the form of the filters). Optional: closed (false to leave out how long closed issues stay)
+ #}
+{% import _self as filters %}
+{# The button that removes a value picked, for each chip, see assets/ts/sprint/chip-select.ts #}
+<template data-chip-select-remove>
+    <button type="button" class="chip-select-remove">{{ icon('actions-close') }}</button>
+</template>
+{{ filters.chipMode(
+    'Trackers',
+    'tracker',
+    query.trackers,
+    query.excludedTrackers,
+    'hide it, like epics, which only group issues',
+) }}
+{{ filters.chipMode(
+    'Statuses',
+    'status',
+    query.statuses,
+    query.excludedStatuses,
+    'hide it, like "Closed" and "Rejected" to keep "Resolved"',
+) }}
+{% if closed ?? true %}
+    <div class="board-form-closed">{{ form_row(query.closedVisibleDays) }}</div>
+{% endif %}
+<div class="board-form-grid">
+    {% for filter in ['categories', 'fixedVersions', 'focuses', 'tags', 'typo3Versions'] %}
+        {{ form_row(query[filter]) }}
+    {% endfor %}
+</div>
+
+{#
+ # A filter that either picks values or leaves them out, never both, like the trackers: one row of chips and a switch
+ # between the two, see assets/ts/sprint/chip-mode.ts. Without JavaScript both rows show.
+ # only, except: the two fields of the form; noun: one value, like "tracker"; hide: what hiding one is good for
+ #}
+{% macro chipMode(label, noun, only, except, hide) %}
+    {% set mode = except.vars.value is not empty and only.vars.value is empty ? 'except' : 'only' %}
+    {% set id = 'board-form-' ~ noun %}
+    <div
+        class="board-form-trackers"
+        data-chip-mode="{{ mode }}"
+        data-chip-mode-noun="{{ noun }}"
+        data-chip-mode-hide="{{ hide }}"
+    >
+        <div class="board-form-trackers-head">
+            <span class="board-form-label" id="{{ id }}">{{ label }}</span>
+            <span class="review-board-types" role="group" aria-labelledby="{{ id }}" hidden>
+                <button type="button" class="review-board-type" data-chip-mode-set="only">Show only</button>
+                <button type="button" class="review-board-type" data-chip-mode-set="except">Hide</button>
+            </span>
+        </div>
+        <div class="board-form-chips" data-chip-mode-group="only">
+            {{ form_row(only, {'label': 'Show only these'}) }}
+        </div>
+        <div class="board-form-chips" data-chip-mode-group="except">
+            {{ form_row(except, {'label': 'Hide these', 'help': null}) }}
+        </div>
+        {# What the chips mean together, written by chip-mode.ts #}
+        <p class="board-form-trackers-summary" data-chip-mode-summary aria-live="polite"></p>
+    </div>
+{% endmacro %}

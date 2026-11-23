@@ -14,6 +14,8 @@ namespace App\Controller;
 use App\Entity\SprintBoardCategory;
 use App\Form\SprintBoardCategoryType;
 use App\Repository\SprintBoardCategoryRepository;
+use App\Service\IconCatalog;
+use App\Sprint\CategoryOrder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,79 +23,104 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+/**
+ * The categories of the sprint boards: add, change, move and remove them. The sprint overview lists them with their
+ * boards and links here, see templates/sprint/overview.html.twig.
+ */
+#[IsGranted('ROLE_FORGER_MANAGEMENT')]
 class SprintCategoryController extends AbstractController
 {
-    public function __construct(private readonly EntityManagerInterface $entityManager, private readonly SprintBoardCategoryRepository $sprintBoardCategoryRepository)
-    {
+    public const string CSRF_TOKEN_ID = 'sprint-category';
+
+    public function __construct(
+        private readonly EntityManagerInterface $entityManager,
+        private readonly SprintBoardCategoryRepository $sprintBoardCategoryRepository,
+        private readonly IconCatalog $icons,
+    ) {
     }
 
-    #[Route(path: '/sprintcategory', name: 'sprintcategory_index')]
-    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
-    public function index(): Response
-    {
-        return $this->render(
-            'sprintcategory/index.html.twig',
-            [
-                'items' => $this->sprintBoardCategoryRepository->findAll(),
-            ]
-        );
-    }
-
-    #[Route(path: '/sprintcategory/create', name: 'sprintcategory_create')]
-    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
+    #[Route(path: '/board-category/create', name: 'sprintcategory_create')]
     public function create(Request $request): Response
     {
-        $category = new SprintBoardCategory();
-        $form = $this->createForm(SprintBoardCategoryType::class, $category);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $this->entityManager->persist($category);
-            $this->entityManager->flush();
-
-            $this->addFlash('success', 'Sprint category created.');
-
-            return $this->redirectToRoute('sprintcategory_index');
-        }
-
-        return $this->render('sprintcategory/form.html.twig', ['form' => $form]);
+        return $this->handleForm($request, new SprintBoardCategory(), 'Category created.');
     }
 
-    #[Route(path: '/sprintcategory/edit/{categoryId}', name: 'sprintcategory_edit')]
-    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
+    #[Route(path: '/board-category/edit/{categoryId}', name: 'sprintcategory_edit')]
     public function edit(Request $request, int $categoryId): Response
     {
         $category = $this->sprintBoardCategoryRepository->find($categoryId);
         if (null === $category) {
-            return $this->redirectToRoute('sprintcategory_create');
+            throw $this->createNotFoundException('There is no such category.');
         }
+
+        return $this->handleForm($request, $category, 'Category updated.');
+    }
+
+    /**
+     * Removes a category without boards. A category with boards stays: its boards would go with it.
+     */
+    #[Route(path: '/board-category/delete/{categoryId}', name: 'sprintcategory_delete', methods: ['POST'])]
+    public function delete(Request $request, int $categoryId): Response
+    {
+        $category = $this->sprintBoardCategoryRepository->find($categoryId);
+        if (null === $category || !$this->isCsrfTokenValid(
+            self::CSRF_TOKEN_ID,
+            $request->getPayload()->getString('_token'),
+        )) {
+            return $this->redirectToRoute('sprint_overview');
+        }
+        if (!$category->getSprintBoards()->isEmpty()) {
+            $this->addFlash('danger', 'Move or delete the boards of the category first.');
+
+            return $this->redirectToRoute('sprint_overview', ['_fragment' => 'sprints-' . $category->getIdentifier()]);
+        }
+        $this->entityManager->remove($category);
+        $this->entityManager->flush();
+        $this->addFlash('success', 'Category deleted.');
+
+        return $this->redirectToRoute('sprint_overview');
+    }
+
+    /**
+     * Moves a category one place up or down on the sprint overview, see CategoryOrder.
+     */
+    #[Route(
+        path: '/board-category/move/{categoryId}/{direction}',
+        name: 'sprintcategory_move',
+        requirements: ['direction' => CategoryOrder::UP . '|' . CategoryOrder::DOWN],
+        methods: ['POST'],
+    )]
+    public function move(Request $request, int $categoryId, string $direction): Response
+    {
+        $category = $this->sprintBoardCategoryRepository->find($categoryId);
+        if (null === $category || !$this->isCsrfTokenValid(
+            self::CSRF_TOKEN_ID,
+            $request->getPayload()->getString('_token'),
+        )) {
+            return $this->redirectToRoute('sprint_overview');
+        }
+        CategoryOrder::move($this->sprintBoardCategoryRepository->findAll(), $category, $direction);
+        $this->entityManager->flush();
+
+        return $this->redirectToRoute('sprint_overview', ['_fragment' => 'sprints-' . $category->getIdentifier()]);
+    }
+
+    private function handleForm(Request $request, SprintBoardCategory $category, string $message): Response
+    {
         $form = $this->createForm(SprintBoardCategoryType::class, $category);
         $form->handleRequest($request);
-
         if ($form->isSubmitted() && $form->isValid()) {
             $this->entityManager->persist($category);
             $this->entityManager->flush();
+            $this->addFlash('success', $message);
 
-            $this->addFlash('success', 'Sprint category updated.');
-
-            return $this->redirectToRoute('sprintcategory_index');
+            return $this->redirectToRoute('sprint_overview', ['_fragment' => 'sprints-' . $category->getIdentifier()]);
         }
 
-        return $this->render('sprintcategory/form.html.twig', ['form' => $form, 'edit' => true]);
-    }
-
-    #[Route(path: '/sprintcategory/delete/{categoryId}', name: 'sprintcategory_delete')]
-    #[IsGranted('ROLE_FORGER_MANAGEMENT')]
-    public function delete(int $categoryId): Response
-    {
-        $category = $this->sprintBoardCategoryRepository->find($categoryId);
-        if (null !== $category) {
-            $this->entityManager->remove($category);
-            $this->entityManager->flush();
-
-            $this->addFlash('danger', 'Sprint category deleted.');
-        }
-
-        return $this->redirectToRoute('sprintcategory_index');
+        return $this->render('sprintcategory/form.html.twig', [
+            'form' => $form,
+            'edit' => null !== $category->getId(),
+            'icons' => $this->icons->identifiers(),
+        ]);
     }
 }

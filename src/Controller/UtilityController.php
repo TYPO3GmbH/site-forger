@@ -25,6 +25,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[Route(path: '/utilities', name: 'utilities_')]
 class UtilityController extends AbstractController
 {
+    public const string DELETE_TOKEN_ID = 'backport-delete';
+
     public function __construct(
         private readonly BackportList $backportList,
         private readonly BackportBlacklistEntryRepository $backportBlacklistEntryRepository
@@ -134,15 +136,17 @@ class UtilityController extends AbstractController
         );
     }
 
-    #[Route(path: '/backport/delete/{changeId}', name: 'backport_delete')]
+    #[Route(path: '/backport/delete/{changeId}', name: 'backport_delete', methods: ['POST'])]
     #[IsGranted('ROLE_FORGER_MANAGEMENT')]
     public function deleteBackportBlacklistEntry(
+        Request $request,
         string $changeId,
         EntityManagerInterface $entityManager
     ): Response {
         $backport = $this->backportBlacklistEntryRepository->findOneBy(['changeId' => $changeId]);
+        $token = $request->getPayload()->getString('_token');
 
-        if (null !== $backport) {
+        if (null !== $backport && $this->isCsrfTokenValid(self::DELETE_TOKEN_ID, $token)) {
             $entityManager->remove($backport);
             $entityManager->flush();
             $this->addFlash('success', 'The backport exclusion is removed.');

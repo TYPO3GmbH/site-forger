@@ -36,6 +36,7 @@ final class SprintWizardPreviewTemplateTest extends KernelTestCase
             'subject' => 'Something is broken',
             'tracker' => ['id' => 1, 'name' => 'Bug'],
             'status' => ['id' => 9, 'name' => 'Under Review'],
+            'created_on' => '2026/11/01 10:00:00',
         ]);
 
         $html = $this->twig->render('sprint/_wizard_preview.html.twig', [
@@ -45,9 +46,12 @@ final class SprintWizardPreviewTemplateTest extends KernelTestCase
             'issues' => new ArrayCollection([new Card($issue, BoardColumnEnum::REVIEW)]),
         ]);
 
-        self::assertStringContainsString('#91089 Something is broken</a>', $html);
-        self::assertStringContainsString('<td>Bug</td>', $html);
-        self::assertStringContainsString('<td>Under Review</td>', $html);
-        self::assertStringContainsString('<td>Review</td>', $html);
+        self::assertStringContainsString('href="/issue/91089"', $html);
+        self::assertStringContainsString('Something is broken', $html);
+        self::assertStringContainsString('<strong>1</strong> issue</p>', $html);
+        // The columns in the order and the colors of the board, the empty ones too
+        self::assertMatchesRegularExpression('/sprint-board-state-review"\s+style="flex-grow: 1"/', $html);
+        self::assertMatchesRegularExpression('/In review\s*<strong>1<\/strong>/', $html);
+        self::assertStringContainsString('Bug · Under Review · In review', $html);
     }
 }

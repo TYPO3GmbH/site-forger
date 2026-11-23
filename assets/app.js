@@ -22,6 +22,13 @@ import './ts/filter/days-filter.ts';
 import './ts/fullscreen/fullscreen.ts';
 import './ts/sprint/stuck-heads.ts';
 import './ts/sprint/live-board.ts';
+import './ts/sprint/icon-picker.ts';
+import './ts/confirm/confirm-dialog.ts';
+import './ts/sprint/board-members.ts';
+import './ts/sprint/chip-select.ts';
+import './ts/sprint/inline-rename.ts';
+import './ts/sprint/title-field.ts';
+import './ts/sprint/chip-mode.ts';
 import { loadEditor } from './js/editor.js';
 
 function initializeEditor(ace, textarea) {

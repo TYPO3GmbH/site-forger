@@ -33,6 +33,7 @@ final class BoardFilter
         'focuses' => 'focus.name',
         'tags' => 'tags',
         'typo3Versions' => 'typo3_version',
+        'statuses' => 'status.name',
     ];
 
     /**
@@ -41,6 +42,8 @@ final class BoardFilter
     public const int CLOSED_ALWAYS_VISIBLE = -1;
 
     private const string EXCLUDED_TRACKERS_FIELD = 'tracker.name';
+
+    private const string STATUS_FIELD = 'status.name';
 
     /** @var list<string> */
     public array $trackers = [];
@@ -54,8 +57,21 @@ final class BoardFilter
     public array $tags = [];
     /** @var list<string> */
     public array $typo3Versions = [];
+    /**
+     * The only statuses on the board, like "New" and "Accepted" of a board of what is to do.
+     *
+     * @var list<string>
+     */
+    public array $statuses = [];
     /** @var list<string> */
     public array $excludedTrackers = [];
+
+    /**
+     * Statuses left out whenever they were set, like "Closed" and "Rejected" of a board that keeps "Resolved".
+     *
+     * @var list<string>
+     */
+    public array $excludedStatuses = [];
 
     /**
      * Days closed issues stay on the board after their last update, 0 to hide them at once.
@@ -89,7 +105,10 @@ final class BoardFilter
         if ([] !== $this->excludedTrackers) {
             $mustNot[] = ['terms' => [self::EXCLUDED_TRACKERS_FIELD => self::normalize($this->excludedTrackers)]];
         }
-        $closed = ['terms' => ['status.name' => IssueStatusEnum::closedLabels()]];
+        if ([] !== $this->excludedStatuses) {
+            $mustNot[] = ['terms' => [self::STATUS_FIELD => self::normalize($this->excludedStatuses)]];
+        }
+        $closed = ['terms' => [self::STATUS_FIELD => IssueStatusEnum::closedLabels()]];
         if (0 === $this->closedVisibleDays) {
             $mustNot[] = $closed;
         } elseif ($this->closedVisibleDays > 0) {
@@ -152,8 +171,10 @@ final class BoardFilter
             $terms = self::termsOf($clause);
             if (null !== $terms && self::EXCLUDED_TRACKERS_FIELD === $terms[0]) {
                 $filter->excludedTrackers = $terms[1];
-            } elseif (null !== $terms && 'status.name' === $terms[0]) {
+            } elseif (null !== $terms && self::STATUS_FIELD === $terms[0] && self::allClosed($terms[1])) {
                 $filter->closedVisibleDays = 0;
+            } elseif (null !== $terms && self::STATUS_FIELD === $terms[0]) {
+                $filter->excludedStatuses = $terms[1];
             } elseif (1 === preg_match('/^now-([1-9]\d*)d$/', (string) ($clause['bool']['must'][1]['range']['updated_on']['lte'] ?? ''), $matches)) {
                 $filter->closedVisibleDays = (int) $matches[1];
             } else {
@@ -168,8 +189,9 @@ final class BoardFilter
     /**
      * The filters a query written by hand comes closest to, for boards moving to the wizard.
      *
-     * Filters on fields the wizard offers are taken over wherever they are nested, as are closed states left
-     * out with or without a time range. Alternatives ("should") turn into values that all have to match.
+     * Filters on fields the wizard offers are taken over wherever they are nested. All closed states left out, with
+     * or without a time range, become the filter of the closed issues, only some of them the statuses left out.
+     * Alternatives ("should") turn into values that all have to match.
      *
      * @param array<mixed> $query
      *
@@ -181,7 +203,7 @@ final class BoardFilter
         $filter->closedVisibleDays = self::CLOSED_ALWAYS_VISIBLE;
         $dropped = [];
         $filter->collect($query, false, $dropped);
-        foreach (array_merge(array_keys(self::FIELDS), ['excludedTrackers']) as $property) {
+        foreach (array_merge(array_keys(self::FIELDS), ['excludedTrackers', 'excludedStatuses']) as $property) {
             $filter->{$property} = self::normalize($filter->{$property});
         }
 
@@ -226,9 +248,11 @@ final class BoardFilter
             array_push($this->{$fieldProperties[$terms[0]]}, ...$terms[1]);
         } elseif (null !== $terms && $negated && self::EXCLUDED_TRACKERS_FIELD === $terms[0]) {
             array_push($this->excludedTrackers, ...$terms[1]);
-        } elseif (null !== $terms && $negated && 'status.name' === $terms[0]
-            && [] === array_diff($terms[1], IssueStatusEnum::closedLabels())) {
+        } elseif (null !== $terms && $negated && self::STATUS_FIELD === $terms[0] && self::allClosed($terms[1])) {
             $this->closedVisibleDays = 0;
+        } elseif (null !== $terms && $negated && self::STATUS_FIELD === $terms[0]) {
+            // Only some statuses, like "Closed" without "Resolved": exactly these
+            array_push($this->excludedStatuses, ...$terms[1]);
         } else {
             $dropped[] = Yaml::dump($clause, 0);
         }
@@ -242,23 +266,34 @@ final class BoardFilter
     private function collectClosed(array $bool): bool
     {
         $days = null;
-        $closed = false;
+        $statuses = [];
         foreach ([...(array) ($bool['must'] ?? []), ...(array) ($bool['filter'] ?? []), ...(array) ($bool['should'] ?? [])] as $clause) {
             $terms = self::termOrTermsOf($clause);
-            if (null !== $terms && 'status.name' === $terms[0] && [] === array_diff($terms[1], IssueStatusEnum::closedLabels())) {
-                $closed = true;
+            if (null !== $terms && self::STATUS_FIELD === $terms[0]) {
+                $statuses = [...$statuses, ...$terms[1]];
             } elseif (1 === preg_match('/^now-([1-9]\d*)d$/', (string) ($clause['range']['updated_on']['lte'] ?? ''), $matches)) {
                 $days = (int) $matches[1];
             } else {
                 return false;
             }
         }
-        if (!$closed || [] !== array_diff(array_keys($bool), ['must', 'filter', 'should'])) {
+        // Only all closed statuses together are what the filter "Closed, resolved and rejected issues" leaves out
+        if (!self::allClosed($statuses) || [] !== array_diff(array_keys($bool), ['must', 'filter', 'should'])) {
             return false;
         }
         $this->closedVisibleDays = $days ?? 0;
 
         return true;
+    }
+
+    /**
+     * Whether the statuses are all the closed ones, the ones the filter "Closed, resolved and rejected issues" means.
+     *
+     * @param list<string> $statuses
+     */
+    private static function allClosed(array $statuses): bool
+    {
+        return self::normalize($statuses) === self::normalize(IssueStatusEnum::closedLabels());
     }
 
     /**

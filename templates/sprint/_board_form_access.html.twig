@@ -1,0 +1,84 @@
+{#
+ # Who sees a sprint board, in its form, see BoardAccessFields: everybody, or only the people it is shared with. The
+ # people are a list with their names; the search of people of My Work adds them and "×" removes them, see
+ # assets/ts/sprint/board-members.ts. Both save with the board. Without JavaScript the field of the usernames shows.
+ # Expects: form (the form of the board), members (list of {key, person}, see BoardMembers::shown()), searchUrl
+ #}
+{% import '_macros/user.html.twig' as user %}
+<section class="board-form-section board-access" id="access" aria-labelledby="board-form-access">
+    <h2 class="board-form-section-title" id="board-form-access">Access</h2>
+    {{ form_errors(form.restricted) }}
+    {# Two cards to choose from. The radio buttons stay for the keyboard and the form, out of sight #}
+    <div class="board-access-choices" role="radiogroup" aria-labelledby="board-form-access">
+        {% for choice in form.restricted %}
+            {% set restricted = choice.vars.value == '1' %}
+            <label class="board-access-choice">
+                <input
+                    type="radio"
+                    id="{{ choice.vars.id }}"
+                    name="{{ choice.vars.full_name }}"
+                    value="{{ choice.vars.value }}"
+                    {{- restricted ? ' data-board-access-restricted' }}
+                    {{- choice.vars.checked ? ' checked' }}
+                >
+                <span class="board-access-tile" aria-hidden="true">
+                    {{- icon(restricted ? 'actions-lock' : 'actions-users') -}}
+                </span>
+                <span class="board-access-text">
+                    <strong>{{ restricted ? 'Restricted' : 'Everybody' }}</strong>
+                    <small>
+                        {{ restricted
+                            ? 'Only the people you pick, the managers and the admins.'
+                            : 'Anyone who opens Forger, also without a login.' }}
+                    </small>
+                </span>
+                <span class="board-access-check" aria-hidden="true">{{ icon('actions-check') }}</span>
+            </label>
+            {% do choice.setRendered() %}
+        {% endfor %}
+    </div>
+    {% do form.restricted.setRendered() %}
+
+    {# The people matter only for a restricted board: the panel shows with that choice, see _sprint-board.scss #}
+    <div class="board-members" data-board-members>
+        <label class="board-members-title" for="{{ form.members.vars.id }}">Shared with</label>
+        {{ form_errors(form.members) }}
+        <ul class="board-members-list" data-board-members-list>
+            {% for member in members %}
+                <li class="board-members-item" data-key="{{ member.key }}">
+                    {% if member.person %}
+                        {{ user.inline(member.person, 24) }}
+                    {% else %}
+                        <span class="user">{{ member.key }}</span>
+                    {% endif %}
+                    <button type="button" class="board-members-remove" data-board-members-remove title="Remove">
+                        {{- icon('actions-close') }}<span class="sr-only">Remove</span>
+                    </button>
+                </li>
+            {% endfor %}
+        </ul>
+        <p class="board-members-empty" data-board-members-empty{{ members is not empty ? ' hidden' }}>
+            Nobody yet. Only the managers and the admins see the board.
+        </p>
+        {# The field the form sends; the list above replaces it, see board-members.ts #}
+        {{ form_widget(form.members, {'attr': {'class': 'form-control', 'data-board-members-value': ''}}) }}
+        {{ form_help(form.members) }}
+        {# The button of a person added later, see board-members.ts #}
+        <template data-board-members-remove-template>
+            <button type="button" class="board-members-remove" data-board-members-remove title="Remove">
+                {{- icon('actions-close') }}<span class="sr-only">Remove</span>
+            </button>
+        </template>
+        {# The icons of the search of people, see assets/ts/activity/definitions.ts #}
+        {% include 'stream/_definitions.html.twig' %}
+        <forger-person-search
+            search-url="{{ searchUrl }}"
+            label="Add a person"
+            placeholder="Add a person by name or username"
+            hidden
+            data-board-members-search
+        ></forger-person-search>
+        <p class="board-members-hint">They see the board after they log in. They cannot change it.</p>
+    </div>
+    {% do form.members.setRendered() %}
+</section>

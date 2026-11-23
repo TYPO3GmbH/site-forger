@@ -1,26 +1,93 @@
 {% extends 'base.html.twig' %}
 {% import '_macros/buttons.html.twig' as buttons %}
-{% block title %}Sprint Boards{% endblock %}
-{% block page_title %}Sprint Boards{% endblock %}
+{% block title %}{{ sprint.id ? 'Edit ' ~ sprint.name : 'New board' }}{% endblock %}
+{#
+ # The title of a board there is already is its name. The pen beside it turns it into its field, see
+ # assets/ts/sprint/title-field.ts. The field belongs to the form below by its id and saves with it. With an error
+ # at the name the field shows at once. A new board has the field of its name in the form instead.
+ #}
+{% block page_title %}
+    {% if sprint.id is null %}
+        New board
+    {% else %}
+        {% set field = form.name %}
+        {% set open = field.vars.value is empty or field.vars.errors|length > 0 %}
+        <span class="title-field" data-title-field>
+            <span class="title-field-text" data-title-field-text{{ open ? ' hidden' }}>{{ field.vars.value }}</span>
+            <button
+                type="button"
+                class="sprint-board-tool title-field-edit"
+                data-title-field-edit
+                title="Rename the board"
+                {{- open ? ' hidden' }}
+            >
+                {{- icon('actions-open') }}<span class="sr-only">Rename the board</span>
+            </button>
+            <input
+                type="text"
+                class="board-form-name"
+                id="{{ field.vars.id }}"
+                name="{{ field.vars.full_name }}"
+                value="{{ field.vars.value }}"
+                form="board-form"
+                maxlength="200"
+                required
+                placeholder="Name of the board"
+                aria-label="Name of the board"
+                autocomplete="off"
+                    data-title-field-input
+                {{- open ? '' : ' hidden' }}
+            >
+        </span>
+        {% do field.setRendered() %}
+    {% endif %}
+{% endblock %}
+{% block page_summary %}
+    {% set cards = sprint.type.value == 'reviews' ? 'changes' : 'issues' %}
+    {{- sprint.id
+        ? 'Edit the board: its ' ~ cards ~ ', how it shows them and who sees it.'
+        : 'What the board shows, how, and who sees it.' -}}
+{% endblock %}
+{# The way back: to the board, or to the overview for a new board #}
+{% block page_actions %}
+    {% if sprint.id %}
+        {{ buttons.back(
+            path('sprint', {'category': sprint.category.identifier, 'board': sprint.identifier}),
+            'Back to the board',
+        ) }}
+    {% else %}
+        {{ buttons.back(path('sprint_overview'), 'Back to the overview') }}
+    {% endif %}
+{% endblock %}
 {% block breadcrumb %}
     {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
-    {{ breadcrumb.trail([{'label': 'Sprints', 'url': path('sprint_overview')}, {'label': 'Sprint boards', 'url': path('sprint_list')}, {'label': sprint.id is null ? 'New sprint board' : 'Edit ' ~ sprint.name}]) }}
+    {{ breadcrumb.trail([
+        {'label': 'Boards', 'url': path('sprint_overview')},
+        {'label': sprint.id is null ? 'New board' : 'Edit ' ~ sprint.name},
+    ]) }}
 {% endblock %}
+{#
+ # The form of a sprint board in one view, see SprintController::handleBoardForm() and SprintBoardWizard: its name
+ # (the title of the page once there is the board), its category, the filters and the order of its issues or, on a
+ # board of reviews, of its changes, and who sees it. A new board chooses its type first, see BoardTypeEnum. A
+ # column beside them shows what the filters find right now, and the one "Save" for all of it.
+ # assets/js/sprint-wizard.js loads the preview again as the filters change.
+ # Expects: form, sprint, handWrittenQuery, droppedClauses, members, owners, searchUrl
+ #}
 {% block body %}
+    {% set back = sprint.id
+        ? path('sprint', {'category': sprint.category.identifier, 'board': sprint.identifier})
+        : path('sprint_overview') %}
 
-    {% set steps = ['Board', 'Issues', 'Check and save'] %}
-    {% set yamlPath = sprint.id ? path('sprint_edit_yaml', {'sprintId': sprint.id}) : path('sprint_create_yaml', sprint.category ? {'category': sprint.category.identifier} : {}) %}
-
-    <div class="content-section">
+    <div class="content-section content-section-small">
         <div class="container">
-            <div class="header">
-                <h2 class="header-headline">{{ sprint.id ? 'Edit the Sprint Board "' ~ sprint.name ~ '"' : 'Add a Sprint Board' }}</h2>
-                <div class="header-actions">
-                    {{ buttons.link(yamlPath, 'Edit the query as YAML', 'secondary', 'actions-open') }}
-                </div>
-            </div>
-
-            {{ form_start(form, {'attr': {'class': 'sprint-wizard', 'data-sprint-wizard': '', 'data-preview-url': path('sprint_wizard_preview'), 'novalidate': 'novalidate'}}) }}
+            {{ form_start(form, {'attr': {
+                'id': 'board-form',
+                'class': 'board-form',
+                'data-sprint-wizard': '',
+                'data-preview-url': path('sprint_wizard_preview', {'type': sprint.type.value}),
+                'novalidate': 'novalidate',
+            }}) }}
             {{ form_errors(form) }}
 
             {% if handWrittenQuery %}
@@ -28,11 +95,11 @@
                     <div class="alert-inner">
                         <h4 class="alert-heading">This board's query was written by hand</h4>
                         <p>
-                            The wizard took over the filters it understands. Check them, and the issues in the step "Check and save":
-                            saving replaces the query written by hand. To keep that query, edit it as YAML instead.
+                            The form took over the filters it understands. Check them and the issues beside them:
+                            saving replaces the query written by hand.
                         </p>
                         {% if droppedClauses|length > 0 %}
-                            <p class="mb-1">These parts have no counterpart in the wizard and are left out:</p>
+                            <p class="mb-1">These parts have no counterpart in the form and are left out:</p>
                             <ul>
                                 {% for clause in droppedClauses %}
                                     <li><code>{{ clause }}</code></li>
@@ -47,70 +114,99 @@
                 </div>
             {% endif %}
 
-            <ol class="sprint-wizard-steps" data-wizard-nav hidden>
-                {% for step in steps %}
-                    <li class="sprint-wizard-step">
-                        <button type="button" class="sprint-wizard-step-button" data-wizard-goto="{{ loop.index0 }}">
-                            <span class="sprint-wizard-step-number">{{ loop.index }}</span>
-                            <span class="sprint-wizard-step-label">{{ step }}</span>
-                        </button>
-                    </li>
-                {% endfor %}
-            </ol>
+            {# The settings on the left, the issues they find and the button to save on the right, always in view #}
+            <div class="board-form-main">
+                <section class="board-form-section" aria-labelledby="board-form-board">
+                    <h2 class="board-form-section-title" id="board-form-board">Board</h2>
+                    {# The address of the board follows its name, see SprintBoardRepository::identifierFor() #}
+                    {# A new board chooses its type: two cards that lead to the form of each. A board there is
+                       already shows its type only, the filters of one type mean nothing to the other #}
+                    {% set typeIcons = {'issues': 'actions-viewmode-tiles', 'reviews': 'actions-code-pull-request'} %}
+                    <div class="board-access-choices board-type-choices">
+                        {% for type in enum_cases('App\\Enum\\BoardTypeEnum') %}
+                            {% set active = type == sprint.type %}
+                            {% if sprint.id is null %}
+                                <a
+                                    class="board-access-choice{{ active ? ' is-active' }}"
+                                    href="{{ path('sprint_create', {
+                                        'category': sprint.category.identifier ?? null,
+                                        'type': type.value,
+                                    }) }}"
+                                    {{- active ? ' aria-current="true"' }}
+                                >
+                                    {{ _self.typeCard(type, typeIcons[type.value]) }}
+                                </a>
+                            {% elseif active %}
+                                <div class="board-access-choice is-active is-fixed">
+                                    {{ _self.typeCard(type, typeIcons[type.value]) }}
+                                </div>
+                                <p class="board-form-hint board-type-fixed">
+                                    The type of a board stays as it is. For the other type, add a new board.
+                                </p>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="row">
+                        {% if sprint.id is null %}
+                            <div class="col-md-7">
+                                {{ form_row(form.name, {'attr': {'class': 'form-control'}}) }}
+                            </div>
+                        {% else %}
+                            {# The name is the title of the page, above #}
+                            <div class="col-12">{{ form_errors(form.name) }}</div>
+                        {% endif %}
+                        <div class="col-md-5">{{ form_row(form.category) }}</div>
+                    </div>
+                </section>
 
-            <div class="card">
-                <div class="card-body">
-                    <fieldset class="sprint-wizard-panel" data-wizard-step>
-                        <legend>{{ steps[0] }}</legend>
-                        <p class="text-muted">Name the board and choose the category it is listed in.</p>
-                        {{ form_row(form.name) }}
-                        {{ form_row(form.identifier) }}
-                        {{ form_row(form.category) }}
-                    </fieldset>
-
-                    <fieldset class="sprint-wizard-panel" data-wizard-step>
-                        <legend>{{ steps[1] }}</legend>
-                        <p class="text-muted">
-                            An issue is on the board if it matches every filter you set. Within a filter, any of the selected values is enough.
-                            Hold Ctrl (Cmd on a Mac) to select several values in a list.
+                {% if sprint.type.value == 'reviews' %}
+                    {% include 'sprint/_board_form_reviews.html.twig' %}
+                {% else %}
+                    <section class="board-form-section" aria-labelledby="board-form-issues">
+                        <h2 class="board-form-section-title" id="board-form-issues">Issues</h2>
+                        <p class="board-form-hint">
+                            An issue is on the board if it matches every filter you set. Within a filter, any value is
+                            enough.
                         </p>
                         {{ form_errors(form.query) }}
-                        {{ form_row(form.query.trackers) }}
-                        <div class="row">
-                            {% for filter in ['categories', 'fixedVersions', 'focuses', 'tags', 'typo3Versions'] %}
-                                <div class="col-md-6 col-lg-4">
-                                    {{ form_row(form.query[filter]) }}
-                                </div>
-                            {% endfor %}
+                        {% include 'sprint/_board_form_issue_filters.html.twig' with {'query': form.query} only %}
+                        <div class="board-form-grid board-form-order">
+                            {{ form_row(form.cardSort) }}
+                            {{ form_row(form.firstView) }}
                         </div>
-                        <hr>
-                        <div class="row">
-                            <div class="col-md-6">
-                                {{ form_row(form.query.excludedTrackers) }}
-                            </div>
-                            <div class="col-md-6">
-                                {{ form_row(form.query.closedVisibleDays) }}
-                            </div>
-                        </div>
-                    </fieldset>
+                    </section>
+                {% endif %}
 
-                    <fieldset class="sprint-wizard-panel" data-wizard-step>
-                        <legend>{{ steps[2] }}</legend>
-                        <p class="text-muted">These issues match your filters right now. The board updates itself as issues change on Forge.</p>
-                        <div data-wizard-preview aria-live="polite">
-                            <p class="text-muted" data-wizard-preview-placeholder>The preview needs JavaScript. Your filters are checked when you save.</p>
-                        </div>
-                    </fieldset>
-                </div>
-                <div class="card-footer sprint-wizard-actions">
-                    <button type="button" class="btn btn-secondary" data-wizard-back hidden>Back</button>
-                    <button type="button" class="btn btn-primary" data-wizard-next hidden>Next</button>
-                    {{ form_widget(form.submit) }}
-                </div>
+                {% include 'sprint/_board_form_access.html.twig' %}
+
             </div>
 
+            <aside class="board-form-side">
+                <section class="board-form-section board-form-preview" aria-labelledby="board-form-preview">
+                    <h2 class="board-form-section-title" id="board-form-preview">On the board now</h2>
+                    {# What the filters find right now, loaded again as they change #}
+                    <div data-wizard-preview aria-live="polite">
+                        <p class="board-form-hint">
+                            The preview needs JavaScript. The filters are checked when you save.
+                        </p>
+                    </div>
+                </section>
+                <div class="board-form-actions">
+                    {{ form_widget(form.submit) }}
+                    <a class="btn btn-default" href="{{ back }}">Cancel</a>
+                </div>
+            </aside>
             {{ form_end(form) }}
         </div>
     </div>
-
 {% endblock %}
+
+{# The card of a type of board: its icon, its name and what it shows #}
+{% macro typeCard(type, typeIcon) %}
+    <span class="board-access-tile" aria-hidden="true">{{ icon(typeIcon) }}</span>
+    <span class="board-access-text">
+        <strong>{{ type.label }}</strong>
+        <small>{{ type.description }}</small>
+    </span>
+    <span class="board-access-check" aria-hidden="true">{{ icon('actions-check') }}</span>
+{% endmacro %}

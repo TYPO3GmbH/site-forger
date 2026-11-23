@@ -11,3 +11,11 @@
         {{ label }}
     </button>
 {% endmacro %}
+
+{#
+ # The way back from a page that is a side step, like the page "Share" of a sprint board: beside the title, in the
+ # block "page_actions".
+ #}
+{% macro back(url, label) %}
+    <a class="btn btn-sm btn-default" href="{{ url }}">{{ icon('actions-arrow-left') }} {{ label }}</a>
+{% endmacro %}

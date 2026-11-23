@@ -28,7 +28,7 @@ use App\People\Person;
  */
 final readonly class Change
 {
-    private const string NO_TOPIC = 'no topic';
+    public const string NO_TOPIC = 'no topic';
 
     /**
      * @param list<string>          $releases       the versions of the footer "Releases:"

@@ -1,6 +1,7 @@
 {#
  # An issue on a sprint board: its tracker and number, the subject, then its status, marks and assignee. An issue
- # in review shows its change below, with the votes.
+ # with a change shows it below: what the change still needs, in the color and the words of the columns of a board
+ # of reviews, see _review_parts.html.twig, with the votes, then its number.
  # The subject links to the issue, the change to its page: two links, so the card itself is no link.
  # Expects: card (App\Sprint\Card)
  #}
@@ -29,10 +30,29 @@
         {% endif %}
     </p>
     {% if card.change is not null %}
+        {% set groups = {
+            'missesBoth': 'Unchecked',
+            'missesCodeReview': 'Needs code review',
+            'missesTesting': 'Needs testing',
+            'hasPlusOne': 'Has votes',
+            'mergeConflict': 'Merge conflict',
+            'blocked': 'Blocked',
+        } %}
+        {% set group = card.reviewGroup %}
         <a class="sprint-board-card-change" href="{{ change_path(card.change.id) }}" title="{{ card.change.subject }}">
-            {{ icon('actions-code-pull-request') }}
-            <span class="sprint-board-card-change-id">{{ card.change.id }}</span>
+            <span class="sprint-board-card-change-state">
+                {% if group is not null %}
+                    <span class="overview-legend-swatch review-board-state-{{ group }}" aria-hidden="true"></span>
+                    {{ groups[group] ?? group }}
+                {% else %}
+                    {{ card.change.state.label }}
+                {% endif %}
+            </span>
             {{ status.votes(card.change) }}
+            <span class="sprint-board-card-change-id">
+                {{ icon('actions-code-pull-request') }} Change {{ card.change.id }}
+                {%- if (card.change.branch ?? 'main') != 'main' %} · {{ card.change.branch }}{% endif %}
+            </span>
         </a>
     {% endif %}
 </article>

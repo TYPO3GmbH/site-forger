@@ -13,9 +13,11 @@ namespace App\Sprint;
 
 use App\Document\Change;
 use App\Document\Issue;
+use App\Enum\ReviewStatusEnum;
 
 /**
- * An issue on a sprint board, in its column. An issue under review can show its Gerrit change.
+ * An issue on a sprint board, in its column, with its Gerrit change if it has one: the open change that resolves
+ * it, or the one an issue under review links.
  */
 final readonly class Card
 {
@@ -24,5 +26,18 @@ final readonly class Card
         public BoardColumnEnum $column,
         public ?Change $change = null,
     ) {
+    }
+
+    /**
+     * What the change still needs, as a column of a board of reviews names it, see ReviewBoards::GROUPS. Null
+     * without a change, and for a change that is merged or abandoned.
+     */
+    public function reviewGroup(): ?string
+    {
+        if (null === $this->change || ReviewStatusEnum::NEW !== $this->change->state()->status()) {
+            return null;
+        }
+
+        return ReviewBoards::group($this->change);
     }
 }

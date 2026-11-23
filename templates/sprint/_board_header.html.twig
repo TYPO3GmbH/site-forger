@@ -1,0 +1,121 @@
+{#
+ # The head of a board, the same on the sprint boards, the review board and the board of an interest: the title with
+ # the summary of the parts, the time of the last load, a switch of the views, the order of the cards and the tools.
+ # Expects: title, parts (the template with the block "summary"), and what the summary expects
+ # Optional: views, a list of {label, url, active, count?}, shown with more than one;
+ #           sort, {options (list of IssueSortEnum or ReviewSortEnum), current, action, view?}: the order of the cards;
+ #           tools, a list of {url, title, icon, class?, confirm?}: links beside the button for the full screen;
+ #           with confirm, {title, text, button, post, token}, the link asks in the dialog and sends a POST, see
+ #           assets/ts/confirm/confirm-dialog.ts;
+ #           rename, {url, token}: the title is edited in place and saved there, for managers;
+ #           restricted, whether only the people it is shared with see the board, then members, how many they are,
+ #           and access, the page that changes it, for managers
+ #}
+<header class="sprint-board-header">
+    <div>
+        <h1 class="sprint-board-title">
+            {% if rename ?? null %}
+                {# The pen, or a click on the name, edits it in place, see assets/ts/sprint/inline-rename.ts #}
+                <span
+                    class="sprint-board-name"
+                    data-rename="{{ rename.url }}"
+                    data-rename-token="{{ rename.token }}"
+                    title="Click to rename the board"
+                    tabindex="0"
+                    role="button"
+                >{{ title }}</span>
+                <button
+                    type="button"
+                    class="sprint-board-tool title-field-edit"
+                    data-rename-trigger
+                    title="Rename the board"
+                >
+                    {{- icon('actions-open') }}<span class="sr-only">Rename the board</span>
+                </button>
+            {% else %}
+                {{- title -}}
+            {% endif %}
+            {% if restricted ?? false %}
+                {# Who sees it in its title; a manager changes it with a click #}
+                {% set who = 'Only ' ~ members ~ (members == 1 ? ' person' : ' people')
+                    ~ ', the managers and the admins see this board' %}
+                {% if access ?? null %}
+                    <a class="restricted-label" href="{{ access }}" title="{{ who }}. Change who sees it.">
+                        {{- icon('actions-lock') }} Restricted
+                    </a>
+                {% else %}
+                    <span class="restricted-label" title="{{ who }}.">{{ icon('actions-lock') }} Restricted</span>
+                {% endif %}
+            {% endif %}
+        </h1>
+        {{ block('summary', parts) }}
+    </div>
+    <div class="sprint-board-actions">
+        {# Shown by assets/ts/sprint/live-board.ts once it loads the board again every minute #}
+        <span class="sprint-board-live" data-board-updated hidden></span>
+        {% if (views ?? [])|length > 1 %}
+            <nav class="review-board-types" aria-label="What the board shows">
+                {% for entry in views %}
+                    <a
+                        href="{{ entry.url }}"
+                        class="review-board-type{{ entry.active ? ' is-active' }}"
+                        {{- entry.active ? ' aria-current="page"' }}
+                    >
+                        {{- entry.label }}
+                        {%- if entry.count is defined -%}
+                            {{ ' ' }}<span class="review-board-type-count">{{ entry.count }}</span>
+                        {%- endif -%}
+                    </a>
+                {% endfor %}
+            </nav>
+        {% endif %}
+        {% if sort is defined %}
+            <form class="sprint-board-sort" action="{{ sort.action }}" method="get">
+                {% if sort.view ?? null %}<input type="hidden" name="view" value="{{ sort.view }}">{% endif %}
+                <label class="sr-only" for="sprint-board-sort">Order of the cards</label>
+                <select
+                    id="sprint-board-sort"
+                    name="sort"
+                    class="form-select form-select-sm"
+                    title="Order of the cards"
+                    onchange="this.form.submit()"
+                >
+                    {% for option in sort.options %}
+                        <option value="{{ option.value }}"{{ option == sort.current ? ' selected' }}>
+                            {{- option.label -}}
+                        </option>
+                    {% endfor %}
+                </select>
+                <noscript><button type="submit" class="btn btn-sm btn-default">Sort</button></noscript>
+            </form>
+        {% endif %}
+        <div class="sprint-board-tools">
+            {# Shown by assets/ts/fullscreen/fullscreen.ts if the browser can #}
+            <button
+                type="button"
+                class="sprint-board-tool"
+                data-fullscreen="#sprint-board-page"
+                title="Full screen"
+                hidden
+            >
+                {{- icon('actions-fullscreen') }}<span class="sr-only" data-fullscreen-label>Full screen</span>
+            </button>
+            {% for tool in tools ?? [] %}
+                <a
+                    class="sprint-board-tool sprint-board-manage {{ tool.class ?? '' }}"
+                    href="{{ tool.url }}"
+                    title="{{ tool.title }}"
+                    {%- if tool.confirm is defined %}
+                        data-confirm-title="{{ tool.confirm.title }}"
+                        data-confirm="{{ tool.confirm.text }}"
+                        data-confirm-button="{{ tool.confirm.button }}"
+                        data-confirm-post="{{ tool.confirm.post }}"
+                        data-confirm-token="{{ tool.confirm.token }}"
+                    {%- endif %}
+                >
+                    {{- icon(tool.icon) }}<span class="sr-only">{{ tool.title }}</span>
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+</header>
