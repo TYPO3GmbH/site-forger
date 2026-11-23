@@ -18,100 +18,55 @@
  # Expects: cards (list<BoardColumn>), boardInfo, progress, category, categoryName, sprintId
  #}
 {% block body %}
-    {% set titles = {
-        'BLOCKED': 'Blocked',
-        'OPEN': 'Open',
-        'WIP': 'In progress',
-        'REVIEW': 'In review',
-        'DONE': 'Done',
-    } %}
-    {# A long column shows its first cards, the rest on a click #}
-    {% set shown = 12 %}
-    {% import '_macros/more.html.twig' as more %}
-    {# The head and the columns on one white ground, below the gray band of the breadcrumb #}
-    <div class="sprint-board-page" id="sprint-board-page">
-        {% if boardInfo is not empty %}
-            {% set done = (cards|filter(column => column.column.name == 'DONE')|first).count ?? 0 %}
-            <header class="sprint-board-header">
-                <div>
-                    <h1 class="sprint-board-title">{{ boardInfo }}</h1>
-                    <p class="sprint-board-summary">
-                        {% if progress.total > 0 %}
-                            <strong>{{ (done * 100 / progress.total)|round }}%</strong> done
-                            · {{ done }} of {{ progress.total }} issues
-                        {% else %}
-                            No issues match this board.
-                        {% endif %}
-                    </p>
-                </div>
-                <div class="sprint-board-actions">
+    {% set parts = 'sprint/_board_parts.html.twig' %}
+    {# The head and the columns on one white ground, below the gray band of the breadcrumb. The parts that change
+       with the issues load again every minute, see assets/ts/sprint/live-board.ts #}
+    <div
+        class="sprint-board-page"
+        id="sprint-board-page"
+        data-board-refresh="{{ path('sprint_columns', {'category': category, 'sprintId': sprintId}) }}"
+    >
+        <header class="sprint-board-header">
+            <div>
+                <h1 class="sprint-board-title">{{ boardInfo }}</h1>
+                {{ block('summary', parts) }}
+            </div>
+            <div class="sprint-board-actions">
+                {# Shown by assets/ts/sprint/live-board.ts once it loads the board again every minute #}
+                <span class="sprint-board-live" data-board-updated hidden></span>
+                {# Buttons with an icon only: their name is in their title and, for screen readers, in a hidden
+                   text #}
+                <div class="sprint-board-tools">
                     {# Shown by assets/ts/fullscreen/fullscreen.ts if the browser can #}
-                    <button type="button" class="btn btn-sm btn-default" data-fullscreen="#sprint-board-page" hidden>
-                        {{- icon('actions-fullscreen') }} <span data-fullscreen-label>Full screen</span>
+                    <button
+                        type="button"
+                        class="sprint-board-tool"
+                        data-fullscreen="#sprint-board-page"
+                        title="Full screen"
+                        hidden
+                    >
+                        {{- icon('actions-fullscreen') }}<span class="sr-only" data-fullscreen-label>Full screen</span>
                     </button>
                     {% if sprintId > 0 and is_granted('ROLE_FORGER_MANAGEMENT') %}
                         <a
-                            class="btn btn-sm btn-default sprint-board-manage"
+                            class="sprint-board-tool sprint-board-manage"
                             href="{{ path('sprint_edit', {'sprintId': sprintId}) }}"
+                            title="Edit the board"
                         >
-                            {{- icon('actions-open') }} Edit
+                            {{- icon('actions-open') }}<span class="sr-only">Edit the board</span>
                         </a>
                         <a
-                            class="btn btn-sm btn-default sprint-board-manage sprint-board-delete"
+                            class="sprint-board-tool sprint-board-manage sprint-board-delete"
                             href="{{ path('sprint_delete_confirm', {'sprintId': sprintId}) }}"
+                            title="Delete the board"
                         >
-                            {{- icon('actions-delete') }} Delete
+                            {{- icon('actions-delete') }}<span class="sr-only">Delete the board</span>
                         </a>
                     {% endif %}
                 </div>
-            </header>
-            {% if progress.total > 0 %}
-                <div class="sprint-board-progress">
-                    <span class="overview-segments" aria-hidden="true">
-                        {% for column in cards|filter(column => column.count > 0) %}
-                            <span
-                                class="overview-segment sprint-board-state-{{ column.column.name|lower }}"
-                                style="flex-grow: {{ column.count }}"
-                            ></span>
-                        {% endfor %}
-                    </span>
-                </div>
-            {% endif %}
-        {% endif %}
-
-        {% if cards|length > 0 %}
-            <div class="sprint-board">
-                {% for boardColumn in cards %}
-                    {% set state = boardColumn.column.name|lower %}
-                    <section class="sprint-board-column" aria-labelledby="sprint-board-column-{{ state }}">
-                        <h2 class="sprint-board-column-title" id="sprint-board-column-{{ state }}">
-                            <span
-                                class="overview-legend-swatch sprint-board-state-{{ state }}"
-                                aria-hidden="true"
-                            ></span>
-                            {{ titles[boardColumn.column.name] }}
-                            <span class="sprint-board-column-count">{{ boardColumn.count }}</span>
-                        </h2>
-                        {% if boardColumn.cards is empty %}
-                            <p class="sprint-board-column-empty">Nothing here.</p>
-                        {% else %}
-                            <ul class="sprint-board-cards">
-                                {% for card in boardColumn.cards|slice(0, shown) %}
-                                    <li>{% include 'sprint/_board_card.html.twig' with {'card': card} only %}</li>
-                                {% endfor %}
-                            </ul>
-                            {% if boardColumn.cards|length > shown %}
-                                <ul class="sprint-board-cards show-more-rows">
-                                    {% for card in boardColumn.cards|slice(shown) %}
-                                        <li>{% include 'sprint/_board_card.html.twig' with {'card': card} only %}</li>
-                                    {% endfor %}
-                                </ul>
-                                {{ more.toggle('Show all ' ~ boardColumn.cards|length) }}
-                            {% endif %}
-                        {% endif %}
-                    </section>
-                {% endfor %}
             </div>
-        {% endif %}
+        </header>
+        {{ block('progress', parts) }}
+        {{ block('columns', parts) }}
     </div>
 {% endblock %}

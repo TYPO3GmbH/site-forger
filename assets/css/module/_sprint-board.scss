@@ -53,12 +53,69 @@
 
 .sprint-board-actions {
     display: flex;
-    gap: .5rem;
+    gap: .75rem;
+    align-items: center;
 }
 
-.sprint-board-delete:hover,
-.sprint-board-delete:focus-visible {
-    border-color: #d03b3b;
+// When the board loaded its issues last, see assets/ts/sprint/live-board.ts: a green dot that it stays current
+.sprint-board-live {
+    display: inline-flex;
+    gap: .375rem;
+    align-items: center;
+    color: #6b7280;
+    font-size: .8125rem;
+    font-variant-numeric: tabular-nums;
+
+    &::before {
+        width: .5rem;
+        height: .5rem;
+        border-radius: 50%;
+        background: #16a34a;
+        box-shadow: 0 0 0 3px rgba(22, 163, 74, .15);
+        content: '';
+    }
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+// The buttons with an icon only, side by side in one frame
+.sprint-board-tools {
+    display: inline-flex;
+    padding: .125rem;
+    border: 1px solid var(--overview-border, #e6e8eb);
+    border-radius: .625rem;
+    background: #fff;
+}
+
+.sprint-board-tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 0;
+    border-radius: .5rem;
+    background: none;
+    color: #4b5563;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        background: #f3f4f6;
+        color: #0b0b0b;
+    }
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.sprint-board-tool.sprint-board-delete:hover,
+.sprint-board-tool.sprint-board-delete:focus-visible {
+    background: #fef2f2;
     color: #b42318;
 }
 

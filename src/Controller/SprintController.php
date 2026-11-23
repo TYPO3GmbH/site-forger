@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\SprintBoard;
+use App\Entity\SprintBoardCategory;
 use App\Form\SprintBoardWizard;
 use App\Repository\SprintBoardCategoryRepository;
 use App\Repository\SprintBoardRepository;
@@ -268,10 +269,7 @@ class SprintController extends AbstractController
         if (null === $sprintCategory) {
             return new Response('Sprint board not found', Response::HTTP_NOT_FOUND);
         }
-        $board = null === $sprintId ? null : $this->sprintBoardRepository->findOneBy([
-            'id' => $sprintId,
-            'category' => $sprintCategory,
-        ]);
+        $board = $this->boardOf($sprintCategory, $sprintId);
         if (null === $board) {
             return $this->redirectToRoute('sprint_overview', ['_fragment' => 'sprints-' . $category]);
         }
@@ -285,5 +283,39 @@ class SprintController extends AbstractController
             'categoryName' => (string) $sprintCategory->getName(),
             'sprintId' => (int) $board->getId(),
         ]);
+    }
+
+    /**
+     * The parts of a sprint board that change with its issues, as HTML: the board loads them again every minute,
+     * see assets/ts/sprint/live-board.ts.
+     */
+    #[Route(
+        path: '/sprint/{category}/{sprintId}/columns',
+        name: 'sprint_columns',
+        requirements: ['sprintId' => '\d+'],
+        methods: ['GET'],
+    )]
+    public function columns(string $category, int $sprintId): Response
+    {
+        $sprintCategory = $this->sprintBoardCategoryRepository->findOneBy(['identifier' => $category]);
+        $board = null === $sprintCategory ? null : $this->boardOf($sprintCategory, $sprintId);
+        if (null === $board) {
+            return new Response('Sprint board not found', Response::HTTP_NOT_FOUND);
+        }
+        $cards = $this->sprintBoards->cards($board);
+
+        return $this->render('sprint/_board_parts.html.twig', [
+            'cards' => $cards,
+            'progress' => SprintBoards::progress($cards),
+        ]);
+    }
+
+    private function boardOf(SprintBoardCategory $category, ?int $sprintId): ?SprintBoard
+    {
+        if (null === $sprintId) {
+            return null;
+        }
+
+        return $this->sprintBoardRepository->findOneBy(['id' => $sprintId, 'category' => $category]);
     }
 }
