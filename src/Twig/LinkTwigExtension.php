@@ -13,6 +13,7 @@ namespace App\Twig;
 
 use App\Document\CommitMessage;
 use App\Document\Issue;
+use App\Enum\TrackerEnum;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Attribute\AsTwigFilter;
 use Twig\Attribute\AsTwigFunction;
@@ -30,6 +31,7 @@ final readonly class LinkTwigExtension
     public const string FORGE_ISSUE_EDIT = 'https://forge.typo3.org/issues/%d/edit';
     public const string FORGE_JOURNAL = 'https://forge.typo3.org/issues/%d#change-%d';
     public const string FORGE_USER = 'https://forge.typo3.org/users/%d';
+    public const string FORGE_NEW_ISSUE = 'https://forge.typo3.org/projects/typo3cms-core/issues/new';
     public const string TYPO3_PROFILE = 'https://my.typo3.org/u/%s';
     public const string GERRIT_CHANGE = 'https://review.typo3.org/c/Packages/TYPO3.CMS/+/%d/';
     public const string GERRIT_REPOSITORY = 'https://review.typo3.org/Packages/TYPO3.CMS';
@@ -143,6 +145,21 @@ final readonly class LinkTwigExtension
     public function forgeIssueEditUrl(int|string $id): string
     {
         return sprintf(self::FORGE_ISSUE_EDIT, (int) $id);
+    }
+
+    /**
+     * The form of Forge for a new issue of the TYPO3 Core. Redmine fills the form from the parameters "issue[…]",
+     * so the subject and the tracker come with the link. Forge asks to log in first.
+     */
+    #[AsTwigFunction(name: 'forge_new_issue_url')]
+    public function forgeNewIssueUrl(string $subject = '', ?TrackerEnum $tracker = null): string
+    {
+        $issue = array_filter(['subject' => trim($subject), 'tracker_id' => $tracker?->value]);
+        if ([] === $issue) {
+            return self::FORGE_NEW_ISSUE;
+        }
+
+        return self::FORGE_NEW_ISSUE . '?' . http_build_query(['issue' => $issue]);
     }
 
     /**

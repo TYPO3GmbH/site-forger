@@ -1,0 +1,160 @@
+{% extends 'base.html.twig' %}
+{% block title %}Report an issue{% endblock %}
+{% block breadcrumb %}
+    {% import '_macros/breadcrumb.html.twig' as breadcrumb %}
+    {{ breadcrumb.trail([{'label': 'Report an issue'}]) }}
+{% endblock %}
+{#
+ # Report an issue in two steps, see ReportIssueController: first the open issues that match the words, then the
+ # form of Forge for a new issue, its subject and tracker filled in. A security issue goes to the Security Team.
+ # Expects: query (the words, may be empty), kind ("bug" or "feature"), tracker (its TrackerEnum),
+ #          matches (a SearchResult, null without words)
+ #}
+{% block body %}
+    {% import '_macros/section.html.twig' as section %}
+    {% set kinds = {'bug': 'Something is broken', 'feature': 'An idea for something new'} %}
+    {# The steps of the page: the first without words, the second once the matches are shown #}
+    {% set current = matches is null ? 1 : 2 %}
+    {% set steps = ['Describe it', 'Check known issues', 'Report it in Forge'] %}
+    {% frame %}
+        <section class="overview report-issue" aria-labelledby="report-issue-title">
+            <div class="hero-layout">
+                <div class="hero">
+                    <h1 class="hero-title" id="report-issue-title">Report an issue</h1>
+                    <p class="hero-lead">
+                        Found a bug in the TYPO3 Core, or have an idea? Tell us in a few words.
+                        We first look for a known issue: a comment there helps more than a second report.
+                    </p>
+                    <ol class="report-issue-steps">
+                        {% for step in steps %}
+                            {% set state = loop.index < current ? 'is-done' : (loop.index == current ? 'is-current') %}
+                            <li
+                                class="report-issue-step {{ state }}"
+                                {{- state == 'is-current' ? ' aria-current="step"' }}
+                            >
+                                <span class="report-issue-step-number" aria-hidden="true">
+                                    {{- state == 'is-done' ? icon('actions-check') : loop.index -}}
+                                </span>
+                                {{ step }}
+                            </li>
+                        {% endfor %}
+                    </ol>
+                    <form class="report-issue-form" action="{{ path('report_issue') }}" method="get">
+                        <fieldset class="report-issue-kinds">
+                            <legend class="sr-only">What is it?</legend>
+                            {% for value, label in kinds %}
+                                <label class="report-issue-kind">
+                                    <input type="radio" name="kind" value="{{ value }}"{{ value == kind ? ' checked' }}>
+                                    {{ icon(value == 'bug' ? 'actions-debug' : 'actions-lightbulb') }}
+                                    <span>{{ label }}</span>
+                                </label>
+                            {% endfor %}
+                        </fieldset>
+                        <label class="form-label" for="report-issue-query">In a few words</label>
+                        <div class="report-issue-field">
+                            <input
+                                class="form-control"
+                                id="report-issue-query"
+                                type="text"
+                                name="query"
+                                value="{{ query }}"
+                                placeholder="For example: Image crop fails in the file list"
+                                required
+                            >
+                            <button type="submit" class="btn btn-primary">
+                                {{- icon('actions-search') }} Look for known issues
+                            </button>
+                        </div>
+                    </form>
+                    {# On a phone the card below would push the matches down, so a line stands in for it #}
+                    <p class="report-issue-security-short">
+                        {{ icon('actions-shield') }}
+                        <span>
+                            A security issue? Do not report it in public.
+                            <a href="mailto:security@typo3.org">Write to the Security Team</a>
+                        </span>
+                    </p>
+                </div>
+                {# A security issue must not reach the public Forge, so its way stands beside the form #}
+                <aside class="info-card report-issue-security" aria-labelledby="report-issue-security">
+                    <span class="info-card-tile" aria-hidden="true">{{ icon('actions-shield') }}</span>
+                    <h2 class="info-card-title" id="report-issue-security">Found a security issue?</h2>
+                    <p class="info-card-text">
+                        Do not report it in Forge: everybody can read it there.
+                        Write to the TYPO3 Security Team instead. They answer in confidence.
+                    </p>
+                    <a class="btn btn-default" href="mailto:security@typo3.org">
+                        {{- icon('actions-envelope') }} security@typo3.org
+                    </a>
+                    <a
+                        class="info-card-link"
+                        href="https://typo3.org/community/teams/security"
+                        target="_blank"
+                        rel="noopener"
+                    >
+                        About the Security Team {{ icon('actions-arrow-right') -}}
+                    </a>
+                </aside>
+            </div>
+        </section>
+    {% endframe %}
+
+    {% if matches is not null %}
+        {% frame with {'color': 'white'} %}
+            <section class="overview" aria-labelledby="report-issue-matches">
+                {% set all = {'query': query} %}
+                {{ section.heading(
+                    matches.total > 0 ? 'Is it one of these?' : 'No known issue matches',
+                    'report-issue-matches',
+                    matches.total > 0
+                        ? 'If so, comment there: on which TYPO3 version, and how to reproduce it.'
+                        : 'Nobody reported it yet, as far as the words go.',
+                    matches.total > matches|length
+                        ? {'url': path('search_search', all), 'label': 'Show all ' ~ matches.total}
+                        : null,
+                ) }}
+                {% if matches.total > 0 %}
+                    <ul class="row-list row-list-panel">
+                        {% for issue in matches %}
+                            <li>
+                                {% include '_partials/row/issue.html.twig' with {'issue': issue, 'size': 'm'} only %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                {# The way to Forge after the matches, as a band over the whole width: what to write on the left, the
+                   button on the right; on a phone one below the other #}
+                <div class="report-issue-new">
+                    <div class="report-issue-new-text">
+                        <h3 class="report-issue-new-title">
+                            {{ matches.total > 0 ? 'None of them? Report it in Forge' : 'Report it in Forge' }}
+                        </h3>
+                        <p>The form opens with your words as the subject. Add to them:</p>
+                        <ul class="report-issue-checklist">
+                            {% for item in [
+                                'The TYPO3 and PHP version',
+                                'The steps to reproduce it',
+                                'What you expected, and what happened',
+                                'A screenshot or the error message',
+                            ] %}
+                                <li>{{ icon('actions-check') }} {{ item }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="report-issue-new-action">
+                        <a
+                            class="btn btn-primary"
+                            href="{{ forge_new_issue_url(query, tracker) }}"
+                            target="_blank"
+                            rel="noopener"
+                        >
+                            {{- icon('actions-window-open') }} Report it in Forge
+                        </a>
+                        <p class="report-issue-hint">With your TYPO3 account</p>
+                    </div>
+                </div>
+            </section>
+        {% endframe %}
+    {% endif %}
+{% endblock %}

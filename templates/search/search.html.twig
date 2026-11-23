@@ -64,13 +64,22 @@
                             'routeName': routeName,
                             'arguments': listArguments
                         } only %}
+                        {% if query is not empty %}
+                            <p class="search-report">
+                                {{ icon('actions-debug') }} Not what you look for?
+                                <a href="{{ path('report_issue', {'query': query}) }}">Report an issue</a>
+                            </p>
+                        {% endif %}
                     </div>
                 </div>
             {% else %}
                 {% include '_partials/alert.html.twig' with {
                     'message': tabs.changes > 0 ? 'The tab "Reviews" has ' ~ tabs.changes ~ ' changes for it.' : 'Try other words, or tick "Include closed" for the resolved, closed and rejected ones.',
                     'title': query is not empty ? 'No issue was found for "' ~ query ~ '".' : 'No issue was found.',
-                    'style': tabs.changes > 0 ? 'info' : 'danger'
+                    'style': tabs.changes > 0 ? 'info' : 'danger',
+                    'action': query is not empty
+                        ? {'url': path('report_issue', {'query': query}), 'label': 'Or report it as a new issue.'}
+                        : null,
                 } %}
             {% endif %}
         </div>

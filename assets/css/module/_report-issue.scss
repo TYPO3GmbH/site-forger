@@ -1,0 +1,231 @@
+// The page "Report an issue", see templates/report_issue/index.html.twig. Its hero and cards are those of
+// "Get involved", see _get-involved.scss and _info-card.scss.
+
+.report-issue-form {
+    max-width: 48rem;
+    margin-top: 1.5rem;
+}
+
+// The kinds as two large choices side by side, one under the other on a phone
+.report-issue-kinds {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem;
+    margin: 0 0 1.25rem;
+    padding: 0;
+    border: 0;
+
+    @media (max-width: 575.98px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.report-issue-kind {
+    display: flex;
+    gap: .625rem;
+    align-items: center;
+    padding: .875rem 1rem;
+    border: 1px solid var(--overview-border, #e6e8eb);
+    border-radius: .75rem;
+    background: #fff;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:has(input:checked) {
+        border-color: var(--bs-primary, #ff8700);
+        box-shadow: 0 0 0 1px var(--bs-primary, #ff8700);
+    }
+
+    input {
+        flex: none;
+    }
+}
+
+.report-issue-field {
+    display: flex;
+    gap: .5rem;
+
+    .form-control {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .btn {
+        flex: none;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 575.98px) {
+        flex-direction: column;
+    }
+}
+
+// The security card in the right column of the hero, below the form on smaller screens
+.report-issue-security {
+    height: auto;
+    align-self: start;
+
+    @media (max-width: 575.98px) {
+        display: none;
+    }
+
+    .btn {
+        align-self: flex-start;
+        margin-top: .25rem;
+    }
+}
+
+.report-issue-security-short {
+    display: none;
+    gap: .5rem;
+    align-items: flex-start;
+    margin: 1rem 0 0;
+    color: #4b5563;
+    font-size: .875rem;
+
+    @media (max-width: 575.98px) {
+        display: flex;
+    }
+}
+
+// The three steps of the page in a row: a number in a circle and the label, a line between them
+.report-issue-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1.25rem;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    list-style: none;
+    color: #6b7280;
+    font-size: .9375rem;
+    font-weight: 600;
+}
+
+.report-issue-step {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+
+    & + &::before {
+        content: "";
+        width: 1.5rem;
+        height: 1px;
+        margin-right: .75rem;
+        background: #d1d5db;
+    }
+
+    &.is-current,
+    &.is-done {
+        color: #0b0b0b;
+    }
+
+    // On a phone the steps stand below each other, without the lines
+    @media (max-width: 575.98px) {
+        flex-basis: 100%;
+
+        & + &::before {
+            content: none;
+        }
+    }
+}
+
+.report-issue-step-number {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 50%;
+    background: #fff;
+    font-size: .875rem;
+
+    .is-current & {
+        border-color: var(--bs-primary, #ff8700);
+        background: var(--bs-primary, #ff8700);
+        color: #fff;
+    }
+
+    .is-done & {
+        border-color: #fed7aa;
+        background: #fff1e6;
+        color: #c2410c;
+    }
+}
+
+// The way to Forge: a light orange band, the text on the left and the button on the right
+.report-issue-new {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1.5rem 2.5rem;
+    align-items: center;
+    margin-top: 1.5rem;
+    padding: 1.5rem 1.75rem;
+    border: 1px solid #fed7aa;
+    border-radius: var(--overview-radius, 1rem);
+    background: #fff7ed;
+
+    p {
+        margin: 0 0 .75rem;
+        color: #4b5563;
+    }
+
+    @media (max-width: 767.98px) {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 1.25rem;
+    }
+}
+
+.report-issue-new-title {
+    margin: 0 0 .25rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+// What a good report has, in two columns with a check each
+.report-issue-checklist {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .375rem 1.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: .9375rem;
+
+    li {
+        display: flex;
+        gap: .5rem;
+        align-items: center;
+    }
+
+    .icon {
+        flex: none;
+        color: #c2410c;
+    }
+
+    @media (max-width: 575.98px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+// The button and below it what it needs, centered under each other
+.report-issue-new-action {
+    display: flex;
+    flex-direction: column;
+    gap: .375rem;
+    align-items: center;
+
+    .report-issue-new & p {
+        margin: 0;
+    }
+
+    @media (max-width: 767.98px) {
+        align-items: stretch;
+        text-align: center;
+    }
+}
+
+.report-issue-hint {
+    font-size: .8125rem;
+}

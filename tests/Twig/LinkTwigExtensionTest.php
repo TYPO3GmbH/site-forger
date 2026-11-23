@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Twig;
 
+use App\Enum\TrackerEnum;
+use App\Twig\LinkTwigExtension;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Finder\Finder;
 use Twig\Environment;
@@ -50,6 +52,24 @@ final class LinkTwigExtensionTest extends KernelTestCase
         self::assertSame(
             $change . '3/typo3/sysext/core/Tests/Fixture%20Files/a%23b.php',
             $render("{{ gerrit_patch_set_url(81234, 3, 'typo3/sysext/core/Tests/Fixture Files/a#b.php') }}"),
+        );
+    }
+
+    public function testTheFormForANewIssueTakesTheSubjectAndTheTracker(): void
+    {
+        self::bootKernel();
+        $links = self::getContainer()->get(LinkTwigExtension::class);
+        $form = 'https://forge.typo3.org/projects/typo3cms-core/issues/new';
+
+        self::assertSame($form, $links->forgeNewIssueUrl());
+        self::assertSame($form, $links->forgeNewIssueUrl('  '));
+        self::assertSame(
+            $form . '?issue%5Bsubject%5D=Image+crop+fails&issue%5Btracker_id%5D=1',
+            $links->forgeNewIssueUrl(' Image crop fails ', TrackerEnum::BUG),
+        );
+        self::assertSame(
+            $form . '?issue%5Btracker_id%5D=2',
+            $links->forgeNewIssueUrl('', TrackerEnum::FEATURE),
         );
     }
 
