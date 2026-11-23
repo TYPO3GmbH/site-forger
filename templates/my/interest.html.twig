@@ -80,7 +80,10 @@
 
                 {% if interest %}
                     <form class="mywork-interest-delete" method="post"
-                          action="{{ path('my_interests_delete', {'id': interest.id}) }}">
+                          action="{{ path('my_interests_delete', {'id': interest.id}) }}"
+                          data-confirm-title="Remove the interest {{ interest.name }}?"
+                          data-confirm="Its lists and its board go with it."
+                          data-confirm-button="Remove the interest">
                         <input type="hidden" name="_token" value="{{ csrf_token(csrfTokenId) }}">
                         <button type="submit" class="btn btn-sm btn-default">
                             {{ icon('actions-delete') }} Remove this interest

@@ -1,0 +1,18 @@
+{#
+ # The dialog that asks before something is deleted, on every page, see base.html.twig. assets/ts/confirm/
+ # confirm-dialog.ts fills it from the element that asks: a form with "data-confirm", or a link with "data-confirm"
+ # and "data-confirm-post". Never the dialog of the browser: it does not look like Forger.
+ #}
+<dialog class="confirm-dialog" id="confirm-dialog" aria-labelledby="confirm-dialog-title">
+    <form method="dialog" class="confirm-dialog-form">
+        <span class="confirm-dialog-tile" aria-hidden="true">{{ icon('actions-delete') }}</span>
+        <div>
+            <h2 class="confirm-dialog-title" id="confirm-dialog-title" data-confirm-title></h2>
+            <p class="confirm-dialog-text" data-confirm-text></p>
+        </div>
+        <div class="confirm-dialog-buttons">
+            <button type="submit" value="cancel" class="btn btn-default" autofocus>Cancel</button>
+            <button type="submit" value="confirm" class="btn btn-danger" data-confirm-button>Delete</button>
+        </div>
+    </form>
+</dialog>

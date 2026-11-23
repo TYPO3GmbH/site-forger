@@ -22,6 +22,7 @@ import './ts/filter/days-filter.ts';
 import './ts/fullscreen/fullscreen.ts';
 import './ts/sprint/stuck-heads.ts';
 import './ts/sprint/live-board.ts';
+import './ts/confirm/confirm-dialog.ts';
 import { loadEditor } from './js/editor.js';
 
 function initializeEditor(ace, textarea) {

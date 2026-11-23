@@ -5,6 +5,7 @@
 {# Beside the title, on its right #}
 {% block page_actions %}{{ buttons.link(path('utilities_backport_create'), 'Create new', 'primary', 'actions-plus') }}{% endblock %}
 {% block body %}
+    {% set deleteToken = csrf_token(constant('App\\Controller\\UtilityController::DELETE_TOKEN_ID')) %}
 
     <div class="content-section bg-transparent">
         <div class="container">
@@ -28,12 +29,22 @@
                                                 <small>{{ item.comment }}</small>
                                             </th>
                                             <td>
-                                                {{ buttons.link(
-                                                    path('utilities_backport_delete', {'changeId': item.changeId}),
-                                                    'Delete',
-                                                    'danger',
-                                                    'actions-delete'
-                                                ) }}
+                                                {% set delete = path(
+                                                    'utilities_backport_delete',
+                                                    {'changeId': item.changeId},
+                                                ) %}
+                                                <form
+                                                    method="post"
+                                                    action="{{ delete }}"
+                                                    data-confirm-title="Remove the exclusion of {{ item.changeId }}?"
+                                                    data-confirm="The backports list the change again."
+                                                    data-confirm-button="Remove"
+                                                >
+                                                    <input type="hidden" name="_token" value="{{ deleteToken }}">
+                                                    <button type="submit" class="btn btn-danger">
+                                                        {{- icon('actions-delete') }} Delete
+                                                    </button>
+                                                </form>
                                             </td>
                                         </tr>
                                     {% endfor %}
