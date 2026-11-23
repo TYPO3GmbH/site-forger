@@ -15,7 +15,6 @@ use App\Entity\SprintBoard;
 use App\Form\SprintBoardWizard;
 use App\Repository\SprintBoardCategoryRepository;
 use App\Repository\SprintBoardRepository;
-use App\Sprint\BoardCount;
 use App\Sprint\BoardFilter;
 use App\Sprint\ReviewBoards;
 use App\Sprint\SprintBoards;
@@ -258,6 +257,10 @@ class SprintController extends AbstractController
         return $this->redirectToRoute('dashboard_index');
     }
 
+    /**
+     * A sprint board. Without a board, or with one of another category, the overview shows the boards of the
+     * category instead.
+     */
     #[Route(path: '/sprint/{category}/{sprintId}', name: 'sprint', defaults: ['category' => 'index'])]
     public function index(string $category, ?int $sprintId = null): Response
     {
@@ -265,34 +268,22 @@ class SprintController extends AbstractController
         if (null === $sprintCategory) {
             return new Response('Sprint board not found', Response::HTTP_NOT_FOUND);
         }
-        $boards = $this->sprintBoardRepository->findBy(['category' => $sprintCategory], ['sorting' => 'ASC']);
-        $activeId = $sprintId ?? 0;
-        $active = array_find($boards, static fn (SprintBoard $board): bool => $board->getId() === $activeId);
-        $cards = null === $active ? [] : $this->sprintBoards->cards($active);
+        $board = null === $sprintId ? null : $this->sprintBoardRepository->findOneBy([
+            'id' => $sprintId,
+            'category' => $sprintCategory,
+        ]);
+        if (null === $board) {
+            return $this->redirectToRoute('sprint_overview', ['_fragment' => 'sprints-' . $category]);
+        }
+        $cards = $this->sprintBoards->cards($board);
 
         return $this->render('sprint/index.html.twig', [
-            'menu' => $this->menu($boards, $activeId),
             'cards' => $cards,
-            'boardInfo' => $active?->getName() ?? [],
-            'progress' => null === $active ? [] : SprintBoards::progress($cards),
+            'boardInfo' => (string) $board->getName(),
+            'progress' => SprintBoards::progress($cards),
             'category' => $category,
             'categoryName' => (string) $sprintCategory->getName(),
-            'sprintId' => $activeId,
+            'sprintId' => (int) $board->getId(),
         ]);
-    }
-
-    /**
-     * @param list<SprintBoard> $boards
-     *
-     * @return list<array{id: int|null, title: string|null, active: bool, count: BoardCount}>
-     */
-    private function menu(array $boards, int $activeId): array
-    {
-        return array_map(fn (SprintBoard $board): array => [
-            'id' => $board->getId(),
-            'title' => $board->getName(),
-            'active' => $activeId === $board->getId(),
-            'count' => $this->sprintBoards->counts((string) $board->getQuery()),
-        ], $boards);
     }
 }

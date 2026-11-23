@@ -5,7 +5,7 @@
     <div class="content-section content-section-small overview">
         <div class="container">
             {% for item in categories %}
-                <section class="sprint-overview-category">
+                <section class="sprint-overview-category" id="sprints-{{ item.category.identifier }}">
                     <div class="sprint-overview-category-header">
                         <h2 class="sprint-overview-category-headline">
                             <a href="{{ path('sprint', {'category': item.category.identifier}) }}">{{ icon(item.category.icon) }} {{ item.category.name }}</a>

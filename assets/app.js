@@ -19,6 +19,8 @@ import './js/copy.js';
 import './ts/activity/index.ts';
 import './ts/filter/path-filter.ts';
 import './ts/filter/days-filter.ts';
+import './ts/fullscreen/fullscreen.ts';
+import './ts/sprint/stuck-heads.ts';
 import { loadEditor } from './js/editor.js';
 
 function initializeEditor(ace, textarea) {

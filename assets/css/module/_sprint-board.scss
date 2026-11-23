@@ -1,0 +1,265 @@
+// A sprint board, see templates/sprint/index.html.twig: the head with the progress, then the columns side by
+// side. The bar and the swatches are those of the dashboard, see _dashboard.scss.
+
+// The colors of the states, the same as on the overview, see _sprint-overview.scss
+.sprint-board-state-blocked { background: #d03b3b; }
+.sprint-board-state-open { background: #2a78d6; }
+.sprint-board-state-wip { background: #8b5cf6; }
+.sprint-board-state-review { background: #fab219; }
+.sprint-board-state-done { background: #15803d; }
+
+// The whole board on white: the head, the bar and the columns, which are a light gray
+.sprint-board-page {
+    padding: 1.5rem 20px 2rem;
+    background: #fff;
+}
+
+.sprint-board-page:fullscreen {
+    overflow-y: auto;
+
+    // On a shared screen the board is to look at: no buttons to change it
+    .sprint-board-manage {
+        display: none;
+    }
+
+    // The heads stick to the edge of the screen, not below the padding of the page
+    .sprint-board-column-title {
+        top: -1.5rem;
+    }
+}
+
+.sprint-board-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-end;
+    justify-content: space-between;
+}
+
+.sprint-board-title {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 500;
+}
+
+.sprint-board-summary {
+    margin: .25rem 0 0;
+    color: #4b5563;
+
+    strong {
+        color: #0b0b0b;
+    }
+}
+
+.sprint-board-actions {
+    display: flex;
+    gap: .5rem;
+}
+
+.sprint-board-delete:hover,
+.sprint-board-delete:focus-visible {
+    border-color: #d03b3b;
+    color: #b42318;
+}
+
+.sprint-board-progress {
+    margin-top: 1.25rem;
+
+    .overview-segments {
+        height: .625rem;
+    }
+}
+
+// The five columns side by side, as wide as the page. Below a laptop each keeps the width of a card and the board
+// scrolls sideways, so the columns never stack.
+.sprint-board {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: .75rem;
+    align-items: start;
+    margin: 1.5rem -20px 0;
+    padding: 0 20px;
+
+    @media (max-width: 1199.98px) {
+        grid-auto-columns: 15rem;
+        overflow-x: auto;
+        scroll-padding: 0 20px;
+        scroll-snap-type: x mandatory;
+    }
+
+    @media (max-width: 575.98px) {
+        grid-auto-columns: 85%;
+    }
+}
+
+.sprint-board-column {
+    padding: .75rem;
+    border-radius: var(--overview-radius, 1rem);
+    background: #f4f5f7;
+    scroll-snap-align: start;
+
+    .show-more > summary {
+        padding: .5rem .25rem 0;
+    }
+}
+
+// The head of a column stays at the top while its cards scroll by, on the page and in full screen
+.sprint-board-column-title {
+    position: sticky;
+    z-index: 1;
+    top: 0;
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    margin: -.75rem -.75rem .75rem;
+    padding: .75rem 1rem;
+    border-radius: var(--overview-radius, 1rem) var(--overview-radius, 1rem) 0 0;
+    background: #f4f5f7;
+    transition: box-shadow .15s, border-radius .15s;
+
+    // Set by assets/ts/sprint/stuck-heads.ts
+    &.is-stuck {
+        border-radius: 0;
+        box-shadow: 0 6px 8px -6px rgba(16, 24, 40, .25);
+    }
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.sprint-board-column-count {
+    margin-left: auto;
+    padding: .0625rem .5rem;
+    border-radius: 999px;
+    background: #e6e8eb;
+    color: #374151;
+    font-size: .8125rem;
+}
+
+.sprint-board-column-empty {
+    margin: 0;
+    padding: 1.5rem .5rem;
+    border: 1px dashed #d1d5db;
+    border-radius: .75rem;
+    color: #6b7280;
+    font-size: .875rem;
+    text-align: center;
+}
+
+.sprint-board-cards {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    &.show-more-rows {
+        margin-top: .5rem;
+        border-top: 0;
+    }
+}
+
+// A card: the subject in at most three lines
+.sprint-board-card {
+    display: flex;
+    flex-direction: column;
+    gap: .375rem;
+    padding: .75rem .875rem;
+    border: 1px solid var(--overview-border, #e6e8eb);
+    border-radius: .625rem;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+    transition: box-shadow .15s;
+
+    &:hover {
+        box-shadow: 0 4px 12px rgba(16, 24, 40, .08);
+    }
+
+    p {
+        margin: 0;
+    }
+}
+
+.sprint-board-card-head {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    min-width: 0;
+    color: #6b7280;
+    font-size: .8125rem;
+}
+
+.sprint-board-card-id {
+    font-weight: 600;
+}
+
+.sprint-board-card-category {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sprint-board-card-title {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    font-size: .9375rem;
+    font-weight: 600;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+
+    a {
+        color: #0b0b0b;
+        text-decoration: none;
+
+        &:hover,
+        &:focus-visible {
+            text-decoration: underline;
+        }
+    }
+}
+
+.sprint-board-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem .375rem;
+    align-items: center;
+}
+
+// The assignee as a face on the right, the name in its title
+.sprint-board-card-assignee {
+    margin-left: auto;
+
+    .user-name {
+        display: none;
+    }
+}
+
+.sprint-board-card-change {
+    display: flex;
+    gap: .375rem;
+    align-items: center;
+    margin: .125rem -.875rem -.75rem;
+    padding: .5rem .875rem;
+    border-top: 1px solid #f0f1f3;
+    border-radius: 0 0 .625rem .625rem;
+    color: #374151;
+    font-size: .8125rem;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        background: #f7f8fa;
+        color: #0b0b0b;
+    }
+
+    .status-votes {
+        margin-left: auto;
+    }
+}
+
+.sprint-board-card-change-id {
+    font-weight: 600;
+}
