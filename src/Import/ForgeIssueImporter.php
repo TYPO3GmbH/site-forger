@@ -195,6 +195,18 @@ final class ForgeIssueImporter
     }
 
     /**
+     * The tags of the field "Tags" of Forge. Commas and spaces separate them: "accessibility a11y" are two tags.
+     *
+     * @return list<string>
+     */
+    public static function tags(string $value): array
+    {
+        $tags = preg_split('/[\s,]+/u', $value, -1, \PREG_SPLIT_NO_EMPTY);
+
+        return array_values(array_unique(false === $tags ? [] : $tags));
+    }
+
+    /**
      * The document of the issue index for an issue as Forge sends it: the custom fields as fields of their own,
      * the dates in the format of the index. Raise ImportSchema::ISSUE when it takes more or other data.
      *
@@ -208,7 +220,7 @@ final class ForgeIssueImporter
             switch ($customField['id'] ?? null) {
                 case 3:
                     if (!empty($customField['value'])) {
-                        $issue['tags'] = array_map(trim(...), explode(',', (string) $customField['value']));
+                        $issue['tags'] = self::tags((string) $customField['value']);
                     }
                     break;
                 case 4:

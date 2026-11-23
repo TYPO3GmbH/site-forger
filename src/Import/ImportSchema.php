@@ -38,8 +38,10 @@ final class ImportSchema
      * 3: the other relations of Forge, in "issue_relations", each with its type seen from the issue.
      * 4: the journals of every issue, not only of those under review: the comments of Forge.
      * 5: the attachments, in "attachments", without those added with a private note.
+     * 6: the tags split at spaces too, see ForgeIssueImporter::tags(). IssueTags lifts an issue of version 5
+     *    without Forge.
      */
-    public const int ISSUE = 5;
+    public const int ISSUE = 6;
 
     /**
      * 1: as before the versions
