@@ -22,7 +22,7 @@ use App\Repository\UserRepository;
 /**
  * Fills the index "user" from Forge, see App\Repository\UserRepository, in the job "Update users" (App\Command\ImportUsersCommand):
  * the source of the users for now.
- * The importer writes the authors and assignees of the issues it writes, empty but for number and name
+ * The importer writes the people of the issues it writes, empty but for number and name
  * (UserRepository::ensure()); this fills them:
  *
  * 1. takes the people of the issues already in the index over that the index "user" lacks, without a request:
@@ -61,9 +61,10 @@ final readonly class ForgeUserSync
     public const int REFUSED_TO_STOP = 5;
 
     /**
-     * The people of the issues, by the field of their number.
+     * The people of the issues, by the field of their number. A field with a dot is in a list: "journals.user" is
+     * the "user" of each journal. The files have no field to aggregate: their authors write journals as well.
      */
-    private const array PEOPLE_FIELDS = ['author', 'assigned_to'];
+    private const array PEOPLE_FIELDS = ['author', 'assigned_to', 'journals.user'];
     private const int AGGREGATION_PAGE = 1000;
 
     public function __construct(
@@ -301,7 +302,7 @@ final readonly class ForgeUserSync
     }
 
     /**
-     * The authors and assignees of the issues, with the email the import kept, if any.
+     * The people of the issues, with the email the import kept, if any.
      *
      * @return array<int, User> by Forge number
      */
@@ -330,8 +331,10 @@ final readonly class ForgeUserSync
                     ]],
                 ])->getAggregations();
                 foreach ($aggregations['people']['buckets'] ?? [] as $bucket) {
-                    $person = $bucket['latest']['hits']['hits'][0]['_source'][$field] ?? [];
-                    $person['email'] = $bucket['withEmail']['latest']['hits']['hits'][0]['_source'][$field]['email'] ?? null;
+                    $id = $bucket['key']['id'] ?? null;
+                    $person = self::personIn($bucket['latest']['hits']['hits'][0]['_source'] ?? [], $field, $id);
+                    $withEmail = $bucket['withEmail']['latest']['hits']['hits'][0]['_source'] ?? [];
+                    $person['email'] = self::personIn($withEmail, $field, $id)['email'] ?? null;
                     $user = User::fromIssue($person);
                     if (null === $user?->forgeId) {
                         continue;
@@ -344,6 +347,29 @@ final readonly class ForgeUserSync
         }
 
         return $people;
+    }
+
+    /**
+     * The person with the number in the source of an issue: in the field, or in the list of a field with a dot.
+     *
+     * @param array<string, mixed> $source
+     *
+     * @return array<string, mixed>
+     */
+    public static function personIn(array $source, string $field, mixed $id): array
+    {
+        if (!str_contains($field, '.')) {
+            return is_array($source[$field] ?? null) ? $source[$field] : [];
+        }
+        [$list, $key] = explode('.', $field, 2);
+        foreach (is_array($source[$list] ?? null) ? $source[$list] : [] as $entry) {
+            $person = $entry[$key] ?? null;
+            if (is_array($person) && (string) ($person['id'] ?? '') === (string) $id) {
+                return $person;
+            }
+        }
+
+        return [];
     }
 
     /**

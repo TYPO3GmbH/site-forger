@@ -34,6 +34,22 @@ final class ForgeUserSyncTest extends TestCase
         self::assertSame([$people[2]], ForgeUserSync::missing($people, [1 => new User(1, 'Benni Mack', 'benni')]));
     }
 
+    public function testThePersonOfAFieldIsFoundAlsoInAList(): void
+    {
+        $source = [
+            'author' => ['id' => 1, 'name' => 'Benni Mack'],
+            'journals' => [
+                ['user' => ['id' => 36798, 'name' => 'Gerrit Code Review']],
+                ['user' => ['id' => 45854, 'name' => 'Jane Doe']],
+            ],
+        ];
+
+        self::assertSame(['id' => 1, 'name' => 'Benni Mack'], ForgeUserSync::personIn($source, 'author', 1));
+        self::assertSame(['id' => 45854, 'name' => 'Jane Doe'], ForgeUserSync::personIn($source, 'journals.user', 45854));
+        self::assertSame([], ForgeUserSync::personIn($source, 'journals.user', 7));
+        self::assertSame([], ForgeUserSync::personIn($source, 'assigned_to', 1));
+    }
+
     public function testAUsernameForgeToldJoinsTheDocumentOfGerrit(): void
     {
         $fromForge = new User(320, 'Benni Mack', 'benni', emails: ['mack@example.org']);

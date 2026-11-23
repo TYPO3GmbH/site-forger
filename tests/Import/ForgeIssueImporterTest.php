@@ -154,6 +154,23 @@ final class ForgeIssueImporterTest extends TestCase
         ]], $document['attachments']);
     }
 
+    public function testThePeopleAreTheAuthorsOfTheIssueItsJournalsAndItsFiles(): void
+    {
+        $people = ForgeIssueImporter::people([
+            'author' => ['id' => 1, 'name' => 'Benni Mack'],
+            'assigned_to' => ['id' => 2, 'name' => 'Benjamin Kott'],
+            'journals' => [['user' => ['id' => 45854, 'name' => 'Jane Doe']], ['notes' => 'Without a user']],
+            'attachments' => [['author' => ['id' => 36415, 'name' => 'John Doe']]],
+        ]);
+
+        $names = [];
+        foreach ($people as $user) {
+            $names[(int) $user->forgeId] = $user->forgeName;
+        }
+
+        self::assertSame([1 => 'Benni Mack', 2 => 'Benjamin Kott', 45854 => 'Jane Doe', 36415 => 'John Doe'], $names);
+    }
+
     public function testDocumentWithoutRelationsHasNoDuplicates(): void
     {
         $document = ForgeIssueImporter::document(['id' => 1, 'created_on' => '2026-11-01T10:00:00Z', 'updated_on' => '2026-11-01T10:00:00Z']);
