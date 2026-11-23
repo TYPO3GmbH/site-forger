@@ -1,26 +1,44 @@
 {#
- # A sprint board on the overview: its issues by state, as figures and as a segmented bar.
- # count is null if the query of the board cannot be read.
+ # A sprint board on the overview, as a card that leads to it: its name, how much is done, and its issues by state
+ # as a bar and as figures. The states come in the order and the colors of the columns of the board, see
+ # _board_parts.html.twig.
+ # Expects: board (SprintBoard), count (BoardCount, null if the query of the board cannot be read)
  #}
-{% set states = {'closed': 'Done', 'review': 'Review', 'blocked': 'Blocked', 'open': 'Open'} %}
-<a class="overview-stat sprint-overview-board" href="{{ path('sprint', {'category': board.category.identifier, 'sprintId': board.id}) }}">
-    <span class="overview-stat-label">{{ board.name }}</span>
+{% set states = {'blocked': 'Blocked', 'open': 'Open', 'review': 'Review', 'closed': 'Done'} %}
+{% set colors = {'blocked': 'blocked', 'open': 'open', 'review': 'review', 'closed': 'done'} %}
+<a
+    class="sprint-overview-card"
+    href="{{ path('sprint', {'category': board.category.identifier, 'sprintId': board.id}) }}"
+>
+    <span class="sprint-overview-card-head">
+        <span class="sprint-overview-card-name">{{ board.name }}</span>
+        {% if count is not null and count.total > 0 %}
+            <span class="sprint-overview-card-percent">{{ count.percentage }}%</span>
+        {% endif %}
+    </span>
     {% if count is null %}
-        <span class="overview-stat-note">The query of this board cannot be read.</span>
+        <span class="sprint-overview-card-note">The query of this board cannot be read.</span>
     {% elseif count.total == 0 %}
-        <span class="overview-stat-value">0</span>
-        <span class="overview-stat-note">No issues match this board.</span>
+        <span class="sprint-overview-card-note">No issues match this board.</span>
     {% else %}
-        <span class="overview-stat-value">{{ count.percentage ?? 0 }}%</span>
-        <span class="overview-stat-note">{{ count.closed }} of {{ count.total }} issues done</span>
+        <span class="sprint-overview-card-note">{{ count.closed }} of {{ count.total }} issues done</span>
         <span class="overview-segments" aria-hidden="true">
             {% for state in states|keys|filter(state => attribute(count, state) > 0) %}
-                <span class="overview-segment sprint-overview-segment-{{ state }}" style="flex-grow: {{ attribute(count, state) }}"></span>
+                <span
+                    class="overview-segment sprint-board-state-{{ colors[state] }}"
+                    style="flex-grow: {{ attribute(count, state) }}"
+                ></span>
             {% endfor %}
         </span>
-        <span class="overview-legend">
+        <span class="sprint-overview-card-legend">
             {% for state, label in states %}
-                <span class="overview-legend-item"><span class="overview-legend-swatch sprint-overview-segment-{{ state }}"></span>{{ label }} <strong>{{ attribute(count, state) }}</strong></span>
+                <span class="sprint-overview-card-state{{ attribute(count, state) == 0 ? ' is-empty' }}">
+                    <strong>
+                        <span class="overview-legend-swatch sprint-board-state-{{ colors[state] }}"></span>
+                        {{- attribute(count, state) -}}
+                    </strong>
+                    {{ label }}
+                </span>
             {% endfor %}
         </span>
     {% endif %}

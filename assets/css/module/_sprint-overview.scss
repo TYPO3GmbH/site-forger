@@ -1,51 +1,122 @@
-// Sprint overview, see templates/sprint/overview.html.twig
-// The tiles and the segmented bar come from the dashboard, see _dashboard.scss
+// The sprint overview, see templates/sprint/overview.html.twig. The heads of the categories are those of
+// _section-heading.scss, the bar and the swatches those of the dashboard, the colors those of the sprint board, see
+// _sprint-board.scss.
 
-.sprint-overview-category {
-    margin-bottom: 1.5rem;
+.sprint-overview-category + .sprint-overview-category {
+    margin-top: 2.5rem;
 }
 
-.sprint-overview-category-header {
+.sprint-overview-category-title {
     display: flex;
-    align-items: center;
     gap: .5rem;
-    margin-bottom: .75rem;
+    align-items: center;
 }
 
-// Creates a board in the category, kept quiet next to the headline
-.sprint-overview-add {
-    display: inline-flex;
-    padding: .2rem;
-    border-radius: 4px;
-    color: var(--overview-muted);
-    line-height: 1;
+// Three cards in a row, two on a tablet, one on a phone
+.sprint-overview-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+
+    @media (max-width: 991.98px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 575.98px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.sprint-overview-card {
+    display: flex;
+    flex-direction: column;
+    gap: .625rem;
+    padding: 1.125rem 1.25rem 1rem;
+    border: 1px solid var(--overview-border, #e6e8eb);
+    border-radius: var(--overview-radius, 1rem);
+    background: #fff;
+    box-shadow: var(--card-shadow);
+    color: inherit;
+    text-decoration: none;
+    transition: box-shadow .15s, transform .15s;
 
     &:hover,
     &:focus-visible {
-        background: var(--overview-border);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16, 24, 40, .08);
         color: inherit;
+    }
+
+    .overview-segments {
+        margin: .125rem 0;
     }
 }
 
-.sprint-overview-category-headline {
-    margin-bottom: 0;
+.sprint-overview-card-head {
+    display: flex;
+    gap: 1rem;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
+.sprint-overview-card-name {
+    min-width: 0;
+    color: #0b0b0b;
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.sprint-overview-card-percent {
+    flex: none;
+    color: #0b0b0b;
     font-size: 1.5rem;
-    font-weight: 500;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
 
-    a {
-        color: inherit;
+.sprint-overview-card-note {
+    margin-top: -.375rem;
+    color: #6b7280;
+    font-size: .875rem;
+}
+
+.sprint-overview-card-legend {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .5rem;
+    padding-top: .625rem;
+    border-top: 1px solid #f0f1f3;
+    color: #6b7280;
+    font-size: .75rem;
+}
+
+// A state as a figure with its swatch, its name below
+.sprint-overview-card-state {
+    display: flex;
+    flex-direction: column;
+    gap: .125rem;
+
+    strong {
+        display: inline-flex;
+        gap: .375rem;
+        align-items: center;
+        color: #0b0b0b;
+        font-size: .9375rem;
+        font-variant-numeric: tabular-nums;
+    }
+
+    &.is-empty {
+        opacity: .5;
     }
 }
 
-.sprint-overview-board {
-    grid-column: span 2;
-
-    @media (max-width: 575.98px) {
-        grid-column: auto;
-    }
+.sprint-overview-empty {
+    margin: 0;
+    padding: 1.25rem;
+    border: 1px dashed #d1d5db;
+    border-radius: var(--overview-radius, 1rem);
+    color: #6b7280;
+    text-align: center;
 }
-
-.sprint-overview-segment-closed { background: #15803d; }
-.sprint-overview-segment-review { background: #fab219; }
-.sprint-overview-segment-blocked { background: #d03b3b; }
-.sprint-overview-segment-open { background: #2a78d6; }
