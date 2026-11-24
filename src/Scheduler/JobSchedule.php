@@ -91,6 +91,8 @@ final readonly class JobSchedule implements ScheduleProviderInterface
                 GerritImport::STEP_DELTA_LIST,
                 GerritImport::STEP_DELTA_LOAD,
                 GerritImport::STEP_AFFECTED,
+                GerritImport::STEP_SWEEP_LIST,
+                GerritImport::STEP_SWEEP_LOAD,
                 GerritImport::STEP_OUTDATED,
             ],
         ],

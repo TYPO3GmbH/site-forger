@@ -66,6 +66,7 @@ final readonly class ForgeImport
         private ProjectIssues $projectIssues,
         private ForgeIssueImporter $issueImporter,
         private ForgeIssueList $forgeIssues,
+        private ImportState $state,
     ) {
     }
 
@@ -159,7 +160,8 @@ final readonly class ForgeImport
 
     /**
      * Finds what no list of changes shows: issues deleted on Forge or private now, and issues the index never had.
-     * One request when the counts match. Otherwise IssueReconciliation narrows down the ranges that differ.
+     * One request when the counts match. Otherwise IssueReconciliation narrows down the ranges that differ. The
+     * system page shows the result, see IssueComparison.
      */
     private function reconcile(ImportRun $run): void
     {
@@ -167,6 +169,7 @@ final readonly class ForgeImport
         $index = $this->projectIssues->count();
         if ($forge['count'] === $index) {
             $run->writeln(sprintf('%d issues on Forge and in the index', $index));
+            $this->saveComparison($forge['count'], $index);
 
             return;
         }
@@ -181,16 +184,38 @@ final readonly class ForgeImport
             self::RECONCILE_COUNTS,
             self::RECONCILE_RANGES,
         );
+        $added = 0;
         $removed = 0;
         foreach ($ranges as $position => [$from, $to]) {
             $this->recorder->progress(self::STEP_RECONCILE, $position + 1, count($ranges));
             $issues = $this->forgeIssues->range($from, $to);
+            $indexed = $this->projectIssues->idsBetween($from, $to);
+            $added += count(array_diff(self::ids($issues), $indexed));
             $this->importIssues($run, $issues, self::STEP_RECONCILE, null, true);
-            $missing = array_diff($this->projectIssues->idsBetween($from, $to), self::ids($issues));
-            $removed += $this->issueImporter->remove(array_values($missing));
+            $gone = array_diff($indexed, self::ids($issues));
+            $removed += $this->issueImporter->remove(array_values($gone));
             $run->refreshLock();
         }
-        $run->writeln(sprintf('Compared %d ranges of issues, removed %d issues gone from Forge', count($ranges), $removed));
+        $run->writeln(sprintf(
+            'Compared %d ranges of issues, loaded %d missing, removed %d gone from Forge',
+            count($ranges),
+            $added,
+            $removed,
+        ));
+        $this->saveComparison($forge['count'], $index, count($ranges), $added, $removed);
+    }
+
+    private function saveComparison(int $forge, int $index, int $ranges = 0, int $added = 0, int $removed = 0): void
+    {
+        $this->state->saveIssueComparison(IssueComparison::of(
+            $this->state->issueComparison(),
+            new \DateTimeImmutable(),
+            $forge,
+            $index,
+            $ranges,
+            $added,
+            $removed,
+        ));
     }
 
     /**

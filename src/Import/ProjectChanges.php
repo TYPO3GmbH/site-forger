@@ -19,8 +19,8 @@ use Elastica\Query\MatchAll;
 
 /**
  * The Gerrit changes in the index. Forger shows only what Gerrit shows to everyone: a change that Gerrit does
- * not show any more (private now, deleted, in another project) is removed, see GerritChangeImporter::refresh()
- * and the full import.
+ * not show any more (private now, deleted, in another project) is removed, see GerritChangeImporter::refresh(),
+ * the comparison of the delta (ChangeSweep) and the full import.
  *
  * Not final: the tests stub it, they have no Elasticsearch.
  */
@@ -45,6 +45,28 @@ readonly class ProjectChanges
                 yield (int) $result->getId();
             }
         }
+    }
+
+    /**
+     * The numbers of the changes in the index a query finds.
+     *
+     * @param array<string, mixed> $query
+     *
+     * @return list<int>
+     */
+    public function numbersOf(array $query): array
+    {
+        $search = $this->indices->reviews()->createSearch(
+            new Query(['query' => $query])->setSource(false)->setSize(1000),
+        );
+        $numbers = [];
+        foreach ($search->scroll('2m') as $resultSet) {
+            foreach ($resultSet as $result) {
+                $numbers[] = (int) $result->getId();
+            }
+        }
+
+        return $numbers;
     }
 
     /**

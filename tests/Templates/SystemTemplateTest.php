@@ -12,6 +12,8 @@ declare(strict_types=1);
 namespace App\Tests\Templates;
 
 use App\Enum\SystemCheckEnum;
+use App\Import\ChangeSweepRound;
+use App\Import\IssueComparison;
 use App\People\UserStatistics;
 use App\Setup\SetupSetting;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -32,16 +34,17 @@ final class SystemTemplateTest extends KernelTestCase
 
         self::assertStringContainsString('come from an import before version 3', $html);
         // Where the documents stand, by the version of the import
-        self::assertMatchesRegularExpression('/Version 3:\s+88, current/', $html);
-        self::assertMatchesRegularExpression('/Version 2:\s+12, the backfill lifts them/', $html);
-        self::assertStringContainsString('Look at: Setup, Outdated documents', $html);
+        $text = (string) preg_replace('/\s+/', ' ', strip_tags($html));
+        self::assertStringContainsString('Version 3: 88, current', $text);
+        self::assertStringContainsString('Version 2: 12, the backfill lifts them', $text);
+        self::assertStringContainsString('Look at: Setup, Imports', $html);
         self::assertStringContainsString('<code class="system-list-name">FORGE_ACCESS_TOKEN</code>', $html);
     }
 
     public function testAnIndexTellsTheVersionsOfItsEvents(): void
     {
         $html = $this->render([self::pending('change', SystemCheckEnum::ATTENTION, 12)]);
-        $html = (string) preg_replace('/\s+/', ' ', $html);
+        $html = (string) preg_replace('/\s+/', ' ', strip_tags($html));
 
         self::assertStringContainsString('Events of version 7: 60, current', $html);
         self::assertStringContainsString('Events of version 6: 40, the backfill writes their events again', $html);
@@ -74,14 +77,60 @@ final class SystemTemplateTest extends KernelTestCase
             'userStatistics' => new UserStatistics(200, 50, 40, 120, 30, 20, 30, [404 => 30], null),
         ]);
 
-        self::assertMatchesRegularExpression('/Overall.*2 of 5.*Look at: Setup, Outdated documents/s', $html);
+        self::assertMatchesRegularExpression('/Overall.*2 of 5.*Look at: Setup, Imports/s', $html);
         self::assertStringContainsString('href="#system-setup"', $html);
         self::assertStringContainsString('id="system-setup"', $html);
         // The documents of all indices, and the outdated ones
         self::assertStringContainsString('<span class="system-tile-value">78,786</span>', $html);
-        self::assertStringContainsString('<span class="system-tile-value">12</span>', $html);
+        self::assertStringContainsString('<span class="system-tile-value">12 outdated</span>', $html);
         self::assertStringContainsString('<span class="system-tile-value">25 %</span>', $html);
         self::assertStringContainsString('style="width: 25%"', $html);
+    }
+
+    public function testTheComparisonWithGerritTellsWhereItStands(): void
+    {
+        $round = new ChangeSweepRound(
+            new \DateTimeImmutable('2020-01-22 11:47:50'),
+            new \DateTimeImmutable('2026-11-24 19:00:00'),
+            499,
+            2,
+        );
+
+        $html = $this->render([], [
+            'sweep' => ['round' => $round, 'share' => 0.8, 'result' => SystemCheckEnum::ATTENTION],
+        ]);
+
+        self::assertStringContainsString('<span class="system-figure-value">80 %</span>', $html);
+        self::assertMatchesRegularExpression('#<dt>Missing</dt>\s*<dd class="runs-numeric">499</dd>#', $html);
+        self::assertStringContainsString('No round has finished yet', $html);
+        self::assertStringContainsString('Gerrit round at 80 %', $html);
+        self::assertStringContainsString('What does this mean?', $html);
+    }
+
+    public function testTheComparisonWithForgeTellsHowFullTheIndexIs(): void
+    {
+        $forge = IssueComparison::of(null, new \DateTimeImmutable('2026-11-24 19:28'), 60000, 45000, 2, 250, 1);
+
+        $html = $this->render([], ['forge' => $forge]);
+
+        self::assertMatchesRegularExpression(
+            '#<span class="system-figure-value">75 %</span>\s*'
+            . '<span class="system-figure-label">of the issues match Forge#',
+            $html,
+        );
+        self::assertMatchesRegularExpression('#<dt>Differ</dt>\s*<dd class="runs-numeric">15,000</dd>#', $html);
+        self::assertStringContainsString('style="width: 75%"', $html);
+        self::assertStringContainsString('<dt>Ranges compared</dt>', $html);
+        self::assertMatchesRegularExpression('#<dt>Missing, last run</dt>\s*<dd class="runs-numeric">250</dd>#', $html);
+    }
+
+    public function testOneIssueOffIsNotAHundredPercent(): void
+    {
+        $forge = IssueComparison::of(null, new \DateTimeImmutable('2026-11-24 19:28'), 61242, 61241);
+
+        $html = $this->render([], ['forge' => $forge]);
+
+        self::assertStringContainsString('<span class="system-figure-value">99 %</span>', $html);
     }
 
     public function testTheClusterNamesItsHealthNodesAndShardsInALine(): void
@@ -152,6 +201,8 @@ final class SystemTemplateTest extends KernelTestCase
             ],
             'pending' => $pending,
             ...$variables + [
+                'sweep' => null,
+                'forge' => null,
                 'setup' => [
                     new SetupSetting('FORGE_ACCESS_TOKEN', 'Users from Forge', SystemCheckEnum::PROBLEM, 'Not set.'),
                 ],
@@ -165,11 +216,11 @@ final class SystemTemplateTest extends KernelTestCase
                 'Setup' => SystemCheckEnum::PROBLEM,
                 'Elasticsearch' => SystemCheckEnum::OK,
                 'Indices' => SystemCheckEnum::OK,
-                'Outdated documents' => SystemCheckEnum::ATTENTION,
+                'Imports' => SystemCheckEnum::ATTENTION,
                 'Users' => SystemCheckEnum::OK,
             ],
             'overall' => SystemCheckEnum::ATTENTION,
-            'notOk' => ['Setup', 'Outdated documents'],
+            'notOk' => ['Setup', 'Imports'],
             'minimumVersion' => '8.0',
         ]);
     }

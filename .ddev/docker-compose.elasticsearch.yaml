@@ -2,9 +2,7 @@ services:
   elasticsearch:
     container_name: ddev-${DDEV_SITENAME}-elasticsearch
     hostname: ${DDEV_SITENAME}-elasticsearch
-    build:
-      context: './elasticsearch-build'
-      dockerfile: 'Dockerfile'
+    image: elasticsearch:7.17.28
     expose:
       - "9200"
       - "9300"
@@ -20,7 +18,6 @@ services:
       com.ddev.site-name: ${DDEV_SITENAME}
       com.ddev.approot: $DDEV_APPROOT
     volumes:
-      - esplugins:/usr/share/elasticsearch/plugins
       - esdata:/usr/share/elasticsearch/data
       - ".:/mnt/ddev_config"
     healthcheck:
@@ -28,6 +25,4 @@ services:
 
 volumes:
   esdata:
-    driver: local
-  esplugins:
     driver: local
