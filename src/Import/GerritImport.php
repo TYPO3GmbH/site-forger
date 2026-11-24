@@ -34,6 +34,8 @@ final readonly class GerritImport
     public const string STEP_LATEST = 'Load the latest changes, the index is empty';
     public const string STEP_OUTDATED = 'Load changes of an older import again';
     public const string STEP_AFFECTED = 'Load the open changes the updated ones affect';
+    public const string STEP_SWEEP_LIST = 'Compare a part of the Gerrit changes with the index';
+    public const string STEP_SWEEP_LOAD = 'Load the changes the index lacks';
 
     private const int DELTA_LIMIT = 3000;
 
@@ -73,6 +75,7 @@ final readonly class GerritImport
         private ProjectChanges $projectChanges,
         private GerritChangeImporter $changeImporter,
         private ChangeRepository $changes,
+        private ChangeSweepState $sweepState,
     ) {
     }
 
@@ -102,16 +105,33 @@ final readonly class GerritImport
     {
         $budget = new RunBudget(self::RUN_SECONDS);
         $since = $this->watermark->since(Indices::REVIEW);
+        $upToDate = true;
         if (null === $since) {
-            $this->recorder->note('The review index is empty: this run imported the latest changes only. "app:import:review --full" fills it.');
-            $this->changeImporter->writeAll($this->documents($run, GerritChangeImporter::PROJECT, self::LATEST_COUNT, $run->progressBar(), self::STEP_LATEST));
+            $this->recorder->note(
+                'The review index is empty: this run imported the latest changes only. The comparison with Gerrit'
+                . ' fills it a page each run, "app:import:review --full" at once.',
+            );
+            $this->changeImporter->writeAll($this->documents(
+                $run,
+                GerritChangeImporter::PROJECT,
+                self::LATEST_COUNT,
+                $run->progressBar(),
+                self::STEP_LATEST,
+            ));
         } else {
-            $this->importUpdated($run, $since);
+            $upToDate = $this->importUpdated($run, $since);
+        }
+        // While the delta catches up, the comparison would load the changes the next runs bring anyway
+        if ($upToDate) {
+            $this->sweep($run);
         }
         $this->importOutdated($run, $budget);
     }
 
-    private function importUpdated(ImportRun $run, \DateTimeImmutable $since): void
+    /**
+     * @return bool whether the index is up to date afterwards
+     */
+    private function importUpdated(ImportRun $run, \DateTimeImmutable $since): bool
     {
         $query = GerritChangeImporter::PROJECT . ' ' . ImportWatermark::gerritOperator($since);
         [$listed, , $changed, $more] = $this->list($query, self::DELTA_LIMIT, 0, self::STEP_DELTA_LIST, null);
@@ -127,6 +147,90 @@ final readonly class GerritImport
         }
         $this->changeImporter->writeAll($documents);
         $this->importAffected($run, array_values($documents));
+
+        return !$more;
+    }
+
+    /**
+     * Finds what no delta finds, a part each run, see ChangeSweep: loads the changes the index lacks or has in an
+     * older state, and removes those Gerrit does not show any more. The round moves on only when the run is done,
+     * so a run that fails compares its part again.
+     */
+    private function sweep(ImportRun $run): void
+    {
+        $round = $this->sweepState->round();
+        $until = $round->until;
+        $query = GerritChangeImporter::PROJECT . (null === $until ? '' : ' ' . ImportWatermark::gerritBefore($until));
+        [$listed, $numbers, $changed, $more, $oldest] = $this->list(
+            $query,
+            ChangeSweep::LISTED,
+            0,
+            self::STEP_SWEEP_LIST,
+            ChangeSweep::LISTED,
+            ChangeSweep::LOADED,
+        );
+
+        $missing = $this->missing($changed);
+        $bar = $run->progressBar(count($changed));
+        foreach (array_chunk($changed, GerritChangeImporter::DETAIL_BATCH) as $batch) {
+            $this->changeImporter->writeAll($this->documents(
+                $run,
+                GerritChangeImporter::changes($batch),
+                count($batch),
+                $bar,
+                self::STEP_SWEEP_LOAD,
+            ));
+        }
+        $unlisted = array_values(array_diff(
+            $this->projectChanges->numbersOf(ChangeSweep::indexed($oldest, $until, $more)),
+            array_keys($numbers),
+        ));
+        // Asks Gerrit for each first: a change updated since the list was taken is listed on no page
+        $removed = 0;
+        if ([] !== $unlisted) {
+            $removed = $this->changeImporter->update($unlisted, $this->afterChange($run, $bar, null))['removed'];
+        }
+        $next = $round->after(ChangeSweep::next($until, $oldest, $more), $missing, $removed, new \DateTimeImmutable());
+        $this->sweepState->save($next);
+        $run->finish($bar);
+
+        $this->noteSweep($run, sprintf(
+            'Compared %s changes of Gerrit %s with the index: %s missing, %s loaded, %s removed.',
+            number_format($listed),
+            null === $until ? 'from the newest' : 'updated before ' . $until->format('j M Y H:i'),
+            number_format($missing),
+            number_format(count($changed)),
+            number_format($removed),
+        ));
+        if (null === $next->until) {
+            $this->noteSweep($run, sprintf(
+                'The comparison with Gerrit finished a round: it found %s changes missing and removed %s.'
+                . ' The next run starts a new round at the newest change.',
+                number_format($next->lastAdded),
+                number_format($next->lastRemoved),
+            ));
+        }
+    }
+
+    /**
+     * How many of the changes the index lacks. Those it has in an older state are not missing: a delta or an
+     * older import wrote them.
+     *
+     * @param list<string> $changed the numbers of the changes not up to date
+     */
+    private function missing(array $changed): int
+    {
+        if ([] === $changed) {
+            return 0;
+        }
+
+        return count($changed) - count($this->projectChanges->numbersOf(['ids' => ['values' => $changed]]));
+    }
+
+    private function noteSweep(ImportRun $run, string $message): void
+    {
+        $run->writeln($message);
+        $this->recorder->note($message);
     }
 
     /**
@@ -176,26 +280,39 @@ final readonly class GerritImport
     }
 
     /**
-     * Lists the changes of a query without their details.
+     * Lists the changes of a query without their details. Returns the number of listed changes, their numbers,
+     * those not up to date, whether Gerrit has more, and the update time of the last listed change.
      *
      * @param int|null $limit    at most this many changes, all without a limit
      * @param int|null $expected the expected number of changes, for the progress
+     * @param int|null $enough   no further page once this many changes are not up to date
      *
-     * @return array{int, array<int, true>, list<string>, bool} the number of listed changes, their numbers, those not
-     *                                                          up to date, and whether Gerrit has more
+     * @return array{int, array<int, true>, list<string>, bool, \DateTimeImmutable|null}
      */
-    private function list(string $query, ?int $limit, int $startAt, string $step, ?int $expected): array
-    {
+    private function list(
+        string $query,
+        ?int $limit,
+        int $startAt,
+        string $step,
+        ?int $expected,
+        ?int $enough = null,
+    ): array {
         $listed = 0;
         $numbers = [];
         $changed = [];
         $more = true;
-        for ($start = max(0, $startAt); $more && (null === $limit || $start < $limit); $start += self::LIST_PAGE_SIZE) {
+        $last = null;
+        for (
+            $start = max(0, $startAt);
+            $more && (null === $limit || $start < $limit) && (null === $enough || count($changed) < $enough);
+            $start += self::LIST_PAGE_SIZE
+        ) {
             $changes = $this->changeImporter->find($query, self::LIST_PAGE_SIZE, $start, []);
             $updated = [];
             foreach ($changes as $change) {
                 $updated[(string) $change['_number']] = GerritChangeImporter::gerritDate($change['updated']);
                 $numbers[(int) $change['_number']] = true;
+                $last = ChangeSweep::gerritTime((string) $change['updated']);
             }
             $listed += count($updated);
             array_push($changed, ...ImportWatermark::changed($updated, $this->watermark->storedUpdates('review', array_keys($updated))));
@@ -204,7 +321,7 @@ final readonly class GerritImport
             $this->recorder->progress($step, $listed, null !== $expected && $listed < $expected ? $expected : null);
         }
 
-        return [$listed, $numbers, $changed, $more];
+        return [$listed, $numbers, $changed, $more, $last];
     }
 
     /**

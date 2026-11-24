@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Tests\Templates;
 
 use App\Enum\SystemCheckEnum;
+use App\Import\ChangeSweepRound;
 use App\People\UserStatistics;
 use App\Setup\SetupSetting;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -84,6 +85,24 @@ final class SystemTemplateTest extends KernelTestCase
         self::assertStringContainsString('style="width: 25%"', $html);
     }
 
+    public function testTheComparisonWithGerritTellsWhereItStands(): void
+    {
+        $round = new ChangeSweepRound(
+            new \DateTimeImmutable('2020-01-22 11:47:50'),
+            new \DateTimeImmutable('2026-11-24 19:00:00'),
+            499,
+            2,
+        );
+
+        $html = $this->render([], [
+            'sweep' => ['round' => $round, 'share' => 0.8, 'result' => SystemCheckEnum::ATTENTION],
+        ]);
+
+        self::assertMatchesRegularExpression('/compared about 80 % of the\s+changes/', $html);
+        self::assertMatchesRegularExpression('/So far 499 were missing,\s+2 removed/', $html);
+        self::assertStringContainsString('No round has finished yet', $html);
+    }
+
     public function testTheClusterNamesItsHealthNodesAndShardsInALine(): void
     {
         $html = $this->render([]);
@@ -152,6 +171,7 @@ final class SystemTemplateTest extends KernelTestCase
             ],
             'pending' => $pending,
             ...$variables + [
+                'sweep' => null,
                 'setup' => [
                     new SetupSetting('FORGE_ACCESS_TOKEN', 'Users from Forge', SystemCheckEnum::PROBLEM, 'Not set.'),
                 ],

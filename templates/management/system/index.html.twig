@@ -328,6 +328,53 @@
                                 {{ system.result(check.result) }}
                             </li>
                         {% endfor %}
+                        {% if sweep is not null %}
+                            {% set round = sweep.round %}
+                            <li class="system-list-item">
+                                <div class="system-list-text">
+                                    <span class="system-list-title">Changes compared with Gerrit</span>
+                                    <span class="system-list-meta">
+                                        {%- if round.until is null -%}
+                                            The next run of "Update Gerrit changes" starts a round at the newest change
+                                        {%- else -%}
+                                            This round started {{ round.started|date('j M Y H:i') }}
+                                            and compared about {{ (sweep.share * 100)|round(0, 'floor') }} % of the
+                                            changes, those updated since {{ round.until|date('j M Y H:i') }}.
+                                            So far {{ round.added|number_format(0, '.', ',') }} were missing,
+                                            {{ round.removed|number_format(0, '.', ',') }} removed
+                                        {%- endif -%}
+                                    </span>
+                                    {% if round.until is not null %}
+                                        <span class="system-versions" aria-hidden="true">
+                                            <span
+                                                class="system-version is-current"
+                                                style="width: {{ (sweep.share * 100)|round(2) }}%"
+                                            ></span>
+                                        </span>
+                                    {% endif %}
+                                    <span class="system-list-meta">
+                                        {%- if round.lastFinished is null -%}
+                                            No round has finished yet
+                                        {%- else -%}
+                                            The last round ran from {{ round.lastStarted|date('j M Y H:i') }}
+                                            to {{ round.lastFinished|date('j M Y H:i') }}:
+                                            {{ round.lastAdded|number_format(0, '.', ',') }} changes were missing,
+                                            {{ round.lastRemoved|number_format(0, '.', ',') }} removed
+                                        {%- endif -%}
+                                    </span>
+                                    {% if sweep.result != constant('App\\Enum\\SystemCheckEnum::OK') %}
+                                        <span class="system-list-detail">
+                                            Each run of "Update Gerrit changes" compares up to 10,000 changes with
+                                            Gerrit, from the newest to the oldest. It loads those the index lacks and
+                                            removes those Gerrit does not show. A round takes half an hour when the
+                                            index is complete. The check is fine once a round found nothing to add or
+                                            remove.
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                {{ system.result(sweep.result) }}
+                            </li>
+                        {% endif %}
                     </ul>
                 </section>
 

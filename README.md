@@ -108,8 +108,9 @@ list any more are asked for in batches of 100 (`App\Import\ForgeIssueList`), tho
 then (deleted, private, in another project) are removed.
 
 Forger shows only what Gerrit shows to everyone, the Gerrit imports ask without an account. A refresh of a change
-Gerrit does not show any more (private now, deleted) removes it, and so does a complete `app:import:review --full` for the changes
-Gerrit did not list (`App\Import\ProjectChanges`): it asks Gerrit for them again first.
+Gerrit does not show any more (private now, deleted) removes it. So do the comparison of the delta and a complete
+`app:import:review --full` for the changes Gerrit did not list (`App\Import\ProjectChanges`): they ask Gerrit for
+them again first.
 
 ### How the deltas work
 
@@ -139,6 +140,16 @@ The deltas only read what changed, and only load details for what they do not ha
   count each, until a part holds a page; it is listed, the issues missing or not up to date are imported, those
   Forge does not list are removed. At most 15 counts and 2 listed parts per run, the next run goes on. So issues deleted on Forge,
   private now, or never imported get in line without a full import.
+* **Gerrit, what no list of changes shows:** after its changes, a Gerrit delta that is up to date compares one page
+  of the changes with the index (`App\Import\ChangeSweep`). Gerrit can neither count the changes nor search them by
+  their numbers, so the runs go back by the time of the last update (`before:`), from the newest change to the
+  oldest, and then start again. A run lists up to 10,000 changes, 500 a request, and no further page once it
+  found 1,000 to load. The changes missing or not up to date are imported, those of the index in the time
+  of the page that Gerrit did not list are asked for and removed when Gerrit does not show them. Where the next run
+  goes on lies in `var/scheduler`, which the releases share (`App\Import\ChangeSweepState`). A round over the
+  about 60,000 changes takes six runs, half an hour, when the index is complete. The system page shows how far
+  the round is and what the last one found. So changes deleted on Gerrit, private now, or never imported get in
+  line without a full import.
 * **Authors and assignees:** the issues keep only their number and name, as Forge lists them. The rest is in
   the index `user`, see [The users](#the-users).
 * **Possible duplicates:** last, the Forge import checks the open issues for duplicates
@@ -149,7 +160,8 @@ The deltas only read what changed, and only load details for what they do not ha
   the first runs check all open issues, a share each.
 
 On an empty index the deltas import the latest 100 issues or changes and report a
-warning: run the full import once, by hand. The comparison with Forge would fill it too, but a page at a time.
+warning: run the full import once, by hand. The comparisons with Forge and Gerrit would fill it too, but a page
+at a time.
 
 ### The users
 
