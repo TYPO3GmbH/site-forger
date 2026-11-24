@@ -32,6 +32,69 @@
     </{{ tag }}>
 {% endmacro %}
 
+{# The key figure of a status, with what it counts #}
+{% macro figure(value, label) %}
+    <span class="system-figure">
+        <span class="system-figure-value">{{ value }}</span>
+        <span class="system-figure-label">{{ label }}</span>
+    </span>
+{% endmacro %}
+
+{# A share from 0 to 1 as a bar, as the meter of a tile #}
+{% macro meter(share) %}
+    <span class="system-tile-meter system-meter" aria-hidden="true">
+        <span style="width: {{ (share * 100)|round(1) }}%"></span>
+    </span>
+{% endmacro %}
+
+{#
+ # The documents of an index by the version that wrote them, see PendingImport: a bar with a segment per version,
+ # and the versions with their counts below. The legend of the colors is at the end of the section.
+ #}
+{% macro versions(rows, documents, noun, states) %}
+    {% if rows and documents > 0 %}
+        <span class="system-versions" aria-hidden="true">
+            {% for row in rows %}
+                <span
+                    class="system-version is-{{ row.state }}"
+                    style="width: {{ (row.documents / documents * 100)|round(2) }}%"
+                    title="{{ noun }} {{ row.version }}"
+                ></span>
+            {% endfor %}
+        </span>
+        <span class="system-version-rows">
+            {% for row in rows %}
+                <span class="system-version-row">
+                    <span class="system-version-key is-{{ row.state }}"></span>
+                    {% if row.version == 0 %}Not written yet{% else %}{{ noun }} {{ row.version }}{% endif %}:
+                    <span class="runs-numeric">{{ row.documents|number_format(0, '.', ',') }}</span>
+                    {{- '' }}<span class="sr-only">, {{ states[row.state] }}</span>
+                </span>
+            {% endfor %}
+        </span>
+    {% endif %}
+{% endmacro %}
+
+{# What a status that is not OK means and what helps, folded below it #}
+{% macro why(text) %}
+    <details class="system-why">
+        <summary>
+            {{- icon('actions-question-circle') }}
+            <span>What does this mean?</span>
+            {{- icon('actions-chevron-down') -}}
+        </summary>
+        <p class="system-why-text">{{ text }}</p>
+    </details>
+{% endmacro %}
+
+{# A card of the imports: the name and its result on top, then what it found #}
+{% macro card_head(title, result) %}
+    <header class="system-card-head">
+        <h3 class="system-card-title">{{ title }}</h3>
+        {{ _self.result(result) }}
+    </header>
+{% endmacro %}
+
 {% block body %}
     {% import _self as system %}
     {% import '_macros/format.html.twig' as format %}
@@ -112,15 +175,27 @@
                         'documents in ' ~ indices|length ~ ' indices · ' ~ format.bytes(bytes),
                         'system-indices',
                     ) }}
+                    {% set gerrit = null %}
+                    {% if sweep is not null %}
+                        {% set round = sweep.round %}
+                        {% set gerrit = round.until is not null
+                            ? 'Gerrit round at ' ~ (sweep.share * 100)|round(0, 'floor') ~ ' %'
+                            : (round.lastFinished is null
+                                ? 'Gerrit not compared yet'
+                                : (round.lastAdded + round.lastRemoved > 0
+                                    ? 'Gerrit differed in the last round'
+                                    : 'Gerrit complete')) %}
+                    {% endif %}
                     {{ system.tile(
-                        'Outdated documents',
-                        checks['Outdated documents'],
-                        outdated|number_format(0, '.', ','),
-                        outdated == 0
+                        'Imports',
+                        checks['Imports'],
+                        outdated == 0 ? 'Current' : outdated|number_format(0, '.', ',') ~ ' outdated',
+                        (outdated == 0
                             ? 'All documents are current'
                             : (outdated - liftable)|number_format(0, '.', ',') ~ ' wait for the imports · '
-                                ~ liftable|number_format(0, '.', ',') ~ ' for the backfill',
-                        'system-outdated',
+                                ~ liftable|number_format(0, '.', ',') ~ ' for the backfill')
+                            ~ (gerrit ? ' · ' ~ gerrit : ''),
+                        'system-imports',
                     ) }}
                     {% if userStatistics is not null and userStatistics.total > 0 %}
                         {% set share = userStatistics.withLogin / userStatistics.total %}
@@ -219,7 +294,7 @@
                     </ul>
                 </section>
 
-                <section class="system-panel" id="system-indices">
+                <section class="system-panel system-panel-wide" id="system-indices">
                     <header class="system-panel-header">
                         <h2 class="runs-heading">Indices</h2>
                         {{ system.result(checks['Indices']) }}
@@ -252,130 +327,177 @@
                     </ul>
                 </section>
 
-                <section class="system-panel" id="system-outdated">
+                <section class="system-panel system-panel-wide" id="system-imports">
                     <header class="system-panel-header">
-                        <h2 class="runs-heading">Outdated documents</h2>
-                        {{ system.result(checks['Outdated documents']) }}
+                        <h2 class="runs-heading">Imports</h2>
+                        {{ system.result(checks['Imports']) }}
                     </header>
-                    <ul class="runs-table-card system-list">
-                        {% for check in pending %}
-                            <li class="system-list-item">
-                                <div class="system-list-text">
-                                    <span class="system-list-title">{{ check.label }}</span>
-                                    <span class="system-list-meta">
-                                        {{- check.matches|number_format(0, '.', ',') }}
-                                        of {{ check.documents|number_format(0, '.', ',') }}
-                                        {{ check.index == 'issue' ? 'issues' : 'changes' }}
-                                        come from an import before version {{ check.version -}}
-                                    </span>
-                                    {% if check.result != constant('App\\Enum\\SystemCheckEnum::OK') %}
-                                        <span class="system-list-detail">{{ check.description }}</span>
-                                    {% endif %}
-                                    {# Where the documents stand: the version that wrote them and what lifts it #}
-                                    {% set versions = check.versions|default([]) %}
-                                    {% if versions and check.documents > 0 %}
-                                        <span class="system-versions" aria-hidden="true">
-                                            {% for row in versions %}
-                                                <span
-                                                    class="system-version is-{{ row.state }}"
-                                                    style="width: {{ (row.documents / check.documents * 100)|round(2) }}%"
-                                                    title="Version {{ row.version }}"
-                                                ></span>
-                                            {% endfor %}
-                                        </span>
-                                    {% endif %}
-                                    {% for row in versions %}
-                                        <span class="system-list-meta system-version-row">
-                                            <span class="system-version-key is-{{ row.state }}"></span>
-                                            Version {{ row.version }}:
-                                            {{ row.documents|number_format(0, '.', ',') }}
-                                            {%- if row.state == 'current' %}, current
-                                            {%- elseif row.state == 'backfill' %}, the backfill lifts them from the
-                                                stored data
-                                            {%- else %}, the import loads them again
-                                            {%- endif %}
-                                        </span>
-                                    {% endfor %}
-                                    {# Where their events stand: the version of StreamEvents that wrote them #}
-                                    {% set streamVersions = check.streamVersions|default([]) %}
-                                    {% if streamVersions and check.documents > 0 %}
-                                        <span class="system-versions" aria-hidden="true">
-                                            {% for row in streamVersions %}
-                                                {% set share = (row.documents / check.documents * 100)|round(2) %}
-                                                <span
-                                                    class="system-version is-{{ row.state }}"
-                                                    style="width: {{ share }}%"
-                                                    title="Events of version {{ row.version }}"
-                                                ></span>
-                                            {% endfor %}
-                                        </span>
-                                    {% endif %}
-                                    {% for row in streamVersions %}
-                                        <span class="system-list-meta system-version-row">
-                                            <span class="system-version-key is-{{ row.state }}"></span>
-                                            {% if row.version == 0 -%}
-                                                Events not written yet:
-                                            {%- else -%}
-                                                Events of version {{ row.version }}:
-                                            {%- endif %}
-                                            {{ row.documents|number_format(0, '.', ',') }}
-                                            {%- if row.state == 'current' %}, current
-                                            {%- else %}, the backfill writes their events again
-                                            {%- endif %}
-                                        </span>
-                                    {% endfor %}
-                                </div>
-                                {{ system.result(check.result) }}
-                            </li>
-                        {% endfor %}
+                    {# One legend for the bars of the versions in all cards #}
+                    <p class="system-legend">
+                        <span><span class="system-version-key is-current"></span>Current</span>
+                        <span><span class="system-version-key is-backfill"></span>The backfill lifts them</span>
+                        <span><span class="system-version-key is-import"></span>The import loads them again</span>
+                    </p>
+                    <div class="system-cards">
                         {% if sweep is not null %}
                             {% set round = sweep.round %}
-                            <li class="system-list-item">
-                                <div class="system-list-text">
-                                    <span class="system-list-title">Changes compared with Gerrit</span>
-                                    <span class="system-list-meta">
-                                        {%- if round.until is null -%}
-                                            The next run of "Update Gerrit changes" starts a round at the newest change
-                                        {%- else -%}
-                                            This round started {{ round.started|date('j M Y H:i') }}
-                                            and compared about {{ (sweep.share * 100)|round(0, 'floor') }} % of the
-                                            changes, those updated since {{ round.until|date('j M Y H:i') }}.
-                                            So far {{ round.added|number_format(0, '.', ',') }} were missing,
-                                            {{ round.removed|number_format(0, '.', ',') }} removed
-                                        {%- endif -%}
-                                    </span>
-                                    {% if round.until is not null %}
-                                        <span class="system-versions" aria-hidden="true">
-                                            <span
-                                                class="system-version is-current"
-                                                style="width: {{ (sweep.share * 100)|round(2) }}%"
-                                            ></span>
-                                        </span>
-                                    {% endif %}
-                                    <span class="system-list-meta">
-                                        {%- if round.lastFinished is null -%}
-                                            No round has finished yet
-                                        {%- else -%}
-                                            The last round ran from {{ round.lastStarted|date('j M Y H:i') }}
-                                            to {{ round.lastFinished|date('j M Y H:i') }}:
-                                            {{ round.lastAdded|number_format(0, '.', ',') }} changes were missing,
-                                            {{ round.lastRemoved|number_format(0, '.', ',') }} removed
-                                        {%- endif -%}
-                                    </span>
-                                    {% if sweep.result != constant('App\\Enum\\SystemCheckEnum::OK') %}
-                                        <span class="system-list-detail">
-                                            Each run of "Update Gerrit changes" compares up to 10,000 changes with
-                                            Gerrit, from the newest to the oldest. It loads those the index lacks and
-                                            removes those Gerrit does not show. A round takes half an hour when the
-                                            index is complete. The check is fine once a round found nothing to add or
-                                            remove.
-                                        </span>
-                                    {% endif %}
-                                </div>
-                                {{ system.result(sweep.result) }}
-                            </li>
+                            <article class="runs-card system-card">
+                                {{ system.card_head('Gerrit changes', sweep.result) }}
+                                {% if round.until is null %}
+                                    {{ system.figure('Waiting', 'for the next round') }}
+                                    <p class="system-card-note">
+                                        The next run of "Update Gerrit changes" starts a round at the newest change.
+                                    </p>
+                                {% else %}
+                                    {{ system.figure(
+                                        (sweep.share * 100)|round(0, 'floor') ~ ' %',
+                                        'compared with Gerrit in this round',
+                                    ) }}
+                                    {{ system.meter(sweep.share) }}
+                                    <dl class="runs-facts system-facts">
+                                        <div><dt>Started</dt><dd>{{ round.started|date('j M Y, H:i') }}</dd></div>
+                                        <div><dt>Down to</dt><dd>{{ round.until|date('j M Y') }}</dd></div>
+                                        <div>
+                                            <dt>Missing</dt>
+                                            <dd class="runs-numeric">{{ round.added|number_format(0, '.', ',') }}</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Removed</dt>
+                                            <dd class="runs-numeric">{{ round.removed|number_format(0, '.', ',') }}</dd>
+                                        </div>
+                                    </dl>
+                                {% endif %}
+                                <h4 class="system-subheading">Last complete round</h4>
+                                {% if round.lastFinished is null %}
+                                    <p class="system-card-note">No round has finished yet.</p>
+                                {% else %}
+                                    <dl class="runs-facts system-facts">
+                                        <div>
+                                            <dt>Started</dt>
+                                            <dd>{{ round.lastStarted|date('j M Y, H:i') }}</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Finished</dt>
+                                            <dd>{{ round.lastFinished|date('j M Y, H:i') }}</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Missing</dt>
+                                            <dd class="runs-numeric">
+                                                {{- round.lastAdded|number_format(0, '.', ',') -}}
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt>Removed</dt>
+                                            <dd class="runs-numeric">
+                                                {{- round.lastRemoved|number_format(0, '.', ',') -}}
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                {% endif %}
+                                {% if sweep.result != constant('App\\Enum\\SystemCheckEnum::OK') %}
+                                    {{ system.why(
+                                        'Each run of "Update Gerrit changes" compares up to 10,000 changes with'
+                                        ~ ' Gerrit, from the newest to the oldest. It loads those the index lacks'
+                                        ~ ' and removes those Gerrit does not show. A round takes half an hour'
+                                        ~ ' when the index is complete. The check is fine once a round found'
+                                        ~ ' nothing to add or remove.'
+                                    ) }}
+                                {% endif %}
+                            </article>
                         {% endif %}
-                    </ul>
+                        <article class="runs-card system-card">
+                            {{ system.card_head(
+                                'Forge issues',
+                                forge ? forge.result : constant('App\\Enum\\SystemCheckEnum::ATTENTION'),
+                            ) }}
+                            {% if forge is null %}
+                                {{ system.figure('Waiting', 'for the first comparison') }}
+                                <p class="system-card-note">
+                                    A run of "Update Forge issues" that is up to date compares the issues with Forge.
+                                </p>
+                            {% else %}
+                                {# Rounded down: 100 % only when the numbers are alike #}
+                                {{ system.figure(
+                                    (forge.share * 100)|round(0, 'floor') ~ ' %',
+                                    'of the issues match Forge',
+                                ) }}
+                                {{ system.meter(forge.share) }}
+                                <dl class="runs-facts system-facts">
+                                    <div><dt>Compared</dt><dd>{{ forge.at|date('j M Y, H:i') }}</dd></div>
+                                    <div>
+                                        <dt>Alike since</dt>
+                                        <dd>{{ forge.alikeSince ? forge.alikeSince|date('j M Y, H:i') : '–' }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>On Forge</dt>
+                                        <dd class="runs-numeric">{{ forge.forge|number_format(0, '.', ',') }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>In the index</dt>
+                                        <dd class="runs-numeric">{{ forge.index|number_format(0, '.', ',') }}</dd>
+                                    </div>
+                                    {% if not forge.alike %}
+                                        <div>
+                                            <dt>Differ</dt>
+                                            <dd class="runs-numeric">
+                                                {{- forge.difference|number_format(0, '.', ',') -}}
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt>Ranges compared</dt>
+                                            <dd class="runs-numeric">{{ forge.ranges|number_format(0, '.', ',') }}</dd>
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <dt>Missing, last run</dt>
+                                        <dd class="runs-numeric">{{ forge.added|number_format(0, '.', ',') }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Removed, last run</dt>
+                                        <dd class="runs-numeric">{{ forge.removed|number_format(0, '.', ',') }}</dd>
+                                    </div>
+                                </dl>
+                            {% endif %}
+                            {% if forge is null or not forge.alike %}
+                                {{ system.why(
+                                    'Each run of "Update Forge issues" that is up to date counts the issues on Forge'
+                                    ~ ' and in the index. Where the numbers differ, it narrows down the ranges of'
+                                    ~ ' numbers that differ, loads the issues the index lacks and removes those Forge'
+                                    ~ ' does not show. The next runs go on until the numbers are alike.'
+                                ) }}
+                            {% endif %}
+                        </article>
+                        {% for check in pending %}
+                            {% set noun = check.index == 'issue' ? 'issues' : 'changes' %}
+                            <article class="runs-card system-card">
+                                {{ system.card_head(check.label, check.result) }}
+                                {{ system.figure(
+                                    check.matches|number_format(0, '.', ','),
+                                    'of ' ~ check.documents|number_format(0, '.', ',') ~ ' ' ~ noun
+                                        ~ ' come from an import before version ' ~ check.version,
+                                ) }}
+                                {{ system.versions(
+                                    check.versions|default([]),
+                                    check.documents,
+                                    'Version',
+                                    {
+                                        current: 'current',
+                                        backfill: 'the backfill lifts them',
+                                        import: 'the import loads them again',
+                                    },
+                                ) }}
+                                {{ system.versions(
+                                    check.streamVersions|default([]),
+                                    check.documents,
+                                    'Events of version',
+                                    {current: 'current', backfill: 'the backfill writes their events again'},
+                                ) }}
+                                {% if check.result != constant('App\\Enum\\SystemCheckEnum::OK') %}
+                                    {{ system.why(check.description) }}
+                                {% endif %}
+                            </article>
+                        {% endfor %}
+                    </div>
                 </section>
 
                 {% if users is not null %}

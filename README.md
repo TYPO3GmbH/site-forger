@@ -139,14 +139,15 @@ The deltas only read what changed, and only load details for what they do not ha
   project, not private, as the index holds them. Where the numbers differ the range of numbers is halved, one
   count each, until a part holds a page; it is listed, the issues missing or not up to date are imported, those
   Forge does not list are removed. At most 15 counts and 2 listed parts per run, the next run goes on. So issues deleted on Forge,
-  private now, or never imported get in line without a full import.
+  private now, or never imported get in line without a full import. The system page shows the last comparison
+  (`App\Import\IssueComparison`, kept by `App\Import\ImportState`).
 * **Gerrit, what no list of changes shows:** after its changes, a Gerrit delta that is up to date compares one page
   of the changes with the index (`App\Import\ChangeSweep`). Gerrit can neither count the changes nor search them by
   their numbers, so the runs go back by the time of the last update (`before:`), from the newest change to the
   oldest, and then start again. A run lists up to 10,000 changes, 500 a request, and no further page once it
   found 1,000 to load. The changes missing or not up to date are imported, those of the index in the time
   of the page that Gerrit did not list are asked for and removed when Gerrit does not show them. Where the next run
-  goes on lies in `var/scheduler`, which the releases share (`App\Import\ChangeSweepState`). A round over the
+  goes on lies in `var/scheduler`, which the releases share (`App\Import\ImportState`). A round over the
   about 60,000 changes takes six runs, half an hour, when the index is complete. The system page shows how far
   the round is and what the last one found. So changes deleted on Gerrit, private now, or never imported get in
   line without a full import.

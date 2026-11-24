@@ -19,8 +19,8 @@ use App\Enum\SystemCheckEnum;
 use App\Import\Backfill\SchemaBackfill;
 use App\Import\ChangeSweep;
 use App\Import\ChangeSweepRound;
-use App\Import\ChangeSweepState;
 use App\Import\ImportSchema;
+use App\Import\ImportState;
 use App\Import\PendingImport;
 use App\People\UserHealth;
 use App\People\UserStatistics;
@@ -57,7 +57,7 @@ class SystemController extends AbstractController
         private readonly UserRepository $users,
         private readonly ForgeLogin $forgeLogin,
         private readonly SchemaBackfill $backfill,
-        private readonly ChangeSweepState $sweepState,
+        private readonly ImportState $importState,
         private readonly CacheInterface $cache,
         #[Autowire('%kernel.project_dir%/.env')]
         private readonly string $dotEnv,
@@ -76,6 +76,7 @@ class SystemController extends AbstractController
         $indices = $elasticsearch['reachable'] ? $this->indices() : [];
         $pending = $elasticsearch['reachable'] ? $this->pendingImport() : [];
         $sweep = $elasticsearch['reachable'] ? $this->sweep() : null;
+        $forge = $this->importState->issueComparison();
         $statistics = $elasticsearch['reachable'] ? $this->userStatistics() : null;
         $users = null === $statistics ? null : UserHealth::of($statistics, new \DateTimeImmutable());
 
@@ -86,9 +87,10 @@ class SystemController extends AbstractController
             ),
             'Elasticsearch' => SystemCheckEnum::worst($elasticsearch['versionResult'], $elasticsearch['healthResult']),
             'Indices' => SystemCheckEnum::worst(...array_column($indices, 'result')),
-            'Outdated documents' => SystemCheckEnum::worst(
+            'Imports' => SystemCheckEnum::worst(
                 ...array_column($pending, 'result'),
                 ...(null === $sweep ? [] : [$sweep['result']]),
+                ...(null === $forge ? [] : [$forge->result()]),
             ),
             'Users' => $users['result'] ?? SystemCheckEnum::OK,
         ];
@@ -98,6 +100,7 @@ class SystemController extends AbstractController
             'indices' => $indices,
             'pending' => $pending,
             'sweep' => $sweep,
+            'forge' => $forge,
             'users' => $users,
             'userStatistics' => $statistics,
             'withoutUsernameCount' => null === $statistics ? 0 : $this->withoutUsernameCount(),
@@ -271,7 +274,7 @@ class SystemController extends AbstractController
      */
     private function sweep(): array
     {
-        $round = $this->sweepState->round();
+        $round = $this->importState->changeSweep();
         $reviews = $this->indices->reviews();
         $total = $reviews->count();
         $compared = null === $round->until ? 0 : $reviews->count(['query' => ChangeSweep::compared($round->until)]);

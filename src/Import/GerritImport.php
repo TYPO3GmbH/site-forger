@@ -75,7 +75,7 @@ final readonly class GerritImport
         private ProjectChanges $projectChanges,
         private GerritChangeImporter $changeImporter,
         private ChangeRepository $changes,
-        private ChangeSweepState $sweepState,
+        private ImportState $state,
     ) {
     }
 
@@ -158,7 +158,7 @@ final readonly class GerritImport
      */
     private function sweep(ImportRun $run): void
     {
-        $round = $this->sweepState->round();
+        $round = $this->state->changeSweep();
         $until = $round->until;
         $query = GerritChangeImporter::PROJECT . (null === $until ? '' : ' ' . ImportWatermark::gerritBefore($until));
         [$listed, $numbers, $changed, $more, $oldest] = $this->list(
@@ -191,7 +191,7 @@ final readonly class GerritImport
             $removed = $this->changeImporter->update($unlisted, $this->afterChange($run, $bar, null))['removed'];
         }
         $next = $round->after(ChangeSweep::next($until, $oldest, $more), $missing, $removed, new \DateTimeImmutable());
-        $this->sweepState->save($next);
+        $this->state->saveChangeSweep($next);
         $run->finish($bar);
 
         $this->noteSweep($run, sprintf(

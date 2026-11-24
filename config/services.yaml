@@ -115,7 +115,7 @@ services:
     class: Symfony\Component\Cache\Adapter\FilesystemAdapter
     arguments: ['jobs', 0, '%kernel.project_dir%/var/scheduler']
 
-  # The state of the imports that is not in the index (App\Import\ChangeSweepCursor): in var/scheduler too
+  # The state of the imports that is not in the index (App\Import\ImportState): in var/scheduler too
   app.import.state:
     class: Symfony\Component\Cache\Adapter\FilesystemAdapter
     arguments: ['import', 0, '%kernel.project_dir%/var/scheduler']
