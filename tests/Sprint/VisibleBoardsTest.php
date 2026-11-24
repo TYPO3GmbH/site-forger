@@ -21,7 +21,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
- * The categories and boards of the overview and the menu, see VisibleBoards.
+ * The categories and boards of the overview, see VisibleBoards.
  */
 final class VisibleBoardsTest extends TestCase
 {
