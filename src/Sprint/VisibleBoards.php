@@ -19,7 +19,7 @@ use App\Security\SprintBoardVoter;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
- * The categories and boards the user sees, for the sprint overview and the menu. A restricted board only for the
+ * The categories and boards the user sees, for the sprint overview. A restricted board only for the
  * people it is shared with, see SprintBoardVoter. A category only with a board the user sees; managers see every
  * category, also an empty one, to add boards to it.
  */

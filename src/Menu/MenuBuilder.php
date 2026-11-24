@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace App\Menu;
 
-use App\Sprint\VisibleBoards;
 use Knp\Menu\FactoryInterface;
 use Knp\Menu\ItemInterface;
 use Knp\Menu\Matcher\MatcherInterface;
@@ -41,7 +40,6 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         AuthorizationCheckerInterface $authorizationChecker,
         TokenStorageInterface $tokenStorage,
         TranslatorInterface $translator,
-        private readonly VisibleBoards $visibleBoards,
         private readonly RequestStack $requestStack,
     ) {
         parent::__construct($parameters, $factory, $matcher, $authorizationChecker, $tokenStorage, $translator);
@@ -89,23 +87,12 @@ class MenuBuilder extends \T3G\Bundle\TemplateBundle\Menu\MenuBuilder
         $this->addLink($activity, 'statistics', 'Statistics', 'dashboard_statistics', 'actions-viewmode-tiles');
         $this->addLink($activity, 'activity_index', 'Stream', 'activity_index', 'actions-list');
 
-        $sprints = $menu->addChild('sprint', ['label' => 'Boards', 'route' => 'sprint_overview']);
-        $this->addLink($sprints, 'sprint_overview', 'Overview', 'sprint_overview', 'actions-viewmode-layout');
-        // The categories with a board the user sees, see VisibleBoards
-        foreach (array_column($this->visibleBoards->byCategory(), 'category') as $category) {
-            $identifier = $category->getIdentifier();
-            if (null === $identifier) {
-                continue;
-            }
-            $this->addLink(
-                $sprints,
-                'sprint_' . $identifier,
-                $category->getName() ?? $identifier,
-                'sprint',
-                $category->getIcon(),
-                ['category' => $identifier],
-            );
-        }
+        // Without a dropdown: the overview lists the boards. The item stays active on a board too.
+        $menu->addChild('sprint', [
+            'label' => 'Boards',
+            'route' => 'sprint_overview',
+            'extras' => ['routes' => ['sprint']],
+        ]);
 
         // A click on "Tools" opens their overview, its tiles are the items below with their description
         $tools = $menu->addChild('utility', ['label' => 'Tools', 'route' => 'utilities_index']);
