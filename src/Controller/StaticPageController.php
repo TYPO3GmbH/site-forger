@@ -22,4 +22,18 @@ class StaticPageController extends AbstractController
     {
         return $this->render('static_page/help.html.twig');
     }
+
+    /**
+     * The guide for language models and agents, as https://llmstxt.org proposes it.
+     */
+    #[Route(path: '/llms.txt', name: 'static_llms_txt', methods: ['GET'], stateless: true)]
+    public function llmsTxtAction(): Response
+    {
+        $response = $this->render('static_page/llms.txt.twig');
+        $response->headers->set('Content-Type', 'text/plain; charset=UTF-8');
+        $response->setPublic();
+        $response->setMaxAge(3600);
+
+        return $response;
+    }
 }

@@ -1,0 +1,51 @@
+# Forger
+
+> Forger shows the work on the TYPO3 Core in one place: the issues of forge.typo3.org (Redmine) and the changes of
+> review.typo3.org (Gerrit). It imports both every five minutes. Agents read its data through a JSON API that is
+> read only and needs no login.
+
+Use the API, not the HTML pages: the pages show the same data, but the API is stable and documented. Each issue and
+change has a `url` that leads to the original on Forge or Gerrit. Write to Forge or Gerrit there: Forger only reads.
+
+- Dates are ISO 8601 in UTC, like `2026-11-20T23:40:03Z`. Date filters take `YYYY-MM-DD`.
+- A list returns one page and `total`. `limit` is 25 by default and 100 at most, `offset` is where the page starts.
+  `offset + limit` may not exceed 10000: narrow the search to read further.
+- A failed request returns an object with `error`: 400 for a wrong parameter, 404 for an unknown issue or change,
+  429 for too many requests.
+- An address may send 120 requests a minute. After a 429, wait the seconds that `Retry-After` gives.
+- People are given as `forge:<number>`, `gerrit:<number>` or the username of the TYPO3 account.
+- `/api/v1` only gets new fields and parameters. A change that breaks a client gets a new path.
+
+## API
+
+- [OpenAPI document]({{ url('app.api_doc_json') }}): every endpoint, parameter and field, for tools
+- [API documentation]({{ url('app.api_doc') }}): the same for people, where they can try the requests
+- [List and search issues]({{ url('api_v1_issues') }}): by words, status, tracker, category, tag, person and
+  dates; `breakdown=true` also counts them by status, tracker, category, tag and year
+- [Get an issue]({{ url('api_v1_issues') }}/{id}): its description, relations and Gerrit changes
+- [Find the duplicates of an issue]({{ url('api_v1_issues') }}/{id}/duplicates): the open issues that may describe
+  the same
+- [List and search changes]({{ url('api_v1_changes') }}): by words, status, branch, review list, file, owner, size
+  and dates
+- [Get a change]({{ url('api_v1_changes') }}/{number}): its commit message, files, review log and relation chain
+- [List the activity]({{ url('api_v1_activity') }}): the events on Forge and Gerrit, the newest first
+- [Count the activity]({{ url('api_v1_activity_statistics') }}): figures and series of the events in a time window
+- [List the new contributors]({{ url('api_v1_activity_newcomers') }}): who started in a time window and
+  where they stand now
+- [Count the activity per weekday and hour]({{ url('api_v1_activity_week_hours') }})
+- [Count the activity per day of a year]({{ url('api_v1_activity_days') }})
+- [Count the reviews between a person and the others]({{ url('api_v1_activity_exchange') }})
+- [Count what was closed over the years]({{ url('api_v1_activity_closed_years') }})
+
+## Docs
+
+- [Help]({{ url('static_help') }}): what the pages of Forger show and how its lists, filters and boards work
+- [Help on the API]({{ url('static_help') }}#api): data, format, lists, errors, limits and versions
+
+## Optional
+
+- [Get involved]({{ url('get_involved') }}): small reviews, good first issues and new bugs to start with
+- [Changes ready for review]({{ url('reviews_ready') }}): the review list "ready" as a page
+- [Activity]({{ url('dashboard_statistics') }}): the statistics of Forge and Gerrit as a page
+- [TYPO3 Core on Forge](https://forge.typo3.org/projects/typo3cms-core): the original issues
+- [TYPO3 Core on Gerrit](https://review.typo3.org/q/project:Packages/TYPO3.CMS): the original changes
