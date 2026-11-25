@@ -60,6 +60,16 @@
             </div>
         </div>
     {% endif %}
+    {# Only admins reach a page while Elasticsearch does not answer, see App\Subscriber\MaintenanceSubscriber #}
+    {% if app.request.attributes.get('_maintenance') %}
+        {% frame with {'size': 'small'} %}
+            <div class="alert alert-warning" role="alert">
+                {{ icon('actions-exclamation-triangle') }}
+                Elasticsearch does not answer. Everyone but the admins sees the maintenance page, and pages that need
+                the index fail. See the <a href="{{ path('management_system') }}">system page</a>.
+            </div>
+        {% endframe %}
+    {% endif %}
     {% include '_partials/confirm_dialog.html.twig' %}
 {% endblock %}
 

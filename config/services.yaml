@@ -42,6 +42,20 @@ services:
         username: '%env(ES_USER)%'
         password: '%env(ES_PASSWORD)%'
 
+  # The same Elasticsearch with short timeouts, for App\Elastic\Availability: a server that does not answer costs
+  # seconds there, not the timeout of a search
+  app.elasticsearch.ping_client:
+    class: Elastica\Client
+    arguments:
+      - host: '%env(ES_HOST)%'
+        port: '%env(ES_PORT)%'
+        path: '%env(ES_PATH)%'
+        transport: '%env(ES_TRANSPORT)%'
+        username: '%env(ES_USER)%'
+        password: '%env(ES_PASSWORD)%'
+        timeout: 3
+        connectTimeout: 2
+
   # To add an API, add a service here and a bind in _defaults.
   api.forge:
     class: App\Http\ApiClient
