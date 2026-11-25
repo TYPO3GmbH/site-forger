@@ -26,10 +26,11 @@ final class SystemChecksTest extends TestCase
      */
     public static function versions(): iterable
     {
-        yield 'dev and production' => ['7.17.28', SystemCheckEnum::OK];
+        yield 'production before the upgrade' => ['7.17.29', SystemCheckEnum::OK];
+        yield 'dev' => ['8.19.25', SystemCheckEnum::OK];
         yield 'first with case_insensitive' => ['7.10.0', SystemCheckEnum::OK];
         yield 'too old for the search in filters' => ['7.9.3', SystemCheckEnum::PROBLEM];
-        yield 'another major' => ['8.15.0', SystemCheckEnum::PROBLEM];
+        yield 'a major the queries are not checked with' => ['9.5.5', SystemCheckEnum::PROBLEM];
         yield 'unknown' => [null, SystemCheckEnum::UNKNOWN];
     }
 

@@ -240,7 +240,7 @@ final readonly class IssueListSearch
         // The issues without category get a value of their own, as in the row of "Issues by category"
         $category->setParam('missing', CategoryOverview::WITHOUT);
         $category->setSize(100);
-        $category->setOrder('_term', 'ASC');
+        $category->setOrder('_key', 'ASC');
         $query->addAggregation($category);
         $fields = [
             'Tracker' => 'tracker.name',

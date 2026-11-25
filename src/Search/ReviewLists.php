@@ -198,7 +198,7 @@ final class ReviewLists
             'Size' => ReviewSizeQuery::changeAggregation(),
             'Releases' => ['terms' => ['field' => 'releases']],
             'Affected Files' => ['terms' => ['field' => 'affected_files']],
-            'Topic' => ['terms' => ['field' => 'topic', 'order' => ['_term' => 'asc']]],
+            'Topic' => ['terms' => ['field' => 'topic', 'order' => ['_key' => 'asc']]],
             'Patchsets' => ['terms' => ['field' => 'patchsets']],
             'Mergeable' => ['terms' => ['field' => 'mergeable']],
             // The owners with the most changes. The search in the filter finds the others.

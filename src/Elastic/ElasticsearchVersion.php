@@ -24,16 +24,16 @@ final class ElasticsearchVersion
     public const string MINIMUM = '7.10.0';
 
     /**
-     * Elastica and the queries are written for this major version.
+     * The major versions the queries are checked with. Elastica 7 works with both.
      */
-    public const int MAJOR = 7;
+    public const array MAJORS = [7, 8];
 
     public static function result(?string $version): SystemCheckEnum
     {
         if (null === $version || '' === $version) {
             return SystemCheckEnum::UNKNOWN;
         }
-        if (self::MAJOR !== (int) $version) {
+        if (!in_array((int) $version, self::MAJORS, true)) {
             return SystemCheckEnum::PROBLEM;
         }
 
