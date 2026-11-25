@@ -13,10 +13,10 @@ namespace App\Tests\Subscriber;
 
 use App\Elastic\Availability;
 use App\Subscriber\MaintenanceSubscriber;
+use Elastic\Elasticsearch\Response\Elasticsearch;
+use Elastic\Transport\Exception\NoNodeAvailableException;
 use Elastica\Client;
-use Elastica\Exception\Connection\HttpException;
-use Elastica\Request as ElasticaRequest;
-use Elastica\Response as ElasticaResponse;
+use GuzzleHttp\Psr7\Response as Psr7Response;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
@@ -95,11 +95,10 @@ final class MaintenanceSubscriberTest extends TestCase
 
     public function testAsksElasticsearchOnceForSomeSeconds(): void
     {
+        $answer = new Elasticsearch();
+        $answer->setResponse(new Psr7Response(200, [Elasticsearch::HEADER_CHECK => Elasticsearch::PRODUCT_NAME]));
         $client = $this->createMock(Client::class);
-        $client->expects(self::once())
-            ->method('request')
-            ->with('', ElasticaRequest::HEAD)
-            ->willReturn(new ElasticaResponse('', 200));
+        $client->expects(self::once())->method('ping')->willReturn($answer);
         $availability = new Availability($client, new ArrayAdapter());
 
         self::assertTrue($availability->isAvailable());
@@ -109,9 +108,7 @@ final class MaintenanceSubscriberTest extends TestCase
     public function testAnErrorOfTheConnectionMeansNotAvailable(): void
     {
         $client = self::createStub(Client::class);
-        $client->method('request')->willThrowException(
-            new HttpException(7, new ElasticaRequest('')),
-        );
+        $client->method('ping')->willThrowException(new NoNodeAvailableException('No alive nodes.'));
 
         self::assertFalse((new Availability($client, new ArrayAdapter()))->isAvailable());
     }

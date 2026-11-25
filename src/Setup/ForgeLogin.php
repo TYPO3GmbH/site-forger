@@ -15,6 +15,8 @@ use App\Http\ApiClient;
 use App\Http\ApiFailure;
 use App\Import\ForgeIssueList;
 use App\Repository\UserRepository;
+use Elastic\Elasticsearch\Exception\ElasticsearchException;
+use Elastic\Transport\Exception\TransportException;
 use Elastica\Exception\ExceptionInterface as ElasticaException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -127,7 +129,7 @@ final readonly class ForgeLogin
     {
         try {
             $user = $this->users->lastFetched();
-        } catch (ElasticaException) {
+        } catch (ElasticaException|ElasticsearchException|TransportException) {
             return null;
         }
         if (null === $user || null === $user->forgeId) {

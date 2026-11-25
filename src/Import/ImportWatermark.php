@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace App\Import;
 
 use App\Elastic\Indices;
-use Elastica\Request;
+use App\Elastic\SyncAnswer;
 use Elastica\Result;
 
 /**
@@ -88,12 +88,11 @@ final class ImportWatermark
         if ([] === $ids) {
             return [];
         }
-        $response = $this->indices->get($index)->request(
-            '_mget',
-            Request::POST,
-            ['ids' => array_map('strval', $ids)],
-            ['_source' => 'updated_on,' . ImportSchema::FIELD],
-        )->getData();
+        $response = SyncAnswer::of($this->indices->client()->mget([
+            'index' => $this->indices->get($index)->getName(),
+            'body' => ['ids' => array_map('strval', $ids)],
+            '_source' => 'updated_on,' . ImportSchema::FIELD,
+        ]))->asArray();
 
         $stored = [];
         foreach ($response['docs'] ?? [] as $doc) {

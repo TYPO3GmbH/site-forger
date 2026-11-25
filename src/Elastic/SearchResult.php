@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace App\Elastic;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Criteria;
 use Doctrine\Common\Collections\ReadableCollection;
 use Elastica\Result;
 use Elastica\ResultSet;
@@ -225,5 +226,13 @@ final readonly class SearchResult implements ReadableCollection
     public function getIterator(): \Traversable
     {
         return $this->documents->getIterator();
+    }
+
+    /**
+     * @return ReadableCollection<int, T>
+     */
+    public function matching(Criteria $criteria): ReadableCollection
+    {
+        return $this->documents->matching($criteria);
     }
 }

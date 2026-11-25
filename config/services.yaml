@@ -33,28 +33,32 @@ services:
   # without Composer and its plugins on the server
   Symfony\Component\Dotenv\Command\DotenvDumpCommand: ~
 
+  # Built from the ES_* settings, see App\Elastic\ClientFactory. 300 seconds for a request, as Elastica 7 had it.
   Elastica\Client:
+    factory: ['App\Elastic\ClientFactory', 'create']
     arguments:
-      - host: '%env(ES_HOST)%'
-        port: '%env(ES_PORT)%'
-        path: '%env(ES_PATH)%'
-        transport: '%env(ES_TRANSPORT)%'
-        username: '%env(ES_USER)%'
-        password: '%env(ES_PASSWORD)%'
+      $host: '%env(ES_HOST)%'
+      $port: '%env(ES_PORT)%'
+      $path: '%env(ES_PATH)%'
+      $transport: '%env(ES_TRANSPORT)%'
+      $user: '%env(ES_USER)%'
+      $password: '%env(ES_PASSWORD)%'
+      $timeout: 300
 
   # The same Elasticsearch with short timeouts, for App\Elastic\Availability: a server that does not answer costs
   # seconds there, not the timeout of a search
   app.elasticsearch.ping_client:
     class: Elastica\Client
+    factory: ['App\Elastic\ClientFactory', 'create']
     arguments:
-      - host: '%env(ES_HOST)%'
-        port: '%env(ES_PORT)%'
-        path: '%env(ES_PATH)%'
-        transport: '%env(ES_TRANSPORT)%'
-        username: '%env(ES_USER)%'
-        password: '%env(ES_PASSWORD)%'
-        timeout: 3
-        connectTimeout: 2
+      $host: '%env(ES_HOST)%'
+      $port: '%env(ES_PORT)%'
+      $path: '%env(ES_PATH)%'
+      $transport: '%env(ES_TRANSPORT)%'
+      $user: '%env(ES_USER)%'
+      $password: '%env(ES_PASSWORD)%'
+      $timeout: 3
+      $connectTimeout: 2
 
   # To add an API, add a service here and a bind in _defaults.
   api.forge:

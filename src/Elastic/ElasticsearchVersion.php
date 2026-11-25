@@ -24,7 +24,7 @@ final class ElasticsearchVersion
     public const string MINIMUM = '7.10.0';
 
     /**
-     * The major versions the queries are checked with. Elastica 7 works with both.
+     * The major versions the queries are checked with. Elastica 8 works with both.
      */
     public const array MAJORS = [7, 8];
 
