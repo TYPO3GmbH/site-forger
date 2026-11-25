@@ -267,8 +267,9 @@
                             <div class="system-list-text">
                                 <span class="system-list-title">Version {{ elasticsearch.version }}</span>
                                 <span class="system-list-meta">
-                                    The people filters need version {{ minimumVersion }} or newer to search
-                                    without regard to case.
+                                    Forger runs on Elasticsearch {{ supportedMajors|join(' and ') }}. The people
+                                    filters need version {{ minimumVersion }} or newer to search without regard
+                                    to case.
                                 </span>
                             </div>
                             {{ system.result(elasticsearch.versionResult) }}

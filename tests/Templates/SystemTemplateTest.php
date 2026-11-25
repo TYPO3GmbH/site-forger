@@ -221,7 +221,8 @@ final class SystemTemplateTest extends KernelTestCase
             ],
             'overall' => SystemCheckEnum::ATTENTION,
             'notOk' => ['Setup', 'Imports'],
-            'minimumVersion' => '8.0',
+            'minimumVersion' => '7.10.0',
+            'supportedMajors' => [7, 8],
         ]);
     }
 

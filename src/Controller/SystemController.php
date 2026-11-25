@@ -118,6 +118,7 @@ class SystemController extends AbstractController
                 static fn (SystemCheckEnum $result): bool => SystemCheckEnum::OK !== $result,
             )),
             'minimumVersion' => ElasticsearchVersion::MINIMUM,
+            'supportedMajors' => ElasticsearchVersion::MAJORS,
         ]);
     }
 
