@@ -20,9 +20,9 @@ use App\People\User;
 use App\Repository\UserRepository;
 use App\Stream\StreamSchema;
 use App\Stream\StreamWriter;
+use Elastic\Elasticsearch\Exception\ClientResponseException;
 use Elastica\Document;
 use Elastica\Exception\NotFoundException;
-use Elastica\Exception\ResponseException;
 
 /**
  * Writes Forge issues to the issue index, as the import and the refresh of a single issue do.
@@ -132,7 +132,7 @@ final class ForgeIssueImporter
     {
         try {
             $this->indices->issues()->updateDocument(new Document((string) $id, [ImportSchema::FIELD => 0]));
-        } catch (NotFoundException|ResponseException) {
+        } catch (NotFoundException|ClientResponseException) {
             // Not in the index: the comparison with Forge finds it, see IssueReconciliation
         }
     }

@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace App\Elastic;
 
 use Elastica\Client;
-use Elastica\Request;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
@@ -48,7 +47,7 @@ final readonly class Availability
     private function ping(): bool
     {
         try {
-            return 200 === $this->client->request('', Request::HEAD)->getStatus();
+            return SyncAnswer::of($this->client->ping())->asBool();
         } catch (\Throwable) {
             return false;
         }

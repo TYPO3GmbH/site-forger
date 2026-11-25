@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace App\Validator\Constraints;
 
 use App\Elastic\Indices;
+use Elastic\Elasticsearch\Exception\ClientResponseException;
 use Elastica\Exception\InvalidException;
-use Elastica\Exception\ResponseException;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
@@ -51,7 +51,7 @@ class ConstrainsYamlValidator extends ConstraintValidator
 
             $search = $this->indices->issues()->createSearch($fullRequest);
             $search->search();
-        } catch (InvalidException|ResponseException) {
+        } catch (InvalidException|ClientResponseException) {
             $this->context->buildViolation('Your query did not yield any results. Is it correct?')->addViolation();
         } catch (ParseException) {
             $this->context->buildViolation($constraint->message)->addViolation();

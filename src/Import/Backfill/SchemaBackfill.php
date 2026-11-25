@@ -14,13 +14,13 @@ namespace App\Import\Backfill;
 use App\CommandRun\CommandRunRecorder;
 use App\CommandRun\JobStopped;
 use App\Elastic\Indices;
+use App\Elastic\SyncAnswer;
 use App\Import\ImportRun;
 use App\Import\ImportSchema;
 use Elastica\Bulk;
 use Elastica\Bulk\Action;
 use Elastica\Exception\Bulk\ResponseException;
 use Elastica\Index;
-use Elastica\Request;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
@@ -269,12 +269,16 @@ final readonly class SchemaBackfill
      */
     private function byIds(Index $index, array $fields, array $ids): array
     {
-        $response = $index->request('_mget', Request::POST, ['ids' => $ids], ['_source' => implode(',', $fields)]);
+        $response = SyncAnswer::of($index->getClient()->mget([
+            'index' => $index->getName(),
+            'body' => ['ids' => $ids],
+            '_source' => implode(',', $fields),
+        ]))->asArray();
 
         return array_map(
             self::document(...),
             array_values(array_filter(
-                (array) ($response->getData()['docs'] ?? []),
+                (array) ($response['docs'] ?? []),
                 static fn (array $hit): bool => (bool) ($hit['found'] ?? false),
             )),
         );
