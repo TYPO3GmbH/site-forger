@@ -24,9 +24,9 @@ require __DIR__ . '/.github/actions/t3g/deployer/recipe.php';
 set('php_version', '8.5');
 
 // What the releases share in var: the logs, the locks of the imports and of the schedule, the state of the
-// schedule and the list of the backports. The cache is not shared: each release builds its own before it goes live,
-// see forger:cache_warmup. A shared cache was removed while the live release and the worker wrote to it, and a
-// release could start with the container of the release before.
+// schedule, the sessions and the list of the backports. The cache is not shared: each release builds its own before
+// it goes live, see forger:cache_warmup. A shared cache was removed while the live release and the worker wrote to
+// it, and a release could start with the container of the release before.
 // The Composer scripts of the build write var/cache on the runner, with the paths of the runner. The release builds
 // its cache on the server instead, so the build leaves it out, see forger:cache_warmup.
 set(
@@ -38,6 +38,7 @@ set('shared_dirs', [
     'var/log',
     'var/lock',
     'var/scheduler',
+    'var/sessions',
 ]);
 set('shared_files', [
     '.env.local',
