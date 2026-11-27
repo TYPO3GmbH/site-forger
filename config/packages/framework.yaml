@@ -7,7 +7,17 @@ framework:
     trusted_headers: [ 'x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix' ]
 
     # Note that the session will be started ONLY if you read or write from it.
-    session: true
+    # PHP keeps the sessions in var/sessions, which the releases share (deploy.php). Do not use the default path of
+    # Symfony. It is in var/cache, and each release has its own var/cache.
+    # A session stays 12 hours after the last request. The default of PHP is 24 minutes. The login ends earlier when
+    # Keycloak refuses to refresh the access token. Then AccessTokenRefresher invalidates the session.
+    # PHP removes the old sessions itself, because no cron job of the server cleans var/sessions. The values of the
+    # garbage collection do not depend on the php.ini of the server.
+    session:
+        save_path: '%kernel.project_dir%/var/sessions'
+        gc_maxlifetime: 43200
+        gc_probability: 1
+        gc_divisor: 100
 
     #esi: true
     #fragments: true
